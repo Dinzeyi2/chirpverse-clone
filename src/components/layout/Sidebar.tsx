@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Home, Search, Bell, Mail, User, Bookmark, Settings, PlusCircle, X } from 'lucide-react';
+import { Home, Search, Bell, User, Bookmark, Settings, PlusCircle, X } from 'lucide-react';
 import Button from '@/components/common/Button';
 
 const Sidebar = () => {
@@ -13,7 +12,6 @@ const Sidebar = () => {
     { name: 'Home', icon: Home, href: '/' },
     { name: 'Explore', icon: Search, href: '/explore' },
     { name: 'Notifications', icon: Bell, href: '/notifications' },
-    { name: 'Messages', icon: Mail, href: '/messages' },
     { name: 'Bookmarks', icon: Bookmark, href: '/bookmarks' },
     { name: 'Profile', icon: User, href: '/profile/1' },
     { name: 'Settings', icon: Settings, href: '/settings' },
