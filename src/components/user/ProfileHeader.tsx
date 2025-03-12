@@ -125,22 +125,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
           </div>
         </div>
       </div>
-      
-      {/* Profile Tabs */}
-      <div className="flex border-b border-xExtraLightGray">
-        <button className="flex-1 py-4 font-bold border-b-2 border-xBlue text-center hover:bg-xExtraLightGray/30 transition-colors">
-          Posts
-        </button>
-        <button className="flex-1 py-4 text-xGray text-center hover:bg-xExtraLightGray/30 transition-colors">
-          Replies
-        </button>
-        <button className="flex-1 py-4 text-xGray text-center hover:bg-xExtraLightGray/30 transition-colors">
-          Media
-        </button>
-        <button className="flex-1 py-4 text-xGray text-center hover:bg-xExtraLightGray/30 transition-colors">
-          Likes
-        </button>
-      </div>
     </div>
   );
 };
