@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Heart, Repeat, MessageCircle, Share, MoreHorizontal, CheckCircle } from 'lucide-react';
@@ -27,6 +26,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [isReposted, setIsReposted] = useState(post.reposted || false);
   const [likeCount, setLikeCount] = useState(post.likes);
   const [repostCount, setRepostCount] = useState(post.reposts);
+  const [replyCount, setReplyCount] = useState(post.replies);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   
   const colorIndex = post.id.charCodeAt(0) % cardColors.length;
@@ -68,6 +68,12 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     
     // Implementation would connect to native share API
     toast.success('Share options opened');
+  };
+
+  const handleCommentClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigate(`/post/${post.id}`);
   };
 
   const formatNumber = (num: number): string => {
@@ -161,17 +167,13 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           <div className="flex justify-between items-center mt-3 max-w-md text-xGray">
             <button 
               className="flex items-center group"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                navigate(`/post/${post.id}`);
-              }}
+              onClick={handleCommentClick}
             >
               <div className="p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
                 <MessageCircle size={18} />
               </div>
               <span className="ml-1 text-sm group-hover:text-blue-500">
-                {formatNumber(post.replies)}
+                {formatNumber(replyCount)}
               </span>
             </button>
             
