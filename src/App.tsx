@@ -10,6 +10,7 @@ import Explore from "./pages/Explore";
 import Notifications from "./pages/Notifications";
 import Bookmarks from "./pages/Bookmarks";
 import NotFound from "./pages/NotFound";
+import PostPage from "./pages/PostPage";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/explore" element={<Explore />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/bookmarks" element={<Bookmarks />} />
+          <Route path="/post/:postId" element={<PostPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

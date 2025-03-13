@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Heart, Repeat, MessageCircle, Share, MoreHorizontal, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Post, formatDate } from '@/lib/data';
@@ -7,6 +8,7 @@ import { toast } from 'sonner';
 
 interface PostCardProps {
   post: Post;
+  isDetailView?: boolean;
 }
 
 const cardColors = [
@@ -20,7 +22,8 @@ const cardColors = [
   'bg-[#F1F0FB] border-[#DCDCE8]', // Soft Gray
 ];
 
-const PostCard: React.FC<PostCardProps> = ({ post }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, isDetailView = false }) => {
+  const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(post.liked || false);
   const [isReposted, setIsReposted] = useState(post.reposted || false);
   const [likeCount, setLikeCount] = useState(post.likes);
@@ -74,15 +77,29 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     return num.toString();
   };
 
+  const handleClick = (e: React.MouseEvent) => {
+    if (isDetailView) return;
+    e.preventDefault();
+    navigate(`/post/${post.id}`);
+  };
+
+  const CardWrapper = isDetailView 
+    ? React.Fragment
+    : ({ children }: { children: React.ReactNode }) => (
+        <div 
+          onClick={handleClick}
+          className={cn(
+            'p-4 hover:bg-black/[0.02] transition-colors cursor-pointer block animate-fade-in',
+            'rounded-2xl shadow-md hover:shadow-lg border-2',
+            cardColor
+          )}
+        >
+          {children}
+        </div>
+      );
+
   return (
-    <Link 
-      to={`/post/${post.id}`}
-      className={cn(
-        'p-4 hover:bg-black/[0.02] transition-colors cursor-pointer block animate-fade-in',
-        'rounded-2xl shadow-md hover:shadow-lg border-2',
-        cardColor
-      )}
-    >
+    <CardWrapper>
       <div className="flex">
         <div className="mr-3 flex-shrink-0">
           <Link 
@@ -154,7 +171,13 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                toast.info('Reply to post');
+                if (!isDetailView) {
+                  navigate(`/post/${post.id}`);
+                } else {
+                  // Focus the comment textarea when in detail view
+                  const textarea = document.querySelector('textarea');
+                  if (textarea) textarea.focus();
+                }
               }}
             >
               <div className="p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
@@ -221,7 +244,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           </div>
         </div>
       </div>
-    </Link>
+    </CardWrapper>
   );
 };
 
