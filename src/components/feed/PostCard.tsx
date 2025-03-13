@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, Repeat, MessageCircle, Share, MoreHorizontal, CheckCircle, Bookmark } from 'lucide-react';
+import { Heart, MessageCircle, Share, MoreHorizontal, CheckCircle, Bookmark } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Post, formatDate } from '@/lib/data';
 import { toast } from 'sonner';
@@ -25,10 +25,8 @@ const cardColors = [
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(post.liked || false);
-  const [isReposted, setIsReposted] = useState(post.reposted || false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likes);
-  const [repostCount, setRepostCount] = useState(post.reposts);
   const [replyCount, setReplyCount] = useState(post.replies);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   
@@ -77,19 +75,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       toast.success('You liked a post');
     }
     setIsLiked(!isLiked);
-  };
-
-  const handleRepost = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (isReposted) {
-      setRepostCount(prev => prev - 1);
-    } else {
-      setRepostCount(prev => prev + 1);
-      toast.success('Post reposted to your profile');
-    }
-    setIsReposted(!isReposted);
   };
 
   const handleBookmark = async (e: React.MouseEvent) => {
@@ -238,27 +223,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               </div>
               <span className="ml-1 text-sm group-hover:text-blue-500">
                 {formatNumber(replyCount)}
-              </span>
-            </button>
-            
-            <button 
-              className={cn(
-                "flex items-center group",
-                isReposted && "text-green-500"
-              )}
-              onClick={handleRepost}
-            >
-              <div className={cn(
-                "p-2 rounded-full group-hover:bg-green-50 group-hover:text-green-500 transition-colors",
-                isReposted && "text-green-500"
-              )}>
-                <Repeat size={18} />
-              </div>
-              <span className={cn(
-                "ml-1 text-sm group-hover:text-green-500",
-                isReposted && "text-green-500"
-              )}>
-                {formatNumber(repostCount)}
               </span>
             </button>
             
