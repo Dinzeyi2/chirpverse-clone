@@ -1,97 +1,124 @@
 
-import React, { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
+import CreatePost from '@/components/feed/CreatePost';
 import PostList from '@/components/feed/PostList';
 import SwipeablePostView from '@/components/feed/SwipeablePostView';
-import CreatePost from '@/components/feed/CreatePost';
-import { useAuth } from '@/context/AuthContext';
-import { XIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { posts } from '@/lib/data';
+import { Post, posts, users } from '@/lib/data';
+import { Settings } from 'lucide-react';
 
 const Index = () => {
-  const { user, loading } = useAuth();
-  const navigate = useNavigate();
+  const [feedPosts, setFeedPosts] = useState(posts);
+  const [activeTab, setActiveTab] = useState('for-you');
+  const [feedView, setFeedView] = useState<'swipeable' | 'list'>('swipeable');
+  
+  // Filter posts based on active tab
+  const displayPosts = React.useMemo(() => {
+    if (activeTab === 'for-you') {
+      return feedPosts;
+    } else if (activeTab === 'following') {
+      // Simulate following functionality (showing posts from users with IDs 1, 3, 5)
+      // In a real app, this would filter based on users the current user follows
+      const followedUserIds = ['1', '3', '5'];
+      return feedPosts.filter(post => followedUserIds.includes(post.userId));
+    }
+    return feedPosts;
+  }, [feedPosts, activeTab]);
+  
+  const handlePostCreated = (content: string) => {
+    const newPost = {
+      id: `temp-${Date.now()}`,
+      content,
+      createdAt: new Date().toISOString(),
+      likes: 0,
+      reposts: 0,
+      replies: 0,
+      views: 0,
+      userId: '1', // Use the current user's ID
+      user: {
+        id: '1',
+        name: 'John Doe',
+        username: 'johndoe',
+        avatar: 'https://i.pravatar.cc/150?img=1',
+        followers: 1453,
+        following: 234,
+        verified: true,
+      }
+    };
+    
+    setFeedPosts([newPost, ...feedPosts]);
+  };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-xBlue"></div>
-      </div>
-    );
-  }
-
-  // If user is not authenticated, show landing page
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-white">
-        {/* Landing Header */}
-        <header className="flex justify-between items-center p-4 border-b">
-          <XIcon className="h-8 w-8" />
-          <div className="space-x-2">
-            <Button 
-              variant="outline" 
-              className="rounded-full border-gray-300 text-xBlue hover:bg-xBlue/5 hover:border-gray-300"
-              onClick={() => navigate('/auth')}
-            >
-              Log in
-            </Button>
-            <Button 
-              className="rounded-full bg-black hover:bg-gray-800 text-white"
-              onClick={() => navigate('/auth')}
-            >
-              Sign up
-            </Button>
-          </div>
-        </header>
-
-        {/* Hero Section */}
-        <div className="flex flex-col md:flex-row">
-          <div className="md:w-1/2 flex items-center justify-center p-8 md:p-16">
-            <XIcon className="h-80 w-80 text-xBlue" />
-          </div>
-          <div className="md:w-1/2 p-8 md:p-16 flex flex-col justify-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-10">Happening now</h1>
-            <h2 className="text-2xl md:text-3xl font-bold mb-8">Join today.</h2>
-            <div className="space-y-4 max-w-xs">
-              <Button 
-                className="w-full rounded-full bg-xBlue hover:bg-xBlue/90 text-white"
-                onClick={() => navigate('/auth')}
-              >
-                Create account
-              </Button>
-              <p className="text-sm text-gray-500">
-                By signing up, you agree to the Terms of Service and Privacy Policy, including Cookie Use.
-              </p>
-              <div className="mt-8">
-                <p className="font-bold mb-2">Already have an account?</p>
-                <Button 
-                  variant="outline" 
-                  className="w-full rounded-full border-gray-300 text-xBlue hover:bg-xBlue/5 hover:border-gray-300"
-                  onClick={() => navigate('/auth')}
-                >
-                  Sign in
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // If user is authenticated, show the normal timeline
   return (
     <AppLayout>
-      <div className="border-b border-xExtraLightGray px-4 py-3 sticky top-0 bg-white/80 backdrop-blur-sm z-10">
-        <h1 className="font-bold text-xl">Home</h1>
+      {/* Header */}
+      <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-md">
+        <div className="flex justify-between items-center px-4 py-3">
+          <h1 className="text-xl font-bold">Home</h1>
+          <div className="flex items-center">
+            <button 
+              className="p-2 mr-2 rounded-full hover:bg-xExtraLightGray/50 transition-colors text-xs font-medium"
+              onClick={() => setFeedView(feedView === 'swipeable' ? 'list' : 'swipeable')}
+            >
+              {feedView === 'swipeable' ? 'Switch to List View' : 'Switch to Swipe View'}
+            </button>
+            <button className="p-2 rounded-full hover:bg-xExtraLightGray/50 transition-colors">
+              <Settings size={20} />
+            </button>
+          </div>
+        </div>
+        
+        {/* Tabs */}
+        <div className="flex border-b border-xExtraLightGray">
+          <button
+            className={`flex-1 py-4 font-medium text-center relative ${
+              activeTab === 'for-you' ? 'font-bold' : 'text-xGray'
+            }`}
+            onClick={() => setActiveTab('for-you')}
+          >
+            For you
+            {activeTab === 'for-you' && (
+              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-xBlue rounded-full" />
+            )}
+          </button>
+          <button
+            className={`flex-1 py-4 font-medium text-center relative ${
+              activeTab === 'following' ? 'font-bold' : 'text-xGray'
+            }`}
+            onClick={() => setActiveTab('following')}
+          >
+            Following
+            {activeTab === 'following' && (
+              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-xBlue rounded-full" />
+            )}
+          </button>
+        </div>
       </div>
       
-      <CreatePost />
+      {/* Create Post */}
+      <CreatePost onPostCreated={handlePostCreated} />
       
-      {/* Replace PostList with SwipeablePostView */}
-      <SwipeablePostView posts={posts} />
+      {/* Posts */}
+      {activeTab === 'following' && displayPosts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+          <h2 className="text-2xl font-bold mb-2">Welcome to your timeline!</h2>
+          <p className="text-xGray mb-6 max-w-md">
+            When you follow someone, their posts will show up here. You can discover accounts to follow in the "For you" section.
+          </p>
+          <button 
+            className="bg-xBlue text-white px-6 py-2 rounded-full font-bold hover:bg-xBlue/90 transition-colors"
+            onClick={() => setActiveTab('for-you')}
+          >
+            Discover people to follow
+          </button>
+        </div>
+      ) : (
+        feedView === 'swipeable' ? (
+          <SwipeablePostView posts={displayPosts} />
+        ) : (
+          <PostList posts={displayPosts} />
+        )
+      )}
     </AppLayout>
   );
 };
