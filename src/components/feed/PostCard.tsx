@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, Repeat, MessageCircle, Share, MoreHorizontal, CheckCircle } from 'lucide-react';
+import { Heart, Repeat, MessageCircle, Bookmark, MoreHorizontal, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Post, formatDate } from '@/lib/data';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PostCardProps {
   post: Post;
@@ -24,6 +26,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(post.liked || false);
   const [isReposted, setIsReposted] = useState(post.reposted || false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likes);
   const [repostCount, setRepostCount] = useState(post.reposts);
   const [replyCount, setReplyCount] = useState(post.replies);
@@ -31,6 +34,27 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   
   const colorIndex = post.id.charCodeAt(0) % cardColors.length;
   const cardColor = cardColors[colorIndex];
+
+  // Check if the post is bookmarked when component mounts
+  useEffect(() => {
+    const checkBookmarkStatus = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('bookmarks')
+          .select('*')
+          .eq('post_id', post.id)
+          .single();
+        
+        if (data) {
+          setIsBookmarked(true);
+        }
+      } catch (error) {
+        // Post is not bookmarked, which is fine
+      }
+    };
+
+    checkBookmarkStatus();
+  }, [post.id]);
 
   const handlePostClick = () => {
     navigate(`/post/${post.id}`);
@@ -62,12 +86,38 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     setIsReposted(!isReposted);
   };
 
-  const handleShare = (e: React.MouseEvent) => {
+  const handleBookmark = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    // Implementation would connect to native share API
-    toast.success('Share options opened');
+    if (isBookmarked) {
+      // Remove bookmark
+      const { error } = await supabase
+        .from('bookmarks')
+        .delete()
+        .eq('post_id', post.id);
+      
+      if (error) {
+        toast.error('Failed to remove bookmark');
+        console.error('Error removing bookmark:', error);
+      } else {
+        setIsBookmarked(false);
+        toast.success('Bookmark removed');
+      }
+    } else {
+      // Add bookmark
+      const { error } = await supabase
+        .from('bookmarks')
+        .insert({ post_id: post.id });
+      
+      if (error) {
+        toast.error('Failed to bookmark post');
+        console.error('Error adding bookmark:', error);
+      } else {
+        setIsBookmarked(true);
+        toast.success('Post bookmarked');
+      }
+    }
   };
 
   const handleCommentClick = (e: React.MouseEvent) => {
@@ -220,13 +270,22 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             </button>
             
             <button 
-              className="flex items-center group"
-              onClick={handleShare}
+              className={cn(
+                "flex items-center group",
+                isBookmarked && "text-blue-500"
+              )}
+              onClick={handleBookmark}
             >
-              <div className="p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
-                <Share size={18} />
+              <div className={cn(
+                "p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors",
+                isBookmarked && "text-blue-500"
+              )}>
+                <Bookmark size={18} className={isBookmarked ? "fill-current" : ""} />
               </div>
-              <span className="ml-1 text-sm group-hover:text-blue-500">
+              <span className={cn(
+                "ml-1 text-sm group-hover:text-blue-500",
+                isBookmarked && "text-blue-500"
+              )}>
                 {formatNumber(post.views)}
               </span>
             </button>

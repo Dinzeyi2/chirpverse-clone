@@ -186,6 +186,67 @@ export const posts: Post[] = [
   }
 ];
 
+// Add samplePosts export
+export const samplePosts: Post[] = [
+  {
+    id: '1',
+    user: {
+      id: '1',
+      name: 'Jane Smith',
+      username: 'janesmith',
+      avatar: 'https://i.pravatar.cc/150?img=5',
+      verified: true
+    },
+    content: 'Just launched our new AI feature! Check it out and let me know what you think. #AI #Innovation',
+    createdAt: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
+    likes: 89,
+    replies: 24,
+    reposts: 12,
+    views: 1204,
+    liked: false,
+    reposted: false,
+    userId: '1'
+  },
+  {
+    id: '2',
+    user: {
+      id: '2',
+      name: 'Tech Today',
+      username: 'techtoday',
+      avatar: 'https://i.pravatar.cc/150?img=12',
+      verified: true
+    },
+    content: 'Breaking: New advancements in quantum computing could revolutionize data processing. Scientists predict commercial applications within 5 years.',
+    createdAt: new Date(Date.now() - 18000000).toISOString(), // 5 hours ago
+    likes: 541,
+    replies: 56,
+    reposts: 132,
+    views: 12450,
+    liked: false,
+    reposted: false,
+    userId: '2'
+  },
+  {
+    id: '3',
+    user: {
+      id: '3',
+      name: 'Alex Johnson',
+      username: 'alexj',
+      avatar: 'https://i.pravatar.cc/150?img=3',
+      verified: false
+    },
+    content: 'Just finished reading this amazing article on web development trends for 2023. Highly recommend checking it out! #webdev #coding',
+    createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+    likes: 32,
+    replies: 8,
+    reposts: 4,
+    views: 421,
+    liked: false,
+    reposted: false,
+    userId: '3'
+  }
+];
+
 // Sample comments
 export const comments: Comment[] = [
   {

@@ -1,86 +1,114 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import { Bookmark, Search, MoreHorizontal, Trash2 } from 'lucide-react';
+import { Bookmark, Search, MoreHorizontal, Trash2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-
-// Sample bookmark data - in a real app, this would come from an API
-const sampleBookmarks = [
-  {
-    id: 1,
-    user: {
-      name: 'Jane Smith',
-      username: 'janesmith',
-      avatar: 'https://i.pravatar.cc/150?img=5',
-      verified: true
-    },
-    content: 'Just launched our new AI feature! Check it out and let me know what you think. #AI #Innovation',
-    time: '2h',
-    stats: {
-      replies: 24,
-      reposts: 12,
-      likes: 89,
-      views: 1204
-    }
-  },
-  {
-    id: 2,
-    user: {
-      name: 'Tech Today',
-      username: 'techtoday',
-      avatar: 'https://i.pravatar.cc/150?img=12',
-      verified: true
-    },
-    content: 'Breaking: New advancements in quantum computing could revolutionize data processing. Scientists predict commercial applications within 5 years.',
-    time: '5h',
-    stats: {
-      replies: 56,
-      reposts: 132,
-      likes: 541,
-      views: 12450
-    }
-  },
-  {
-    id: 3,
-    user: {
-      name: 'Alex Johnson',
-      username: 'alexj',
-      avatar: 'https://i.pravatar.cc/150?img=3',
-      verified: false
-    },
-    content: 'Just finished reading this amazing article on web development trends for 2023. Highly recommend checking it out! #webdev #coding',
-    time: '1d',
-    stats: {
-      replies: 8,
-      reposts: 4,
-      likes: 32,
-      views: 421
-    }
-  },
-];
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import PostCard from '@/components/feed/PostCard';
+import { Post } from '@/lib/data';
 
 const Bookmarks = () => {
-  const [bookmarks, setBookmarks] = useState(sampleBookmarks);
+  const [bookmarks, setBookmarks] = useState<Post[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+
+  // Fetch bookmarks from Supabase
+  useEffect(() => {
+    const fetchBookmarks = async () => {
+      setIsLoading(true);
+      try {
+        // Get bookmarked post IDs
+        const { data: bookmarkData, error: bookmarkError } = await supabase
+          .from('bookmarks')
+          .select('post_id');
+        
+        if (bookmarkError) {
+          console.error('Error fetching bookmarks:', bookmarkError);
+          toast.error('Failed to load bookmarks');
+          return;
+        }
+
+        if (!bookmarkData || bookmarkData.length === 0) {
+          setBookmarks([]);
+          setIsLoading(false);
+          return;
+        }
+
+        // Get the post data from the sample data for now
+        // In a real application, you would fetch the actual posts from a posts table
+        const postIds = bookmarkData.map(bookmark => bookmark.post_id);
+        
+        // For demo purposes, we'll use the sampleBookmarks and filter by ID
+        // This would be replaced with a proper Supabase query in a real app
+        import('@/lib/data').then(({ samplePosts }) => {
+          const bookmarkedPosts = samplePosts.filter(post => 
+            postIds.includes(post.id)
+          );
+          setBookmarks(bookmarkedPosts);
+          setIsLoading(false);
+        });
+      } catch (error) {
+        console.error('Error in bookmark fetching:', error);
+        toast.error('An error occurred while loading bookmarks');
+        setIsLoading(false);
+      }
+    };
+
+    fetchBookmarks();
+  }, []);
 
   const filteredBookmarks = searchQuery
     ? bookmarks.filter(bookmark => 
         bookmark.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        bookmark.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        bookmark.user.username.toLowerCase().includes(searchQuery.toLowerCase())
+        bookmark.user?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        bookmark.user?.username.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : bookmarks;
 
-  const removeBookmark = (id: number) => {
-    setBookmarks(bookmarks.filter(bookmark => bookmark.id !== id));
+  const clearAllBookmarks = async () => {
+    try {
+      const { error } = await supabase
+        .from('bookmarks')
+        .delete()
+        .neq('id', 0); // Delete all bookmarks
+      
+      if (error) {
+        toast.error('Failed to clear bookmarks');
+        console.error('Error clearing bookmarks:', error);
+      } else {
+        setBookmarks([]);
+        toast.success('All bookmarks cleared');
+      }
+    } catch (error) {
+      console.error('Error in clearing bookmarks:', error);
+      toast.error('An error occurred while clearing bookmarks');
+    }
   };
 
-  const clearAllBookmarks = () => {
-    setBookmarks([]);
+  const removeBookmark = async (postId: string) => {
+    try {
+      const { error } = await supabase
+        .from('bookmarks')
+        .delete()
+        .eq('post_id', postId);
+      
+      if (error) {
+        toast.error('Failed to remove bookmark');
+        console.error('Error removing bookmark:', error);
+      } else {
+        setBookmarks(bookmarks.filter(bookmark => bookmark.id !== postId));
+        toast.success('Bookmark removed');
+      }
+    } catch (error) {
+      console.error('Error in removing bookmark:', error);
+      toast.error('An error occurred while removing the bookmark');
+    }
   };
 
   return (
@@ -124,66 +152,17 @@ const Bookmarks = () => {
       </div>
       
       {/* Bookmarks list */}
-      <div className="divide-y divide-xExtraLightGray">
-        {filteredBookmarks.length > 0 ? (
-          filteredBookmarks.map((bookmark) => (
-            <div key={bookmark.id} className="p-4 hover:bg-xExtraLightGray/30 transition-colors">
-              <div className="flex">
-                <img 
-                  src={bookmark.user.avatar} 
-                  alt={bookmark.user.name} 
-                  className="w-10 h-10 rounded-full object-cover mr-3"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center">
-                    <span className="font-bold truncate">{bookmark.user.name}</span>
-                    {bookmark.user.verified && (
-                      <span className="ml-0.5 text-xBlue">
-                        <svg viewBox="0 0 24 24" aria-label="Verified account" className="w-4 h-4 fill-current">
-                          <g>
-                            <path d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.26 2.52-.8 3.91c-1.31.67-2.2 1.91-2.2 3.34s.89 2.67 2.2 3.34c-.46 1.39-.21 2.9.8 3.91s2.52 1.26 3.91.81c.67 1.31 1.91 2.19 3.34 2.19s2.68-.88 3.34-2.19c1.39.45 2.9.2 3.91-.81s1.27-2.52.81-3.91c1.31-.67 2.19-1.91 2.19-3.34zm-11.71 4.2L6.8 12.46l1.41-1.42 2.26 2.26 4.8-5.23 1.47 1.36-6.2 6.77z"></path>
-                          </g>
-                        </svg>
-                      </span>
-                    )}
-                    <span className="text-xGray ml-1 truncate">@{bookmark.user.username}</span>
-                    <span className="text-xGray mx-1">·</span>
-                    <span className="text-xGray">{bookmark.time}</span>
-                    <div className="ml-auto">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-xExtraLightGray/50">
-                            <MoreHorizontal size={16} />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => removeBookmark(bookmark.id)} className="text-red-500 focus:text-red-500">
-                            <Trash2 size={16} className="mr-2" />
-                            Remove Bookmark
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                  <p className="mt-1 text-base whitespace-pre-wrap">{bookmark.content}</p>
-                  <div className="flex mt-3 text-xGray justify-between max-w-md">
-                    <div className="flex items-center">
-                      <span className="text-sm">{bookmark.stats.replies}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="text-sm">{bookmark.stats.reposts}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="text-sm">{bookmark.stats.likes}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="text-sm">{bookmark.stats.views}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))
+      <div className="p-4">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-10">
+            <Loader2 className="w-8 h-8 animate-spin text-xBlue" />
+          </div>
+        ) : filteredBookmarks.length > 0 ? (
+          <div className="space-y-4">
+            {filteredBookmarks.map((post) => (
+              <PostCard key={post.id} post={post} />
+            ))}
+          </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
             <Bookmark size={40} className="text-xBlue mb-4" />
