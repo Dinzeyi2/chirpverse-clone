@@ -243,6 +243,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
               </span>
             )}
           </div>
+          <p className="text-xGray">@{profileData.username}</p>
           
           {profileData.bio && <p className="mt-3">{profileData.bio}</p>}
           
