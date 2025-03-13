@@ -11,6 +11,7 @@ import Notifications from "./pages/Notifications";
 import Bookmarks from "./pages/Bookmarks";
 import NotFound from "./pages/NotFound";
 import PostPage from "./pages/PostPage";
+import Auth from "./pages/Auth";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/bookmarks" element={<Bookmarks />} />
           <Route path="/post/:postId" element={<PostPage />} />
+          <Route path="/auth" element={<Auth />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

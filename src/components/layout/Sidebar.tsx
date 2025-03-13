@@ -1,103 +1,126 @@
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { cn } from '@/lib/utils';
-import { Home, Search, Bell, User, Bookmark, Settings, PlusCircle, X } from 'lucide-react';
-import Button from '@/components/common/Button';
+
+import React from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Home, Search, Bell, Bookmark, User, MoreHorizontal, LogOut, LogIn } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
 
 const Sidebar = () => {
   const location = useLocation();
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  
-  const navigation = [
-    { name: 'Home', icon: Home, href: '/' },
-    { name: 'Explore', icon: Search, href: '/explore' },
-    { name: 'Notifications', icon: Bell, href: '/notifications' },
-    { name: 'Bookmarks', icon: Bookmark, href: '/bookmarks' },
-    { name: 'Profile', icon: User, href: '/profile/1' },
-    { name: 'Settings', icon: Settings, href: '/settings' },
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success('You have been signed out');
+      navigate('/auth');
+    } catch (error) {
+      toast.error('Error signing out');
+    }
+  };
+
+  const sidebarItems = [
+    { icon: <Home size={26} />, label: 'Home', path: '/' },
+    { icon: <Search size={26} />, label: 'Explore', path: '/explore' },
+    { icon: <Bell size={26} />, label: 'Notifications', path: '/notifications' },
+    { icon: <Bookmark size={26} />, label: 'Bookmarks', path: '/bookmarks' },
+    { icon: <User size={26} />, label: 'Profile', path: user ? `/profile/${user.id}` : '/auth' },
   ];
 
   return (
-    <div 
-      className={cn(
-        "fixed left-0 top-0 z-40 h-screen transition-all duration-300 ease-in-out bg-background border-r",
-        isCollapsed ? "w-20" : "w-[275px]"
-      )}
-    >
-      <button 
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute right-3 top-3 p-1 rounded-full hover:bg-xExtraLightGray text-xGray hover:text-xDark transition-colors lg:hidden"
-      >
-        <X size={20} />
-      </button>
-      
-      <div className="flex flex-col h-full px-3 py-5">
-        <div className="mb-6 flex justify-center lg:justify-start">
-          <Link to="/" className="text-xBlue p-2 rounded-full hover:bg-xBlue/10 transition-colors">
-            <svg viewBox="0 0 24 24" aria-hidden="true" className="w-8 h-8 fill-current">
-              <g>
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path>
-              </g>
+    <div className="fixed z-50 bottom-0 w-full bg-white md:h-screen md:w-20 lg:w-[275px] md:p-4 lg:p-6 md:pb-8 md:top-0 md:left-0">
+      <div className="grid grid-cols-5 md:grid-cols-1 md:gap-6">
+        {/* X Logo - Desktop */}
+        <div className="hidden md:block">
+          <Link to="/" className="rounded-full p-3 inline-flex hover:bg-gray-200 transition-colors">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-6 w-6"
+            >
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
             </svg>
           </Link>
         </div>
-        
-        <nav className="space-y-1.5">
-          {navigation.map((item) => {
-            const isActive = location.pathname === item.href || 
-              (item.href !== '/' && location.pathname.startsWith(item.href));
-              
-            return (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={cn(
-                  "flex items-center p-3 text-lg font-medium rounded-full transition-colors",
-                  isActive 
-                    ? "font-bold" 
-                    : "text-xDark hover:bg-xExtraLightGray/50",
-                  isCollapsed && "justify-center"
-                )}
-              >
-                <item.icon size={24} className={isActive ? "text-xDark" : "text-xGray"} />
-                {!isCollapsed && <span className="ml-4">{item.name}</span>}
-              </Link>
-            );
-          })}
-        </nav>
-        
-        <div className="mt-auto">
-          <Button 
-            variant="primary"
-            size={isCollapsed ? "icon" : "lg"}
-            className={cn(
-              "w-full font-bold", 
-              isCollapsed ? "p-3" : "px-6 py-3"
-            )}
+
+        {/* Navigation items */}
+        {sidebarItems.map((item) => (
+          <Link
+            key={item.path}
+            to={item.path}
+            className={`
+              flex items-center justify-center md:justify-start 
+              h-14 py-2 md:py-3 md:px-3 md:rounded-full
+              hover:bg-gray-200 transition-colors
+              ${location.pathname === item.path ? 'font-bold' : 'font-normal'}
+            `}
           >
-            {isCollapsed ? (
-              <PlusCircle size={24} />
-            ) : (
-              "Post"
-            )}
-          </Button>
-        </div>
-        
-        <div className="mt-4">
-          <div className="flex items-center p-3 rounded-full hover:bg-xExtraLightGray/50 transition-colors cursor-pointer">
-            <img 
-              src="https://i.pravatar.cc/150?img=1" 
-              alt="Profile" 
-              className="w-10 h-10 rounded-full object-cover"
-            />
-            {!isCollapsed && (
-              <div className="ml-3 overflow-hidden">
-                <p className="font-bold text-sm truncate">John Doe</p>
-                <p className="text-xGray text-sm truncate">@johndoe</p>
-              </div>
-            )}
+            {item.icon}
+            <span className="hidden lg:block ml-4 text-xl">{item.label}</span>
+          </Link>
+        ))}
+
+        {/* Authentication Button */}
+        {user ? (
+          <button
+            onClick={handleSignOut}
+            className="hidden md:flex items-center justify-center md:justify-start 
+            h-14 py-2 md:py-3 md:px-3 md:rounded-full
+            hover:bg-gray-200 transition-colors"
+          >
+            <LogOut size={26} />
+            <span className="hidden lg:block ml-4 text-xl">Sign Out</span>
+          </button>
+        ) : (
+          <Link
+            to="/auth"
+            className="hidden md:flex items-center justify-center md:justify-start 
+            h-14 py-2 md:py-3 md:px-3 md:rounded-full
+            hover:bg-gray-200 transition-colors"
+          >
+            <LogIn size={26} />
+            <span className="hidden lg:block ml-4 text-xl">Sign In</span>
+          </Link>
+        )}
+
+        {/* Tweet Button - Desktop */}
+        {user && (
+          <div className="hidden md:block mt-4">
+            <button className="bg-xBlue text-white w-full py-3 rounded-full hover:bg-opacity-90 transition-colors">
+              <span className="hidden lg:inline">Post</span>
+              <span className="lg:hidden">+</span>
+            </button>
           </div>
-        </div>
+        )}
+
+        {/* User Profile - Desktop */}
+        {user && (
+          <div className="hidden md:flex mt-auto items-center justify-center lg:justify-between p-3 rounded-full hover:bg-gray-200 cursor-pointer">
+            <div className="flex items-center">
+              <div className="h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
+                <img 
+                  src={user.user_metadata?.avatar_url || "https://i.pravatar.cc/150?img=12"} 
+                  alt="Profile" 
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <div className="hidden lg:block ml-3">
+                <p className="font-bold text-sm">{user.user_metadata?.name || "User"}</p>
+                <p className="text-gray-500 text-sm">@{user.email?.split('@')[0]}</p>
+              </div>
+            </div>
+            <MoreHorizontal className="hidden lg:block" size={20} />
+          </div>
+        )}
       </div>
     </div>
   );
