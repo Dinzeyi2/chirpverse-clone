@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Home, Search, Bell, User, Bookmark, Settings, PlusCircle, X, LogOut, LogIn } from 'lucide-react';
@@ -16,12 +15,6 @@ const Sidebar = () => {
   const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
   
   const profilePath = user ? `/profile/${user.id}` : '/auth';
-  
-  useEffect(() => {
-    if (user) {
-      console.log("Current user ID for profile:", user.id);
-    }
-  }, [user]);
   
   const navigation = [
     { name: 'Home', icon: Home, href: '/' },
@@ -45,18 +38,7 @@ const Sidebar = () => {
     setIsPostDialogOpen(false);
   };
 
-  const handleProfileClick = (e) => {
-    if (!user) {
-      e.preventDefault();
-      navigate('/auth');
-      return;
-    }
-    
-    if (profilePath === '/auth') {
-      e.preventDefault();
-      navigate('/auth');
-    }
-  };
+  console.log("Current user ID for profile:", user?.id);
 
   return (
     <div 
@@ -87,27 +69,6 @@ const Sidebar = () => {
           {navigation.map((item) => {
             const isActive = location.pathname === item.href || 
               (item.href !== '/' && location.pathname.startsWith(item.href));
-            
-            // Special handling for Profile link  
-            if (item.name === 'Profile') {
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  onClick={handleProfileClick}
-                  className={cn(
-                    "flex items-center p-3 text-lg font-medium rounded-full transition-colors",
-                    isActive 
-                      ? "font-bold" 
-                      : "text-xDark hover:bg-xExtraLightGray/50",
-                    isCollapsed && "justify-center"
-                  )}
-                >
-                  <item.icon size={24} className={isActive ? "text-xDark" : "text-xGray"} />
-                  {!isCollapsed && <span className="ml-4">{item.name}</span>}
-                </Link>
-              );
-            }
               
             return (
               <Link
