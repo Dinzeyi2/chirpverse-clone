@@ -88,6 +88,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     setFormData({
       name: profileData.name,
       bio: profileData.bio || '',
+      profession: profileData.profession || '',
     });
     setIsDialogOpen(true);
   };

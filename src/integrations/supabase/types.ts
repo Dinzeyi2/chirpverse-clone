@@ -640,6 +640,7 @@ export type Database = {
           open_to_work: boolean | null
           phone: string | null
           portfolio_theme: string | null
+          profession: string | null
           projects: Json | null
           role: string | null
           skills: string[] | null
@@ -668,6 +669,7 @@ export type Database = {
           open_to_work?: boolean | null
           phone?: string | null
           portfolio_theme?: string | null
+          profession?: string | null
           projects?: Json | null
           role?: string | null
           skills?: string[] | null
@@ -696,6 +698,7 @@ export type Database = {
           open_to_work?: boolean | null
           phone?: string | null
           portfolio_theme?: string | null
+          profession?: string | null
           projects?: Json | null
           role?: string | null
           skills?: string[] | null

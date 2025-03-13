@@ -1,3 +1,4 @@
+
 // Sample user data
 export interface User {
   id: string;
@@ -5,6 +6,7 @@ export interface User {
   username: string;
   avatar: string;
   bio?: string;
+  profession?: string;
   following: number;
   followers: number;
   verified?: boolean;
@@ -46,6 +48,7 @@ export const users: User[] = [
     username: 'johndoe',
     avatar: 'https://i.pravatar.cc/150?img=1',
     bio: 'Digital designer and creator. Passionate about design and technology.',
+    profession: 'Digital Designer',
     following: 234,
     followers: 1453,
     verified: true,
@@ -56,6 +59,7 @@ export const users: User[] = [
     username: 'janesmith',
     avatar: 'https://i.pravatar.cc/150?img=5',
     bio: 'Product Designer • UI/UX Enthusiast • Coffee Lover',
+    profession: 'Product Designer',
     following: 178,
     followers: 892,
   },
@@ -65,6 +69,7 @@ export const users: User[] = [
     username: 'alexj',
     avatar: 'https://i.pravatar.cc/150?img=3',
     bio: 'Software engineer. Building things for the web.',
+    profession: 'Software Engineer',
     following: 345,
     followers: 2156,
     verified: true,
@@ -75,6 +80,7 @@ export const users: User[] = [
     username: 'sarahp',
     avatar: 'https://i.pravatar.cc/150?img=9',
     bio: 'Photographer and visual storyteller.',
+    profession: 'Photographer',
     following: 421,
     followers: 3211,
   },
@@ -84,6 +90,7 @@ export const users: User[] = [
     username: 'mikechen',
     avatar: 'https://i.pravatar.cc/150?img=11',
     bio: 'Technology enthusiast and entrepreneur.',
+    profession: 'Tech Entrepreneur',
     following: 156,
     followers: 978,
     verified: true,
