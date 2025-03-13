@@ -14,12 +14,14 @@ const Sidebar = () => {
   const { user, signOut } = useAuth();
   const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
   
+  const profilePath = user ? `/profile/${user.id}` : '/auth';
+  
   const navigation = [
     { name: 'Home', icon: Home, href: '/' },
     { name: 'Explore', icon: Search, href: '/explore' },
     { name: 'Notifications', icon: Bell, href: '/notifications' },
     { name: 'Bookmarks', icon: Bookmark, href: '/bookmarks' },
-    { name: 'Profile', icon: User, href: user ? `/profile/${user.id}` : '/auth' },
+    { name: 'Profile', icon: User, href: profilePath },
     { name: 'Settings', icon: Settings, href: '/settings' },
   ];
 
@@ -35,6 +37,8 @@ const Sidebar = () => {
   const handlePostCreated = (content: string) => {
     setIsPostDialogOpen(false);
   };
+
+  console.log("Current user ID for profile:", user?.id);
 
   return (
     <div 
