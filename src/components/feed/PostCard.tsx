@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile } from 'lucide-react';
@@ -24,7 +23,6 @@ const cardColors = [
   'bg-[#F1F0FB] border-[#DCDCE8]', // Soft Gray
 ];
 
-// Add an interface for the emoji reactions
 interface EmojiReaction {
   emoji: string;
   count: number;
@@ -152,13 +150,10 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     
     const selectedEmoji = emojiData.emoji;
     
-    // Find if this emoji already exists in reactions
     const existingReaction = reactions.find(reaction => reaction.emoji === selectedEmoji);
     
     if (existingReaction) {
-      // Toggle the reaction
       if (existingReaction.reacted) {
-        // Remove the reaction
         setReactions(prev => 
           prev.map(r => 
             r.emoji === selectedEmoji 
@@ -168,7 +163,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         );
         toast.success(`Removed ${selectedEmoji} reaction`);
       } else {
-        // Add the reaction
         setReactions(prev => 
           prev.map(r => 
             r.emoji === selectedEmoji 
@@ -179,7 +173,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         toast.success(`Added ${selectedEmoji} reaction`);
       }
     } else {
-      // Add new reaction
       setReactions(prev => [...prev, { emoji: selectedEmoji, count: 1, reacted: true }]);
       toast.success(`Added ${selectedEmoji} reaction`);
     }
@@ -191,7 +184,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     e.preventDefault();
     e.stopPropagation();
     
-    // Toggle the reaction
     setReactions(prev => 
       prev.map(r => 
         r.emoji === emoji 
@@ -288,7 +280,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             </div>
           )}
           
-          {/* Display emoji reactions if any */}
           {reactions.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-3">
               {reactions.map((reaction, index) => (
@@ -310,7 +301,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           )}
           
           <div className="flex justify-between items-center mt-3 max-w-md text-xGray gap-4">
-            {/* Emoji reaction button */}
             <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
               <PopoverTrigger asChild>
                 <button 
@@ -326,7 +316,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                 className="p-0 border-none shadow-xl"
                 side="top"
                 onPointerDownOutside={(e) => {
-                  // Prevent closing when clicking inside the emoji picker
                   if (e.target instanceof HTMLElement && 
                       (e.target.closest('.emoji-picker-react') || 
                        e.target.classList.contains('emoji-picker-react'))) {
@@ -348,15 +337,14 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               <button 
                 className="flex items-center group"
                 onClick={handleCommentClick}
+                aria-label={`${replyCount} replies`}
               >
                 <div className="p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
                   <MessageCircle size={18} />
                 </div>
-                {replyCount > 0 && (
-                  <span className="ml-1 text-sm group-hover:text-blue-500">
-                    {formatNumber(replyCount)}
-                  </span>
-                )}
+                <span className="ml-1 text-sm group-hover:text-blue-500">
+                  {formatNumber(replyCount)}
+                </span>
               </button>
               
               <button 
