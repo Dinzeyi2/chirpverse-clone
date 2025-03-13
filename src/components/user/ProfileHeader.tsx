@@ -2,12 +2,20 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, MapPin, Link as LinkIcon, CheckCircle } from 'lucide-react';
-import Button from '@/components/common/Button';
+import { Button } from '@/components/ui/button';
 import { User } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
 
 interface ProfileHeaderProps {
   user: User;
@@ -18,6 +26,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
   const navigate = useNavigate();
   const [isFollowing, setIsFollowing] = useState(false);
   const { user: authUser } = useAuth();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   const handleFollow = async () => {
     if (!authUser) {
@@ -77,6 +86,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
     navigate(-1);
   };
 
+  const handleEditProfile = () => {
+    setIsDialogOpen(true);
+  };
+
   return (
     <div className="animate-fade-in">
       {/* Header with back button */}
@@ -113,7 +126,11 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
           {/* Action Button */}
           <div className="mt-4">
             {isCurrentUser ? (
-              <Button variant="outline" onClick={() => toast.info('Edit profile dialog would open here')}>
+              <Button
+                variant="outline"
+                onClick={handleEditProfile}
+                className="font-bold text-sm rounded-full px-4 py-1.5 h-9 bg-background hover:bg-black/5 dark:hover:bg-white/10 border border-gray-300 dark:border-gray-700 transition-colors"
+              >
                 Edit profile
               </Button>
             ) : (
@@ -121,6 +138,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
                 variant={isFollowing ? 'outline' : 'primary'}
                 onClick={handleFollow}
                 className={cn(
+                  "rounded-full font-bold",
                   isFollowing && "hover:bg-pink-50 hover:text-pink-600 hover:border-pink-200"
                 )}
               >
@@ -173,6 +191,42 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
           </div>
         </div>
       </div>
+
+      {/* Profile Edit Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit profile</DialogTitle>
+            <DialogDescription>
+              Make changes to your profile information.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            {/* Profile edit form would go here */}
+            <p className="text-sm text-muted-foreground">
+              This dialog would contain fields for updating your profile information.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsDialogOpen(false)}
+              className="rounded-full"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                toast.success("Profile updated successfully");
+                setIsDialogOpen(false);
+              }}
+              className="rounded-full"
+            >
+              Save changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
