@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Heart, MessageCircle, Bookmark, MoreHorizontal, CheckCircle } from 'lucide-react';
@@ -48,7 +47,8 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const getPostUUID = () => {
     // Convert the post.id to a consistent UUID format
     // Use existing post ID as seed if possible
-    const seed = typeof post.id === 'string' ? post.id : post.id.toString();
+    const postId = post.id;
+    const seed = typeof postId === 'string' ? postId : String(postId);
     // This is a deterministic way to generate a UUID from post ID
     // It will always produce the same UUID for the same post ID
     return `00000000-0000-4000-a000-000000000${seed.padStart(3, '0')}`.substring(0, 36);
