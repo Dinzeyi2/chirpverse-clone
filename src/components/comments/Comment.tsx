@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Save, MoreHorizontal, CheckCircle, Smile } from 'lucide-react';
+import { Bookmark, MoreHorizontal, CheckCircle, Smile } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Comment as CommentType, formatDate } from '@/lib/data';
 import { toast } from 'sonner';
@@ -244,7 +245,7 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
                 "p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors",
                 savedToBookmarks && "text-blue-500"
               )}>
-                <Save size={18} className={savedToBookmarks ? "fill-current" : ""} />
+                <Bookmark size={18} className={savedToBookmarks ? "fill-current" : ""} />
               </div>
             </button>
           </div>
