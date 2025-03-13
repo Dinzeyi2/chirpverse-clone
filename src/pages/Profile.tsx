@@ -59,16 +59,16 @@ const Profile = () => {
             }
           }
         } else {
-          // Profile found in Supabase
+          // Profile found in Supabase - map Supabase profile fields to our component's expected format
           setProfileData({
             id: profile.id,
-            name: profile.full_name || profile.username,
-            username: profile.username,
-            bio: profile.bio || '',
+            name: profile.full_name || 'User',
+            username: profile.user_id?.substring(0, 8) || 'user',  // Use part of user_id as username if not available
+            bio: profile.description || '',
             avatar: profile.avatar_url || 'https://i.pravatar.cc/150?img=1',
-            verified: profile.is_verified || false,
-            followers: profile.followers_count || 0,
-            following: profile.following_count || 0
+            verified: false, // Default to false as we don't have this field
+            followers: 0,    // Default to 0 as we don't have this field yet
+            following: 0     // Default to 0 as we don't have this field yet
           });
         }
       } catch (err) {
