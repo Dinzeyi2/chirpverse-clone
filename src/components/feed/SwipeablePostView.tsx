@@ -1,9 +1,7 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import PostCard from './PostCard';
 import { Post } from '@/lib/data';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface SwipeablePostViewProps {
@@ -56,10 +54,6 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
       setTimeout(() => {
         setCurrentIndex(currentIndex - 1);
       }, 150);
-      
-      toast.info('Previous post');
-    } else {
-      toast.info('You reached the beginning of your feed');
     }
   };
 
@@ -73,10 +67,6 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
       setTimeout(() => {
         setCurrentIndex(currentIndex + 1);
       }, 150);
-      
-      toast.info('Next post');
-    } else {
-      toast.info('You reached the end of your feed');
     }
   };
 

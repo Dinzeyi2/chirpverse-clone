@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, Repeat, MessageCircle, Share, MoreHorizontal, CheckCircle } from 'lucide-react';
@@ -10,12 +9,26 @@ interface PostCardProps {
   post: Post;
 }
 
+const cardColors = [
+  'bg-[#F2FCE2] border-[#D9E6C4]', // Soft Green
+  'bg-[#FEF7CD] border-[#E8E0B0]', // Soft Yellow
+  'bg-[#FEC6A1] border-[#E5B491]', // Soft Orange
+  'bg-[#E5DEFF] border-[#CEC6E6]', // Soft Purple
+  'bg-[#FFDEE2] border-[#E6C9CC]', // Soft Pink
+  'bg-[#FDE1D3] border-[#E5CCBE]', // Soft Peach
+  'bg-[#D3E4FD] border-[#BED0E8]', // Soft Blue
+  'bg-[#F1F0FB] border-[#DCDCE8]', // Soft Gray
+];
+
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [isLiked, setIsLiked] = useState(post.liked || false);
   const [isReposted, setIsReposted] = useState(post.reposted || false);
   const [likeCount, setLikeCount] = useState(post.likes);
   const [repostCount, setRepostCount] = useState(post.reposts);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  
+  const colorIndex = post.id.charCodeAt(0) % cardColors.length;
+  const cardColor = cardColors[colorIndex];
 
   const handleLike = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -64,10 +77,13 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   return (
     <Link 
       to={`/post/${post.id}`}
-      className="border-b border-xExtraLightGray p-4 hover:bg-black/[0.02] transition-colors cursor-pointer block animate-fade-in rounded-xl shadow-sm hover:shadow-md"
+      className={cn(
+        'p-4 hover:bg-black/[0.02] transition-colors cursor-pointer block animate-fade-in',
+        'rounded-2xl shadow-md hover:shadow-lg border-2',
+        cardColor
+      )}
     >
       <div className="flex">
-        {/* Avatar */}
         <div className="mr-3 flex-shrink-0">
           <Link 
             to={`/profile/${post.userId}`} 
@@ -82,9 +98,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           </Link>
         </div>
         
-        {/* Content */}
         <div className="flex-1 min-w-0">
-          {/* Post Header */}
           <div className="flex items-center mb-1">
             <Link 
               to={`/profile/${post.userId}`}
@@ -116,12 +130,10 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             </button>
           </div>
           
-          {/* Post Content */}
           <div className="mb-3">
             <p className="whitespace-pre-line">{post.content}</p>
           </div>
           
-          {/* Post Image */}
           {post.images && post.images.length > 0 && (
             <div className="mt-2 mb-3 rounded-2xl overflow-hidden">
               <img 
@@ -136,7 +148,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             </div>
           )}
           
-          {/* Post Actions */}
           <div className="flex justify-between items-center mt-3 max-w-md text-xGray">
             <button 
               className="flex items-center group"
