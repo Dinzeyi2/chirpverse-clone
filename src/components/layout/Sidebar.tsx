@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -34,7 +33,6 @@ const Sidebar = () => {
   };
 
   const handlePostCreated = (content: string) => {
-    // Close the dialog after post is created
     setIsPostDialogOpen(false);
   };
 
@@ -130,10 +128,8 @@ const Sidebar = () => {
                   )}
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[600px] p-0">
-                <div className="p-4">
-                  <CreatePost onPostCreated={handlePostCreated} />
-                </div>
+              <DialogContent className="sm:max-w-[600px] p-0 rounded-2xl bg-background border-0">
+                <CreatePost onPostCreated={handlePostCreated} inDialog={true} />
               </DialogContent>
             </Dialog>
           )}

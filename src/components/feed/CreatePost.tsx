@@ -81,39 +81,59 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   };
 
   return (
-    <div className={inDialog ? '' : 'px-4 pt-4 pb-2 border-b border-xExtraLightGray'}>
+    <div className={inDialog ? 'bg-background' : 'px-4 pt-4 pb-2 border-b border-xExtraLightGray'}>
       {inDialog && (
-        <div className="flex items-center mb-4">
+        <div className="flex items-center justify-between p-4 border-b border-xExtraLightGray">
           <DialogClose className="p-2 rounded-full hover:bg-xExtraLightGray/50">
             <X size={20} />
           </DialogClose>
+          {postContent.length > 0 && (
+            <div className="absolute right-4">
+              <span className="text-xBlue font-semibold">Drafts</span>
+            </div>
+          )}
         </div>
       )}
       
-      <div className="flex">
+      <div className="flex p-4">
         <div className="mr-3">
           <img 
             src="https://i.pravatar.cc/150?img=1" 
             alt="Your avatar" 
-            className="w-12 h-12 rounded-full object-cover"
+            className="w-10 h-10 rounded-full object-cover"
           />
         </div>
         
         <div className="flex-1">
           <form onSubmit={handleSubmit}>
-            <div className="mb-3">
+            <div className="mb-4">
               <textarea
                 ref={textareaRef}
-                className="w-full border-none text-xl focus:ring-0 resize-none placeholder:text-xGray/70 min-h-[80px] bg-transparent"
+                className="w-full border-none text-xl focus:ring-0 resize-none placeholder:text-xGray/70 min-h-[120px] bg-transparent outline-none"
                 placeholder="What's happening?"
                 value={postContent}
                 onChange={handleTextChange}
-                rows={1}
+                rows={3}
                 disabled={isLoading}
               />
             </div>
             
-            {/* Post Actions */}
+            {inDialog && (
+              <div className="py-3 border-t border-xExtraLightGray">
+                <button
+                  type="button"
+                  className="text-xBlue text-sm font-medium flex items-center hover:bg-xBlue/10 rounded-full px-3 py-1"
+                >
+                  <span className="text-xBlue mr-1">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                      <g><path d="M12 1.75C6.34 1.75 1.75 6.34 1.75 12S6.34 22.25 12 22.25 22.25 17.66 22.25 12 17.66 1.75 12 1.75zm-.25 10.48L10.5 17.5l-2-1.5v-3.5L7.5 9 10.25 7.5h1.5V19l-1 1-1-1V10.48zm5-1.5L15.5 9v2.5h-2.5l-.15 .03 2.9 3.47 1-1.5v-3.5z"></path></g>
+                    </svg>
+                  </span>
+                  Everyone can reply
+                </button>
+              </div>
+            )}
+            
             <div className="flex items-center justify-between">
               <div className="flex -ml-2">
                 <button 
@@ -170,6 +190,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                   type="submit"
                   disabled={!postContent.trim() || isLoading}
                   isLoading={isLoading}
+                  className="rounded-full px-4"
                 >
                   Post
                 </Button>
