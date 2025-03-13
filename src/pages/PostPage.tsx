@@ -26,7 +26,7 @@ const PostPage: React.FC = () => {
     }
   }, [postId]);
   
-  const handleCommentAdded = (content: string) => {
+  const handleCommentAdded = (content: string, media?: {type: string, url: string}[]) => {
     // Create a new comment
     const newComment: CommentType = {
       id: `temp-${Date.now()}`,
@@ -35,6 +35,7 @@ const PostPage: React.FC = () => {
       userId: '1', // Current user ID (hardcoded for demo)
       postId: postId || '',
       likes: 0,
+      media: media || [],
       user: {
         id: '1',
         name: 'John Doe',
