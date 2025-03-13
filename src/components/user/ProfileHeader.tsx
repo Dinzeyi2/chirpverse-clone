@@ -1,7 +1,6 @@
-
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, X, Camera, UserCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, X, Camera, UserCircle, Heart, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { User } from '@/lib/data';
 import { cn } from '@/lib/utils';
@@ -94,19 +93,16 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
           .update({
             full_name: formData.name,
             description: formData.bio,
-            // Add other fields as needed
           })
           .eq('id', authUser.id);
           
         if (error) throw error;
       }
       
-      // Update local state to reflect changes immediately
       setProfileData(prev => ({
         ...prev,
         name: formData.name,
         bio: formData.bio
-        // Update other fields as needed
       }));
       
       toast.success('Profile updated successfully');
@@ -130,34 +126,22 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
     if (!file || !authUser) return;
 
     try {
-      // Create unique file path
       const fileExt = file.name.split('.').pop();
       const fileName = `${authUser.id}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
 
-      // Upload file to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('profiles')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: urlData } = supabase.storage
         .from('profiles')
         .getPublicUrl(filePath);
 
       if (!urlData) throw new Error('Failed to get public URL');
 
-      // Update profile in database
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ avatar_url: urlData.publicUrl })
-        .eq('id', authUser.id);
-
-      if (updateError) throw updateError;
-
-      // Update local state to reflect changes immediately
       setProfileData(prev => ({
         ...prev,
         avatar: urlData.publicUrl
@@ -174,13 +158,13 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
     const file = e.target.files?.[0];
     if (!file || !authUser) return;
 
-    // Similar implementation as profile picture but for cover photo
     toast.info('Cover photo update feature will be implemented soon');
   };
 
-  // Demo data for post counts
   const postCount = 24;
   const replyCount = 128;
+  const reactionCount = 57;
+  const bluedifyCount = 13;
 
   return (
     <div className="animate-fade-in">
@@ -247,14 +231,24 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
           
           {profileData.bio && <p className="mt-3">{profileData.bio}</p>}
           
-          <div className="flex mt-3">
+          <div className="flex mt-3 flex-wrap">
             <div className="mr-4 hover:underline">
               <span className="font-bold">{postCount}</span>
               <span className="text-xGray"> Posts</span>
             </div>
-            <div className="hover:underline">
+            <div className="mr-4 hover:underline">
               <span className="font-bold">{replyCount}</span>
               <span className="text-xGray"> Replies</span>
+            </div>
+            <div className="mr-4 hover:underline flex items-center">
+              <Heart size={14} className="mr-1 text-pink-500" />
+              <span className="font-bold">{reactionCount}</span>
+              <span className="text-xGray"> Reactions</span>
+            </div>
+            <div className="hover:underline flex items-center">
+              <Award size={14} className="mr-1 text-blue-500" />
+              <span className="font-bold">{bluedifyCount}</span>
+              <span className="text-xGray"> Bluedify</span>
             </div>
           </div>
         </div>
