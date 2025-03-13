@@ -135,7 +135,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
               </Button>
             ) : (
               <Button
-                variant={isFollowing ? 'outline' : 'primary'}
+                variant={isFollowing ? 'outline' : 'default'}
                 onClick={handleFollow}
                 className={cn(
                   "rounded-full font-bold",
