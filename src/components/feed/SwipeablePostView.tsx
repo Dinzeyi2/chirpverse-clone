@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import PostCard from './PostCard';
 import { Post } from '@/lib/data';
@@ -19,7 +18,6 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   const [isAnimating, setIsAnimating] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Check if device is mobile based on screen width
   useEffect(() => {
     const checkIsMobile = () => {
       setIsMobile(window.innerWidth <= 768);
@@ -33,45 +31,39 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     };
   }, []);
 
-  // Reset animation state after animation completes
   useEffect(() => {
     if (isAnimating) {
       const timer = setTimeout(() => {
         setIsAnimating(false);
         setSwipeDirection(null);
-      }, 300); // Match this with the CSS animation duration
+      }, 300);
       
       return () => clearTimeout(timer);
     }
   }, [isAnimating]);
 
-  // Handle navigation to previous post
   const goToPrevious = () => {
     if (currentIndex > 0) {
       setSwipeDirection('right');
       setIsAnimating(true);
       
-      // Slight delay to let animation start before changing index
       setTimeout(() => {
         setCurrentIndex(currentIndex - 1);
       }, 150);
     }
   };
 
-  // Handle navigation to next post
   const goToNext = () => {
     if (currentIndex < posts.length - 1) {
       setSwipeDirection('left');
       setIsAnimating(true);
       
-      // Slight delay to let animation start before changing index
       setTimeout(() => {
         setCurrentIndex(currentIndex + 1);
       }, 150);
     }
   };
 
-  // Touch event handlers for swiping
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStart(e.targetTouches[0].clientX);
     setTouchEnd(null);
@@ -100,7 +92,6 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     setTouchEnd(null);
   };
 
-  // Mouse drag for desktop
   const handleMouseDown = (e: React.MouseEvent) => {
     setTouchStart(e.clientX);
     
@@ -172,7 +163,6 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
 
   return (
     <div className="relative pb-16" ref={containerRef}>
-      {/* Current Post */}
       <div 
         className="w-full overflow-y-auto max-h-[calc(100vh-200px)] px-2"
         onTouchStart={handleTouchStart}
@@ -194,7 +184,6 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
             )}>
               <PostCard post={posts[currentIndex]} />
               
-              {/* Mobile indicator text */}
               {isMobile && (
                 <div className="text-center text-xGray text-sm py-2">
                   Swipe to navigate • {currentIndex + 1} of {posts.length}
@@ -205,34 +194,30 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
         </div>
       </div>
 
-      {/* Navigation for desktop */}
       {!isMobile && (
         <>
-          {/* Left navigation arrow */}
           <button 
             onClick={goToPrevious}
             disabled={currentIndex === 0}
             className={cn(
-              "absolute top-1/2 left-3 transform -translate-y-1/2 p-3 rounded-full bg-black/10 text-black hover:bg-black/20 transition-all z-10",
+              "absolute top-1/2 left-3 transform -translate-y-1/2 p-3 rounded-full bg-black/10 text-white hover:bg-black/20 transition-all z-10",
               currentIndex === 0 ? "opacity-30 cursor-not-allowed" : "opacity-70 hover:opacity-100"
             )}
           >
-            <ChevronLeft size={24} />
+            <ChevronLeft size={24} className="text-white" />
           </button>
 
-          {/* Right navigation arrow */}
           <button
             onClick={goToNext}
             disabled={currentIndex === posts.length - 1}
             className={cn(
-              "absolute top-1/2 right-3 transform -translate-y-1/2 p-3 rounded-full bg-black/10 text-black hover:bg-black/20 transition-all z-10",
+              "absolute top-1/2 right-3 transform -translate-y-1/2 p-3 rounded-full bg-black/10 text-white hover:bg-black/20 transition-all z-10",
               currentIndex === posts.length - 1 ? "opacity-30 cursor-not-allowed" : "opacity-70 hover:opacity-100"
             )}
           >
-            <ChevronRight size={24} />
+            <ChevronRight size={24} className="text-white" />
           </button>
 
-          {/* Post counter indicator */}
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/20 text-white px-3 py-1 rounded-full text-sm">
             {currentIndex + 1} / {posts.length}
           </div>
