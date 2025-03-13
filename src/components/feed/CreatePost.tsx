@@ -1,20 +1,29 @@
 
-import React, { useState, useRef } from 'react';
-import { Image, Smile, MapPin, Calendar, BarChart } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Image, Smile, MapPin, Calendar, BarChart, X } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { toast } from 'sonner';
+import { DialogClose } from '@/components/ui/dialog';
 
 interface CreatePostProps {
   onPostCreated?: (content: string) => void;
+  inDialog?: boolean;
 }
 
-const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
+const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false }) => {
   const [postContent, setPostContent] = useState('');
   const [charCount, setCharCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   const maxChars = 280;
+  
+  useEffect(() => {
+    // Auto-focus the textarea when opened in a dialog
+    if (inDialog && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [inDialog]);
   
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const text = e.target.value;
@@ -72,7 +81,15 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
   };
 
   return (
-    <div className="px-4 pt-4 pb-2 border-b border-xExtraLightGray">
+    <div className={inDialog ? '' : 'px-4 pt-4 pb-2 border-b border-xExtraLightGray'}>
+      {inDialog && (
+        <div className="flex items-center mb-4">
+          <DialogClose className="p-2 rounded-full hover:bg-xExtraLightGray/50">
+            <X size={20} />
+          </DialogClose>
+        </div>
+      )}
+      
       <div className="flex">
         <div className="mr-3">
           <img 

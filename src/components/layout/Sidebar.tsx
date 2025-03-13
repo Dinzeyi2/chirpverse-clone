@@ -5,12 +5,15 @@ import { cn } from '@/lib/utils';
 import { Home, Search, Bell, User, Bookmark, Settings, PlusCircle, X, LogOut, LogIn } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { useAuth } from '@/contexts/AuthContext';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import CreatePost from '@/components/feed/CreatePost';
 
 const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { user, signOut } = useAuth();
+  const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
   
   const navigation = [
     { name: 'Home', icon: Home, href: '/' },
@@ -28,6 +31,11 @@ const Sidebar = () => {
 
   const handleSignIn = () => {
     navigate('/auth');
+  };
+
+  const handlePostCreated = (content: string) => {
+    // Close the dialog after post is created
+    setIsPostDialogOpen(false);
   };
 
   return (
@@ -105,20 +113,29 @@ const Sidebar = () => {
         
         <div className="mt-auto">
           {user && (
-            <Button 
-              variant="primary"
-              size={isCollapsed ? "icon" : "lg"}
-              className={cn(
-                "w-full font-bold", 
-                isCollapsed ? "p-3" : "px-6 py-3"
-              )}
-            >
-              {isCollapsed ? (
-                <PlusCircle size={24} />
-              ) : (
-                "Post"
-              )}
-            </Button>
+            <Dialog open={isPostDialogOpen} onOpenChange={setIsPostDialogOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="primary"
+                  size={isCollapsed ? "icon" : "lg"}
+                  className={cn(
+                    "w-full font-bold", 
+                    isCollapsed ? "p-3" : "px-6 py-3"
+                  )}
+                >
+                  {isCollapsed ? (
+                    <PlusCircle size={24} />
+                  ) : (
+                    "Post"
+                  )}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[600px] p-0">
+                <div className="p-4">
+                  <CreatePost onPostCreated={handlePostCreated} />
+                </div>
+              </DialogContent>
+            </Dialog>
           )}
         </div>
         
