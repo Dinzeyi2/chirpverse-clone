@@ -3,61 +3,229 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
-import { getPostById, getCommentsByPostId, Comment as CommentType } from '@/lib/data';
 import CommentList from '@/components/comments/CommentList';
 import CommentForm from '@/components/comments/CommentForm';
 import PostCard from '@/components/feed/PostCard';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 const PostPage: React.FC = () => {
   const { postId } = useParams<{ postId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   
-  const [post, setPost] = useState(postId ? getPostById(postId) : undefined);
-  const [comments, setComments] = useState<CommentType[]>([]);
+  const [post, setPost] = useState<any>(null);
+  const [comments, setComments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   
+  // Fetch post and comments
   useEffect(() => {
-    if (postId) {
-      // Simulate API call to fetch post and comments
-      const fetchedPost = getPostById(postId);
-      if (fetchedPost) {
-        setPost(fetchedPost);
-        setComments(getCommentsByPostId(postId));
-      }
-    }
-  }, [postId]);
-  
-  const handleCommentAdded = (content: string, media?: {type: string, url: string}[]) => {
-    // Create a new comment
-    const newComment: CommentType = {
-      id: `temp-${Date.now()}`,
-      content,
-      createdAt: new Date().toISOString(),
-      userId: '1', // Current user ID (hardcoded for demo)
-      postId: postId || '',
-      likes: 0,
-      media: media || [],
-      user: {
-        id: '1',
-        name: 'John Doe',
-        username: 'johndoe',
-        avatar: 'https://i.pravatar.cc/150?img=1',
-        followers: 1453,
-        following: 234,
-        verified: true,
+    const fetchPostAndComments = async () => {
+      if (!postId) return;
+      
+      try {
+        setLoading(true);
+        
+        // Fetch the post
+        const { data: postData, error: postError } = await supabase
+          .from('shoutouts')
+          .select(`
+            *,
+            profiles:user_id (*)
+          `)
+          .eq('id', postId)
+          .single();
+          
+        if (postError) {
+          console.error('Error fetching post:', postError);
+          return;
+        }
+        
+        if (postData) {
+          // Format the post to match our PostCard component expectations
+          const formattedPost = {
+            id: postData.id,
+            content: postData.content,
+            createdAt: postData.created_at,
+            likes: 0, // We'll calculate this separately
+            reposts: 0,
+            replies: 0,
+            views: 0,
+            userId: postData.user_id,
+            images: postData.media,
+            user: {
+              id: postData.profiles.id,
+              name: postData.profiles.full_name || 'User',
+              username: postData.profiles.user_id?.substring(0, 8) || 'user',
+              avatar: postData.profiles.avatar_url || 'https://i.pravatar.cc/150?img=1',
+              verified: false,
+              followers: 0,
+              following: 0,
+            }
+          };
+          
+          setPost(formattedPost);
+          
+          // Fetch post stats (likes, comments, etc.)
+          const [likesResponse, commentsCountResponse] = await Promise.all([
+            supabase.from('likes').select('*', { count: 'exact' }).eq('shoutout_id', postId),
+            supabase.from('comments').select('*', { count: 'exact' }).eq('shoutout_id', postId)
+          ]);
+          
+          const likesCount = likesResponse.count || 0;
+          const commentsCount = commentsCountResponse.count || 0;
+          
+          // Update post with stats
+          setPost(prev => ({
+            ...prev,
+            likes: likesCount,
+            replies: commentsCount
+          }));
+          
+          // Fetch comments
+          const { data: commentsData, error: commentsError } = await supabase
+            .from('comments')
+            .select(`
+              *,
+              profiles:user_id (*)
+            `)
+            .eq('shoutout_id', postId)
+            .order('created_at', { ascending: false });
+            
+          if (commentsError) {
+            console.error('Error fetching comments:', commentsError);
+          } else if (commentsData) {
+            // Format comments
+            const formattedComments = commentsData.map(comment => ({
+              id: comment.id,
+              content: comment.content,
+              createdAt: comment.created_at,
+              userId: comment.user_id,
+              postId: comment.shoutout_id,
+              likes: 0,
+              media: comment.media || [],
+              user: {
+                id: comment.profiles.id,
+                name: comment.profiles.full_name || 'User',
+                username: comment.profiles.user_id?.substring(0, 8) || 'user',
+                avatar: comment.profiles.avatar_url || 'https://i.pravatar.cc/150?img=1',
+                verified: false,
+                followers: 0,
+                following: 0,
+              }
+            }));
+            
+            setComments(formattedComments);
+          }
+        }
+      } catch (error) {
+        console.error('Error in fetchPostAndComments:', error);
+        toast.error('Failed to load post');
+      } finally {
+        setLoading(false);
       }
     };
     
-    // Add the comment to the list
-    setComments([newComment, ...comments]);
+    fetchPostAndComments();
+  }, [postId]);
+  
+  const handleCommentAdded = async (content: string, media?: {type: string, url: string}[]) => {
+    if (!user || !postId) return;
     
-    // Update the post reply count if post exists
-    if (post) {
-      setPost({
-        ...post,
-        replies: post.replies + 1
-      });
+    try {
+      // Create a new comment in the database
+      const { data, error } = await supabase
+        .from('comments')
+        .insert({
+          content,
+          user_id: user.id,
+          shoutout_id: postId,
+          media: media || null
+        })
+        .select(`
+          *,
+          profiles:user_id (*)
+        `)
+        .single();
+        
+      if (error) throw error;
+      
+      if (data) {
+        // Format the new comment
+        const newComment = {
+          id: data.id,
+          content: data.content,
+          createdAt: data.created_at,
+          userId: data.user_id,
+          postId: data.shoutout_id,
+          likes: 0,
+          media: data.media || [],
+          user: {
+            id: data.profiles.id,
+            name: data.profiles.full_name || 'User',
+            username: data.profiles.user_id?.substring(0, 8) || 'user',
+            avatar: data.profiles.avatar_url || 'https://i.pravatar.cc/150?img=1',
+            verified: false,
+            followers: 0,
+            following: 0,
+          }
+        };
+        
+        // Add the comment to the list
+        setComments(prevComments => [newComment, ...prevComments]);
+        
+        // Update the post reply count
+        setPost(prevPost => ({
+          ...prevPost,
+          replies: (prevPost?.replies || 0) + 1
+        }));
+        
+        toast.success('Comment added successfully');
+      }
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      toast.error('Failed to add comment');
     }
   };
+  
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="p-4">
+          <div className="flex items-center">
+            <button 
+              onClick={() => navigate(-1)}
+              className="p-2 rounded-full hover:bg-xExtraLightGray/50 transition-colors mr-4"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <h1 className="text-xl font-bold">Post</h1>
+          </div>
+          <div className="py-10 flex justify-center">
+            <div className="animate-pulse w-full max-w-2xl">
+              <div className="flex space-x-4">
+                <div className="rounded-full bg-gray-200 h-12 w-12"></div>
+                <div className="flex-1 space-y-4 py-1">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="space-y-2">
+                    <div className="h-4 bg-gray-200 rounded"></div>
+                    <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                  </div>
+                  <div className="h-40 bg-gray-200 rounded"></div>
+                  <div className="flex justify-between">
+                    <div className="h-4 bg-gray-200 rounded w-1/5"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/5"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/5"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
   
   if (!post) {
     return (
@@ -102,19 +270,21 @@ const PostPage: React.FC = () => {
       </div>
       
       {/* Comment Form */}
-      <CommentForm 
-        postId={post.id} 
-        currentUser={{
-          id: '1',
-          name: 'John Doe',
-          username: 'johndoe',
-          avatar: 'https://i.pravatar.cc/150?img=1',
-          followers: 1453,
-          following: 234,
-          verified: true,
-        }}
-        onCommentAdded={handleCommentAdded}
-      />
+      {user && (
+        <CommentForm 
+          postId={post.id} 
+          currentUser={{
+            id: user.id,
+            name: user.user_metadata?.full_name || 'User',
+            username: user.user_metadata?.username || user.id.substring(0, 8),
+            avatar: 'https://i.pravatar.cc/150?img=1',
+            followers: 0,
+            following: 0,
+            verified: false,
+          }}
+          onCommentAdded={handleCommentAdded}
+        />
+      )}
       
       {/* Comments */}
       <CommentList comments={comments} />
