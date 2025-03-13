@@ -12,7 +12,7 @@ const Index = () => {
   const [feedPosts, setFeedPosts] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('for-you');
   const [feedView, setFeedView] = useState<'swipeable' | 'list'>('swipeable');
-  const { user } = useAuth();
+  const { user, username } = useAuth();
   const [loading, setLoading] = useState(true);
   
   // Fetch all posts for the feed
@@ -33,26 +33,36 @@ const Index = () => {
         }
         
         if (data) {
-          const formattedPosts = data.map(post => ({
-            id: post.id,
-            content: post.content,
-            createdAt: post.created_at,
-            likes: 0,
-            reposts: 0,
-            replies: 0,
-            views: 0,
-            userId: post.user_id,
-            images: post.media,
-            user: {
-              id: post.profiles.id,
-              name: post.profiles.full_name || 'User',
-              username: post.profiles.username || post.user_id.substring(0, 8) || 'user',
-              avatar: post.profiles.avatar_url || 'https://i.pravatar.cc/150?img=1',
-              verified: false,
-              followers: 0,
-              following: 0,
-            }
-          }));
+          const formattedPosts = data.map(post => {
+            // Get username from user metadata or provide a fallback
+            const userMetadata = post.profiles.user_id ? 
+              supabase.auth.admin.getUserById(post.profiles.user_id) : null;
+            
+            const usernameToUse = username || 
+              post.profiles.user_id?.substring(0, 8) || 
+              'user';
+            
+            return {
+              id: post.id,
+              content: post.content,
+              createdAt: post.created_at,
+              likes: 0,
+              reposts: 0,
+              replies: 0,
+              views: 0,
+              userId: post.user_id,
+              images: post.media,
+              user: {
+                id: post.profiles.id,
+                name: post.profiles.full_name || 'User',
+                username: usernameToUse,
+                avatar: post.profiles.avatar_url || 'https://i.pravatar.cc/150?img=1',
+                verified: false,
+                followers: 0,
+                following: 0,
+              }
+            };
+          });
           
           setFeedPosts(formattedPosts);
         }
@@ -87,6 +97,11 @@ const Index = () => {
             
           if (error || !data) return;
           
+          // Get username from user metadata or provide a fallback
+          const usernameToUse = username || 
+            data.profiles.user_id?.substring(0, 8) || 
+            'user';
+          
           const newPost = {
             id: data.id,
             content: data.content,
@@ -100,7 +115,7 @@ const Index = () => {
             user: {
               id: data.profiles.id,
               name: data.profiles.full_name || 'User',
-              username: data.profiles.username || data.user_id.substring(0, 8) || 'user',
+              username: usernameToUse,
               avatar: data.profiles.avatar_url || 'https://i.pravatar.cc/150?img=1',
               verified: false,
               followers: 0,
@@ -116,7 +131,7 @@ const Index = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [username]); // Add username as a dependency
   
   // Filter posts based on active tab
   const displayPosts = React.useMemo(() => {

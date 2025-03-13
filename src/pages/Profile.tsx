@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
@@ -12,7 +11,7 @@ import { toast } from 'sonner';
 const Profile = () => {
   const { userId } = useParams<{ userId: string }>();
   const [activeTab, setActiveTab] = useState("posts");
-  const { user } = useAuth();
+  const { user, username } = useAuth();
   const [profileData, setProfileData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [userPosts, setUserPosts] = useState<any[]>([]);
@@ -120,10 +119,15 @@ const Profile = () => {
           }
           
           if (isCurrentUser && user) {
+            const usernameToUse = username || 
+              user.user_metadata?.username || 
+              user.id?.substring(0, 8) || 
+              'user';
+              
             setProfileData({
               id: user.id,
               name: user.user_metadata?.full_name || 'User',
-              username: user.user_metadata?.username || 'user',
+              username: usernameToUse,
               bio: '',
               profession: '',
               avatar: 'https://i.pravatar.cc/150?img=1',
@@ -135,10 +139,15 @@ const Profile = () => {
             setProfileData(null);
           }
         } else {
+          // Get username from user metadata if available
+          const usernameToUse = isCurrentUser ? 
+            (username || profile.user_id?.substring(0, 8) || 'user') : 
+            profile.user_id?.substring(0, 8) || 'user';
+            
           setProfileData({
             id: profile.id,
             name: profile.full_name || 'User',
-            username: profile.username || profile.user_id?.substring(0, 8) || 'user',
+            username: usernameToUse,
             bio: profile.description || '',
             profession: profile.profession || '',
             avatar: profile.avatar_url || 'https://i.pravatar.cc/150?img=1',
@@ -156,9 +165,8 @@ const Profile = () => {
     };
     
     fetchProfileData();
-  }, [userId, user, isCurrentUser, navigate]);
+  }, [userId, user, isCurrentUser, navigate, username]);
 
-  // Fetch user posts
   useEffect(() => {
     const fetchUserPosts = async () => {
       if (!userId) return;
@@ -178,26 +186,33 @@ const Profile = () => {
         }
         
         if (data) {
-          const formattedPosts = data.map(post => ({
-            id: post.id,
-            content: post.content,
-            createdAt: post.created_at,
-            likes: 0,
-            reposts: 0,
-            replies: 0,
-            views: 0,
-            userId: post.user_id,
-            images: post.media,
-            user: {
-              id: post.profiles.id,
-              name: post.profiles.full_name || 'User',
-              username: post.profiles.username || post.user_id.substring(0, 8) || 'user',
-              avatar: post.profiles.avatar_url || 'https://i.pravatar.cc/150?img=1',
-              verified: false,
-              followers: 0,
-              following: 0,
-            }
-          }));
+          const formattedPosts = data.map(post => {
+            // Get username from context or provide a fallback
+            const usernameToUse = isCurrentUser ? 
+              (username || post.user_id.substring(0, 8) || 'user') : 
+              post.user_id.substring(0, 8) || 'user';
+              
+            return {
+              id: post.id,
+              content: post.content,
+              createdAt: post.created_at,
+              likes: 0,
+              reposts: 0,
+              replies: 0,
+              views: 0,
+              userId: post.user_id,
+              images: post.media,
+              user: {
+                id: post.profiles.id,
+                name: post.profiles.full_name || 'User',
+                username: usernameToUse,
+                avatar: post.profiles.avatar_url || 'https://i.pravatar.cc/150?img=1',
+                verified: false,
+                followers: 0,
+                following: 0,
+              }
+            };
+          });
           
           setUserPosts(formattedPosts);
         }
@@ -207,7 +222,7 @@ const Profile = () => {
     };
     
     fetchUserPosts();
-  }, [userId]);
+  }, [userId, isCurrentUser, username]);
 
   useEffect(() => {
     if (!userId) return;

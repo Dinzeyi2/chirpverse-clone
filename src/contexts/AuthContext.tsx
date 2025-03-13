@@ -11,6 +11,7 @@ type AuthContextType = {
   signUp: (email: string, password: string, name: string, username: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   loading: boolean;
+  username: string | null;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,12 +20,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [username, setUsername] = useState<string | null>(null);
 
   useEffect(() => {
     // Check for active session on initial load
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      
+      // Extract username from user metadata
+      if (session?.user) {
+        const userMeta = session.user.user_metadata;
+        setUsername(userMeta?.username || userMeta?.preferred_username || null);
+      }
+      
       setLoading(false);
     });
 
@@ -32,6 +41,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+      
+      // Extract username from user metadata
+      if (session?.user) {
+        const userMeta = session.user.user_metadata;
+        setUsername(userMeta?.username || userMeta?.preferred_username || null);
+      } else {
+        setUsername(null);
+      }
+      
       setLoading(false);
     });
 
@@ -89,7 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, signIn, signUp, signOut, loading }}>
+    <AuthContext.Provider value={{ session, user, signIn, signUp, signOut, loading, username }}>
       {children}
     </AuthContext.Provider>
   );
