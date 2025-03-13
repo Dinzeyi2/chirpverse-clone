@@ -17,6 +17,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface ProfileHeaderProps {
   user: User;
@@ -183,7 +184,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto p-0 overflow-hidden rounded-2xl border-none">
+        <DialogContent className="sm:max-w-[650px] p-0 border-none rounded-2xl">
           <div className="flex justify-between items-center p-4 border-b">
             <div className="flex items-center">
               <DialogClose className="mr-4 p-2 rounded-full hover:bg-xExtraLightGray/50 transition-colors">
@@ -199,76 +200,80 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
             </Button>
           </div>
           
-          <div className="h-48 bg-xExtraLightGray relative">
-            <div className="h-full w-full bg-gradient-to-br from-xBlue/20 to-purple-500/20"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <button className="p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors text-white">
-                <Camera size={20} />
-              </button>
-            </div>
-          </div>
-          
-          <div className="px-4 relative">
-            <div className="relative -mt-16 mb-6">
-              <img
-                src={user.avatar}
-                alt={user.name}
-                className="w-32 h-32 rounded-full object-cover border-4 border-background"
-              />
+          <ScrollArea className="max-h-[70vh]">
+            <div className="h-48 bg-xExtraLightGray relative">
+              <div className="h-full w-full bg-gradient-to-br from-xBlue/20 to-purple-500/20"></div>
               <div className="absolute inset-0 flex items-center justify-center">
-                <button className="p-3 rounded-full bg-black/50 hover:bg-black/70 transition-colors text-white" aria-label="Change profile picture">
-                  <Camera size={24} />
-                  <span className="sr-only">Change profile picture</span>
+                <button className="p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors text-white">
+                  <Camera size={20} />
                 </button>
               </div>
             </div>
-          </div>
-          
-          <div className="p-4 space-y-4">
-            <div className="space-y-1">
-              <Label htmlFor="name" className="text-xGray text-sm">Name</Label>
-              <Input 
-                id="name" 
-                name="name" 
-                value={formData.name} 
-                onChange={handleChange}
-                className="border-none bg-xExtraLightGray/50 focus-visible:ring-xBlue"
-              />
+            
+            <div className="px-4 relative">
+              <div className="relative -mt-16 mb-6">
+                <img
+                  src={user.avatar}
+                  alt={user.name}
+                  className="w-32 h-32 rounded-full object-cover border-4 border-background"
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <button 
+                    className="p-3 rounded-full bg-black/50 hover:bg-black/70 transition-colors text-white" 
+                    aria-label="Change profile picture"
+                  >
+                    <Camera size={24} />
+                  </button>
+                </div>
+              </div>
             </div>
             
-            <div className="space-y-1">
-              <Label htmlFor="bio" className="text-xGray text-sm">Bio</Label>
-              <Textarea 
-                id="bio" 
-                name="bio" 
-                value={formData.bio} 
-                onChange={handleChange}
-                className="border-none bg-xExtraLightGray/50 focus-visible:ring-xBlue resize-none h-24"
-              />
+            <div className="p-4 space-y-4">
+              <div className="space-y-1">
+                <Label htmlFor="name" className="text-xGray text-sm">Name</Label>
+                <Input 
+                  id="name" 
+                  name="name" 
+                  value={formData.name} 
+                  onChange={handleChange}
+                  className="border-none bg-xExtraLightGray/50 focus-visible:ring-xBlue"
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label htmlFor="bio" className="text-xGray text-sm">Bio</Label>
+                <Textarea 
+                  id="bio" 
+                  name="bio" 
+                  value={formData.bio} 
+                  onChange={handleChange}
+                  className="border-none bg-xExtraLightGray/50 focus-visible:ring-xBlue resize-none h-24"
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label htmlFor="location" className="text-xGray text-sm">Location</Label>
+                <Input 
+                  id="location" 
+                  name="location" 
+                  value={formData.location} 
+                  onChange={handleChange}
+                  className="border-none bg-xExtraLightGray/50 focus-visible:ring-xBlue"
+                />
+              </div>
+              
+              <div className="space-y-1 mb-6">
+                <Label htmlFor="website" className="text-xGray text-sm">Website</Label>
+                <Input 
+                  id="website" 
+                  name="website" 
+                  value={formData.website} 
+                  onChange={handleChange}
+                  className="border-none bg-xExtraLightGray/50 focus-visible:ring-xBlue"
+                />
+              </div>
             </div>
-            
-            <div className="space-y-1">
-              <Label htmlFor="location" className="text-xGray text-sm">Location</Label>
-              <Input 
-                id="location" 
-                name="location" 
-                value={formData.location} 
-                onChange={handleChange}
-                className="border-none bg-xExtraLightGray/50 focus-visible:ring-xBlue"
-              />
-            </div>
-            
-            <div className="space-y-1 mb-6">
-              <Label htmlFor="website" className="text-xGray text-sm">Website</Label>
-              <Input 
-                id="website" 
-                name="website" 
-                value={formData.website} 
-                onChange={handleChange}
-                className="border-none bg-xExtraLightGray/50 focus-visible:ring-xBlue"
-              />
-            </div>
-          </div>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </div>
