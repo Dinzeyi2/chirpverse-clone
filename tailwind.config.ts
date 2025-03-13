@@ -1,8 +1,7 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
-	darkMode: ["class"],
+	darkMode: "class",
 	content: [
 		"./pages/**/*.{ts,tsx}",
 		"./components/**/*.{ts,tsx}",
@@ -63,13 +62,23 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Custom X/Twitter clone colors
-				xBlue: '#1DA1F2',
-				xDark: '#14171A',
-				xGray: '#657786',
-				xLightGray: '#AAB8C2',
-				xExtraLightGray: '#E1E8ED',
-				xWhite: '#F5F8FA',
+				// Custom X/Twitter clone colors for dark mode
+				xDark: {
+					DEFAULT: '#15202B',
+					darker: '#14171A',
+					lighter: '#192734'
+				},
+				xBlack: '#000000',
+				xGray: {
+					DEFAULT: '#AAB8C2',
+					dark: '#657786',
+					light: '#E1E8ED'
+				},
+				xBlue: {
+					DEFAULT: '#1DA1F2',
+					dark: '#1A91DA'
+				},
+				xWhite: '#FFFFFF',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

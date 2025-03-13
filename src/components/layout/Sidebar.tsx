@@ -53,13 +53,13 @@ const Sidebar = () => {
   return (
     <div 
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen transition-all duration-300 ease-in-out bg-background border-r",
+        "fixed left-0 top-0 z-40 h-screen transition-all duration-300 ease-in-out bg-background border-r border-border",
         isCollapsed ? "w-20" : "w-[275px]"
       )}
     >
       <button 
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute right-3 top-3 p-1 rounded-full hover:bg-xExtraLightGray text-xGray hover:text-xDark transition-colors lg:hidden"
+        className="absolute right-3 top-3 p-1 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors lg:hidden"
       >
         <X size={20} />
       </button>
@@ -90,11 +90,11 @@ const Sidebar = () => {
                     "flex items-center p-3 text-lg font-medium rounded-full transition-colors cursor-pointer",
                     isActive 
                       ? "font-bold" 
-                      : "text-xDark hover:bg-xExtraLightGray/50",
+                      : "text-foreground hover:bg-secondary/70",
                     isCollapsed && "justify-center"
                   )}
                 >
-                  <item.icon size={24} className={isActive ? "text-xDark" : "text-xGray"} />
+                  <item.icon size={24} className={isActive ? "text-foreground" : "text-muted-foreground"} />
                   {!isCollapsed && <span className="ml-4">{item.name}</span>}
                 </a>
               );
@@ -108,11 +108,11 @@ const Sidebar = () => {
                   "flex items-center p-3 text-lg font-medium rounded-full transition-colors",
                   isActive 
                     ? "font-bold" 
-                    : "text-xDark hover:bg-xExtraLightGray/50",
+                    : "text-foreground hover:bg-secondary/70",
                   isCollapsed && "justify-center"
                 )}
               >
-                <item.icon size={24} className={isActive ? "text-xDark" : "text-xGray"} />
+                <item.icon size={24} className={isActive ? "text-foreground" : "text-muted-foreground"} />
                 {!isCollapsed && <span className="ml-4">{item.name}</span>}
               </Link>
             );
@@ -122,22 +122,22 @@ const Sidebar = () => {
             <button
               onClick={handleSignOut}
               className={cn(
-                "flex items-center p-3 text-lg font-medium rounded-full transition-colors text-xDark hover:bg-xExtraLightGray/50",
+                "flex items-center p-3 text-lg font-medium rounded-full transition-colors text-foreground hover:bg-secondary/70",
                 isCollapsed && "justify-center w-full"
               )}
             >
-              <LogOut size={24} className="text-xGray" />
+              <LogOut size={24} className="text-muted-foreground" />
               {!isCollapsed && <span className="ml-4">Sign out</span>}
             </button>
           ) : (
             <button
               onClick={handleSignIn}
               className={cn(
-                "flex items-center p-3 text-lg font-medium rounded-full transition-colors text-xDark hover:bg-xExtraLightGray/50",
+                "flex items-center p-3 text-lg font-medium rounded-full transition-colors text-foreground hover:bg-secondary/70",
                 isCollapsed && "justify-center w-full"
               )}
             >
-              <LogIn size={24} className="text-xGray" />
+              <LogIn size={24} className="text-muted-foreground" />
               {!isCollapsed && <span className="ml-4">Sign in</span>}
             </button>
           )}
@@ -162,7 +162,7 @@ const Sidebar = () => {
                   )}
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[600px] p-0 rounded-2xl bg-background border-0">
+              <DialogContent className="sm:max-w-[600px] p-0 rounded-2xl bg-background border-border">
                 <CreatePost onPostCreated={handlePostCreated} inDialog={true} />
               </DialogContent>
             </Dialog>
@@ -173,7 +173,7 @@ const Sidebar = () => {
           <div className="mt-4">
             <div 
               onClick={handleProfileClick}
-              className="flex items-center p-3 rounded-full hover:bg-xExtraLightGray/50 transition-colors cursor-pointer"
+              className="flex items-center p-3 rounded-full hover:bg-secondary/70 transition-colors cursor-pointer"
             >
               <img 
                 src="https://i.pravatar.cc/150?img=1" 
@@ -183,7 +183,7 @@ const Sidebar = () => {
               {!isCollapsed && (
                 <div className="ml-3 overflow-hidden">
                   <p className="font-bold text-sm truncate">{user.user_metadata?.full_name || 'User'}</p>
-                  <p className="text-xGray text-sm truncate">@{user.user_metadata?.username || user.email}</p>
+                  <p className="text-muted-foreground text-sm truncate">@{user.user_metadata?.username || user.email}</p>
                 </div>
               )}
             </div>

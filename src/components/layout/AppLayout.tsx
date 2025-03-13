@@ -29,7 +29,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background dark">
       {/* Sidebar Navigation */}
       <Sidebar />
       
@@ -37,7 +37,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       <div className="flex justify-center">
         <div 
           className={cn(
-            "w-full max-w-[600px] min-h-screen border-r border-xExtraLightGray",
+            "w-full max-w-[600px] min-h-screen border-r border-border",
             "ml-[275px] lg:ml-[275px]"
           )}
         >
@@ -54,7 +54,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
               </div>
               <input
                 type="text"
-                className="bg-xExtraLightGray/70 h-12 pl-10 pr-4 py-2 w-full rounded-full border-none focus:ring-2 focus:ring-xBlue focus:bg-background transition-all"
+                className="bg-secondary h-12 pl-10 pr-4 py-2 w-full rounded-full border-none focus:ring-2 focus:ring-xBlue focus:bg-secondary transition-all"
                 placeholder="Search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -63,7 +63,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           </div>
           
           {/* Trending Topics */}
-          <div className="bg-xExtraLightGray/30 rounded-2xl p-4 mb-4">
+          <div className="bg-secondary/50 rounded-2xl p-4 mb-4">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold">Trends for you</h2>
               <button className="text-xBlue hover:bg-xBlue/10 p-2 rounded-full transition-colors">
@@ -73,9 +73,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             <div className="space-y-6">
               {trendingTopics.map((topic) => (
                 <div key={topic.id} className="group cursor-pointer">
-                  <p className="text-xGray text-xs">{topic.category}</p>
+                  <p className="text-muted-foreground text-xs">{topic.category}</p>
                   <p className="font-bold group-hover:text-xBlue transition-colors">{topic.name}</p>
-                  <p className="text-xGray text-sm">{topic.posts} posts</p>
+                  <p className="text-muted-foreground text-sm">{topic.posts} posts</p>
                 </div>
               ))}
             </div>
@@ -85,7 +85,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           </div>
           
           {/* Who to Follow */}
-          <div className="bg-xExtraLightGray/30 rounded-2xl p-4">
+          <div className="bg-secondary/50 rounded-2xl p-4">
             <h2 className="text-xl font-bold mb-6">Who to follow</h2>
             <div className="space-y-4">
               {whoToFollow.map((user) => (
@@ -98,10 +98,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                     />
                     <div>
                       <p className="font-bold hover:underline truncate">{user.name}</p>
-                      <p className="text-xGray text-sm truncate">@{user.username}</p>
+                      <p className="text-muted-foreground text-sm truncate">@{user.username}</p>
                     </div>
                   </div>
-                  <button className="bg-xDark text-white text-sm font-bold px-4 py-1.5 rounded-full hover:bg-opacity-90 transition-colors">
+                  <button className="bg-foreground text-background text-sm font-bold px-4 py-1.5 rounded-full hover:bg-opacity-90 transition-colors">
                     Follow
                   </button>
                 </div>
@@ -113,7 +113,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           </div>
           
           {/* Footer */}
-          <div className="mt-4 text-xs text-xGray space-x-2">
+          <div className="mt-4 text-xs text-muted-foreground space-x-2">
             <a href="#" className="hover:underline">Terms of Service</a>
             <a href="#" className="hover:underline">Privacy Policy</a>
             <a href="#" className="hover:underline">Cookie Policy</a>
