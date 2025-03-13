@@ -1,4 +1,3 @@
-
 // Sample user data
 export interface User {
   id: string;
@@ -38,6 +37,7 @@ export interface Comment {
   likes: number;
   user?: User;
   liked?: boolean;
+  media?: {type: string, url: string}[];
 }
 
 // Sample users

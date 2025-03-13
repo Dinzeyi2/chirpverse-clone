@@ -89,6 +89,31 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
             <p className="whitespace-pre-line text-sm">{comment.content}</p>
           </div>
           
+          {/* Render media if available */}
+          {comment.media && comment.media.length > 0 && (
+            <div className="mt-2 mb-3 relative">
+              <div className={`grid ${comment.media.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-2 rounded-lg overflow-hidden`}>
+                {comment.media.map((media, index) => (
+                  <div key={index} className="relative rounded-lg overflow-hidden">
+                    {media.type === 'image' ? (
+                      <img 
+                        src={media.url} 
+                        alt={`Media ${index}`}
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                    ) : (
+                      <video 
+                        src={media.url} 
+                        className="w-full h-48 object-cover rounded-lg" 
+                        controls
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
           <div className="flex items-center mt-2 text-xGray">
             <button 
               className={cn(
