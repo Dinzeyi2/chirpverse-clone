@@ -12,16 +12,7 @@ interface PostCardProps {
   post: Post;
 }
 
-const cardColors = [
-  'bg-[#F2FCE2] border-[#D9E6C4]', // Soft Green
-  'bg-[#FEF7CD] border-[#E8E0B0]', // Soft Yellow
-  'bg-[#FEC6A1] border-[#E5B491]', // Soft Orange
-  'bg-[#E5DEFF] border-[#CEC6E6]', // Soft Purple
-  'bg-[#FFDEE2] border-[#E6C9CC]', // Soft Pink
-  'bg-[#FDE1D3] border-[#E5CCBE]', // Soft Peach
-  'bg-[#D3E4FD] border-[#BED0E8]', // Soft Blue
-  'bg-[#F1F0FB] border-[#DCDCE8]', // Soft Gray
-];
+const darkCardColor = 'bg-black border-xBorder hover:bg-xSecondary';
 
 interface EmojiReaction {
   emoji: string;
@@ -38,9 +29,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [reactions, setReactions] = useState<EmojiReaction[]>([]);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
-  
-  const colorIndex = post.id.charCodeAt(0) % cardColors.length;
-  const cardColor = cardColors[colorIndex];
 
   const getPostId = (postId: string): string => {
     return String(postId);
@@ -248,9 +236,9 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     <div 
       onClick={handlePostClick}
       className={cn(
-        'p-4 hover:bg-black/[0.02] transition-colors cursor-pointer block animate-fade-in',
-        'rounded-2xl shadow-md hover:shadow-lg border-2',
-        cardColor
+        'p-4 transition-colors cursor-pointer block animate-fade-in',
+        'rounded-none shadow-none border-b',
+        darkCardColor
       )}
     >
       <div className="flex">
@@ -284,7 +272,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             
             {post.user?.verified && (
               <span className="text-xBlue mr-1">
-                <CheckCircle size={16} className="fill-xBlue text-white" />
+                <CheckCircle size={16} className="fill-xBlue text-black" />
               </span>
             )}
             
@@ -331,8 +319,8 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                   className={cn(
                     "flex items-center gap-1 px-2 py-1 rounded-full text-sm border transition-colors",
                     reaction.reacted 
-                      ? "bg-blue-50 border-blue-200 text-blue-600" 
-                      : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                      ? "bg-xBlue/10 border-xBlue/20 text-xBlue" 
+                      : "bg-xSecondary border-xBorder text-gray-300 hover:bg-xSecondary/80"
                   )}
                 >
                   <span>{reaction.emoji}</span>
@@ -349,7 +337,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                   className="flex items-center group"
                   onClick={handleEmojiPickerOpen}
                 >
-                  <div className="p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
+                  <div className="p-2 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors">
                     <Smile size={18} />
                   </div>
                 </button>
@@ -371,6 +359,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                   skinTonesDisabled
                   width={300}
                   height={400}
+                  theme="dark"
                 />
               </PopoverContent>
             </Popover>
@@ -381,10 +370,10 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                 onClick={handleCommentClick}
                 aria-label={`${replyCount} replies`}
               >
-                <div className="p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
+                <div className="p-2 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors">
                   <MessageCircle size={18} />
                 </div>
-                <span className="ml-1 text-sm group-hover:text-blue-500">
+                <span className="ml-1 text-sm group-hover:text-xBlue">
                   {formatNumber(replyCount)}
                 </span>
               </button>
@@ -392,13 +381,13 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               <button 
                 className={cn(
                   "flex items-center group",
-                  isBookmarked && "text-blue-500"
+                  isBookmarked && "text-xBlue"
                 )}
                 onClick={handleBookmark}
               >
                 <div className={cn(
-                  "p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors",
-                  isBookmarked && "text-blue-500"
+                  "p-2 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors",
+                  isBookmarked && "text-xBlue"
                 )}>
                   <Bookmark size={18} className={isBookmarked ? "fill-current" : ""} />
                 </div>
