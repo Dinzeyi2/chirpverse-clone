@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, MapPin, Link as LinkIcon, CheckCircle, X, Camera, UserCircle } from 'lucide-react';
@@ -247,21 +246,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
           <p className="text-xGray">@{profileData.username}</p>
           
           {profileData.bio && <p className="mt-3">{profileData.bio}</p>}
-          
-          <div className="flex flex-wrap mt-3 text-xGray">
-            <div className="flex items-center mr-4 mb-2">
-              <MapPin size={18} className="mr-1" />
-              <span>San Francisco, CA</span>
-            </div>
-            <div className="flex items-center mr-4 mb-2">
-              <LinkIcon size={18} className="mr-1" />
-              <a href="#" className="text-xBlue hover:underline">example.com</a>
-            </div>
-            <div className="flex items-center mr-4 mb-2">
-              <Calendar size={18} className="mr-1" />
-              <span>Joined June 2023</span>
-            </div>
-          </div>
           
           <div className="flex mt-3">
             <Link to={`/profile/${profileData.id}/following`} className="mr-4 hover:underline">
