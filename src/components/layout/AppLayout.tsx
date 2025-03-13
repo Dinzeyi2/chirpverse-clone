@@ -37,7 +37,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       <div className="flex justify-center">
         <div 
           className={cn(
-            "w-full max-w-[600px] min-h-screen border-l border-r border-xExtraLightGray",
+            "w-full max-w-[600px] min-h-screen border-r border-xExtraLightGray",
             "ml-[275px] lg:ml-[275px]"
           )}
         >
