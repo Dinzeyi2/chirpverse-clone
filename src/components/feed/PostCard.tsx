@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile } from 'lucide-react';
@@ -360,7 +359,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                   skinTonesDisabled
                   width={300}
                   height={400}
-                  theme="dark" as Theme
+                  theme={"dark" as Theme}
                 />
               </PopoverContent>
             </Popover>
