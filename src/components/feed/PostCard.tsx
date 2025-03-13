@@ -37,17 +37,18 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   useEffect(() => {
     const checkBookmarkStatus = async () => {
       try {
+        // We're not using .single() here to avoid error if no bookmark exists
         const { data, error } = await supabase
           .from('bookmarks')
           .select('*')
-          .eq('post_id', post.id)
-          .single();
+          .eq('post_id', post.id.toString());
         
-        if (data) {
+        if (data && data.length > 0) {
           setIsBookmarked(true);
         }
       } catch (error) {
         // Post is not bookmarked, which is fine
+        console.log('Error checking bookmark status:', error);
       }
     };
 
@@ -76,12 +77,16 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     e.stopPropagation();
     
     try {
+      // Get current user
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id || 'anonymous';
+      
       if (isBookmarked) {
-        // Remove bookmark
+        // Remove bookmark - ensure we use post_id as string
         const { error } = await supabase
           .from('bookmarks')
           .delete()
-          .eq('post_id', post.id);
+          .eq('post_id', post.id.toString());
         
         if (error) {
           toast.error('Failed to remove bookmark');
@@ -91,14 +96,11 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           toast.success('Bookmark removed');
         }
       } else {
-        // Add bookmark
-        const { data: userData } = await supabase.auth.getUser();
-        const userId = userData.user?.id || 'anonymous';
-        
+        // Add bookmark - ensure post_id is stored as string
         const { error } = await supabase
           .from('bookmarks')
           .insert({ 
-            post_id: post.id,
+            post_id: post.id.toString(),
             user_id: userId
           });
         
