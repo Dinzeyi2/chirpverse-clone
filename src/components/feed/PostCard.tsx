@@ -1,11 +1,12 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark } from 'lucide-react';
+import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Post, formatDate } from '@/lib/data';
 import { toast } from 'sonner';
 import { supabase } from "@/integrations/supabase/client";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 
 interface PostCardProps {
   post: Post;
@@ -22,6 +23,13 @@ const cardColors = [
   'bg-[#F1F0FB] border-[#DCDCE8]', // Soft Gray
 ];
 
+// Add an interface for the emoji reactions
+interface EmojiReaction {
+  emoji: string;
+  count: number;
+  reacted: boolean;
+}
+
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(post.liked || false);
@@ -29,6 +37,8 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [likeCount, setLikeCount] = useState(post.likes);
   const [replyCount, setReplyCount] = useState(post.replies);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [reactions, setReactions] = useState<EmojiReaction[]>([]);
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   
   const colorIndex = post.id.charCodeAt(0) % cardColors.length;
   const cardColor = cardColors[colorIndex];
@@ -129,6 +139,76 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     return num.toString();
   };
 
+  const handleEmojiPickerOpen = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEmojiPickerOpen(!emojiPickerOpen);
+  };
+
+  const handleEmojiSelect = (emojiData: EmojiClickData, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const selectedEmoji = emojiData.emoji;
+    
+    // Find if this emoji already exists in reactions
+    const existingReaction = reactions.find(reaction => reaction.emoji === selectedEmoji);
+    
+    if (existingReaction) {
+      // Toggle the reaction
+      if (existingReaction.reacted) {
+        // Remove the reaction
+        setReactions(prev => 
+          prev.map(r => 
+            r.emoji === selectedEmoji 
+              ? { ...r, count: r.count - 1, reacted: false } 
+              : r
+          ).filter(r => r.count > 0)
+        );
+        toast.success(`Removed ${selectedEmoji} reaction`);
+      } else {
+        // Add the reaction
+        setReactions(prev => 
+          prev.map(r => 
+            r.emoji === selectedEmoji 
+              ? { ...r, count: r.count + 1, reacted: true } 
+              : r
+          )
+        );
+        toast.success(`Added ${selectedEmoji} reaction`);
+      }
+    } else {
+      // Add new reaction
+      setReactions(prev => [...prev, { emoji: selectedEmoji, count: 1, reacted: true }]);
+      toast.success(`Added ${selectedEmoji} reaction`);
+    }
+    
+    setEmojiPickerOpen(false);
+  };
+
+  const handleReactionClick = (emoji: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Toggle the reaction
+    setReactions(prev => 
+      prev.map(r => 
+        r.emoji === emoji 
+          ? { 
+              ...r, 
+              count: r.reacted ? r.count - 1 : r.count + 1, 
+              reacted: !r.reacted 
+            } 
+          : r
+      ).filter(r => r.count > 0)
+    );
+    
+    const action = reactions.find(r => r.emoji === emoji)?.reacted 
+      ? 'Removed' 
+      : 'Added';
+    toast.success(`${action} ${emoji} reaction`);
+  };
+
   return (
     <div 
       onClick={handlePostClick}
@@ -207,33 +287,90 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             </div>
           )}
           
-          <div className="flex justify-end items-center mt-3 max-w-md text-xGray gap-4">
-            <button 
-              className="flex items-center group"
-              onClick={handleCommentClick}
-            >
-              <div className="p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
-                <MessageCircle size={18} />
-              </div>
-              <span className="ml-1 text-sm group-hover:text-blue-500">
-                {formatNumber(replyCount)}
-              </span>
-            </button>
+          {/* Display emoji reactions if any */}
+          {reactions.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-3">
+              {reactions.map((reaction, index) => (
+                <button
+                  key={index}
+                  onClick={(e) => handleReactionClick(reaction.emoji, e)}
+                  className={cn(
+                    "flex items-center gap-1 px-2 py-1 rounded-full text-sm border transition-colors",
+                    reaction.reacted 
+                      ? "bg-blue-50 border-blue-200 text-blue-600" 
+                      : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                  )}
+                >
+                  <span>{reaction.emoji}</span>
+                  <span>{reaction.count}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          
+          <div className="flex justify-between items-center mt-3 max-w-md text-xGray gap-4">
+            {/* Emoji reaction button */}
+            <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
+              <PopoverTrigger asChild>
+                <button 
+                  className="flex items-center group"
+                  onClick={handleEmojiPickerOpen}
+                >
+                  <div className="p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
+                    <Smile size={18} />
+                  </div>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent 
+                className="p-0 border-none shadow-xl"
+                side="top"
+                onPointerDownOutside={(e) => {
+                  // Prevent closing when clicking inside the emoji picker
+                  if (e.target instanceof HTMLElement && 
+                      (e.target.closest('.emoji-picker-react') || 
+                       e.target.classList.contains('emoji-picker-react'))) {
+                    e.preventDefault();
+                  }
+                }}
+              >
+                <EmojiPicker
+                  onEmojiClick={(emojiData, event) => handleEmojiSelect(emojiData, event as unknown as React.MouseEvent)}
+                  searchDisabled
+                  skinTonesDisabled
+                  width={300}
+                  height={400}
+                />
+              </PopoverContent>
+            </Popover>
             
-            <button 
-              className={cn(
-                "flex items-center group",
-                isBookmarked && "text-blue-500"
-              )}
-              onClick={handleBookmark}
-            >
-              <div className={cn(
-                "p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors",
-                isBookmarked && "text-blue-500"
-              )}>
-                <Bookmark size={18} className={isBookmarked ? "fill-current" : ""} />
-              </div>
-            </button>
+            <div className="flex ml-auto gap-4">
+              <button 
+                className="flex items-center group"
+                onClick={handleCommentClick}
+              >
+                <div className="p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
+                  <MessageCircle size={18} />
+                </div>
+                <span className="ml-1 text-sm group-hover:text-blue-500">
+                  {formatNumber(replyCount)}
+                </span>
+              </button>
+              
+              <button 
+                className={cn(
+                  "flex items-center group",
+                  isBookmarked && "text-blue-500"
+                )}
+                onClick={handleBookmark}
+              >
+                <div className={cn(
+                  "p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors",
+                  isBookmarked && "text-blue-500"
+                )}>
+                  <Bookmark size={18} className={isBookmarked ? "fill-current" : ""} />
+                </div>
+              </button>
+            </div>
           </div>
         </div>
       </div>
