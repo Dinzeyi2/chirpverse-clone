@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -14,6 +15,7 @@ const Sidebar = () => {
   const { user, signOut } = useAuth();
   const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
   
+  // Fix profile path to ensure it always has a valid user ID if user exists
   const profilePath = user ? `/profile/${user.id}` : '/auth';
   
   const navigation = [
