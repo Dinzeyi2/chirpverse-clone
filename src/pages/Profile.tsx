@@ -83,6 +83,39 @@ const Profile = () => {
       fetchProfileData();
     }
   }, [userId, user, isCurrentUser]);
+
+  // Subscribe to profile changes in real-time
+  useEffect(() => {
+    if (!userId) return;
+    
+    const profileChannel = supabase
+      .channel('profile-changes')
+      .on('postgres_changes', 
+        { 
+          event: 'UPDATE', 
+          schema: 'public', 
+          table: 'profiles',
+          filter: `id=eq.${userId}`
+        }, 
+        (payload) => {
+          const updatedProfile = payload.new;
+          setProfileData(current => {
+            if (!current) return current;
+            return {
+              ...current,
+              name: updatedProfile.full_name || current.name,
+              bio: updatedProfile.description || current.bio,
+              avatar: updatedProfile.avatar_url || current.avatar
+            };
+          });
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(profileChannel);
+    };
+  }, [userId]);
   
   // Get posts by this user
   const userPosts = getPostsByUserId(userId || '1');
@@ -114,7 +147,10 @@ const Profile = () => {
 
   return (
     <AppLayout>
-      <ProfileHeader user={profileData} isCurrentUser={isCurrentUser} />
+      <ProfileHeader 
+        user={profileData} 
+        isCurrentUser={isCurrentUser} 
+      />
       
       <Tabs defaultValue="posts" className="w-full" onValueChange={handleTabChange}>
         <TabsList className="w-full grid grid-cols-4 bg-transparent border-b rounded-none">

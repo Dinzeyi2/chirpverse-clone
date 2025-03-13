@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, MapPin, Link as LinkIcon, CheckCircle, X, Camera, UserCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
   const [isFollowing, setIsFollowing] = useState(false);
   const { user: authUser } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [profileData, setProfileData] = useState(user);
   const [formData, setFormData] = useState({
     name: user.name,
     bio: user.bio || '',
@@ -36,6 +38,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
     website: 'example.com'
   });
   
+  const profilePictureInputRef = useRef<HTMLInputElement>(null);
+  const coverPhotoInputRef = useRef<HTMLInputElement>(null);
+
   const handleFollow = async () => {
     if (!authUser) {
       toast.error('You need to be logged in to follow users');
@@ -68,6 +73,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
   };
   
   const handleEditProfile = () => {
+    setFormData({
+      name: profileData.name,
+      bio: profileData.bio || '',
+      location: 'San Francisco, CA', 
+      website: 'example.com'
+    });
     setIsDialogOpen(true);
   };
   
@@ -81,12 +92,94 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
   
   const handleSaveProfile = async () => {
     try {
+      if (authUser) {
+        const { error } = await supabase
+          .from('profiles')
+          .update({
+            full_name: formData.name,
+            description: formData.bio,
+            // Add other fields as needed
+          })
+          .eq('id', authUser.id);
+          
+        if (error) throw error;
+      }
+      
+      // Update local state to reflect changes immediately
+      setProfileData(prev => ({
+        ...prev,
+        name: formData.name,
+        bio: formData.bio
+        // Update other fields as needed
+      }));
+      
       toast.success('Profile updated successfully');
       setIsDialogOpen(false);
     } catch (error: any) {
       console.error('Error updating profile:', error);
       toast.error('Failed to update profile');
     }
+  };
+
+  const handleProfilePictureClick = () => {
+    profilePictureInputRef.current?.click();
+  };
+
+  const handleCoverPhotoClick = () => {
+    coverPhotoInputRef.current?.click();
+  };
+
+  const handleProfilePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !authUser) return;
+
+    try {
+      // Create unique file path
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${authUser.id}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      // Upload file to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('profiles')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('profiles')
+        .getPublicUrl(filePath);
+
+      if (!urlData) throw new Error('Failed to get public URL');
+
+      // Update profile in database
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: urlData.publicUrl })
+        .eq('id', authUser.id);
+
+      if (updateError) throw updateError;
+
+      // Update local state to reflect changes immediately
+      setProfileData(prev => ({
+        ...prev,
+        avatar: urlData.publicUrl
+      }));
+
+      toast.success('Profile picture updated successfully');
+    } catch (error: any) {
+      console.error('Error uploading profile picture:', error);
+      toast.error('Failed to update profile picture');
+    }
+  };
+
+  const handleCoverPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !authUser) return;
+
+    // Similar implementation as profile picture but for cover photo
+    toast.info('Cover photo update feature will be implemented soon');
   };
 
   return (
@@ -99,8 +192,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
           <ArrowLeft size={18} />
         </button>
         <div>
-          <h2 className="font-bold text-xl">{user.name}</h2>
-          <p className="text-xGray text-sm">{user.followers.toLocaleString()} followers</p>
+          <h2 className="font-bold text-xl">{profileData.name}</h2>
+          <p className="text-xGray text-sm">{profileData.followers.toLocaleString()} followers</p>
         </div>
       </div>
       
@@ -112,8 +205,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
         <div className="flex justify-between items-start">
           <div className="relative -mt-16">
             <img
-              src={user.avatar}
-              alt={user.name}
+              src={profileData.avatar}
+              alt={profileData.name}
               className="w-32 h-32 rounded-full object-cover border-4 border-background"
             />
           </div>
@@ -144,16 +237,16 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
         
         <div className="mt-4">
           <div className="flex items-center">
-            <h1 className="text-xl font-bold mr-1">{user.name}</h1>
-            {user.verified && (
+            <h1 className="text-xl font-bold mr-1">{profileData.name}</h1>
+            {profileData.verified && (
               <span className="text-xBlue">
                 <CheckCircle size={20} className="fill-xBlue text-white" />
               </span>
             )}
           </div>
-          <p className="text-xGray">@{user.username}</p>
+          <p className="text-xGray">@{profileData.username}</p>
           
-          {user.bio && <p className="mt-3">{user.bio}</p>}
+          {profileData.bio && <p className="mt-3">{profileData.bio}</p>}
           
           <div className="flex flex-wrap mt-3 text-xGray">
             <div className="flex items-center mr-4 mb-2">
@@ -171,12 +264,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
           </div>
           
           <div className="flex mt-3">
-            <Link to={`/profile/${user.id}/following`} className="mr-4 hover:underline">
-              <span className="font-bold">{user.following.toLocaleString()}</span>
+            <Link to={`/profile/${profileData.id}/following`} className="mr-4 hover:underline">
+              <span className="font-bold">{profileData.following.toLocaleString()}</span>
               <span className="text-xGray"> Following</span>
             </Link>
-            <Link to={`/profile/${user.id}/followers`} className="hover:underline">
-              <span className="font-bold">{user.followers.toLocaleString()}</span>
+            <Link to={`/profile/${profileData.id}/followers`} className="hover:underline">
+              <span className="font-bold">{profileData.followers.toLocaleString()}</span>
               <span className="text-xGray"> Followers</span>
             </Link>
           </div>
@@ -204,26 +297,44 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
             <div className="h-48 bg-xExtraLightGray relative">
               <div className="h-full w-full bg-gradient-to-br from-xBlue/20 to-purple-500/20"></div>
               <div className="absolute inset-0 flex items-center justify-center">
-                <button className="p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors text-white">
+                <button 
+                  className="p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors text-white"
+                  onClick={handleCoverPhotoClick}
+                >
                   <Camera size={20} />
                 </button>
+                <input
+                  type="file"
+                  ref={coverPhotoInputRef}
+                  onChange={handleCoverPhotoChange}
+                  accept="image/*"
+                  className="hidden"
+                />
               </div>
             </div>
             
             <div className="px-4 relative">
               <div className="relative -mt-16 mb-6">
                 <img
-                  src={user.avatar}
-                  alt={user.name}
+                  src={profileData.avatar}
+                  alt={profileData.name}
                   className="w-32 h-32 rounded-full object-cover border-4 border-background"
                 />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <button 
                     className="p-3 rounded-full bg-black/50 hover:bg-black/70 transition-colors text-white" 
                     aria-label="Change profile picture"
+                    onClick={handleProfilePictureClick}
                   >
                     <Camera size={24} />
                   </button>
+                  <input
+                    type="file"
+                    ref={profilePictureInputRef}
+                    onChange={handleProfilePictureChange}
+                    accept="image/*"
+                    className="hidden"
+                  />
                 </div>
               </div>
             </div>
