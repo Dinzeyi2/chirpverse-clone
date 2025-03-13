@@ -7,6 +7,7 @@ import CreatePost from '@/components/feed/CreatePost';
 import { useAuth } from '@/context/AuthContext';
 import { XIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { posts } from '@/lib/data';
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -88,7 +89,7 @@ const Index = () => {
       
       <CreatePost />
       
-      <PostList />
+      <PostList posts={posts} />
     </AppLayout>
   );
 };
