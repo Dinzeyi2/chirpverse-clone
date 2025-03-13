@@ -46,7 +46,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     return String(postId);
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     const checkBookmarkStatus = async () => {
       try {
         const { data, error } = await supabase
@@ -64,6 +64,48 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     };
     
     checkBookmarkStatus();
+  }, [post.id]);
+
+  useEffect(() => {
+    const fetchReplyCount = async () => {
+      try {
+        const { count, error } = await supabase
+          .from('comments')
+          .select('*', { count: 'exact', head: true })
+          .eq('shoutout_id', post.id);
+          
+        if (error) throw error;
+        if (count !== null) setReplyCount(count);
+      } catch (error) {
+        console.error('Error fetching reply count:', error);
+      }
+    };
+    
+    fetchReplyCount();
+    
+    const commentsChannel = supabase
+      .channel(`comments-${post.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'comments',
+        filter: `shoutout_id=eq.${post.id}`
+      }, (payload) => {
+        setReplyCount(prev => prev + 1);
+      })
+      .on('postgres_changes', {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'comments',
+        filter: `shoutout_id=eq.${post.id}`
+      }, (payload) => {
+        setReplyCount(prev => Math.max(0, prev - 1));
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(commentsChannel);
+    };
   }, [post.id]);
 
   const handlePostClick = () => {

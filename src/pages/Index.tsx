@@ -1,55 +1,160 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import CreatePost from '@/components/feed/CreatePost';
 import PostList from '@/components/feed/PostList';
 import SwipeablePostView from '@/components/feed/SwipeablePostView';
-import { Post, posts, users } from '@/lib/data';
 import { Settings } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
-  const [feedPosts, setFeedPosts] = useState(posts);
+  const [feedPosts, setFeedPosts] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('for-you');
   const [feedView, setFeedView] = useState<'swipeable' | 'list'>('swipeable');
   const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  
+  // Fetch all posts for the feed
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('shoutouts')
+          .select(`
+            *,
+            profiles:user_id (*)
+          `)
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          throw error;
+        }
+        
+        if (data) {
+          const formattedPosts = data.map(post => ({
+            id: post.id,
+            content: post.content,
+            createdAt: post.created_at,
+            likes: 0,
+            reposts: 0,
+            replies: 0,
+            views: 0,
+            userId: post.user_id,
+            images: post.media,
+            user: {
+              id: post.profiles.id,
+              name: post.profiles.full_name || 'User',
+              username: post.profiles.username || post.user_id.substring(0, 8) || 'user',
+              avatar: post.profiles.avatar_url || 'https://i.pravatar.cc/150?img=1',
+              verified: false,
+              followers: 0,
+              following: 0,
+            }
+          }));
+          
+          setFeedPosts(formattedPosts);
+        }
+      } catch (error) {
+        console.error('Error fetching posts:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchPosts();
+    
+    // Set up real-time subscription for new posts
+    const channel = supabase
+      .channel('public:shoutouts')
+      .on('postgres_changes', 
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'shoutouts'
+        }, 
+        async (payload) => {
+          // Fetch the complete data with user info
+          const { data, error } = await supabase
+            .from('shoutouts')
+            .select(`
+              *,
+              profiles:user_id (*)
+            `)
+            .eq('id', payload.new.id)
+            .single();
+            
+          if (error || !data) return;
+          
+          const newPost = {
+            id: data.id,
+            content: data.content,
+            createdAt: data.created_at,
+            likes: 0,
+            reposts: 0,
+            replies: 0,
+            views: 0,
+            userId: data.user_id,
+            images: data.media,
+            user: {
+              id: data.profiles.id,
+              name: data.profiles.full_name || 'User',
+              username: data.profiles.username || data.user_id.substring(0, 8) || 'user',
+              avatar: data.profiles.avatar_url || 'https://i.pravatar.cc/150?img=1',
+              verified: false,
+              followers: 0,
+              following: 0,
+            }
+          };
+          
+          setFeedPosts(prev => [newPost, ...prev]);
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
   
   // Filter posts based on active tab
   const displayPosts = React.useMemo(() => {
     if (activeTab === 'for-you') {
       return feedPosts;
-    } else if (activeTab === 'following') {
-      // Simulate following functionality (showing posts from users with IDs 1, 3, 5)
-      // In a real app, this would filter based on users the current user follows
-      const followedUserIds = ['1', '3', '5'];
-      return feedPosts.filter(post => followedUserIds.includes(post.userId));
+    } else if (activeTab === 'following' && user) {
+      // This would ideally filter based on followed users
+      // For now just return an empty array or some subset
+      return [];
     }
     return feedPosts;
-  }, [feedPosts, activeTab]);
+  }, [feedPosts, activeTab, user]);
   
   const handlePostCreated = (content: string, media?: {type: string, url: string}[]) => {
-    const newPost = {
-      id: `temp-${Date.now()}`,
-      content,
-      createdAt: new Date().toISOString(),
-      likes: 0,
-      reposts: 0,
-      replies: 0,
-      views: 0,
-      userId: user?.id || '1', // Use the current user's ID
-      user: {
-        id: user?.id || '1',
-        name: user?.user_metadata?.full_name || 'John Doe',
-        username: user?.user_metadata?.username || 'johndoe',
-        avatar: 'https://i.pravatar.cc/150?img=1',
-        followers: 1453,
-        following: 234,
-        verified: true,
-      },
-      media: media || []  // Add the media field to the post
+    if (!user) return;
+    
+    // Create a new post in Supabase
+    const createPost = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('shoutouts')
+          .insert({
+            content,
+            user_id: user.id,
+            media: media || null
+          })
+          .select()
+          .single();
+          
+        if (error) throw error;
+        
+        // The real-time subscription will handle adding this to the UI
+      } catch (error) {
+        console.error('Error creating post:', error);
+      }
     };
     
-    setFeedPosts([newPost, ...feedPosts]);
+    createPost();
   };
 
   return (
@@ -101,26 +206,57 @@ const Index = () => {
       {/* Create Post */}
       <CreatePost onPostCreated={handlePostCreated} />
       
-      {/* Posts */}
-      {activeTab === 'following' && displayPosts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-          <h2 className="text-2xl font-bold mb-2">Welcome to your timeline!</h2>
-          <p className="text-xGray mb-6 max-w-md">
-            When you follow someone, their posts will show up here. You can discover accounts to follow in the "For you" section.
-          </p>
-          <button 
-            className="bg-xBlue text-white px-6 py-2 rounded-full font-bold hover:bg-xBlue/90 transition-colors"
-            onClick={() => setActiveTab('for-you')}
-          >
-            Discover people to follow
-          </button>
+      {/* Loading State */}
+      {loading && (
+        <div className="p-4 space-y-6">
+          {[1, 2, 3].map((item) => (
+            <div key={item} className="animate-pulse">
+              <div className="flex space-x-4">
+                <div className="rounded-full bg-gray-200 h-12 w-12"></div>
+                <div className="flex-1 space-y-4 py-1">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="space-y-2">
+                    <div className="h-4 bg-gray-200 rounded"></div>
+                    <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                  </div>
+                  <div className="h-40 bg-gray-200 rounded"></div>
+                  <div className="flex justify-between">
+                    <div className="h-4 bg-gray-200 rounded w-1/5"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/5"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/5"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/5"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
-      ) : (
-        feedView === 'swipeable' ? (
-          <SwipeablePostView posts={displayPosts} />
-        ) : (
-          <PostList posts={displayPosts} />
-        )
+      )}
+      
+      {/* Posts */}
+      {!loading && (
+        <>
+          {activeTab === 'following' && displayPosts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+              <h2 className="text-2xl font-bold mb-2">Welcome to your timeline!</h2>
+              <p className="text-xGray mb-6 max-w-md">
+                When you follow someone, their posts will show up here. You can discover accounts to follow in the "For you" section.
+              </p>
+              <button 
+                className="bg-xBlue text-white px-6 py-2 rounded-full font-bold hover:bg-xBlue/90 transition-colors"
+                onClick={() => setActiveTab('for-you')}
+              >
+                Discover people to follow
+              </button>
+            </div>
+          ) : (
+            feedView === 'swipeable' ? (
+              <SwipeablePostView posts={displayPosts} />
+            ) : (
+              <PostList posts={displayPosts} />
+            )
+          )}
+        </>
       )}
     </AppLayout>
   );

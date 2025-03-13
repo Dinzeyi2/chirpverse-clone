@@ -1,9 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import ProfileHeader from '@/components/user/ProfileHeader';
 import PostList from '@/components/feed/PostList';
-import { getUserById, getPostsByUserId } from '@/lib/data';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +15,8 @@ const Profile = () => {
   const { user } = useAuth();
   const [profileData, setProfileData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [userPosts, setUserPosts] = useState<any[]>([]);
+  const [userReplies, setUserReplies] = useState<any[]>([]);
   const [userStats, setUserStats] = useState({
     posts: 0,
     replies: 0,
@@ -22,6 +24,7 @@ const Profile = () => {
     bluedify: 0
   });
   
+  const navigate = useNavigate();
   const isCurrentUser = user && userId === user.id;
   
   useEffect(() => {
@@ -93,6 +96,14 @@ const Profile = () => {
       try {
         setLoading(true);
         
+        if (!userId) {
+          if (!user) {
+            navigate('/auth');
+            return;
+          }
+          return;
+        }
+        
         let { data: profile, error } = await supabase
           .from('profiles')
           .select('*')
@@ -100,34 +111,34 @@ const Profile = () => {
           .single();
           
         if (error || !profile) {
-          const fallbackUser = getUserById(userId || '1');
-          if (fallbackUser) {
+          // Check if this is a real user in auth
+          const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userId);
+          
+          if (authError || !authUser) {
+            navigate('/not-found');
+            return;
+          }
+          
+          if (isCurrentUser && user) {
             setProfileData({
-              ...fallbackUser,
-              id: userId
+              id: user.id,
+              name: user.user_metadata?.full_name || 'User',
+              username: user.user_metadata?.username || 'user',
+              bio: '',
+              profession: '',
+              avatar: 'https://i.pravatar.cc/150?img=1',
+              verified: false,
+              followers: 0,
+              following: 0
             });
           } else {
-            if (isCurrentUser && user) {
-              setProfileData({
-                id: user.id,
-                name: user.user_metadata?.full_name || 'User',
-                username: user.user_metadata?.username || 'user',
-                bio: '',
-                profession: '',
-                avatar: 'https://i.pravatar.cc/150?img=1',
-                verified: false,
-                followers: 0,
-                following: 0
-              });
-            } else {
-              setProfileData(null);
-            }
+            setProfileData(null);
           }
         } else {
           setProfileData({
             id: profile.id,
             name: profile.full_name || 'User',
-            username: profile.user_id?.substring(0, 8) || 'user',
+            username: profile.username || profile.user_id?.substring(0, 8) || 'user',
             bio: profile.description || '',
             profession: profile.profession || '',
             avatar: profile.avatar_url || 'https://i.pravatar.cc/150?img=1',
@@ -144,10 +155,59 @@ const Profile = () => {
       }
     };
     
-    if (userId) {
-      fetchProfileData();
-    }
-  }, [userId, user, isCurrentUser]);
+    fetchProfileData();
+  }, [userId, user, isCurrentUser, navigate]);
+
+  // Fetch user posts
+  useEffect(() => {
+    const fetchUserPosts = async () => {
+      if (!userId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('shoutouts')
+          .select(`
+            *,
+            profiles:user_id (*)
+          `)
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          throw error;
+        }
+        
+        if (data) {
+          const formattedPosts = data.map(post => ({
+            id: post.id,
+            content: post.content,
+            createdAt: post.created_at,
+            likes: 0,
+            reposts: 0,
+            replies: 0,
+            views: 0,
+            userId: post.user_id,
+            images: post.media,
+            user: {
+              id: post.profiles.id,
+              name: post.profiles.full_name || 'User',
+              username: post.profiles.username || post.user_id.substring(0, 8) || 'user',
+              avatar: post.profiles.avatar_url || 'https://i.pravatar.cc/150?img=1',
+              verified: false,
+              followers: 0,
+              following: 0,
+            }
+          }));
+          
+          setUserPosts(formattedPosts);
+        }
+      } catch (error) {
+        console.error('Error fetching user posts:', error);
+      }
+    };
+    
+    fetchUserPosts();
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) return;
@@ -180,8 +240,6 @@ const Profile = () => {
       supabase.removeChannel(profileChannel);
     };
   }, [userId]);
-  
-  const userPosts = getPostsByUserId(userId || '1');
   
   const handleTabChange = (value: string) => {
     setActiveTab(value);

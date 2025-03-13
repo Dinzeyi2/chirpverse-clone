@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Eye, EyeOff, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 const SignInForm = () => {
   const [email, setEmail] = useState('');
@@ -100,17 +101,17 @@ const SignInForm = () => {
       </form>
 
       <div className="text-center">
-        <a href="#" className="text-xBlue hover:underline text-sm">
+        <Link to="#" className="text-xBlue hover:underline text-sm">
           Forgot password?
-        </a>
+        </Link>
       </div>
 
       <div className="pt-4 text-center">
         <p className="text-gray-600 text-sm">
           Don't have an account?{' '}
-          <a href="#" className="text-xBlue hover:underline">
+          <Link to="/auth?tab=signup" className="text-xBlue hover:underline">
             Sign up
-          </a>
+          </Link>
         </p>
       </div>
     </div>
