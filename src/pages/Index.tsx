@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
+import SwipeablePostView from '@/components/feed/SwipeablePostView';
 import CreatePost from '@/components/feed/CreatePost';
 import { useAuth } from '@/context/AuthContext';
 import { XIcon } from 'lucide-react';
@@ -89,7 +90,8 @@ const Index = () => {
       
       <CreatePost />
       
-      <PostList posts={posts} />
+      {/* Replace PostList with SwipeablePostView */}
+      <SwipeablePostView posts={posts} />
     </AppLayout>
   );
 };
