@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, MapPin, Link as LinkIcon, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Link as LinkIcon, CheckCircle, X, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { User } from '@/lib/data';
 import { cn } from '@/lib/utils';
@@ -13,9 +12,11 @@ import {
   DialogContent, 
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-  DialogFooter
+  DialogClose,
 } from "@/components/ui/dialog";
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
 interface ProfileHeaderProps {
   user: User;
@@ -27,6 +28,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
   const [isFollowing, setIsFollowing] = useState(false);
   const { user: authUser } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: user.name,
+    bio: user.bio || '',
+    location: 'San Francisco, CA',
+    website: 'example.com'
+  });
   
   const handleFollow = async () => {
     if (!authUser) {
@@ -85,9 +92,41 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
   const handleBackClick = () => {
     navigate(-1);
   };
-
+  
   const handleEditProfile = () => {
     setIsDialogOpen(true);
+  };
+  
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  
+  const handleSaveProfile = async () => {
+    try {
+      // The following would be the actual implementation for Supabase
+      /*
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: formData.name,
+          description: formData.bio,
+          // Add other fields as needed
+        })
+        .eq('id', user.id);
+        
+      if (error) throw error;
+      */
+      
+      toast.success('Profile updated successfully');
+      setIsDialogOpen(false);
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      toast.error('Failed to update profile');
+    }
   };
 
   return (
@@ -192,39 +231,96 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
         </div>
       </div>
 
-      {/* Profile Edit Dialog */}
+      {/* Twitter/X style Edit Profile Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Edit profile</DialogTitle>
-            <DialogDescription>
-              Make changes to your profile information.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            {/* Profile edit form would go here */}
-            <p className="text-sm text-muted-foreground">
-              This dialog would contain fields for updating your profile information.
-            </p>
+        <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden rounded-2xl border-none">
+          <div className="flex justify-between items-center p-4 border-b">
+            <div className="flex items-center">
+              <DialogClose className="mr-4 p-2 rounded-full hover:bg-xExtraLightGray/50 transition-colors">
+                <X size={18} />
+              </DialogClose>
+              <DialogTitle className="text-xl font-bold">Edit profile</DialogTitle>
+            </div>
+            <Button 
+              onClick={handleSaveProfile}
+              className="rounded-full font-bold text-sm px-4 bg-black text-white dark:bg-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90"
+            >
+              Save
+            </Button>
           </div>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setIsDialogOpen(false)}
-              className="rounded-full"
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={() => {
-                toast.success("Profile updated successfully");
-                setIsDialogOpen(false);
-              }}
-              className="rounded-full"
-            >
-              Save changes
-            </Button>
-          </DialogFooter>
+          
+          {/* Cover Photo */}
+          <div className="h-48 bg-xExtraLightGray relative">
+            <div className="h-full w-full bg-gradient-to-br from-xBlue/20 to-purple-500/20"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <button className="p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors text-white">
+                <Camera size={20} />
+              </button>
+            </div>
+          </div>
+          
+          {/* Avatar */}
+          <div className="px-4 relative">
+            <div className="relative -mt-16 mb-6">
+              <img
+                src={user.avatar}
+                alt={user.name}
+                className="w-32 h-32 rounded-full object-cover border-4 border-background"
+              />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <button className="p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors text-white">
+                  <Camera size={20} />
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Form Fields */}
+          <div className="p-4 space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="name" className="text-xGray text-sm">Name</Label>
+              <Input 
+                id="name" 
+                name="name" 
+                value={formData.name} 
+                onChange={handleChange}
+                className="border-none bg-xExtraLightGray/50 focus-visible:ring-xBlue"
+              />
+            </div>
+            
+            <div className="space-y-1">
+              <Label htmlFor="bio" className="text-xGray text-sm">Bio</Label>
+              <Textarea 
+                id="bio" 
+                name="bio" 
+                value={formData.bio} 
+                onChange={handleChange}
+                className="border-none bg-xExtraLightGray/50 focus-visible:ring-xBlue resize-none h-24"
+              />
+            </div>
+            
+            <div className="space-y-1">
+              <Label htmlFor="location" className="text-xGray text-sm">Location</Label>
+              <Input 
+                id="location" 
+                name="location" 
+                value={formData.location} 
+                onChange={handleChange}
+                className="border-none bg-xExtraLightGray/50 focus-visible:ring-xBlue"
+              />
+            </div>
+            
+            <div className="space-y-1">
+              <Label htmlFor="website" className="text-xGray text-sm">Website</Label>
+              <Input 
+                id="website" 
+                name="website" 
+                value={formData.website} 
+                onChange={handleChange}
+                className="border-none bg-xExtraLightGray/50 focus-visible:ring-xBlue"
+              />
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
