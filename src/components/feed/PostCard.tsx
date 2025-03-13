@@ -238,13 +238,14 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       onClick={handlePostClick}
       className={cn(
         'p-4 transition-colors cursor-pointer block animate-fade-in relative',
-        'rounded-none shadow-none border-b',
+        'rounded-none shadow-none border-t border-b border-xBorder',
+        'my-3', // Added vertical margin for spacing between posts
         darkCardColor,
         'after:content-[""] after:absolute after:inset-0 after:rounded-lg after:pointer-events-none',
         'after:border-t-2 after:border-l-2 after:border-r-2 after:border-b-2',
         'after:border-transparent',
-        'after:shadow-[0_0_10px_rgba(14,165,233,0.5),inset_0_0_10px_rgba(14,165,233,0.2)]',
-        'after:opacity-70 after:transition-opacity hover:after:opacity-100'
+        'after:shadow-[0_0_12px_rgba(14,165,233,0.7),inset_0_0_12px_rgba(14,165,233,0.3)]', // Increased glow intensity
+        'after:opacity-80 after:transition-opacity hover:after:opacity-100' // Increased base opacity
       )}
     >
       <div className="flex">
@@ -377,7 +378,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                 aria-label={`${replyCount} replies`}
               >
                 <div className="p-2 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors">
-                  <MessageCircle size={18} />
+                  <MessageCircle size={18} className="text-white" /> {/* Added text-white class */}
                 </div>
                 <span className="ml-1 text-sm group-hover:text-xBlue">
                   {formatNumber(replyCount)}
@@ -395,7 +396,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                   "p-2 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors",
                   isBookmarked && "text-xBlue"
                 )}>
-                  <Bookmark size={18} className={isBookmarked ? "fill-current" : ""} />
+                  <Bookmark size={18} className={cn("text-white", isBookmarked ? "fill-current" : "")} /> {/* Added text-white class */}
                 </div>
               </button>
             </div>
