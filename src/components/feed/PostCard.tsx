@@ -1,9 +1,11 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, Repeat, MessageCircle, Share, MoreHorizontal, CheckCircle } from 'lucide-react';
+import { Heart, Repeat, MessageCircle, Share, MoreHorizontal, CheckCircle, Bookmark } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Post, formatDate } from '@/lib/data';
 import { toast } from 'sonner';
+import { supabase } from "@/integrations/supabase/client";
 
 interface PostCardProps {
   post: Post;
@@ -24,6 +26,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(post.liked || false);
   const [isReposted, setIsReposted] = useState(post.reposted || false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likes);
   const [repostCount, setRepostCount] = useState(post.reposts);
   const [replyCount, setReplyCount] = useState(post.replies);
@@ -31,6 +34,33 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   
   const colorIndex = post.id.charCodeAt(0) % cardColors.length;
   const cardColor = cardColors[colorIndex];
+
+  // Convert post.id to a safe string for use as post_id in bookmarks
+  const getPostId = (postId: string): string => {
+    return String(postId);
+  };
+
+  // Check if post is bookmarked on component mount
+  React.useEffect(() => {
+    const checkBookmarkStatus = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('post_bookmarks')
+          .select('*')
+          .eq('post_id', getPostId(post.id))
+          .single();
+        
+        if (data) {
+          setIsBookmarked(true);
+        }
+      } catch (error) {
+        // Post is not bookmarked or user is not authenticated
+        console.log('Bookmark check error or not found:', error);
+      }
+    };
+    
+    checkBookmarkStatus();
+  }, [post.id]);
 
   const handlePostClick = () => {
     navigate(`/post/${post.id}`);
@@ -60,6 +90,40 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       toast.success('Post reposted to your profile');
     }
     setIsReposted(!isReposted);
+  };
+
+  const handleBookmark = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    try {
+      if (isBookmarked) {
+        // Remove bookmark
+        const { error } = await supabase
+          .from('post_bookmarks')
+          .delete()
+          .eq('post_id', getPostId(post.id));
+        
+        if (error) throw error;
+        setIsBookmarked(false);
+        toast.success('Bookmark removed');
+      } else {
+        // Add bookmark
+        const { error } = await supabase
+          .from('post_bookmarks')
+          .insert({
+            post_id: getPostId(post.id),
+            user_id: (await supabase.auth.getUser()).data.user?.id
+          });
+        
+        if (error) throw error;
+        setIsBookmarked(true);
+        toast.success('Post bookmarked');
+      }
+    } catch (error) {
+      console.error('Error toggling bookmark:', error);
+      toast.error('Failed to update bookmark. Please sign in.');
+    }
   };
 
   const handleShare = (e: React.MouseEvent) => {
@@ -217,6 +281,21 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               )}>
                 {formatNumber(likeCount)}
               </span>
+            </button>
+            
+            <button 
+              className={cn(
+                "flex items-center group",
+                isBookmarked && "text-blue-500"
+              )}
+              onClick={handleBookmark}
+            >
+              <div className={cn(
+                "p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors",
+                isBookmarked && "text-blue-500"
+              )}>
+                <Bookmark size={18} className={isBookmarked ? "fill-current" : ""} />
+              </div>
             </button>
             
             <button 
