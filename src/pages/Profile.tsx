@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
@@ -23,48 +22,39 @@ const Profile = () => {
     bluedify: 0
   });
   
-  // Determine if this is the current user's profile
   const isCurrentUser = user && userId === user.id;
   
-  // Fetch user stats from Supabase
   useEffect(() => {
     const fetchUserStats = async () => {
       if (!userId) return;
       
       try {
-        // Count user's posts (shoutouts)
         const { data: posts, error: postsError } = await supabase
           .from('shoutouts')
           .select('id', { count: 'exact' })
           .eq('user_id', userId);
           
-        // Count user's replies (comments)
         const { data: replies, error: repliesError } = await supabase
           .from('comments')
           .select('id', { count: 'exact' })
           .eq('user_id', userId);
 
-        // First get the user's posts (shoutout IDs)
         const { data: userShoutouts, error: shoutoutsError } = await supabase
           .from('shoutouts')
           .select('id')
           .eq('user_id', userId);
 
-        // Count reactions (likes) received on user's posts
         let reactionsCount = 0;
         let bluedifyCount = 0;
         
         if (userShoutouts && userShoutouts.length > 0) {
-          // Extract the IDs into an array
           const shoutoutIds = userShoutouts.map(shoutout => shoutout.id);
           
-          // Count likes for these posts
           const { count: likesCount, error: likesError } = await supabase
             .from('likes')
             .select('*', { count: 'exact', head: true })
             .in('shoutout_id', shoutoutIds);
             
-          // Count reposts (bluedify) for these posts
           const { count: repostsCount, error: repostsError } = await supabase
             .from('reposts')
             .select('*', { count: 'exact', head: true })
@@ -98,13 +88,11 @@ const Profile = () => {
     fetchUserStats();
   }, [userId]);
   
-  // Fetch user profile data from Supabase
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
         setLoading(true);
         
-        // First try to get from profiles table
         let { data: profile, error } = await supabase
           .from('profiles')
           .select('*')
@@ -112,7 +100,6 @@ const Profile = () => {
           .single();
           
         if (error || !profile) {
-          // If not in profiles table, get from auth.users via getUserById
           const fallbackUser = getUserById(userId || '1');
           if (fallbackUser) {
             setProfileData({
@@ -120,7 +107,6 @@ const Profile = () => {
               id: userId
             });
           } else {
-            // Neither found, use current user data if available
             if (isCurrentUser && user) {
               setProfileData({
                 id: user.id,
@@ -137,16 +123,15 @@ const Profile = () => {
             }
           }
         } else {
-          // Profile found in Supabase - map Supabase profile fields to our component's expected format
           setProfileData({
             id: profile.id,
             name: profile.full_name || 'User',
-            username: profile.user_id?.substring(0, 8) || 'user',  // Use part of user_id as username if not available
+            username: profile.user_id?.substring(0, 8) || 'user',
             bio: profile.description || '',
             avatar: profile.avatar_url || 'https://i.pravatar.cc/150?img=1',
-            verified: false, // Default to false as we don't have this field
-            followers: 0,    // Default to 0 as we don't have this field yet
-            following: 0     // Default to 0 as we don't have this field yet
+            verified: false,
+            followers: 0,
+            following: 0
           });
         }
       } catch (err) {
@@ -162,7 +147,6 @@ const Profile = () => {
     }
   }, [userId, user, isCurrentUser]);
 
-  // Subscribe to profile changes in real-time
   useEffect(() => {
     if (!userId) return;
     
@@ -195,7 +179,6 @@ const Profile = () => {
     };
   }, [userId]);
   
-  // Get posts by this user
   const userPosts = getPostsByUserId(userId || '1');
   
   const handleTabChange = (value: string) => {
@@ -232,7 +215,7 @@ const Profile = () => {
       />
       
       <Tabs defaultValue="posts" className="w-full" onValueChange={handleTabChange}>
-        <TabsList className="w-full grid grid-cols-4 bg-transparent border-b rounded-none">
+        <TabsList className="w-full grid grid-cols-2 bg-transparent border-b rounded-none">
           <TabsTrigger 
             value="posts" 
             className="data-[state=active]:border-b-2 data-[state=active]:border-xBlue data-[state=active]:shadow-none rounded-none data-[state=active]:font-bold"
@@ -245,18 +228,6 @@ const Profile = () => {
           >
             Replies
           </TabsTrigger>
-          <TabsTrigger 
-            value="media" 
-            className="data-[state=active]:border-b-2 data-[state=active]:border-xBlue data-[state=active]:shadow-none rounded-none data-[state=active]:font-bold"
-          >
-            Media
-          </TabsTrigger>
-          <TabsTrigger 
-            value="likes" 
-            className="data-[state=active]:border-b-2 data-[state=active]:border-xBlue data-[state=active]:shadow-none rounded-none data-[state=active]:font-bold"
-          >
-            Likes
-          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="posts" className="mt-0">
@@ -266,18 +237,6 @@ const Profile = () => {
         <TabsContent value="replies" className="mt-0">
           <div className="flex flex-col items-center justify-center py-12 text-xGray">
             <p>No replies yet</p>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="media" className="mt-0">
-          <div className="flex flex-col items-center justify-center py-12 text-xGray">
-            <p>No media posts yet</p>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="likes" className="mt-0">
-          <div className="flex flex-col items-center justify-center py-12 text-xGray">
-            <p>No liked posts yet</p>
           </div>
         </TabsContent>
       </Tabs>
