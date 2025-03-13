@@ -6,6 +6,8 @@ import Button from '@/components/common/Button';
 import { User } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ProfileHeaderProps {
   user: User;
@@ -15,13 +17,59 @@ interface ProfileHeaderProps {
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = false }) => {
   const navigate = useNavigate();
   const [isFollowing, setIsFollowing] = useState(false);
+  const { user: authUser } = useAuth();
   
-  const handleFollow = () => {
+  const handleFollow = async () => {
+    if (!authUser) {
+      toast.error('You need to be logged in to follow users');
+      return;
+    }
+    
     setIsFollowing(!isFollowing);
+    
     if (!isFollowing) {
-      toast.success(`You are now following @${user.username}`);
+      // Follow user logic
+      try {
+        // The following would be the actual implementation if your Supabase has followers table
+        /*
+        const { error } = await supabase
+          .from('followers')
+          .insert({
+            follower_id: authUser.id,
+            following_id: user.id
+          });
+          
+        if (error) throw error;
+        */
+        
+        toast.success(`You are now following @${user.username}`);
+      } catch (error: any) {
+        console.error('Error following user:', error);
+        setIsFollowing(false); // Revert UI state
+        toast.error('Failed to follow user');
+      }
     } else {
-      toast.info(`You have unfollowed @${user.username}`);
+      // Unfollow user logic
+      try {
+        // The following would be the actual implementation if your Supabase has followers table
+        /*
+        const { error } = await supabase
+          .from('followers')
+          .delete()
+          .match({
+            follower_id: authUser.id,
+            following_id: user.id
+          });
+          
+        if (error) throw error;
+        */
+        
+        toast.info(`You have unfollowed @${user.username}`);
+      } catch (error: any) {
+        console.error('Error unfollowing user:', error);
+        setIsFollowing(true); // Revert UI state
+        toast.error('Failed to unfollow user');
+      }
     }
   };
   

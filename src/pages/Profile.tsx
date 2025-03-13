@@ -1,21 +1,107 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import ProfileHeader from '@/components/user/ProfileHeader';
 import PostList from '@/components/feed/PostList';
 import { getUserById, getPostsByUserId } from '@/lib/data';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const Profile = () => {
   const { userId } = useParams<{ userId: string }>();
   const [activeTab, setActiveTab] = useState("posts");
+  const { user } = useAuth();
+  const [profileData, setProfileData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   
-  // In a real app, you would fetch this data from an API
-  const user = getUserById(userId || '1');
+  // Determine if this is the current user's profile
+  const isCurrentUser = user && userId === user.id;
+  
+  // Fetch user profile data from Supabase
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      try {
+        setLoading(true);
+        
+        // First try to get from profiles table
+        let { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
+          
+        if (error || !profile) {
+          // If not in profiles table, get from auth.users via getUserById
+          const fallbackUser = getUserById(userId || '1');
+          if (fallbackUser) {
+            setProfileData({
+              ...fallbackUser,
+              id: userId
+            });
+          } else {
+            // Neither found, use current user data if available
+            if (isCurrentUser && user) {
+              setProfileData({
+                id: user.id,
+                name: user.user_metadata?.full_name || 'User',
+                username: user.user_metadata?.username || 'user',
+                bio: '',
+                avatar: 'https://i.pravatar.cc/150?img=1',
+                verified: false,
+                followers: 0,
+                following: 0
+              });
+            } else {
+              setProfileData(null);
+            }
+          }
+        } else {
+          // Profile found in Supabase
+          setProfileData({
+            id: profile.id,
+            name: profile.full_name || profile.username,
+            username: profile.username,
+            bio: profile.bio || '',
+            avatar: profile.avatar_url || 'https://i.pravatar.cc/150?img=1',
+            verified: profile.is_verified || false,
+            followers: profile.followers_count || 0,
+            following: profile.following_count || 0
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching profile:', err);
+        toast.error('Failed to load profile data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    if (userId) {
+      fetchProfileData();
+    }
+  }, [userId, user, isCurrentUser]);
+  
+  // Get posts by this user
   const userPosts = getPostsByUserId(userId || '1');
   
-  if (!user) {
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="flex flex-col items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-xBlue"></div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!profileData) {
     return (
       <AppLayout>
         <div className="flex flex-col items-center justify-center py-12">
@@ -26,13 +112,9 @@ const Profile = () => {
     );
   }
 
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-  };
-
   return (
     <AppLayout>
-      <ProfileHeader user={user} isCurrentUser={userId === '1'} />
+      <ProfileHeader user={profileData} isCurrentUser={isCurrentUser} />
       
       <Tabs defaultValue="posts" className="w-full" onValueChange={handleTabChange}>
         <TabsList className="w-full grid grid-cols-4 bg-transparent border-b rounded-none">
