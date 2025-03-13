@@ -6,11 +6,13 @@ import PostList from '@/components/feed/PostList';
 import SwipeablePostView from '@/components/feed/SwipeablePostView';
 import { Post, posts, users } from '@/lib/data';
 import { Settings } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Index = () => {
   const [feedPosts, setFeedPosts] = useState(posts);
   const [activeTab, setActiveTab] = useState('for-you');
   const [feedView, setFeedView] = useState<'swipeable' | 'list'>('swipeable');
+  const { user } = useAuth();
   
   // Filter posts based on active tab
   const displayPosts = React.useMemo(() => {
@@ -34,11 +36,11 @@ const Index = () => {
       reposts: 0,
       replies: 0,
       views: 0,
-      userId: '1', // Use the current user's ID
+      userId: user?.id || '1', // Use the current user's ID
       user: {
-        id: '1',
-        name: 'John Doe',
-        username: 'johndoe',
+        id: user?.id || '1',
+        name: user?.user_metadata?.full_name || 'John Doe',
+        username: user?.user_metadata?.username || 'johndoe',
         avatar: 'https://i.pravatar.cc/150?img=1',
         followers: 1453,
         following: 234,

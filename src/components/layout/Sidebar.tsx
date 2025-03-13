@@ -1,21 +1,34 @@
+
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Home, Search, Bell, User, Bookmark, Settings, PlusCircle, X } from 'lucide-react';
+import { Home, Search, Bell, User, Bookmark, Settings, PlusCircle, X, LogOut, LogIn } from 'lucide-react';
 import Button from '@/components/common/Button';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Sidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { user, signOut } = useAuth();
   
   const navigation = [
     { name: 'Home', icon: Home, href: '/' },
     { name: 'Explore', icon: Search, href: '/explore' },
     { name: 'Notifications', icon: Bell, href: '/notifications' },
     { name: 'Bookmarks', icon: Bookmark, href: '/bookmarks' },
-    { name: 'Profile', icon: User, href: '/profile/1' },
+    { name: 'Profile', icon: User, href: user ? `/profile/${user.id}` : '/auth' },
     { name: 'Settings', icon: Settings, href: '/settings' },
   ];
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
+  };
+
+  const handleSignIn = () => {
+    navigate('/auth');
+  };
 
   return (
     <div 
@@ -64,40 +77,68 @@ const Sidebar = () => {
               </Link>
             );
           })}
+
+          {user ? (
+            <button
+              onClick={handleSignOut}
+              className={cn(
+                "flex items-center p-3 text-lg font-medium rounded-full transition-colors text-xDark hover:bg-xExtraLightGray/50",
+                isCollapsed && "justify-center w-full"
+              )}
+            >
+              <LogOut size={24} className="text-xGray" />
+              {!isCollapsed && <span className="ml-4">Sign out</span>}
+            </button>
+          ) : (
+            <button
+              onClick={handleSignIn}
+              className={cn(
+                "flex items-center p-3 text-lg font-medium rounded-full transition-colors text-xDark hover:bg-xExtraLightGray/50",
+                isCollapsed && "justify-center w-full"
+              )}
+            >
+              <LogIn size={24} className="text-xGray" />
+              {!isCollapsed && <span className="ml-4">Sign in</span>}
+            </button>
+          )}
         </nav>
         
         <div className="mt-auto">
-          <Button 
-            variant="primary"
-            size={isCollapsed ? "icon" : "lg"}
-            className={cn(
-              "w-full font-bold", 
-              isCollapsed ? "p-3" : "px-6 py-3"
-            )}
-          >
-            {isCollapsed ? (
-              <PlusCircle size={24} />
-            ) : (
-              "Post"
-            )}
-          </Button>
+          {user && (
+            <Button 
+              variant="primary"
+              size={isCollapsed ? "icon" : "lg"}
+              className={cn(
+                "w-full font-bold", 
+                isCollapsed ? "p-3" : "px-6 py-3"
+              )}
+            >
+              {isCollapsed ? (
+                <PlusCircle size={24} />
+              ) : (
+                "Post"
+              )}
+            </Button>
+          )}
         </div>
         
-        <div className="mt-4">
-          <div className="flex items-center p-3 rounded-full hover:bg-xExtraLightGray/50 transition-colors cursor-pointer">
-            <img 
-              src="https://i.pravatar.cc/150?img=1" 
-              alt="Profile" 
-              className="w-10 h-10 rounded-full object-cover"
-            />
-            {!isCollapsed && (
-              <div className="ml-3 overflow-hidden">
-                <p className="font-bold text-sm truncate">John Doe</p>
-                <p className="text-xGray text-sm truncate">@johndoe</p>
-              </div>
-            )}
+        {user && (
+          <div className="mt-4">
+            <div className="flex items-center p-3 rounded-full hover:bg-xExtraLightGray/50 transition-colors cursor-pointer">
+              <img 
+                src="https://i.pravatar.cc/150?img=1" 
+                alt="Profile" 
+                className="w-10 h-10 rounded-full object-cover"
+              />
+              {!isCollapsed && (
+                <div className="ml-3 overflow-hidden">
+                  <p className="font-bold text-sm truncate">{user.user_metadata?.full_name || 'User'}</p>
+                  <p className="text-xGray text-sm truncate">@{user.user_metadata?.username || user.email}</p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
