@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Bookmark, MoreHorizontal, CheckCircle } from 'lucide-react';
+import { Heart, Repeat, MessageCircle, Share, MoreHorizontal, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Post, formatDate } from '@/lib/data';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 
 interface PostCardProps {
   post: Post;
@@ -24,58 +23,14 @@ const cardColors = [
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(post.liked || false);
-  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [isReposted, setIsReposted] = useState(post.reposted || false);
   const [likeCount, setLikeCount] = useState(post.likes);
+  const [repostCount, setRepostCount] = useState(post.reposts);
   const [replyCount, setReplyCount] = useState(post.replies);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   
   const colorIndex = post.id.charCodeAt(0) % cardColors.length;
   const cardColor = cardColors[colorIndex];
-
-  // Generate a UUID v4 from the post ID for Supabase
-  const generateUUID = () => {
-    // Simple UUID v4 format - this is a mock implementation
-    // In a real app, you would use a proper UUID library or store real UUIDs
-    return `xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx`.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0,
-          v = c == 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
-  };
-
-  // Create a stable UUID for each post based on its ID
-  const getPostUUID = () => {
-    // Convert the post.id to a consistent UUID format
-    // Use existing post ID as seed if possible
-    const postId = post.id;
-    const seed = typeof postId === 'string' ? postId : String(postId);
-    // This is a deterministic way to generate a UUID from post ID
-    // It will always produce the same UUID for the same post ID
-    return `00000000-0000-4000-a000-000000000${seed.padStart(3, '0')}`.substring(0, 36);
-  };
-
-  // Check if the post is bookmarked when component mounts
-  useEffect(() => {
-    const checkBookmarkStatus = async () => {
-      try {
-        const postUUID = getPostUUID();
-        // We're not using .single() here to avoid error if no bookmark exists
-        const { data, error } = await supabase
-          .from('bookmarks')
-          .select('*')
-          .eq('post_id', postUUID);
-        
-        if (data && data.length > 0) {
-          setIsBookmarked(true);
-        }
-      } catch (error) {
-        // Post is not bookmarked, which is fine
-        console.log('Error checking bookmark status:', error);
-      }
-    };
-
-    checkBookmarkStatus();
-  }, [post.id]);
 
   const handlePostClick = () => {
     navigate(`/post/${post.id}`);
@@ -94,52 +49,25 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     setIsLiked(!isLiked);
   };
 
-  const handleBookmark = async (e: React.MouseEvent) => {
+  const handleRepost = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    try {
-      const postUUID = getPostUUID();
-      
-      // Get current user
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id || 'anonymous';
-      
-      if (isBookmarked) {
-        // Remove bookmark - using properly formatted UUID
-        const { error } = await supabase
-          .from('bookmarks')
-          .delete()
-          .eq('post_id', postUUID);
-        
-        if (error) {
-          toast.error('Failed to remove bookmark');
-          console.error('Error removing bookmark:', error);
-        } else {
-          setIsBookmarked(false);
-          toast.success('Bookmark removed');
-        }
-      } else {
-        // Add bookmark - using properly formatted UUID
-        const { error } = await supabase
-          .from('bookmarks')
-          .insert({ 
-            post_id: postUUID,
-            user_id: userId
-          });
-        
-        if (error) {
-          toast.error('Failed to bookmark post');
-          console.error('Error adding bookmark:', error);
-        } else {
-          setIsBookmarked(true);
-          toast.success('Post bookmarked');
-        }
-      }
-    } catch (err) {
-      console.error('Error handling bookmark:', err);
-      toast.error('Something went wrong');
+    if (isReposted) {
+      setRepostCount(prev => prev - 1);
+    } else {
+      setRepostCount(prev => prev + 1);
+      toast.success('Post reposted to your profile');
     }
+    setIsReposted(!isReposted);
+  };
+
+  const handleShare = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Implementation would connect to native share API
+    toast.success('Share options opened');
   };
 
   const handleCommentClick = (e: React.MouseEvent) => {
@@ -252,6 +180,27 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             <button 
               className={cn(
                 "flex items-center group",
+                isReposted && "text-green-500"
+              )}
+              onClick={handleRepost}
+            >
+              <div className={cn(
+                "p-2 rounded-full group-hover:bg-green-50 group-hover:text-green-500 transition-colors",
+                isReposted && "text-green-500"
+              )}>
+                <Repeat size={18} />
+              </div>
+              <span className={cn(
+                "ml-1 text-sm group-hover:text-green-500",
+                isReposted && "text-green-500"
+              )}>
+                {formatNumber(repostCount)}
+              </span>
+            </button>
+            
+            <button 
+              className={cn(
+                "flex items-center group",
                 isLiked && "text-pink-500"
               )}
               onClick={handleLike}
@@ -271,22 +220,13 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             </button>
             
             <button 
-              className={cn(
-                "flex items-center group",
-                isBookmarked && "text-blue-500"
-              )}
-              onClick={handleBookmark}
+              className="flex items-center group"
+              onClick={handleShare}
             >
-              <div className={cn(
-                "p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors",
-                isBookmarked && "text-blue-500"
-              )}>
-                <Bookmark size={18} className={isBookmarked ? "fill-current" : ""} />
+              <div className="p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
+                <Share size={18} />
               </div>
-              <span className={cn(
-                "ml-1 text-sm group-hover:text-blue-500",
-                isBookmarked && "text-blue-500"
-              )}>
+              <span className="ml-1 text-sm group-hover:text-blue-500">
                 {formatNumber(post.views)}
               </span>
             </button>

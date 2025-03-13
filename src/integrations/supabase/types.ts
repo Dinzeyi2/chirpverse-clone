@@ -9,27 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      bookmarks: {
-        Row: {
-          created_at: string
-          id: string
-          post_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          post_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          post_id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       boosted_content: {
         Row: {
           content_id: string
