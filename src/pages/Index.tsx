@@ -4,13 +4,26 @@ import AppLayout from '@/components/layout/AppLayout';
 import CreatePost from '@/components/feed/CreatePost';
 import PostList from '@/components/feed/PostList';
 import SwipeablePostView from '@/components/feed/SwipeablePostView';
-import { posts } from '@/lib/data';
+import { Post, posts, users } from '@/lib/data';
 import { Settings } from 'lucide-react';
 
 const Index = () => {
   const [feedPosts, setFeedPosts] = useState(posts);
   const [activeTab, setActiveTab] = useState('for-you');
   const [feedView, setFeedView] = useState<'swipeable' | 'list'>('swipeable');
+  
+  // Filter posts based on active tab
+  const displayPosts = React.useMemo(() => {
+    if (activeTab === 'for-you') {
+      return feedPosts;
+    } else if (activeTab === 'following') {
+      // Simulate following functionality (showing posts from users with IDs 1, 3, 5)
+      // In a real app, this would filter based on users the current user follows
+      const followedUserIds = ['1', '3', '5'];
+      return feedPosts.filter(post => followedUserIds.includes(post.userId));
+    }
+    return feedPosts;
+  }, [feedPosts, activeTab]);
   
   const handlePostCreated = (content: string) => {
     const newPost = {
@@ -86,10 +99,25 @@ const Index = () => {
       <CreatePost onPostCreated={handlePostCreated} />
       
       {/* Posts */}
-      {feedView === 'swipeable' ? (
-        <SwipeablePostView posts={feedPosts} />
+      {activeTab === 'following' && displayPosts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+          <h2 className="text-2xl font-bold mb-2">Welcome to your timeline!</h2>
+          <p className="text-xGray mb-6 max-w-md">
+            When you follow someone, their posts will show up here. You can discover accounts to follow in the "For you" section.
+          </p>
+          <button 
+            className="bg-xBlue text-white px-6 py-2 rounded-full font-bold hover:bg-xBlue/90 transition-colors"
+            onClick={() => setActiveTab('for-you')}
+          >
+            Discover people to follow
+          </button>
+        </div>
       ) : (
-        <PostList posts={feedPosts} />
+        feedView === 'swipeable' ? (
+          <SwipeablePostView posts={displayPosts} />
+        ) : (
+          <PostList posts={displayPosts} />
+        )
       )}
     </AppLayout>
   );
