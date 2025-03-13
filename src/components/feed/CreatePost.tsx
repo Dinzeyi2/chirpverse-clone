@@ -18,7 +18,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const [charCount, setCharCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<{type: string, file: File, preview: string}[]>([]);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -343,7 +343,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                 >
                   <Video size={20} />
                 </button>
-                <Popover>
+                <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
                   <PopoverTrigger asChild>
                     <button 
                       type="button"
