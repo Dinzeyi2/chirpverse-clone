@@ -43,37 +43,51 @@ const Profile = () => {
           .from('comments')
           .select('id', { count: 'exact' })
           .eq('user_id', userId);
-          
+
+        // First get the user's posts (shoutout IDs)
+        const { data: userShoutouts, error: shoutoutsError } = await supabase
+          .from('shoutouts')
+          .select('id')
+          .eq('user_id', userId);
+
         // Count reactions (likes) received on user's posts
-        const { data: reactions, error: reactionsError } = await supabase
-          .from('likes')
-          .select('id', { count: 'exact' })
-          .in('shoutout_id', 
-            supabase.from('shoutouts')
-              .select('id')
-              .eq('user_id', userId)
-          );
+        let reactionsCount = 0;
+        let bluedifyCount = 0;
+        
+        if (userShoutouts && userShoutouts.length > 0) {
+          // Extract the IDs into an array
+          const shoutoutIds = userShoutouts.map(shoutout => shoutout.id);
           
-        // Count bluedify (reposts) for user's posts
-        const { data: bluedify, error: bluedifyError } = await supabase
-          .from('reposts')
-          .select('id', { count: 'exact' })
-          .in('shoutout_id', 
-            supabase.from('shoutouts')
-              .select('id')
-              .eq('user_id', userId)
-          );
+          // Count likes for these posts
+          const { count: likesCount, error: likesError } = await supabase
+            .from('likes')
+            .select('*', { count: 'exact', head: true })
+            .in('shoutout_id', shoutoutIds);
+            
+          // Count reposts (bluedify) for these posts
+          const { count: repostsCount, error: repostsError } = await supabase
+            .from('reposts')
+            .select('*', { count: 'exact', head: true })
+            .in('shoutout_id', shoutoutIds);
+            
+          if (likesCount !== null) reactionsCount = likesCount;
+          if (repostsCount !== null) bluedifyCount = repostsCount;
+          
+          if (likesError || repostsError) {
+            console.error('Error counting interactions:', { likesError, repostsError });
+          }
+        }
           
         setUserStats({
           posts: posts?.length || 0,
           replies: replies?.length || 0,
-          reactions: reactions?.length || 0,
-          bluedify: bluedify?.length || 0
+          reactions: reactionsCount,
+          bluedify: bluedifyCount
         });
         
-        if (postsError || repliesError || reactionsError || bluedifyError) {
+        if (postsError || repliesError || shoutoutsError) {
           console.error('Error fetching user stats:', {
-            postsError, repliesError, reactionsError, bluedifyError
+            postsError, repliesError, shoutoutsError
           });
         }
       } catch (err) {
