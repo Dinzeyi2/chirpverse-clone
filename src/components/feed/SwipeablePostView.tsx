@@ -16,6 +16,8 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Check if device is mobile based on screen width
@@ -32,10 +34,29 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     };
   }, []);
 
+  // Reset animation state after animation completes
+  useEffect(() => {
+    if (isAnimating) {
+      const timer = setTimeout(() => {
+        setIsAnimating(false);
+        setSwipeDirection(null);
+      }, 300); // Match this with the CSS animation duration
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isAnimating]);
+
   // Handle navigation to previous post
   const goToPrevious = () => {
     if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
+      setSwipeDirection('right');
+      setIsAnimating(true);
+      
+      // Slight delay to let animation start before changing index
+      setTimeout(() => {
+        setCurrentIndex(currentIndex - 1);
+      }, 150);
+      
       toast.info('Previous post');
     } else {
       toast.info('You reached the beginning of your feed');
@@ -45,7 +66,14 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   // Handle navigation to next post
   const goToNext = () => {
     if (currentIndex < posts.length - 1) {
-      setCurrentIndex(currentIndex + 1);
+      setSwipeDirection('left');
+      setIsAnimating(true);
+      
+      // Slight delay to let animation start before changing index
+      setTimeout(() => {
+        setCurrentIndex(currentIndex + 1);
+      }, 150);
+      
       toast.info('Next post');
     } else {
       toast.info('You reached the end of your feed');
@@ -155,7 +183,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     <div className="relative h-full" ref={containerRef}>
       {/* Current Post */}
       <div 
-        className="h-full w-full"
+        className="h-full w-full overflow-hidden"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -164,10 +192,15 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
         <div className={cn(
           "transition-all duration-300 transform",
           touchStart && touchEnd && touchStart > touchEnd ? "-translate-x-6" : "",
-          touchStart && touchEnd && touchStart < touchEnd ? "translate-x-6" : ""
+          touchStart && touchEnd && touchStart < touchEnd ? "translate-x-6" : "",
+          swipeDirection === 'left' ? "swipe-left" : "",
+          swipeDirection === 'right' ? "swipe-right" : "",
         )}>
           {posts[currentIndex] && (
-            <div className="relative">
+            <div className={cn(
+              "relative transition-all",
+              isAnimating ? "card-animation" : ""
+            )}>
               <PostCard post={posts[currentIndex]} />
               
               {/* Mobile indicator text */}

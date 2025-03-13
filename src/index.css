@@ -200,31 +200,71 @@ button, a {
 /* Swipe animations */
 @keyframes swipeLeft {
   from {
-    transform: translateX(0);
+    transform: translateX(0) rotate(0deg);
+    opacity: 1;
   }
   to {
-    transform: translateX(-100%);
+    transform: translateX(-100%) rotate(-5deg);
+    opacity: 0;
   }
 }
 
 @keyframes swipeRight {
   from {
-    transform: translateX(0);
+    transform: translateX(0) rotate(0deg);
+    opacity: 1;
   }
   to {
-    transform: translateX(100%);
+    transform: translateX(100%) rotate(5deg);
+    opacity: 0;
   }
 }
 
 .swipe-left {
   animation: swipeLeft 0.3s ease-out forwards;
+  transform-origin: center center;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
 .swipe-right {
   animation: swipeRight 0.3s ease-out forwards;
+  transform-origin: center center;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
 .swipe-container {
   touch-action: pan-y;
   user-select: none;
+}
+
+.card-animation {
+  transition: all 0.3s ease;
+  perspective: 800px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  will-change: transform, opacity;
+}
+
+/* Card entering animation */
+@keyframes cardEnter {
+  from {
+    transform: translateX(100%) scale(0.9) rotate(2deg);
+    opacity: 0.5;
+  }
+  to {
+    transform: translateX(0) scale(1) rotate(0);
+    opacity: 1;
+  }
+}
+
+/* Card leaving animation */
+@keyframes cardLeave {
+  from {
+    transform: translateX(0) scale(1) rotate(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-100%) scale(0.9) rotate(-2deg);
+    opacity: 0.5;
+  }
 }

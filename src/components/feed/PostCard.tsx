@@ -64,7 +64,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   return (
     <Link 
       to={`/post/${post.id}`}
-      className="border-b border-xExtraLightGray p-4 hover:bg-black/[0.02] transition-colors cursor-pointer block animate-fade-in"
+      className="border-b border-xExtraLightGray p-4 hover:bg-black/[0.02] transition-colors cursor-pointer block animate-fade-in rounded-xl shadow-sm hover:shadow-md"
     >
       <div className="flex">
         {/* Avatar */}
