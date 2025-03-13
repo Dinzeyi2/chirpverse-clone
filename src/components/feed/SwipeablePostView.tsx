@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import PostCard from './PostCard';
 import { Post } from '@/lib/data';
@@ -170,10 +171,10 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   }
 
   return (
-    <div className="relative h-full" ref={containerRef}>
+    <div className="relative pb-16" ref={containerRef}>
       {/* Current Post */}
       <div 
-        className="h-full w-full overflow-hidden"
+        className="w-full overflow-y-auto max-h-[calc(100vh-200px)] px-2"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}

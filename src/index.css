@@ -245,6 +245,14 @@ button, a {
   will-change: transform, opacity;
 }
 
+/* Make sure posts are fully visible */
+.post-container {
+  overflow-y: auto;
+  max-height: calc(100vh - 200px);
+  padding-bottom: 2rem;
+  scroll-behavior: smooth;
+}
+
 /* Card entering animation */
 @keyframes cardEnter {
   from {
