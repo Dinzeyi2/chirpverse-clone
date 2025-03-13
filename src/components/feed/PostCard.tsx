@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, Repeat, MessageCircle, Bookmark, MoreHorizontal, CheckCircle } from 'lucide-react';
+import { Heart, MessageCircle, Bookmark, MoreHorizontal, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Post, formatDate } from '@/lib/data';
 import { toast } from 'sonner';
@@ -25,10 +25,8 @@ const cardColors = [
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(post.liked || false);
-  const [isReposted, setIsReposted] = useState(post.reposted || false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likes);
-  const [repostCount, setRepostCount] = useState(post.reposts);
   const [replyCount, setReplyCount] = useState(post.replies);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   
@@ -73,53 +71,48 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     setIsLiked(!isLiked);
   };
 
-  const handleRepost = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (isReposted) {
-      setRepostCount(prev => prev - 1);
-    } else {
-      setRepostCount(prev => prev + 1);
-      toast.success('Post reposted to your profile');
-    }
-    setIsReposted(!isReposted);
-  };
-
   const handleBookmark = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    if (isBookmarked) {
-      // Remove bookmark
-      const { error } = await supabase
-        .from('bookmarks')
-        .delete()
-        .eq('post_id', post.id);
-      
-      if (error) {
-        toast.error('Failed to remove bookmark');
-        console.error('Error removing bookmark:', error);
+    try {
+      if (isBookmarked) {
+        // Remove bookmark
+        const { error } = await supabase
+          .from('bookmarks')
+          .delete()
+          .eq('post_id', post.id);
+        
+        if (error) {
+          toast.error('Failed to remove bookmark');
+          console.error('Error removing bookmark:', error);
+        } else {
+          setIsBookmarked(false);
+          toast.success('Bookmark removed');
+        }
       } else {
-        setIsBookmarked(false);
-        toast.success('Bookmark removed');
+        // Add bookmark
+        const { data: userData } = await supabase.auth.getUser();
+        const userId = userData.user?.id || 'anonymous';
+        
+        const { error } = await supabase
+          .from('bookmarks')
+          .insert({ 
+            post_id: post.id,
+            user_id: userId
+          });
+        
+        if (error) {
+          toast.error('Failed to bookmark post');
+          console.error('Error adding bookmark:', error);
+        } else {
+          setIsBookmarked(true);
+          toast.success('Post bookmarked');
+        }
       }
-    } else {
-      // Add bookmark - FIX: Add the user_id field
-      const { error } = await supabase
-        .from('bookmarks')
-        .insert({ 
-          post_id: post.id,
-          user_id: supabase.auth.getUser() ? (await supabase.auth.getUser()).data.user?.id : 'anonymous'
-        });
-      
-      if (error) {
-        toast.error('Failed to bookmark post');
-        console.error('Error adding bookmark:', error);
-      } else {
-        setIsBookmarked(true);
-        toast.success('Post bookmarked');
-      }
+    } catch (err) {
+      console.error('Error handling bookmark:', err);
+      toast.error('Something went wrong');
     }
   };
 
@@ -227,27 +220,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               </div>
               <span className="ml-1 text-sm group-hover:text-blue-500">
                 {formatNumber(replyCount)}
-              </span>
-            </button>
-            
-            <button 
-              className={cn(
-                "flex items-center group",
-                isReposted && "text-green-500"
-              )}
-              onClick={handleRepost}
-            >
-              <div className={cn(
-                "p-2 rounded-full group-hover:bg-green-50 group-hover:text-green-500 transition-colors",
-                isReposted && "text-green-500"
-              )}>
-                <Repeat size={18} />
-              </div>
-              <span className={cn(
-                "ml-1 text-sm group-hover:text-green-500",
-                isReposted && "text-green-500"
-              )}>
-                {formatNumber(repostCount)}
               </span>
             </button>
             
