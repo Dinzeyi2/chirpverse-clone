@@ -1,4 +1,3 @@
-
 // Sample user data
 export interface User {
   id: string;
@@ -25,6 +24,18 @@ export interface Post {
   user?: User;
   liked?: boolean;
   reposted?: boolean;
+}
+
+// Sample comment data
+export interface Comment {
+  id: string;
+  content: string;
+  createdAt: string;
+  userId: string;
+  postId: string;
+  likes: number;
+  user?: User;
+  liked?: boolean;
 }
 
 // Sample users
@@ -175,6 +186,64 @@ export const posts: Post[] = [
   }
 ];
 
+// Sample comments
+export const comments: Comment[] = [
+  {
+    id: '1',
+    content: 'Great post! I totally agree with your points.',
+    createdAt: '2023-10-12T15:10:00Z',
+    userId: '2',
+    postId: '1',
+    likes: 5,
+    user: users.find(user => user.id === '2')
+  },
+  {
+    id: '2',
+    content: 'Thanks for sharing this. Very insightful!',
+    createdAt: '2023-10-12T15:30:00Z',
+    userId: '3',
+    postId: '1',
+    likes: 3,
+    user: users.find(user => user.id === '3')
+  },
+  {
+    id: '3',
+    content: 'I have a different perspective on this topic...',
+    createdAt: '2023-10-12T16:05:00Z',
+    userId: '4',
+    postId: '1',
+    likes: 2,
+    user: users.find(user => user.id === '4')
+  },
+  {
+    id: '4',
+    content: 'Looking forward to the next update!',
+    createdAt: '2023-10-12T16:45:00Z',
+    userId: '5',
+    postId: '1',
+    likes: 7,
+    user: users.find(user => user.id === '5')
+  },
+  {
+    id: '5',
+    content: 'Can you elaborate more on this?',
+    createdAt: '2023-10-12T13:20:00Z',
+    userId: '1',
+    postId: '3',
+    likes: 4,
+    user: users.find(user => user.id === '1')
+  },
+  {
+    id: '6',
+    content: 'I completely agree with your approach.',
+    createdAt: '2023-10-12T14:15:00Z',
+    userId: '2',
+    postId: '3',
+    likes: 6,
+    user: users.find(user => user.id === '2')
+  }
+];
+
 // Helper function to get user by ID
 export const getUserById = (id: string): User | undefined => {
   return users.find(user => user.id === id);
@@ -183,6 +252,16 @@ export const getUserById = (id: string): User | undefined => {
 // Helper function to get posts by user ID
 export const getPostsByUserId = (userId: string): Post[] => {
   return posts.filter(post => post.userId === userId);
+};
+
+// Helper function to get comments by post ID
+export const getCommentsByPostId = (postId: string): Comment[] => {
+  return comments.filter(comment => comment.postId === postId);
+};
+
+// Helper function to get post by ID
+export const getPostById = (id: string): Post | undefined => {
+  return posts.find(post => post.id === id);
 };
 
 // Helper function to format date

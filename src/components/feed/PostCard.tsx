@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Heart, Repeat, MessageCircle, Share, MoreHorizontal, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Post, formatDate } from '@/lib/data';
@@ -21,6 +22,7 @@ const cardColors = [
 ];
 
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
+  const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(post.liked || false);
   const [isReposted, setIsReposted] = useState(post.reposted || false);
   const [likeCount, setLikeCount] = useState(post.likes);
@@ -29,6 +31,10 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   
   const colorIndex = post.id.charCodeAt(0) % cardColors.length;
   const cardColor = cardColors[colorIndex];
+
+  const handlePostClick = () => {
+    navigate(`/post/${post.id}`);
+  };
 
   const handleLike = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -75,8 +81,8 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   };
 
   return (
-    <Link 
-      to={`/post/${post.id}`}
+    <div 
+      onClick={handlePostClick}
       className={cn(
         'p-4 hover:bg-black/[0.02] transition-colors cursor-pointer block animate-fade-in',
         'rounded-2xl shadow-md hover:shadow-lg border-2',
@@ -85,28 +91,32 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     >
       <div className="flex">
         <div className="mr-3 flex-shrink-0">
-          <Link 
-            to={`/profile/${post.userId}`} 
-            className="block" 
-            onClick={(e) => e.stopPropagation()}
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/profile/${post.userId}`);
+            }}
+            className="block cursor-pointer"
           >
             <img 
               src={post.user?.avatar} 
               alt={post.user?.name} 
               className="w-12 h-12 rounded-full object-cover"
             />
-          </Link>
+          </div>
         </div>
         
         <div className="flex-1 min-w-0">
           <div className="flex items-center mb-1">
-            <Link 
-              to={`/profile/${post.userId}`}
-              className="font-bold hover:underline mr-1 truncate"
-              onClick={(e) => e.stopPropagation()}
+            <div 
+              className="font-bold hover:underline mr-1 truncate cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/profile/${post.userId}`);
+              }}
             >
               {post.user?.name}
-            </Link>
+            </div>
             
             {post.user?.verified && (
               <span className="text-xBlue mr-1">
@@ -154,7 +164,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                toast.info('Reply to post');
+                navigate(`/post/${post.id}`);
               }}
             >
               <div className="p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
@@ -221,7 +231,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           </div>
         </div>
       </div>
-    </Link>
+    </div>
   );
 };
 
