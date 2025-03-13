@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark } from 'lucide-react';
@@ -206,7 +207,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             </div>
           )}
           
-          <div className="flex justify-between items-center mt-3 max-w-md text-xGray">
+          <div className="flex justify-end items-center mt-3 max-w-md text-xGray gap-4">
             <button 
               className="flex items-center group"
               onClick={handleCommentClick}
