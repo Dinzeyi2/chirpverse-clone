@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, MapPin, Link as LinkIcon, CheckCircle, X, Camera } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Link as LinkIcon, CheckCircle, X, Camera, UserCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { User } from '@/lib/data';
 import { cn } from '@/lib/utils';
@@ -44,46 +44,19 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
     setIsFollowing(!isFollowing);
     
     if (!isFollowing) {
-      // Follow user logic
       try {
-        // The following would be the actual implementation if your Supabase has followers table
-        /*
-        const { error } = await supabase
-          .from('followers')
-          .insert({
-            follower_id: authUser.id,
-            following_id: user.id
-          });
-          
-        if (error) throw error;
-        */
-        
         toast.success(`You are now following @${user.username}`);
       } catch (error: any) {
         console.error('Error following user:', error);
-        setIsFollowing(false); // Revert UI state
+        setIsFollowing(false);
         toast.error('Failed to follow user');
       }
     } else {
-      // Unfollow user logic
       try {
-        // The following would be the actual implementation if your Supabase has followers table
-        /*
-        const { error } = await supabase
-          .from('followers')
-          .delete()
-          .match({
-            follower_id: authUser.id,
-            following_id: user.id
-          });
-          
-        if (error) throw error;
-        */
-        
         toast.info(`You have unfollowed @${user.username}`);
       } catch (error: any) {
         console.error('Error unfollowing user:', error);
-        setIsFollowing(true); // Revert UI state
+        setIsFollowing(true);
         toast.error('Failed to unfollow user');
       }
     }
@@ -107,20 +80,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
   
   const handleSaveProfile = async () => {
     try {
-      // The following would be the actual implementation for Supabase
-      /*
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          full_name: formData.name,
-          description: formData.bio,
-          // Add other fields as needed
-        })
-        .eq('id', user.id);
-        
-      if (error) throw error;
-      */
-      
       toast.success('Profile updated successfully');
       setIsDialogOpen(false);
     } catch (error: any) {
@@ -131,7 +90,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
 
   return (
     <div className="animate-fade-in">
-      {/* Header with back button */}
       <div className="flex items-center p-4 sticky top-0 z-10 bg-background/90 backdrop-blur-md">
         <button
           onClick={handleBackClick}
@@ -145,15 +103,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
         </div>
       </div>
       
-      {/* Cover Image */}
       <div className="h-48 bg-xExtraLightGray relative">
         <div className="h-full w-full bg-gradient-to-br from-xBlue/20 to-purple-500/20"></div>
       </div>
       
-      {/* Avatar and Follow/Edit Button */}
       <div className="px-4 pb-4 relative">
         <div className="flex justify-between items-start">
-          {/* Avatar */}
           <div className="relative -mt-16">
             <img
               src={user.avatar}
@@ -162,7 +117,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
             />
           </div>
           
-          {/* Action Button */}
           <div className="mt-4">
             {isCurrentUser ? (
               <Button
@@ -187,7 +141,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
           </div>
         </div>
         
-        {/* User Info */}
         <div className="mt-4">
           <div className="flex items-center">
             <h1 className="text-xl font-bold mr-1">{user.name}</h1>
@@ -201,7 +154,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
           
           {user.bio && <p className="mt-3">{user.bio}</p>}
           
-          {/* Additional Info */}
           <div className="flex flex-wrap mt-3 text-xGray">
             <div className="flex items-center mr-4 mb-2">
               <MapPin size={18} className="mr-1" />
@@ -217,7 +169,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
             </div>
           </div>
           
-          {/* Followers/Following */}
           <div className="flex mt-3">
             <Link to={`/profile/${user.id}/following`} className="mr-4 hover:underline">
               <span className="font-bold">{user.following.toLocaleString()}</span>
@@ -231,9 +182,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
         </div>
       </div>
 
-      {/* Twitter/X style Edit Profile Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden rounded-2xl border-none">
+        <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto p-0 overflow-hidden rounded-2xl border-none">
           <div className="flex justify-between items-center p-4 border-b">
             <div className="flex items-center">
               <DialogClose className="mr-4 p-2 rounded-full hover:bg-xExtraLightGray/50 transition-colors">
@@ -249,7 +199,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
             </Button>
           </div>
           
-          {/* Cover Photo */}
           <div className="h-48 bg-xExtraLightGray relative">
             <div className="h-full w-full bg-gradient-to-br from-xBlue/20 to-purple-500/20"></div>
             <div className="absolute inset-0 flex items-center justify-center">
@@ -259,7 +208,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
             </div>
           </div>
           
-          {/* Avatar */}
           <div className="px-4 relative">
             <div className="relative -mt-16 mb-6">
               <img
@@ -268,14 +216,14 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
                 className="w-32 h-32 rounded-full object-cover border-4 border-background"
               />
               <div className="absolute inset-0 flex items-center justify-center">
-                <button className="p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors text-white">
-                  <Camera size={20} />
+                <button className="p-3 rounded-full bg-black/50 hover:bg-black/70 transition-colors text-white" aria-label="Change profile picture">
+                  <Camera size={24} />
+                  <span className="sr-only">Change profile picture</span>
                 </button>
               </div>
             </div>
           </div>
           
-          {/* Form Fields */}
           <div className="p-4 space-y-4">
             <div className="space-y-1">
               <Label htmlFor="name" className="text-xGray text-sm">Name</Label>
@@ -310,7 +258,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
               />
             </div>
             
-            <div className="space-y-1">
+            <div className="space-y-1 mb-6">
               <Label htmlFor="website" className="text-xGray text-sm">Website</Label>
               <Input 
                 id="website" 
