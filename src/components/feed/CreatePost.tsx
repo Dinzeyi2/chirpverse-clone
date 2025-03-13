@@ -1,11 +1,13 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { Image, Smile, MapPin, Calendar, BarChart, X } from 'lucide-react';
+import { Image, Smile, MapPin, Calendar, BarChart, X, Video } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { toast } from 'sonner';
 import { DialogClose } from '@/components/ui/dialog';
+import { supabase } from "@/integrations/supabase/client";
 
 interface CreatePostProps {
-  onPostCreated?: (content: string) => void;
+  onPostCreated?: (content: string, media?: {type: string, url: string}[]) => void;
   inDialog?: boolean;
 }
 
@@ -13,9 +15,14 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const [postContent, setPostContent] = useState('');
   const [charCount, setCharCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [mediaFiles, setMediaFiles] = useState<{type: string, file: File, preview: string}[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   
   const maxChars = 280;
+  const maxImages = 2;
+  const maxVideoLength = 120; // 2 minutes in seconds
   
   useEffect(() => {
     // Auto-focus the textarea when opened in a dialog
@@ -39,33 +46,169 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   };
+
+  const handleImageClick = () => {
+    if (mediaFiles.length >= maxImages && mediaFiles.some(file => file.type === 'image')) {
+      toast.error(`You can only upload up to ${maxImages} images`);
+      return;
+    }
+
+    if (mediaFiles.some(file => file.type === 'video')) {
+      toast.error('You cannot upload both images and a video');
+      return;
+    }
+
+    fileInputRef.current?.click();
+  };
+
+  const handleVideoClick = () => {
+    if (mediaFiles.length > 0) {
+      toast.error('You cannot upload both images and a video');
+      return;
+    }
+
+    videoInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    const file = files[0];
+    const fileType = file.type.split('/')[0];
+    
+    // Handle image uploads
+    if (fileType === 'image') {
+      if (mediaFiles.length >= maxImages) {
+        toast.error(`You can only upload up to ${maxImages} images`);
+        return;
+      }
+      
+      if (mediaFiles.some(media => media.type === 'video')) {
+        toast.error('You cannot upload both images and a video');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target && event.target.result) {
+          setMediaFiles(prev => [...prev, {
+            type: 'image',
+            file,
+            preview: event.target?.result as string
+          }]);
+        }
+      };
+      reader.readAsDataURL(file);
+    } 
+    // Handle video uploads
+    else if (fileType === 'video') {
+      if (mediaFiles.length > 0) {
+        toast.error('You can only upload one video');
+        return;
+      }
+
+      // Check video duration
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      
+      video.onloadedmetadata = () => {
+        window.URL.revokeObjectURL(video.src);
+        
+        if (video.duration > maxVideoLength) {
+          toast.error(`Video must be less than 2 minutes long`);
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (event.target && event.target.result) {
+            setMediaFiles([{
+              type: 'video',
+              file,
+              preview: event.target?.result as string
+            }]);
+          }
+        };
+        reader.readAsDataURL(file);
+      };
+      
+      video.src = URL.createObjectURL(file);
+    }
+    
+    // Reset the input value so the same file can be selected again if removed
+    e.target.value = '';
+  };
+
+  const removeMedia = (index: number) => {
+    setMediaFiles(prev => prev.filter((_, i) => i !== index));
+  };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!postContent.trim()) {
-      toast.error('Please enter some content for your post');
+    if (!postContent.trim() && mediaFiles.length === 0) {
+      toast.error('Please enter some content or add media to your post');
       return;
     }
     
     setIsLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      if (onPostCreated) {
-        onPostCreated(postContent);
+
+    try {
+      // Prepare media upload
+      const mediaUrls: {type: string, url: string}[] = [];
+      
+      // Upload media files to storage if any
+      if (mediaFiles.length > 0) {
+        for (const media of mediaFiles) {
+          const fileExt = media.file.name.split('.').pop();
+          const fileName = `${crypto.randomUUID()}.${fileExt}`;
+          const filePath = `posts/${fileName}`;
+          
+          // Upload to Supabase Storage
+          const { data, error } = await supabase.storage
+            .from('media')
+            .upload(filePath, media.file);
+            
+          if (error) {
+            console.error('Error uploading file:', error);
+            throw new Error('Failed to upload media');
+          }
+          
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from('media')
+            .getPublicUrl(filePath);
+            
+          mediaUrls.push({
+            type: media.type,
+            url: publicUrl
+          });
+        }
       }
       
-      setPostContent('');
-      setCharCount(0);
+      // Simulate API call with a timeout
+      setTimeout(() => {
+        if (onPostCreated) {
+          onPostCreated(postContent, mediaUrls);
+        }
+        
+        setPostContent('');
+        setCharCount(0);
+        setMediaFiles([]);
+        setIsLoading(false);
+        
+        toast.success('Your post was sent successfully!');
+        
+        if (textareaRef.current) {
+          textareaRef.current.style.height = 'auto';
+        }
+      }, 1000);
+    } catch (error) {
       setIsLoading(false);
-      
-      toast.success('Your post was sent successfully!');
-      
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
-      }
-    }, 1000);
+      toast.error('Error creating post. Please try again.');
+      console.error(error);
+    }
   };
   
   const calculateRemainingChars = () => {
@@ -110,6 +253,38 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                 rows={3}
                 disabled={isLoading}
               />
+              
+              {/* Media preview section */}
+              {mediaFiles.length > 0 && (
+                <div className="mt-2 mb-4 relative">
+                  <div className={`grid ${mediaFiles.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-2 rounded-2xl overflow-hidden`}>
+                    {mediaFiles.map((media, index) => (
+                      <div key={index} className="relative rounded-2xl overflow-hidden group">
+                        {media.type === 'image' ? (
+                          <img 
+                            src={media.preview} 
+                            alt={`Uploaded media ${index}`}
+                            className="w-full h-64 object-cover"
+                          />
+                        ) : (
+                          <video 
+                            src={media.preview} 
+                            className="w-full h-64 object-cover" 
+                            controls
+                          />
+                        )}
+                        <button
+                          type="button"
+                          className="absolute top-2 right-2 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+                          onClick={() => removeMedia(index)}
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             
             {inDialog && (
@@ -130,13 +305,37 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
             
             <div className="flex items-center justify-between">
               <div className="flex -ml-2">
+                {/* Hidden file inputs */}
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  onChange={handleFileChange} 
+                  accept="image/*"
+                />
+                <input 
+                  type="file" 
+                  ref={videoInputRef} 
+                  className="hidden" 
+                  onChange={handleFileChange} 
+                  accept="video/*"
+                />
+                
                 <button 
                   type="button"
                   className="p-2 text-xBlue rounded-full hover:bg-xBlue/10 transition-colors"
-                  onClick={() => toast.info('Media uploader would open here')}
+                  onClick={handleImageClick}
                   disabled={isLoading}
                 >
                   <Image size={20} />
+                </button>
+                <button 
+                  type="button"
+                  className="p-2 text-xBlue rounded-full hover:bg-xBlue/10 transition-colors"
+                  onClick={handleVideoClick}
+                  disabled={isLoading}
+                >
+                  <Video size={20} />
                 </button>
                 <button 
                   type="button"
@@ -182,7 +381,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                 )}
                 <Button
                   type="submit"
-                  disabled={!postContent.trim() || isLoading}
+                  disabled={(!postContent.trim() && mediaFiles.length === 0) || isLoading}
                   isLoading={isLoading}
                   className="rounded-full px-4"
                 >
