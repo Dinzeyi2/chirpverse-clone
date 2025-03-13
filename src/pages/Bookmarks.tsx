@@ -76,7 +76,7 @@ const Bookmarks = () => {
       const { error } = await supabase
         .from('bookmarks')
         .delete()
-        .neq('id', 0); // Delete all bookmarks
+        .neq('id', '0'); // Fixed: Changed from number to string
       
       if (error) {
         toast.error('Failed to clear bookmarks');
