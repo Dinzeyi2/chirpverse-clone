@@ -1,28 +1,27 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Save, MoreHorizontal, CheckCircle } from 'lucide-react';
+import { Save, MoreHorizontal, CheckCircle, Smile } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Comment as CommentType, formatDate } from '@/lib/data';
 import { toast } from 'sonner';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 
 interface CommentProps {
   comment: CommentType;
 }
 
+interface EmojiReaction {
+  emoji: string;
+  count: number;
+  reacted: boolean;
+}
+
 const Comment: React.FC<CommentProps> = ({ comment }) => {
   const navigate = useNavigate();
   const [savedToBookmarks, setSavedToBookmarks] = useState(false);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [reactions, setReactions] = useState<{[key: string]: number}>({
-    '👍': 0,
-    '🙌': 0,
-    '❤️': 0,
-    '🔥': 0,
-    '👀': 0,
-    '🎉': 0,
-  });
-  const [userReactions, setUserReactions] = useState<{[key: string]: boolean}>({});
+  const [reactions, setReactions] = useState<EmojiReaction[]>([]);
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
 
   const handleSave = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -32,27 +31,68 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
     toast.success(savedToBookmarks ? 'Removed from bookmarks' : 'Saved to bookmarks');
   };
 
-  const handleReaction = (emoji: string, e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
+  const handleEmojiPickerOpen = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEmojiPickerOpen(!emojiPickerOpen);
+  };
+
+  const handleEmojiSelect = (emojiData: EmojiClickData, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const selectedEmoji = emojiData.emoji;
+    
+    const existingReaction = reactions.find(reaction => reaction.emoji === selectedEmoji);
+    
+    if (existingReaction) {
+      if (existingReaction.reacted) {
+        setReactions(prev => 
+          prev.map(r => 
+            r.emoji === selectedEmoji 
+              ? { ...r, count: r.count - 1, reacted: false } 
+              : r
+          ).filter(r => r.count > 0)
+        );
+        toast.success(`Removed ${selectedEmoji} reaction`);
+      } else {
+        setReactions(prev => 
+          prev.map(r => 
+            r.emoji === selectedEmoji 
+              ? { ...r, count: r.count + 1, reacted: true } 
+              : r
+          )
+        );
+        toast.success(`Added ${selectedEmoji} reaction`);
+      }
+    } else {
+      setReactions(prev => [...prev, { emoji: selectedEmoji, count: 1, reacted: true }]);
+      toast.success(`Added ${selectedEmoji} reaction`);
     }
     
-    setUserReactions(prev => {
-      const newReactions = { ...prev };
-      newReactions[emoji] = !prev[emoji];
-      return newReactions;
-    });
+    setEmojiPickerOpen(false);
+  };
+
+  const handleReactionClick = (emoji: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     
-    setReactions(prev => {
-      const newReactions = { ...prev };
-      if (userReactions[emoji]) {
-        newReactions[emoji] = Math.max(0, (prev[emoji] || 0) - 1);
-      } else {
-        newReactions[emoji] = (prev[emoji] || 0) + 1;
-      }
-      return newReactions;
-    });
+    setReactions(prev => 
+      prev.map(r => 
+        r.emoji === emoji 
+          ? { 
+              ...r, 
+              count: r.reacted ? r.count - 1 : r.count + 1, 
+              reacted: !r.reacted 
+            } 
+          : r
+      ).filter(r => r.count > 0)
+    );
+    
+    const action = reactions.find(r => r.emoji === emoji)?.reacted 
+      ? 'Removed' 
+      : 'Added';
+    toast.success(`${action} ${emoji} reaction`);
   };
 
   const formatNumber = (num: number): string => {
@@ -116,7 +156,6 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
             <p className="whitespace-pre-line text-sm">{comment.content}</p>
           </div>
           
-          {/* Render media if available */}
           {comment.media && comment.media.length > 0 && (
             <div className="mt-2 mb-3 relative">
               <div className={`grid ${comment.media.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-2 rounded-lg overflow-hidden`}>
@@ -141,67 +180,71 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
             </div>
           )}
           
-          <div className="flex items-center mt-2 justify-between text-xGray">
-            {/* Emoji reactions */}
-            <div className="flex space-x-2">
-              <div className="flex -space-x-1 mr-2">
-                {Object.entries(reactions)
-                  .filter(([_, count]) => count > 0)
-                  .slice(0, 3)
-                  .map(([emoji, _], index) => (
-                    <span key={index} className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-xs">
-                      {emoji}
-                    </span>
-                  ))}
-              </div>
-              
-              <div className="relative">
-                <button 
-                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                  className="text-xs text-xGray hover:bg-xExtraLightGray/50 rounded-full px-2 py-1"
+          {reactions.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-3">
+              {reactions.map((reaction, index) => (
+                <button
+                  key={index}
+                  onClick={(e) => handleReactionClick(reaction.emoji, e)}
+                  className={cn(
+                    "flex items-center gap-1 px-2 py-1 rounded-full text-sm border transition-colors",
+                    reaction.reacted 
+                      ? "bg-blue-50 border-blue-200 text-blue-600" 
+                      : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                  )}
                 >
-                  {Object.values(reactions).some(count => count > 0) ? 
-                    formatNumber(Object.values(reactions).reduce((a, b) => a + b, 0)) : 
-                    'Add reaction'}
+                  <span>{reaction.emoji}</span>
+                  <span>{reaction.count}</span>
                 </button>
-                
-                {showEmojiPicker && (
-                  <div className="absolute bottom-full left-0 mb-2 bg-white shadow-lg rounded-lg p-2 z-10">
-                    <div className="flex space-x-2">
-                      {Object.keys(reactions).map((emoji, index) => (
-                        <button
-                          key={index}
-                          onClick={(e) => {
-                            handleReaction(emoji, e);
-                            setShowEmojiPicker(false);
-                          }}
-                          className={cn(
-                            "p-1.5 rounded-full hover:bg-gray-100 transition-colors text-lg",
-                            userReactions[emoji] && "bg-gray-100"
-                          )}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+              ))}
             </div>
+          )}
+          
+          <div className="flex items-center mt-2 justify-between text-xGray">
+            <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
+              <PopoverTrigger asChild>
+                <button 
+                  className="flex items-center group"
+                  onClick={handleEmojiPickerOpen}
+                >
+                  <div className="p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
+                    <Smile size={18} />
+                  </div>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent 
+                className="p-0 border-none shadow-xl"
+                side="top"
+                onPointerDownOutside={(e) => {
+                  if (e.target instanceof HTMLElement && 
+                      (e.target.closest('.emoji-picker-react') || 
+                       e.target.classList.contains('emoji-picker-react'))) {
+                    e.preventDefault();
+                  }
+                }}
+              >
+                <EmojiPicker
+                  onEmojiClick={(emojiData, event) => handleEmojiSelect(emojiData, event as unknown as React.MouseEvent)}
+                  searchDisabled
+                  skinTonesDisabled
+                  width={300}
+                  height={400}
+                />
+              </PopoverContent>
+            </Popover>
             
-            {/* Save button */}
             <button 
               className={cn(
                 "flex items-center group",
-                savedToBookmarks && "text-xBlue"
+                savedToBookmarks && "text-blue-500"
               )}
               onClick={handleSave}
             >
               <div className={cn(
-                "p-1 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors",
-                savedToBookmarks && "text-xBlue"
+                "p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors",
+                savedToBookmarks && "text-blue-500"
               )}>
-                <Save size={16} className={savedToBookmarks ? "fill-current" : ""} />
+                <Save size={18} className={savedToBookmarks ? "fill-current" : ""} />
               </div>
             </button>
           </div>
