@@ -105,10 +105,13 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         toast.success('Bookmark removed');
       }
     } else {
-      // Add bookmark
+      // Add bookmark - FIX: Add the user_id field
       const { error } = await supabase
         .from('bookmarks')
-        .insert({ post_id: post.id });
+        .insert({ 
+          post_id: post.id,
+          user_id: supabase.auth.getUser() ? (await supabase.auth.getUser()).data.user?.id : 'anonymous'
+        });
       
       if (error) {
         toast.error('Failed to bookmark post');

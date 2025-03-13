@@ -195,7 +195,9 @@ export const samplePosts: Post[] = [
       name: 'Jane Smith',
       username: 'janesmith',
       avatar: 'https://i.pravatar.cc/150?img=5',
-      verified: true
+      verified: true,
+      following: 234,
+      followers: 1453
     },
     content: 'Just launched our new AI feature! Check it out and let me know what you think. #AI #Innovation',
     createdAt: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
@@ -214,7 +216,9 @@ export const samplePosts: Post[] = [
       name: 'Tech Today',
       username: 'techtoday',
       avatar: 'https://i.pravatar.cc/150?img=12',
-      verified: true
+      verified: true,
+      following: 567,
+      followers: 8920
     },
     content: 'Breaking: New advancements in quantum computing could revolutionize data processing. Scientists predict commercial applications within 5 years.',
     createdAt: new Date(Date.now() - 18000000).toISOString(), // 5 hours ago
@@ -233,7 +237,9 @@ export const samplePosts: Post[] = [
       name: 'Alex Johnson',
       username: 'alexj',
       avatar: 'https://i.pravatar.cc/150?img=3',
-      verified: false
+      verified: false,
+      following: 123,
+      followers: 456
     },
     content: 'Just finished reading this amazing article on web development trends for 2023. Highly recommend checking it out! #webdev #coding',
     createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
