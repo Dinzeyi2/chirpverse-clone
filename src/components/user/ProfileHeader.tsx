@@ -40,10 +40,14 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const [isFollowing, setIsFollowing] = useState(false);
   const { user: authUser } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [profileData, setProfileData] = useState(user);
+  const [profileData, setProfileData] = useState({
+    ...user,
+    profession: user.profession || ''
+  });
   const [formData, setFormData] = useState({
     name: user.name,
     bio: user.bio || '',
+    profession: user.profession || '',
   });
   
   const profilePictureInputRef = useRef<HTMLInputElement>(null);
@@ -104,6 +108,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           .update({
             full_name: formData.name,
             description: formData.bio,
+            profession: formData.profession,
           })
           .eq('id', authUser.id);
           
@@ -113,7 +118,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       setProfileData(prev => ({
         ...prev,
         name: formData.name,
-        bio: formData.bio
+        bio: formData.bio,
+        profession: formData.profession
       }));
       
       toast.success('Profile updated successfully');
@@ -226,7 +232,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </div>
         
         <div className="mt-4">
-          <div className="flex items-center">
+          <div className="flex items-center mb-1">
             <h1 className="text-xl font-bold mr-1">{profileData.name}</h1>
             {profileData.verified && (
               <span className="text-xBlue">
@@ -234,6 +240,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               </span>
             )}
           </div>
+          
+          {profileData.profession && (
+            <p className="text-gray-600 dark:text-gray-400 mb-2">{profileData.profession}</p>
+          )}
           
           {profileData.bio && <p className="mt-3">{profileData.bio}</p>}
           
@@ -331,6 +341,18 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   name="name" 
                   value={formData.name} 
                   onChange={handleChange}
+                  className="border-none bg-xExtraLightGray/50 focus-visible:ring-xBlue"
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label htmlFor="profession" className="text-xGray text-sm">Profession</Label>
+                <Input 
+                  id="profession" 
+                  name="profession" 
+                  value={formData.profession} 
+                  onChange={handleChange}
+                  placeholder="Software Engineer, Designer, etc."
                   className="border-none bg-xExtraLightGray/50 focus-visible:ring-xBlue"
                 />
               </div>
