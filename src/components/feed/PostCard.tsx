@@ -33,15 +33,37 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const colorIndex = post.id.charCodeAt(0) % cardColors.length;
   const cardColor = cardColors[colorIndex];
 
+  // Generate a UUID v4 from the post ID for Supabase
+  const generateUUID = () => {
+    // Simple UUID v4 format - this is a mock implementation
+    // In a real app, you would use a proper UUID library or store real UUIDs
+    return `xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx`.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0,
+          v = c == 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
+
+  // Create a stable UUID for each post based on its ID
+  const getPostUUID = () => {
+    // Convert the post.id to a consistent UUID format
+    // Use existing post ID as seed if possible
+    const seed = typeof post.id === 'string' ? post.id : post.id.toString();
+    // This is a deterministic way to generate a UUID from post ID
+    // It will always produce the same UUID for the same post ID
+    return `00000000-0000-4000-a000-000000000${seed.padStart(3, '0')}`.substring(0, 36);
+  };
+
   // Check if the post is bookmarked when component mounts
   useEffect(() => {
     const checkBookmarkStatus = async () => {
       try {
+        const postUUID = getPostUUID();
         // We're not using .single() here to avoid error if no bookmark exists
         const { data, error } = await supabase
           .from('bookmarks')
           .select('*')
-          .eq('post_id', post.id.toString());
+          .eq('post_id', postUUID);
         
         if (data && data.length > 0) {
           setIsBookmarked(true);
@@ -77,16 +99,18 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     e.stopPropagation();
     
     try {
+      const postUUID = getPostUUID();
+      
       // Get current user
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id || 'anonymous';
       
       if (isBookmarked) {
-        // Remove bookmark - ensure we use post_id as string
+        // Remove bookmark - using properly formatted UUID
         const { error } = await supabase
           .from('bookmarks')
           .delete()
-          .eq('post_id', post.id.toString());
+          .eq('post_id', postUUID);
         
         if (error) {
           toast.error('Failed to remove bookmark');
@@ -96,11 +120,11 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           toast.success('Bookmark removed');
         }
       } else {
-        // Add bookmark - ensure post_id is stored as string
+        // Add bookmark - using properly formatted UUID
         const { error } = await supabase
           .from('bookmarks')
           .insert({ 
-            post_id: post.id.toString(),
+            post_id: postUUID,
             user_id: userId
           });
         
