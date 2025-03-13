@@ -15,8 +15,8 @@ const Sidebar = () => {
   const { user, signOut } = useAuth();
   const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
   
-  // Fix profile path to ensure it always has a valid user ID if user exists
-  const profilePath = user ? `/profile/${user.id}` : '/auth';
+  // Make sure we're using a proper path for the profile
+  const profilePath = '/profile';
   
   const navigation = [
     { name: 'Home', icon: Home, href: '/' },
@@ -40,7 +40,15 @@ const Sidebar = () => {
     setIsPostDialogOpen(false);
   };
 
-  console.log("Current user ID for profile:", user?.id);
+  // Handle profile navigation separately to ensure proper user check
+  const handleProfileClick = (e) => {
+    if (!user) {
+      e.preventDefault();
+      navigate('/auth');
+    } else {
+      navigate(`/profile/${user.id}`);
+    }
+  };
 
   return (
     <div 
@@ -72,6 +80,26 @@ const Sidebar = () => {
             const isActive = location.pathname === item.href || 
               (item.href !== '/' && location.pathname.startsWith(item.href));
               
+            // Special handling for profile link
+            if (item.name === 'Profile') {
+              return (
+                <a
+                  key={item.name}
+                  onClick={handleProfileClick}
+                  className={cn(
+                    "flex items-center p-3 text-lg font-medium rounded-full transition-colors cursor-pointer",
+                    isActive 
+                      ? "font-bold" 
+                      : "text-xDark hover:bg-xExtraLightGray/50",
+                    isCollapsed && "justify-center"
+                  )}
+                >
+                  <item.icon size={24} className={isActive ? "text-xDark" : "text-xGray"} />
+                  {!isCollapsed && <span className="ml-4">{item.name}</span>}
+                </a>
+              );
+            }
+            
             return (
               <Link
                 key={item.name}
@@ -143,7 +171,10 @@ const Sidebar = () => {
         
         {user && (
           <div className="mt-4">
-            <div className="flex items-center p-3 rounded-full hover:bg-xExtraLightGray/50 transition-colors cursor-pointer">
+            <div 
+              onClick={handleProfileClick}
+              className="flex items-center p-3 rounded-full hover:bg-xExtraLightGray/50 transition-colors cursor-pointer"
+            >
               <img 
                 src="https://i.pravatar.cc/150?img=1" 
                 alt="Profile" 

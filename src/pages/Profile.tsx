@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
@@ -9,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const Profile = () => {
-  const { userId } = useParams<{ userId: string }>();
+  const { userId } = useParams<{ userId?: string }>();
   const [activeTab, setActiveTab] = useState("posts");
   const { user, username } = useAuth();
   const [profileData, setProfileData] = useState<any>(null);
@@ -24,27 +25,48 @@ const Profile = () => {
   });
   
   const navigate = useNavigate();
-  const isCurrentUser = user && userId === user.id;
+  
+  // If userId is not provided, use the current user's id
+  const profileUserId = userId || (user ? user.id : null);
+  const isCurrentUser = user && profileUserId === user.id;
+  
+  useEffect(() => {
+    console.log("Profile component - User ID from URL:", userId);
+    console.log("Profile component - Current user ID:", user?.id);
+    console.log("Profile component - Using profile ID:", profileUserId);
+    
+    // If no profile user ID is available and user is not logged in, redirect to auth
+    if (!profileUserId && !user) {
+      navigate('/auth');
+      return;
+    }
+    
+    // If no profile user ID is available but user is logged in, redirect to their profile
+    if (!profileUserId && user) {
+      navigate(`/profile/${user.id}`);
+      return;
+    }
+  }, [profileUserId, user, navigate, userId]);
   
   useEffect(() => {
     const fetchUserStats = async () => {
-      if (!userId) return;
+      if (!profileUserId) return;
       
       try {
         const { data: posts, error: postsError } = await supabase
           .from('shoutouts')
           .select('id', { count: 'exact' })
-          .eq('user_id', userId);
+          .eq('user_id', profileUserId);
           
         const { data: replies, error: repliesError } = await supabase
           .from('comments')
           .select('id', { count: 'exact' })
-          .eq('user_id', userId);
+          .eq('user_id', profileUserId);
 
         const { data: userShoutouts, error: shoutoutsError } = await supabase
           .from('shoutouts')
           .select('id')
-          .eq('user_id', userId);
+          .eq('user_id', profileUserId);
 
         let reactionsCount = 0;
         let bluedifyCount = 0;
@@ -87,15 +109,17 @@ const Profile = () => {
       }
     };
     
-    fetchUserStats();
-  }, [userId]);
+    if (profileUserId) {
+      fetchUserStats();
+    }
+  }, [profileUserId]);
   
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
         setLoading(true);
         
-        if (!userId) {
+        if (!profileUserId) {
           if (!user) {
             navigate('/auth');
             return;
@@ -103,21 +127,18 @@ const Profile = () => {
           return;
         }
         
+        console.log("Fetching profile data for user ID:", profileUserId);
+        
         let { data: profile, error } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', userId)
+          .eq('id', profileUserId)
           .single();
           
         if (error || !profile) {
-          // Check if this is a real user in auth
-          const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userId);
+          console.error("Error fetching profile or profile not found:", error);
           
-          if (authError || !authUser) {
-            navigate('/not-found');
-            return;
-          }
-          
+          // If this is the current user, create a default profile
           if (isCurrentUser && user) {
             const usernameToUse = username || 
               user.user_metadata?.username || 
@@ -136,10 +157,46 @@ const Profile = () => {
               following: 0
             });
           } else {
-            setProfileData(null);
+            // Check if user exists in auth system
+            try {
+              const { data, error: userError } = await supabase.auth.admin.getUserById(profileUserId);
+              
+              if (userError || !data) {
+                console.error("User not found in auth system:", userError);
+                navigate('/not-found');
+                return;
+              }
+              
+              // User exists in auth but not in profiles, create minimal profile data
+              setProfileData({
+                id: profileUserId,
+                name: 'User',
+                username: profileUserId.substring(0, 8),
+                bio: '',
+                profession: '',
+                avatar: 'https://i.pravatar.cc/150?img=1',
+                verified: false,
+                followers: 0,
+                following: 0
+              });
+            } catch (authCheckError) {
+              console.error("Error checking user in auth system:", authCheckError);
+              // Fallback - try to show some profile
+              setProfileData({
+                id: profileUserId,
+                name: 'User',
+                username: profileUserId.substring(0, 8),
+                bio: '',
+                profession: '',
+                avatar: 'https://i.pravatar.cc/150?img=1',
+                verified: false,
+                followers: 0,
+                following: 0
+              });
+            }
           }
         } else {
-          // Get username from user metadata if available
+          // Got profile data from database
           const usernameToUse = isCurrentUser ? 
             (username || profile.user_id?.substring(0, 8) || 'user') : 
             profile.user_id?.substring(0, 8) || 'user';
@@ -164,12 +221,14 @@ const Profile = () => {
       }
     };
     
-    fetchProfileData();
-  }, [userId, user, isCurrentUser, navigate, username]);
+    if (profileUserId) {
+      fetchProfileData();
+    }
+  }, [profileUserId, user, isCurrentUser, navigate, username]);
 
   useEffect(() => {
     const fetchUserPosts = async () => {
-      if (!userId) return;
+      if (!profileUserId) return;
       
       try {
         const { data, error } = await supabase
@@ -178,7 +237,7 @@ const Profile = () => {
             *,
             profiles:user_id (*)
           `)
-          .eq('user_id', userId)
+          .eq('user_id', profileUserId)
           .order('created_at', { ascending: false });
           
         if (error) {
@@ -203,10 +262,10 @@ const Profile = () => {
               userId: post.user_id,
               images: post.media,
               user: {
-                id: post.profiles.id,
-                name: post.profiles.full_name || 'User',
+                id: post.profiles?.id || profileUserId,
+                name: post.profiles?.full_name || 'User',
                 username: usernameToUse,
-                avatar: post.profiles.avatar_url || 'https://i.pravatar.cc/150?img=1',
+                avatar: post.profiles?.avatar_url || 'https://i.pravatar.cc/150?img=1',
                 verified: false,
                 followers: 0,
                 following: 0,
@@ -221,11 +280,13 @@ const Profile = () => {
       }
     };
     
-    fetchUserPosts();
-  }, [userId, isCurrentUser, username]);
+    if (profileUserId) {
+      fetchUserPosts();
+    }
+  }, [profileUserId, isCurrentUser, username]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!profileUserId) return;
     
     const profileChannel = supabase
       .channel('profile-changes')
@@ -234,7 +295,7 @@ const Profile = () => {
           event: 'UPDATE', 
           schema: 'public', 
           table: 'profiles',
-          filter: `id=eq.${userId}`
+          filter: `id=eq.${profileUserId}`
         }, 
         (payload) => {
           const updatedProfile = payload.new;
@@ -254,7 +315,7 @@ const Profile = () => {
     return () => {
       supabase.removeChannel(profileChannel);
     };
-  }, [userId]);
+  }, [profileUserId]);
   
   const handleTabChange = (value: string) => {
     setActiveTab(value);
