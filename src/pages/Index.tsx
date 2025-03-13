@@ -27,7 +27,7 @@ const Index = () => {
     return feedPosts;
   }, [feedPosts, activeTab]);
   
-  const handlePostCreated = (content: string) => {
+  const handlePostCreated = (content: string, media?: {type: string, url: string}[]) => {
     const newPost = {
       id: `temp-${Date.now()}`,
       content,
@@ -45,7 +45,8 @@ const Index = () => {
         followers: 1453,
         following: 234,
         verified: true,
-      }
+      },
+      media: media || []  // Add the media field to the post
     };
     
     setFeedPosts([newPost, ...feedPosts]);
