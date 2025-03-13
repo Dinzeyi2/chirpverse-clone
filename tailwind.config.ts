@@ -79,6 +79,11 @@ export default {
 					dark: '#1A91DA'
 				},
 				xWhite: '#FFFFFF',
+				// Twitter (X) specific UI colors
+				xBackground: '#000000',
+				xSecondary: '#16181C',
+				xBorder: '#2F3336',
+				xSearchBg: '#202327',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

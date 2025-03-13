@@ -24,7 +24,7 @@ const App = () => (
       <ThemeProvider defaultTheme="dark" forcedTheme="dark">
         <TooltipProvider>
           <Toaster />
-          <Sonner position="top-center" />
+          <Sonner position="top-center" theme="dark" />
           <BrowserRouter>
             <Routes>
               <Route path="/auth" element={<Auth />} />
