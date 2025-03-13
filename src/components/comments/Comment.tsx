@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, MoreHorizontal, CheckCircle } from 'lucide-react';
+import { Save, MoreHorizontal, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Comment as CommentType, formatDate } from '@/lib/data';
 import { toast } from 'sonner';
@@ -12,20 +12,47 @@ interface CommentProps {
 
 const Comment: React.FC<CommentProps> = ({ comment }) => {
   const navigate = useNavigate();
-  const [isLiked, setIsLiked] = useState(comment.liked || false);
-  const [likeCount, setLikeCount] = useState(comment.likes);
+  const [savedToBookmarks, setSavedToBookmarks] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [reactions, setReactions] = useState<{[key: string]: number}>({
+    '👍': 0,
+    '🙌': 0,
+    '❤️': 0,
+    '🔥': 0,
+    '👀': 0,
+    '🎉': 0,
+  });
+  const [userReactions, setUserReactions] = useState<{[key: string]: boolean}>({});
 
-  const handleLike = (e: React.MouseEvent) => {
+  const handleSave = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    if (isLiked) {
-      setLikeCount(prev => prev - 1);
-    } else {
-      setLikeCount(prev => prev + 1);
-      toast.success('You liked a comment');
+    setSavedToBookmarks(!savedToBookmarks);
+    toast.success(savedToBookmarks ? 'Removed from bookmarks' : 'Saved to bookmarks');
+  };
+
+  const handleReaction = (emoji: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
     }
-    setIsLiked(!isLiked);
+    
+    setUserReactions(prev => {
+      const newReactions = { ...prev };
+      newReactions[emoji] = !prev[emoji];
+      return newReactions;
+    });
+    
+    setReactions(prev => {
+      const newReactions = { ...prev };
+      if (userReactions[emoji]) {
+        newReactions[emoji] = Math.max(0, (prev[emoji] || 0) - 1);
+      } else {
+        newReactions[emoji] = (prev[emoji] || 0) + 1;
+      }
+      return newReactions;
+    });
   };
 
   const formatNumber = (num: number): string => {
@@ -114,26 +141,68 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
             </div>
           )}
           
-          <div className="flex items-center mt-2 text-xGray">
+          <div className="flex items-center mt-2 justify-between text-xGray">
+            {/* Emoji reactions */}
+            <div className="flex space-x-2">
+              <div className="flex -space-x-1 mr-2">
+                {Object.entries(reactions)
+                  .filter(([_, count]) => count > 0)
+                  .slice(0, 3)
+                  .map(([emoji, _], index) => (
+                    <span key={index} className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-xs">
+                      {emoji}
+                    </span>
+                  ))}
+              </div>
+              
+              <div className="relative">
+                <button 
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  className="text-xs text-xGray hover:bg-xExtraLightGray/50 rounded-full px-2 py-1"
+                >
+                  {Object.values(reactions).some(count => count > 0) ? 
+                    formatNumber(Object.values(reactions).reduce((a, b) => a + b, 0)) : 
+                    'Add reaction'}
+                </button>
+                
+                {showEmojiPicker && (
+                  <div className="absolute bottom-full left-0 mb-2 bg-white shadow-lg rounded-lg p-2 z-10">
+                    <div className="flex space-x-2">
+                      {Object.keys(reactions).map((emoji, index) => (
+                        <button
+                          key={index}
+                          onClick={(e) => {
+                            handleReaction(emoji, e);
+                            setShowEmojiPicker(false);
+                          }}
+                          className={cn(
+                            "p-1.5 rounded-full hover:bg-gray-100 transition-colors text-lg",
+                            userReactions[emoji] && "bg-gray-100"
+                          )}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Save button */}
             <button 
               className={cn(
                 "flex items-center group",
-                isLiked && "text-pink-500"
+                savedToBookmarks && "text-xBlue"
               )}
-              onClick={handleLike}
+              onClick={handleSave}
             >
               <div className={cn(
-                "p-1 rounded-full group-hover:bg-pink-50 group-hover:text-pink-500 transition-colors",
-                isLiked && "text-pink-500"
+                "p-1 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors",
+                savedToBookmarks && "text-xBlue"
               )}>
-                <Heart size={16} className={isLiked ? "fill-current" : ""} />
+                <Save size={16} className={savedToBookmarks ? "fill-current" : ""} />
               </div>
-              <span className={cn(
-                "ml-1 text-xs group-hover:text-pink-500",
-                isLiked && "text-pink-500"
-              )}>
-                {formatNumber(likeCount)}
-              </span>
             </button>
           </div>
         </div>
