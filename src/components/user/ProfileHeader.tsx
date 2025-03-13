@@ -1,6 +1,7 @@
+
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, MapPin, Link as LinkIcon, CheckCircle, X, Camera, UserCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, X, Camera, UserCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { User } from '@/lib/data';
 import { cn } from '@/lib/utils';
@@ -33,8 +34,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
   const [formData, setFormData] = useState({
     name: user.name,
     bio: user.bio || '',
-    location: 'San Francisco, CA',
-    website: 'example.com'
   });
   
   const profilePictureInputRef = useRef<HTMLInputElement>(null);
@@ -75,8 +74,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
     setFormData({
       name: profileData.name,
       bio: profileData.bio || '',
-      location: 'San Francisco, CA', 
-      website: 'example.com'
     });
     setIsDialogOpen(true);
   };
@@ -181,6 +178,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
     toast.info('Cover photo update feature will be implemented soon');
   };
 
+  // Demo data for post counts
+  const postCount = 24;
+  const replyCount = 128;
+
   return (
     <div className="animate-fade-in">
       <div className="flex items-center p-4 sticky top-0 z-10 bg-background/90 backdrop-blur-md">
@@ -192,7 +193,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
         </button>
         <div>
           <h2 className="font-bold text-xl">{profileData.name}</h2>
-          <p className="text-xGray text-sm">{profileData.followers.toLocaleString()} followers</p>
+          <p className="text-xGray text-sm">{postCount + replyCount} total interactions</p>
         </div>
       </div>
       
@@ -243,19 +244,18 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
               </span>
             )}
           </div>
-          <p className="text-xGray">@{profileData.username}</p>
           
           {profileData.bio && <p className="mt-3">{profileData.bio}</p>}
           
           <div className="flex mt-3">
-            <Link to={`/profile/${profileData.id}/following`} className="mr-4 hover:underline">
-              <span className="font-bold">{profileData.following.toLocaleString()}</span>
-              <span className="text-xGray"> Following</span>
-            </Link>
-            <Link to={`/profile/${profileData.id}/followers`} className="hover:underline">
-              <span className="font-bold">{profileData.followers.toLocaleString()}</span>
-              <span className="text-xGray"> Followers</span>
-            </Link>
+            <div className="mr-4 hover:underline">
+              <span className="font-bold">{postCount}</span>
+              <span className="text-xGray"> Posts</span>
+            </div>
+            <div className="hover:underline">
+              <span className="font-bold">{replyCount}</span>
+              <span className="text-xGray"> Replies</span>
+            </div>
           </div>
         </div>
       </div>
@@ -335,7 +335,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
                 />
               </div>
               
-              <div className="space-y-1">
+              <div className="space-y-1 mb-6">
                 <Label htmlFor="bio" className="text-xGray text-sm">Bio</Label>
                 <Textarea 
                   id="bio" 
@@ -343,28 +343,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
                   value={formData.bio} 
                   onChange={handleChange}
                   className="border-none bg-xExtraLightGray/50 focus-visible:ring-xBlue resize-none h-24"
-                />
-              </div>
-              
-              <div className="space-y-1">
-                <Label htmlFor="location" className="text-xGray text-sm">Location</Label>
-                <Input 
-                  id="location" 
-                  name="location" 
-                  value={formData.location} 
-                  onChange={handleChange}
-                  className="border-none bg-xExtraLightGray/50 focus-visible:ring-xBlue"
-                />
-              </div>
-              
-              <div className="space-y-1 mb-6">
-                <Label htmlFor="website" className="text-xGray text-sm">Website</Label>
-                <Input 
-                  id="website" 
-                  name="website" 
-                  value={formData.website} 
-                  onChange={handleChange}
-                  className="border-none bg-xExtraLightGray/50 focus-visible:ring-xBlue"
                 />
               </div>
             </div>
