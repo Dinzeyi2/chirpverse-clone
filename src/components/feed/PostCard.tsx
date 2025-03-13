@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile } from 'lucide-react';
@@ -236,9 +237,14 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     <div 
       onClick={handlePostClick}
       className={cn(
-        'p-4 transition-colors cursor-pointer block animate-fade-in',
+        'p-4 transition-colors cursor-pointer block animate-fade-in relative',
         'rounded-none shadow-none border-b',
-        darkCardColor
+        darkCardColor,
+        'after:content-[""] after:absolute after:inset-0 after:rounded-lg after:pointer-events-none',
+        'after:border-t-2 after:border-l-2 after:border-r-2 after:border-b-2',
+        'after:border-transparent',
+        'after:shadow-[0_0_10px_rgba(14,165,233,0.5),inset_0_0_10px_rgba(14,165,233,0.2)]',
+        'after:opacity-70 after:transition-opacity hover:after:opacity-100'
       )}
     >
       <div className="flex">
