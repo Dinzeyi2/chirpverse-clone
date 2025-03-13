@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Share, MoreHorizontal, CheckCircle, Bookmark } from 'lucide-react';
+import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Post, formatDate } from '@/lib/data';
 import { toast } from 'sonner';
@@ -33,12 +32,10 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const colorIndex = post.id.charCodeAt(0) % cardColors.length;
   const cardColor = cardColors[colorIndex];
 
-  // Convert post.id to a safe string for use as post_id in bookmarks
   const getPostId = (postId: string): string => {
     return String(postId);
   };
 
-  // Check if post is bookmarked on component mount
   React.useEffect(() => {
     const checkBookmarkStatus = async () => {
       try {
@@ -52,7 +49,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           setIsBookmarked(true);
         }
       } catch (error) {
-        // Post is not bookmarked or user is not authenticated
         console.log('Bookmark check error or not found:', error);
       }
     };
@@ -83,7 +79,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     
     try {
       if (isBookmarked) {
-        // Remove bookmark
         const { error } = await supabase
           .from('post_bookmarks')
           .delete()
@@ -93,7 +88,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         setIsBookmarked(false);
         toast.success('Bookmark removed');
       } else {
-        // Add bookmark
         const { error } = await supabase
           .from('post_bookmarks')
           .insert({
@@ -115,7 +109,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     e.preventDefault();
     e.stopPropagation();
     
-    // Implementation would connect to native share API
     toast.success('Share options opened');
   };
 
@@ -229,27 +222,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             <button 
               className={cn(
                 "flex items-center group",
-                isLiked && "text-pink-500"
-              )}
-              onClick={handleLike}
-            >
-              <div className={cn(
-                "p-2 rounded-full group-hover:bg-pink-50 group-hover:text-pink-500 transition-colors",
-                isLiked && "text-pink-500"
-              )}>
-                <Heart size={18} className={isLiked ? "fill-current" : ""} />
-              </div>
-              <span className={cn(
-                "ml-1 text-sm group-hover:text-pink-500",
-                isLiked && "text-pink-500"
-              )}>
-                {formatNumber(likeCount)}
-              </span>
-            </button>
-            
-            <button 
-              className={cn(
-                "flex items-center group",
                 isBookmarked && "text-blue-500"
               )}
               onClick={handleBookmark}
@@ -260,18 +232,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               )}>
                 <Bookmark size={18} className={isBookmarked ? "fill-current" : ""} />
               </div>
-            </button>
-            
-            <button 
-              className="flex items-center group"
-              onClick={handleShare}
-            >
-              <div className="p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
-                <Share size={18} />
-              </div>
-              <span className="ml-1 text-sm group-hover:text-blue-500">
-                {formatNumber(post.views)}
-              </span>
             </button>
           </div>
         </div>
