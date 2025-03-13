@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Image, Smile, MapPin, Calendar, BarChart, X, Video } from 'lucide-react';
 import Button from '@/components/common/Button';
@@ -7,6 +6,7 @@ import { DialogClose } from '@/components/ui/dialog';
 import { supabase } from "@/integrations/supabase/client";
 import EmojiPicker from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface CreatePostProps {
   onPostCreated?: (content: string, media?: {type: string, url: string}[]) => void;
@@ -28,7 +28,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const maxVideoLength = 120; // 2 minutes in seconds
   
   useEffect(() => {
-    // Auto-focus the textarea when opened in a dialog
     if (inDialog && textareaRef.current) {
       textareaRef.current.focus();
     }
@@ -56,7 +55,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       setPostContent(newText);
       setCharCount(newText.length);
       
-      // After adding emoji, focus back on textarea and resize it
       setTimeout(() => {
         if (textareaRef.current) {
           textareaRef.current.focus();
@@ -96,7 +94,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     const file = files[0];
     const fileType = file.type.split('/')[0];
     
-    // Handle image uploads
     if (fileType === 'image') {
       if (mediaFiles.length >= maxImages) {
         toast.error(`You can only upload up to ${maxImages} images`);
@@ -120,14 +117,12 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       };
       reader.readAsDataURL(file);
     } 
-    // Handle video uploads
     else if (fileType === 'video') {
       if (mediaFiles.length > 0) {
         toast.error('You can only upload one video');
         return;
       }
 
-      // Check video duration
       const video = document.createElement('video');
       video.preload = 'metadata';
       
@@ -155,7 +150,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       video.src = URL.createObjectURL(file);
     }
     
-    // Reset the input value so the same file can be selected again if removed
     e.target.value = '';
   };
 
@@ -174,17 +168,14 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     setIsLoading(true);
 
     try {
-      // Prepare media upload
       const mediaUrls: {type: string, url: string}[] = [];
       
-      // Upload media files to storage if any
       if (mediaFiles.length > 0) {
         for (const media of mediaFiles) {
           const fileExt = media.file.name.split('.').pop();
           const fileName = `${crypto.randomUUID()}.${fileExt}`;
           const filePath = `posts/${fileName}`;
           
-          // Upload to Supabase Storage
           const { data, error } = await supabase.storage
             .from('media')
             .upload(filePath, media.file);
@@ -194,7 +185,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
             throw new Error('Failed to upload media');
           }
           
-          // Get public URL
           const { data: { publicUrl } } = supabase.storage
             .from('media')
             .getPublicUrl(filePath);
@@ -206,7 +196,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         }
       }
       
-      // Simulate API call with a timeout
       setTimeout(() => {
         if (onPostCreated) {
           onPostCreated(postContent, mediaUrls);
@@ -273,7 +262,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                 disabled={isLoading}
               />
               
-              {/* Media preview section */}
               {mediaFiles.length > 0 && (
                 <div className="mt-2 mb-4 relative">
                   <div className={`grid ${mediaFiles.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-2 rounded-2xl overflow-hidden`}>
@@ -324,7 +312,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
             
             <div className="flex items-center justify-between">
               <div className="flex -ml-2">
-                {/* Hidden file inputs */}
                 <input 
                   type="file" 
                   ref={fileInputRef} 
@@ -366,14 +353,18 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                       <Smile size={20} />
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-full p-0 border-none shadow-md" align="start" side="top">
-                    <div className="emoji-picker-container">
+                  <PopoverContent className="w-[352px] p-0 border-none shadow-xl" align="start" side="top">
+                    <div className="emoji-picker-container w-full h-[350px]">
                       <EmojiPicker
                         onEmojiClick={handleEmojiClick}
                         width="100%"
                         height={350}
+                        lazyLoadEmojis={false}
+                        searchDisabled={false}
+                        skinTonesDisabled={false}
                         previewConfig={{
-                          showPreview: false
+                          showPreview: true,
+                          defaultCaption: "Pick an emoji..."
                         }}
                       />
                     </div>
