@@ -62,6 +62,12 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         }
       }, 10);
     }
+    
+    const event = window.event;
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
   };
 
   const handleImageClick = () => {
@@ -353,8 +359,12 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                       <Smile size={20} />
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[352px] p-0 border-none shadow-xl" align="start" side="top">
-                    <div className="emoji-picker-container w-full h-[350px]">
+                  <PopoverContent className="w-[352px] p-0 border-none shadow-xl" align="start" side="top" onPointerDownOutside={(e) => {
+                    if (e.target && (e.target as HTMLElement).closest('.emoji-picker-react')) {
+                      e.preventDefault();
+                    }
+                  }}>
+                    <div className="emoji-picker-container w-full h-[350px]" onClick={(e) => e.stopPropagation()}>
                       <EmojiPicker
                         onEmojiClick={handleEmojiClick}
                         width="100%"
