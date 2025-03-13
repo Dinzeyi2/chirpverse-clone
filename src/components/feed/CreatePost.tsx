@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Image, Smile, MapPin, Calendar, BarChart, X } from 'lucide-react';
 import Button from '@/components/common/Button';
@@ -87,11 +86,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
           <DialogClose className="p-2 rounded-full hover:bg-xExtraLightGray/50">
             <X size={20} />
           </DialogClose>
-          {postContent.length > 0 && (
-            <div className="absolute right-4">
-              <span className="text-xBlue font-semibold">Drafts</span>
-            </div>
-          )}
         </div>
       )}
       
