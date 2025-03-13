@@ -7,6 +7,7 @@ import { Comment as CommentType, formatDate } from '@/lib/data';
 import { toast } from 'sonner';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CommentProps {
   comment: CommentType;
@@ -20,6 +21,7 @@ interface EmojiReaction {
 
 const Comment: React.FC<CommentProps> = ({ comment }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [savedToBookmarks, setSavedToBookmarks] = useState(false);
   const [reactions, setReactions] = useState<EmojiReaction[]>([]);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
@@ -106,6 +108,10 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
     return num.toString();
   };
 
+  // Use current user's name for new comments
+  const displayName = user?.user_metadata?.full_name || 'You';
+  const displayUsername = user?.user_metadata?.username || 'user';
+
   return (
     <div className="p-4 border-b border-xExtraLightGray hover:bg-black/[0.02] transition-colors">
       <div className="flex">
@@ -128,7 +134,7 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
               className="font-bold hover:underline mr-1 truncate cursor-pointer"
               onClick={() => navigate(`/profile/${comment.userId}`)}
             >
-              {comment.user?.name}
+              {comment.userId === user?.id ? displayName : comment.user?.name}
             </div>
             
             {comment.user?.verified && (
@@ -137,7 +143,7 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
               </span>
             )}
             
-            <span className="text-xGray truncate">@{comment.user?.username}</span>
+            <span className="text-xGray truncate">@{comment.userId === user?.id ? displayUsername : comment.user?.username}</span>
             <span className="text-xGray mx-1">·</span>
             <span className="text-xGray">{formatDate(comment.createdAt)}</span>
             
