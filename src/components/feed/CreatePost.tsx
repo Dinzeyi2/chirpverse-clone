@@ -5,6 +5,8 @@ import Button from '@/components/common/Button';
 import { toast } from 'sonner';
 import { DialogClose } from '@/components/ui/dialog';
 import { supabase } from "@/integrations/supabase/client";
+import EmojiPicker from 'emoji-picker-react';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface CreatePostProps {
   onPostCreated?: (content: string, media?: {type: string, url: string}[]) => void;
@@ -16,6 +18,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const [charCount, setCharCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<{type: string, file: File, preview: string}[]>([]);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -44,6 +47,22 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  };
+
+  const handleEmojiClick = (emojiData: { emoji: string }) => {
+    if (postContent.length + emojiData.emoji.length <= maxChars) {
+      const newText = postContent + emojiData.emoji;
+      setPostContent(newText);
+      setCharCount(newText.length);
+      
+      // After adding emoji, focus back on textarea and resize it
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          autoResizeTextarea();
+        }
+      }, 10);
     }
   };
 
@@ -337,14 +356,29 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                 >
                   <Video size={20} />
                 </button>
-                <button 
-                  type="button"
-                  className="p-2 text-xBlue rounded-full hover:bg-xBlue/10 transition-colors"
-                  onClick={() => toast.info('Emoji picker would open here')}
-                  disabled={isLoading}
-                >
-                  <Smile size={20} />
-                </button>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button 
+                      type="button"
+                      className="p-2 text-xBlue rounded-full hover:bg-xBlue/10 transition-colors"
+                      disabled={isLoading}
+                    >
+                      <Smile size={20} />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0 border-none shadow-md" align="start" side="top">
+                    <div className="emoji-picker-container">
+                      <EmojiPicker
+                        onEmojiClick={handleEmojiClick}
+                        width="100%"
+                        height={350}
+                        previewConfig={{
+                          showPreview: false
+                        }}
+                      />
+                    </div>
+                  </PopoverContent>
+                </Popover>
                 <button 
                   type="button"
                   className="p-2 text-xBlue rounded-full hover:bg-xBlue/10 transition-colors"
