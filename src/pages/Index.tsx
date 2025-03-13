@@ -3,12 +3,14 @@ import React, { useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import CreatePost from '@/components/feed/CreatePost';
 import PostList from '@/components/feed/PostList';
+import SwipeablePostView from '@/components/feed/SwipeablePostView';
 import { posts } from '@/lib/data';
 import { Settings } from 'lucide-react';
 
 const Index = () => {
   const [feedPosts, setFeedPosts] = useState(posts);
   const [activeTab, setActiveTab] = useState('for-you');
+  const [feedView, setFeedView] = useState<'swipeable' | 'list'>('swipeable');
   
   const handlePostCreated = (content: string) => {
     const newPost = {
@@ -40,9 +42,17 @@ const Index = () => {
       <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-md">
         <div className="flex justify-between items-center px-4 py-3">
           <h1 className="text-xl font-bold">Home</h1>
-          <button className="p-2 rounded-full hover:bg-xExtraLightGray/50 transition-colors">
-            <Settings size={20} />
-          </button>
+          <div className="flex items-center">
+            <button 
+              className="p-2 mr-2 rounded-full hover:bg-xExtraLightGray/50 transition-colors text-xs font-medium"
+              onClick={() => setFeedView(feedView === 'swipeable' ? 'list' : 'swipeable')}
+            >
+              {feedView === 'swipeable' ? 'Switch to List View' : 'Switch to Swipe View'}
+            </button>
+            <button className="p-2 rounded-full hover:bg-xExtraLightGray/50 transition-colors">
+              <Settings size={20} />
+            </button>
+          </div>
         </div>
         
         {/* Tabs */}
@@ -76,7 +86,11 @@ const Index = () => {
       <CreatePost onPostCreated={handlePostCreated} />
       
       {/* Posts */}
-      <PostList posts={feedPosts} />
+      {feedView === 'swipeable' ? (
+        <SwipeablePostView posts={feedPosts} />
+      ) : (
+        <PostList posts={feedPosts} />
+      )}
     </AppLayout>
   );
 };
