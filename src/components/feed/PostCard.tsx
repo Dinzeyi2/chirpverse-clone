@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile } from 'lucide-react';
@@ -6,7 +7,7 @@ import { Post, formatDate } from '@/lib/data';
 import { toast } from 'sonner';
 import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
+import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
 
 interface PostCardProps {
   post: Post;
@@ -359,7 +360,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                   skinTonesDisabled
                   width={300}
                   height={400}
-                  theme="dark"
+                  theme="dark" as Theme
                 />
               </PopoverContent>
             </Popover>
