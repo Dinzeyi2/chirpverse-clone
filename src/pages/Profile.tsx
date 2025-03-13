@@ -16,9 +16,73 @@ const Profile = () => {
   const { user } = useAuth();
   const [profileData, setProfileData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [userStats, setUserStats] = useState({
+    posts: 0,
+    replies: 0,
+    reactions: 0,
+    bluedify: 0
+  });
   
   // Determine if this is the current user's profile
   const isCurrentUser = user && userId === user.id;
+  
+  // Fetch user stats from Supabase
+  useEffect(() => {
+    const fetchUserStats = async () => {
+      if (!userId) return;
+      
+      try {
+        // Count user's posts (shoutouts)
+        const { data: posts, error: postsError } = await supabase
+          .from('shoutouts')
+          .select('id', { count: 'exact' })
+          .eq('user_id', userId);
+          
+        // Count user's replies (comments)
+        const { data: replies, error: repliesError } = await supabase
+          .from('comments')
+          .select('id', { count: 'exact' })
+          .eq('user_id', userId);
+          
+        // Count reactions (likes) received on user's posts
+        const { data: reactions, error: reactionsError } = await supabase
+          .from('likes')
+          .select('id', { count: 'exact' })
+          .in('shoutout_id', 
+            supabase.from('shoutouts')
+              .select('id')
+              .eq('user_id', userId)
+          );
+          
+        // Count bluedify (reposts) for user's posts
+        const { data: bluedify, error: bluedifyError } = await supabase
+          .from('reposts')
+          .select('id', { count: 'exact' })
+          .in('shoutout_id', 
+            supabase.from('shoutouts')
+              .select('id')
+              .eq('user_id', userId)
+          );
+          
+        setUserStats({
+          posts: posts?.length || 0,
+          replies: replies?.length || 0,
+          reactions: reactions?.length || 0,
+          bluedify: bluedify?.length || 0
+        });
+        
+        if (postsError || repliesError || reactionsError || bluedifyError) {
+          console.error('Error fetching user stats:', {
+            postsError, repliesError, reactionsError, bluedifyError
+          });
+        }
+      } catch (err) {
+        console.error('Error computing user stats:', err);
+      }
+    };
+    
+    fetchUserStats();
+  }, [userId]);
   
   // Fetch user profile data from Supabase
   useEffect(() => {
@@ -149,7 +213,8 @@ const Profile = () => {
     <AppLayout>
       <ProfileHeader 
         user={profileData} 
-        isCurrentUser={isCurrentUser} 
+        isCurrentUser={isCurrentUser}
+        stats={userStats}
       />
       
       <Tabs defaultValue="posts" className="w-full" onValueChange={handleTabChange}>

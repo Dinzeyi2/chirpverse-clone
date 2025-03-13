@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, X, Camera, UserCircle, Heart, Award } from 'lucide-react';
@@ -22,9 +23,19 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 interface ProfileHeaderProps {
   user: User;
   isCurrentUser?: boolean;
+  stats?: {
+    posts: number;
+    replies: number;
+    reactions: number;
+    bluedify: number;
+  };
 }
 
-const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = false }) => {
+const ProfileHeader: React.FC<ProfileHeaderProps> = ({ 
+  user, 
+  isCurrentUser = false,
+  stats = { posts: 0, replies: 0, reactions: 0, bluedify: 0 }
+}) => {
   const navigate = useNavigate();
   const [isFollowing, setIsFollowing] = useState(false);
   const { user: authUser } = useAuth();
@@ -161,11 +172,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
     toast.info('Cover photo update feature will be implemented soon');
   };
 
-  const postCount = 24;
-  const replyCount = 128;
-  const reactionCount = 57;
-  const bluedifyCount = 13;
-
   return (
     <div className="animate-fade-in">
       <div className="flex items-center p-4 sticky top-0 z-10 bg-background/90 backdrop-blur-md">
@@ -177,7 +183,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
         </button>
         <div>
           <h2 className="font-bold text-xl">{profileData.name}</h2>
-          <p className="text-xGray text-sm">{postCount + replyCount} total interactions</p>
+          <p className="text-xGray text-sm">{stats.posts + stats.replies} total interactions</p>
         </div>
       </div>
       
@@ -233,21 +239,21 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, isCurrentUser = fal
           
           <div className="flex mt-3 flex-wrap">
             <div className="mr-4 hover:underline">
-              <span className="font-bold">{postCount}</span>
+              <span className="font-bold">{stats.posts}</span>
               <span className="text-xGray"> Posts</span>
             </div>
             <div className="mr-4 hover:underline">
-              <span className="font-bold">{replyCount}</span>
+              <span className="font-bold">{stats.replies}</span>
               <span className="text-xGray"> Replies</span>
             </div>
             <div className="mr-4 hover:underline flex items-center">
               <Heart size={14} className="mr-1 text-pink-500" />
-              <span className="font-bold">{reactionCount}</span>
+              <span className="font-bold">{stats.reactions}</span>
               <span className="text-xGray"> Reactions</span>
             </div>
             <div className="hover:underline flex items-center">
               <Award size={14} className="mr-1 text-blue-500" />
-              <span className="font-bold">{bluedifyCount}</span>
+              <span className="font-bold">{stats.bluedify}</span>
               <span className="text-xGray"> Bluedify</span>
             </div>
           </div>
