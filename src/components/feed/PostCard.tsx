@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile, Plus } from 'lucide-react';
+import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Post, formatDate } from '@/lib/data';
 import { toast } from 'sonner';
@@ -351,9 +352,11 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                 <div className="p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
                   <MessageCircle size={18} />
                 </div>
-                <span className="ml-1 text-sm group-hover:text-blue-500">
-                  {formatNumber(replyCount)}
-                </span>
+                {replyCount > 0 && (
+                  <span className="ml-1 text-sm group-hover:text-blue-500">
+                    {formatNumber(replyCount)}
+                  </span>
+                )}
               </button>
               
               <button 
