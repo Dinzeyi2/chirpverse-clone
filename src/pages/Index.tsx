@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import CreatePost from '@/components/feed/CreatePost';
 import PostList from '@/components/feed/PostList';
 import SwipeablePostView from '@/components/feed/SwipeablePostView';
 import { Settings } from 'lucide-react';
@@ -186,8 +185,7 @@ const Index = () => {
         </div>
       </div>
       
-      {/* Create Post */}
-      <CreatePost onPostCreated={handlePostCreated} />
+      {/* Removed CreatePost component from here */}
       
       {/* Loading State */}
       {loading && (
