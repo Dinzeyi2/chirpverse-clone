@@ -51,17 +51,20 @@ const Bookmarks = () => {
           id: id,
           content: `Bookmarked post #${index + 1}`,
           user: {
+            id: `user-${index}`, // Added required id property
             name: 'User Name',
             username: 'username',
             avatar: `https://i.pravatar.cc/150?img=${(index % 10) + 1}`,
-            verified: index % 3 === 0
+            verified: index % 3 === 0,
+            following: Math.floor(Math.random() * 500), // Added required following property
+            followers: Math.floor(Math.random() * 1000) // Added required followers property
           },
           createdAt: new Date().toISOString(),
           likes: Math.floor(Math.random() * 100),
           replies: Math.floor(Math.random() * 50),
-          reposts: Math.floor(Math.random() * 30), // Added missing required property
-          views: Math.floor(Math.random() * 500), // Added missing required property
-          userId: userData.user.id, // Added missing required property
+          reposts: Math.floor(Math.random() * 30),
+          views: Math.floor(Math.random() * 500),
+          userId: userData.user.id,
           bookmarked: true,
           images: index % 2 === 0 ? [`https://picsum.photos/500/300?random=${index}`] : []
         };
