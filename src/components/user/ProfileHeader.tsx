@@ -52,6 +52,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   });
   
   const platformAvatars = [
+    '/lovable-uploads/a72f2c4e-2c65-4947-bb68-1e05dfaba4a7.png',
     '/lovable-uploads/9f76599d-59dd-4311-9fb9-4ff1755fd69e.png',
     '/lovable-uploads/65a8cce4-ba15-44b1-b458-1ab068dfce39.png',
     '/lovable-uploads/bca1a3b3-49f1-49c4-937c-1a7a8174f3e0.png',
