@@ -84,17 +84,23 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   }
 
   return (
-    <div className="w-full overflow-hidden py-4">
+    <div className="w-full overflow-hidden py-8">
       <Carousel 
-        className="w-full max-w-4xl mx-auto"
+        className="w-full max-w-6xl mx-auto"
         setApi={setApi}
+        opts={{
+          loop: true,
+          align: "center"
+        }}
       >
         <CarouselContent>
           {posts.map((post, index) => (
-            <CarouselItem key={post.id} className="md:basis-1/2 lg:basis-1/3 mx-auto flex justify-center items-center pl-0">
+            <CarouselItem key={post.id} className="md:basis-1/2 lg:basis-1/3 flex justify-center items-center pl-0">
               <div className={cn(
-                "relative w-full transition-all duration-300 max-w-[320px] sm:max-w-[360px]",
-                currentIndex === index ? "scale-100 opacity-100" : "scale-90 opacity-80"
+                "relative w-full transition-all duration-300 max-w-[400px] sm:max-w-[450px]",
+                currentIndex === index 
+                  ? "scale-100 opacity-100 z-20" 
+                  : "scale-90 opacity-50 z-10"
               )}>
                 <PostCard post={post} />
               </div>
@@ -104,12 +110,12 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
         
         {!isMobile && (
           <>
-            <CarouselPrevious className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white border-none" />
-            <CarouselNext className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white border-none" />
+            <CarouselPrevious className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white border-none z-30" />
+            <CarouselNext className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white border-none z-30" />
           </>
         )}
 
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/40 text-white px-3 py-1 rounded-full text-sm">
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/60 text-white px-3 py-1 rounded-full text-sm z-30">
           {currentIndex + 1} / {posts.length}
         </div>
       </Carousel>
