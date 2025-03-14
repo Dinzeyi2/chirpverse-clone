@@ -27,11 +27,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const maxImages = 2;
   const maxVideoLength = 120; // 2 minutes in seconds
   
-  useEffect(() => {
-    if (inDialog && textareaRef.current) {
-      textareaRef.current.focus();
-    }
-  }, [inDialog]);
   
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const text = e.target.value;
@@ -235,6 +230,12 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     if (remaining <= 40) return 'text-yellow-500';
     return 'text-xGray';
   };
+
+  useEffect(() => {
+    if (inDialog && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [inDialog]);
 
   return (
     <div className={inDialog ? 'bg-background' : 'px-4 pt-4 pb-2 border-b border-xExtraLightGray'}>
