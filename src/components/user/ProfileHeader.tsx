@@ -184,7 +184,14 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       </div>
       
       <div className="h-48 bg-black relative">
-        <div className="h-full w-full bg-black"></div>
+        <div 
+          className="h-full w-full bg-cover bg-center"
+          style={{ 
+            backgroundImage: `url('/lovable-uploads/9fa7937f-f7c5-4e7c-84ac-2156b400d5af.png')`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        ></div>
         
         <div className="absolute left-0 right-0 -bottom-16 flex justify-center">
           <div className="relative">
@@ -285,7 +292,14 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           
           <ScrollArea className="max-h-[70vh]">
             <div className="h-48 bg-black relative">
-              <div className="h-full w-full bg-black"></div>
+              <div 
+                className="h-full w-full bg-cover bg-center"
+                style={{ 
+                  backgroundImage: `url('/lovable-uploads/9fa7937f-f7c5-4e7c-84ac-2156b400d5af.png')`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center'
+                }}
+              ></div>
             </div>
             
             <div className="p-4 space-y-4 mt-4">
