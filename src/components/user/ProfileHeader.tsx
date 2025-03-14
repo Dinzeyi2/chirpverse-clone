@@ -200,20 +200,25 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       <div className="px-4 pb-4 relative">
         <div className="flex justify-between items-start">
           <div className="relative -mt-16">
-            <img
-              src={profileData.avatar}
-              alt={profileData.name}
-              className="w-32 h-32 rounded-full object-cover border-4 border-background"
-            />
-            {isCurrentUser && (
-              <button 
-                className="absolute top-3 right-3 p-1.5 rounded-full bg-black/70 hover:bg-black/80 transition-colors text-white z-10" 
-                aria-label="Change profile picture"
-                onClick={handleProfilePictureClick}
-              >
-                <Camera size={16} />
-              </button>
-            )}
+            <div className="relative">
+              <img
+                src={profileData.avatar}
+                alt={profileData.name}
+                className="w-32 h-32 rounded-full object-cover border-4 border-background"
+              />
+              {isCurrentUser && (
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                  <div className="absolute inset-0 bg-black/40 rounded-full"></div>
+                  <button 
+                    className="relative z-10 p-2 rounded-full"
+                    aria-label="Change profile picture"
+                    onClick={handleProfilePictureClick}
+                  >
+                    <Camera size={24} className="text-white" />
+                  </button>
+                </div>
+              )}
+            </div>
             <input
               type="file"
               ref={profilePictureInputRef}
@@ -319,18 +324,23 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             
             <div className="px-4 relative">
               <div className="relative -mt-16 mb-6">
-                <img
-                  src={profileData.avatar}
-                  alt={profileData.name}
-                  className="w-32 h-32 rounded-full object-cover border-4 border-background"
-                />
-                <button 
-                  className="absolute top-3 right-3 p-1.5 rounded-full bg-black/70 hover:bg-black/80 transition-colors text-white z-10" 
-                  aria-label="Change profile picture"
-                  onClick={handleProfilePictureClick}
-                >
-                  <Camera size={16} />
-                </button>
+                <div className="relative">
+                  <img
+                    src={profileData.avatar}
+                    alt={profileData.name}
+                    className="w-32 h-32 rounded-full object-cover border-4 border-background"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                    <div className="absolute inset-0 bg-black/40 rounded-full"></div>
+                    <button 
+                      className="relative z-10 p-2 rounded-full"
+                      aria-label="Change profile picture"
+                      onClick={handleProfilePictureClick}
+                    >
+                      <Camera size={24} className="text-white" />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
             
