@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, X, Camera, UserCircle, Smile, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface ProfileHeaderProps {
   user: User;
@@ -52,14 +51,17 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   });
   
   const platformAvatars = [
-    '/lovable-uploads/a72f2c4e-2c65-4947-bb68-1e05dfaba4a7.png',
-    '/lovable-uploads/9f76599d-59dd-4311-9fb9-4ff1755fd69e.png',
-    '/lovable-uploads/65a8cce4-ba15-44b1-b458-1ab068dfce39.png',
-    '/lovable-uploads/bca1a3b3-49f1-49c4-937c-1a7a8174f3e0.png',
     'https://i.pravatar.cc/150?img=1',
+    'https://i.pravatar.cc/150?img=2',
     'https://i.pravatar.cc/150?img=3',
     'https://i.pravatar.cc/150?img=4',
+    'https://i.pravatar.cc/150?img=5',
+    'https://i.pravatar.cc/150?img=6',
+    'https://i.pravatar.cc/150?img=7',
+    'https://i.pravatar.cc/150?img=8',
   ];
+  
+  const coverPhotoInputRef = useRef<HTMLInputElement>(null);
 
   const handleFollow = async () => {
     if (!authUser) {
@@ -139,33 +141,45 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     }
   };
 
-  const handleAvatarClick = () => {
-    if (isCurrentUser) {
-      setIsAvatarDialogOpen(true);
-    }
+  const handleProfilePictureClick = () => {
+    setIsAvatarDialogOpen(true);
   };
 
-  const handleSelectAvatar = (avatarUrl: string) => {
-    if (authUser) {
+  const handleCoverPhotoClick = () => {
+    coverPhotoInputRef.current?.click();
+  };
+
+  const handleSelectAvatar = async (avatarUrl: string) => {
+    if (!authUser) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          avatar_url: avatarUrl
+        })
+        .eq('id', authUser.id);
+
+      if (error) throw error;
+
       setProfileData(prev => ({
         ...prev,
         avatar: avatarUrl
       }));
-      
-      supabase
-        .from('profiles')
-        .update({ avatar_url: avatarUrl })
-        .eq('id', authUser.id)
-        .then(({ error }) => {
-          if (error) {
-            console.error('Error updating avatar:', error);
-            toast.error('Failed to update avatar');
-          } else {
-            toast.success('Profile picture updated');
-          }
-          setIsAvatarDialogOpen(false);
-        });
+
+      setIsAvatarDialogOpen(false);
+      toast.success('Profile picture updated successfully');
+    } catch (error: any) {
+      console.error('Error updating profile picture:', error);
+      toast.error('Failed to update profile picture');
     }
+  };
+
+  const handleCoverPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !authUser) return;
+
+    toast.info('Cover photo update feature will be implemented soon');
   };
 
   return (
@@ -183,39 +197,58 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </div>
       </div>
       
-      <div className="h-48 bg-black relative">
-        <div 
-          className="h-full w-full bg-cover bg-center"
-          style={{ 
-            backgroundImage: `url('/lovable-uploads/9fa7937f-f7c5-4e7c-84ac-2156b400d5af.png')`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
-          }}
-        ></div>
-        
-        <div className="absolute left-0 right-0 -bottom-16 flex justify-center">
-          <div className="relative">
-            <Avatar 
-              className="w-32 h-32 border-4 border-background cursor-pointer"
-              onClick={handleAvatarClick}
+      <div className="h-48 bg-xExtraLightGray relative">
+        <div className="h-full w-full bg-gradient-to-br from-xBlue/20 to-purple-500/20"></div>
+        {isCurrentUser && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <button 
+              className="p-2 rounded-full bg-black/50 text-white"
+              onClick={handleCoverPhotoClick}
+              aria-label="Change cover photo"
             >
-              <AvatarImage src={profileData.avatar} alt={profileData.name} />
-              <AvatarFallback>{profileData.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            {isCurrentUser && (
-              <div 
-                className="absolute bottom-0 right-0 bg-background p-1.5 rounded-full border border-border cursor-pointer"
-                onClick={handleAvatarClick}
-              >
-                <Camera size={16} />
-              </div>
-            )}
+              <Camera size={20} />
+            </button>
+            <input
+              type="file"
+              ref={coverPhotoInputRef}
+              onChange={handleCoverPhotoChange}
+              accept="image/*"
+              className="hidden"
+            />
           </div>
-        </div>
+        )}
       </div>
       
-      <div className="px-4 pb-4 relative mt-20">
-        <div className="flex justify-end items-start">
+      <div className="px-4 pb-4 relative">
+        <div className="flex justify-between items-start">
+          <div className="relative -mt-16">
+            <div className="relative">
+              <img
+                src={profileData.avatar}
+                alt={profileData.name}
+                className="w-32 h-32 rounded-full object-cover border-4 border-background"
+              />
+              {isCurrentUser && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <button 
+                    className="bg-black/60 rounded-full p-2 text-white"
+                    aria-label="Change profile picture"
+                    onClick={handleProfilePictureClick}
+                  >
+                    <Camera size={20} />
+                  </button>
+                </div>
+              )}
+            </div>
+            <input
+              type="file"
+              ref={coverPhotoInputRef}
+              onChange={handleCoverPhotoChange}
+              accept="image/*"
+              className="hidden"
+            />
+          </div>
+          
           <div className="mt-4">
             {isCurrentUser ? (
               <Button
@@ -240,8 +273,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </div>
         </div>
         
-        <div className="mt-4 text-center">
-          <div className="flex items-center justify-center mb-1">
+        <div className="mt-4">
+          <div className="flex items-center mb-1">
             <h1 className="text-xl font-bold mr-1">{profileData.name}</h1>
             {profileData.verified && (
               <span className="text-xBlue">
@@ -256,7 +289,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           
           {profileData.bio && <p className="mt-3">{profileData.bio}</p>}
           
-          <div className="flex mt-3 justify-center flex-wrap">
+          <div className="flex mt-3 flex-wrap">
             <div className="mr-4 hover:underline flex items-center">
               <span className="text-red-500 mr-1">🔥</span>
               <span className="font-bold">{stats.reactions}</span>
@@ -291,15 +324,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </div>
           
           <ScrollArea className="max-h-[70vh]">
-            <div className="h-48 bg-black relative">
-              <div 
-                className="h-full w-full bg-cover bg-center"
-                style={{ 
-                  backgroundImage: `url('/lovable-uploads/9fa7937f-f7c5-4e7c-84ac-2156b400d5af.png')`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center'
-                }}
-              ></div>
+            <div className="h-48 bg-xExtraLightGray relative">
+              <div className="h-full w-full bg-gradient-to-br from-xBlue/20 to-purple-500/20"></div>
             </div>
             
             <div className="p-4 space-y-4 mt-4">
@@ -342,30 +368,37 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       </Dialog>
 
       <Dialog open={isAvatarDialogOpen} onOpenChange={setIsAvatarDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] p-4">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold mb-4">Choose a profile picture</DialogTitle>
+        <DialogContent className="sm:max-w-[500px] p-6 rounded-2xl">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-xl font-bold">Choose your profile picture</DialogTitle>
           </DialogHeader>
           
-          <div className="grid grid-cols-3 gap-4 mt-4">
+          <div className="grid grid-cols-4 gap-4">
             {platformAvatars.map((avatar, index) => (
-              <div 
+              <button
                 key={index}
-                className="aspect-square overflow-hidden rounded-full border-2 hover:border-xBlue transition-all cursor-pointer"
+                className="relative rounded-full overflow-hidden transition-all hover:ring-2 hover:ring-xBlue focus:ring-2 focus:ring-xBlue focus:outline-none"
                 onClick={() => handleSelectAvatar(avatar)}
               >
-                <img 
-                  src={avatar} 
+                <img
+                  src={avatar}
                   alt={`Avatar option ${index + 1}`}
-                  className="w-full h-full object-cover"
+                  className="w-20 h-20 object-cover"
                 />
-              </div>
+                {avatar === profileData.avatar && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <CheckCircle className="text-white" />
+                  </div>
+                )}
+              </button>
             ))}
           </div>
           
-          <DialogClose className="mt-4 w-full">
-            <Button variant="outline" className="w-full">Cancel</Button>
-          </DialogClose>
+          <div className="flex justify-end mt-4">
+            <Button variant="outline" onClick={() => setIsAvatarDialogOpen(false)}>
+              Cancel
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
