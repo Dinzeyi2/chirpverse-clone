@@ -265,9 +265,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               <span className="font-bold">{stats.reactions}</span>
             </div>
             <div className="hover:underline flex items-center">
-              <Award size={14} className="mr-1 text-blue-500" />
+              <img 
+                src="/lovable-uploads/574535bb-701a-4bd6-9e65-e462c713c41d.png" 
+                alt="Bluedify Bot" 
+                className="w-6 h-6 mr-1.5 rounded-full object-cover border border-blue-300"
+              />
               <span className="font-bold">{stats.bluedify}</span>
-              <span className="text-xGray"> Bluedify</span>
             </div>
           </div>
         </div>
