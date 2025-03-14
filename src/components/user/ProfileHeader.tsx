@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, X, Camera, UserCircle, Smile, Award } from 'lucide-react';
@@ -60,6 +59,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     'https://i.pravatar.cc/150?img=6',
     '/lovable-uploads/c6109bd8-8870-4278-84ad-e885727d6c8f.png',
     '/lovable-uploads/f517c267-a063-4eec-8c76-5049b613ec21.png',
+    '/lovable-uploads/b0b1a2df-c7af-4ae0-89b3-c27fe6f5db18.png',
+    '/lovable-uploads/6c2d9a58-6d77-42d8-b91c-2a7e3c4cad69.png'
   ];
   
   const coverPhotoInputRef = useRef<HTMLInputElement>(null);
