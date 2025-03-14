@@ -10,15 +10,6 @@ interface AppLayoutProps {
 }
 
 const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
-  // Trending topics for the right sidebar
-  const trendingTopics = [
-    { id: 1, category: 'Technology', name: 'Apple Vision Pro', posts: '125K' },
-    { id: 2, category: 'Entertainment', name: 'New Movie Release', posts: '98K' },
-    { id: 3, category: 'Sports', name: '#WorldCup2023', posts: '87K' },
-    { id: 4, category: 'Business', name: 'Tesla Stock', posts: '52K' },
-    { id: 5, category: 'Politics', name: 'Election Updates', posts: '45K' },
-  ];
-
   // Who to follow suggestions
   const whoToFollow = [
     { id: 1, name: 'Tech Insider', username: 'techinsider', avatar: 'https://i.pravatar.cc/150?img=67' },
@@ -44,29 +35,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         
         {/* Right Sidebar */}
         <div className="hidden xl:block w-[350px] pt-4 px-4">
-          {/* Trending Topics */}
-          <div className="bg-[#16181C] rounded-2xl p-4 mb-4">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">Trends for you</h2>
-              <button className="text-xBlue hover:bg-xBlue/10 p-2 rounded-full transition-colors">
-                <Settings size={18} />
-              </button>
-            </div>
-            <div className="space-y-6">
-              {trendingTopics.map((topic) => (
-                <div key={topic.id} className="group cursor-pointer">
-                  <p className="text-muted-foreground text-xs">{topic.category}</p>
-                  <p className="font-bold group-hover:text-xBlue transition-colors">{topic.name}</p>
-                  <p className="text-muted-foreground text-sm">{topic.posts} posts</p>
-                </div>
-              ))}
-            </div>
-            <button className="text-xBlue hover:text-xBlue/80 mt-4 text-sm transition-colors">
-              Show more
-            </button>
-          </div>
-          
-          {/* Who to Follow */}
+          {/* Who to Follow - Removed Trending Topics section */}
           <div className="bg-[#16181C] rounded-2xl p-4">
             <h2 className="text-xl font-bold mb-6">Who to follow</h2>
             <div className="space-y-4">
