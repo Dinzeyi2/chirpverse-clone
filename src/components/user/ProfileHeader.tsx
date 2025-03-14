@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, X, Camera, UserCircle, Smile, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -60,8 +60,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     'https://i.pravatar.cc/150?img=3',
     'https://i.pravatar.cc/150?img=4',
   ];
-  
-  const coverPhotoInputRef = useRef<HTMLInputElement>(null);
 
   const handleFollow = async () => {
     if (!authUser) {
@@ -141,17 +139,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     }
   };
 
-  const handleCoverPhotoClick = () => {
-    coverPhotoInputRef.current?.click();
-  };
-
-  const handleCoverPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !authUser) return;
-
-    toast.info('Cover photo update feature will be implemented soon');
-  };
-
   return (
     <div className="animate-fade-in">
       <div className="flex items-center p-4 sticky top-0 z-10 bg-background/90 backdrop-blur-md">
@@ -169,24 +156,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       
       <div className="h-48 bg-xExtraLightGray relative">
         <div className="h-full w-full bg-gradient-to-br from-xBlue/20 to-purple-500/20"></div>
-        {isCurrentUser && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <button 
-              className="p-2 rounded-full bg-black/50 text-white"
-              onClick={handleCoverPhotoClick}
-              aria-label="Change cover photo"
-            >
-              <Camera size={20} />
-            </button>
-            <input
-              type="file"
-              ref={coverPhotoInputRef}
-              onChange={handleCoverPhotoChange}
-              accept="image/*"
-              className="hidden"
-            />
-          </div>
-        )}
       </div>
       
       <div className="px-4 pb-4 relative">
@@ -198,13 +167,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 <AvatarFallback>{profileData.name.slice(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
             </div>
-            <input
-              type="file"
-              ref={coverPhotoInputRef}
-              onChange={handleCoverPhotoChange}
-              accept="image/*"
-              className="hidden"
-            />
           </div>
           
           <div className="mt-4">
