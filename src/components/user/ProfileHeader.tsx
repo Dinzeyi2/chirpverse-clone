@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, X, Camera, UserCircle, Heart, Award } from 'lucide-react';
+import { ArrowLeft, CheckCircle, X, Camera, UserCircle, Heart, Award, Smile } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { User } from '@/lib/data';
 import { cn } from '@/lib/utils';
@@ -256,10 +256,13 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               <span className="font-bold">{stats.replies}</span>
               <span className="text-xGray"> Replies</span>
             </div>
-            <div className="mr-4 hover:underline flex items-center">
-              <Heart size={14} className="mr-1 text-pink-500" />
+            <div className="mr-4 hover:underline bg-gray-100 dark:bg-gray-800 rounded-full px-2 py-1 flex items-center">
+              <span className="inline-flex mr-1">
+                <Smile className="h-4 w-4 text-yellow-500" />
+                <Heart className="h-4 w-4 text-pink-500 -ml-1" />
+                <Award className="h-4 w-4 text-blue-500 -ml-1" />
+              </span>
               <span className="font-bold">{stats.reactions}</span>
-              <span className="text-xGray"> Reactions</span>
             </div>
             <div className="hover:underline flex items-center">
               <Award size={14} className="mr-1 text-blue-500" />
