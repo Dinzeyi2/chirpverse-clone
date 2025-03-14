@@ -40,7 +40,7 @@ const Notifications = () => {
         }
 
         // Fetch notifications from the database
-        // Use explicit column naming for the joined profile table to avoid ambiguity
+        // We need to explicitly specify the column names to avoid ambiguity
         const { data, error } = await supabase
           .from('notifications')
           .select(`
@@ -50,7 +50,8 @@ const Notifications = () => {
             created_at, 
             is_read,
             metadata,
-            profiles:sender_id (full_name, user_id, avatar_url)
+            sender_id,
+            sender:profiles!sender_id (full_name, user_id, avatar_url)
           `)
           .eq('recipient_id', user.id)
           .order('created_at', { ascending: false });
@@ -62,14 +63,14 @@ const Notifications = () => {
           id: notification.id,
           type: notification.type as 'like' | 'reply' | 'mention' | 'retweet' | 'bookmark' | 'reaction',
           user: {
-            name: notification.profiles?.full_name || 'Anonymous User',
-            username: notification.profiles?.user_id?.substring(0, 8) || 'user',
-            avatar: notification.profiles?.avatar_url || 'https://i.pravatar.cc/150?img=3',
+            name: notification.sender?.full_name || 'Anonymous User',
+            username: notification.sender?.user_id?.substring(0, 8) || 'user',
+            avatar: notification.sender?.avatar_url || 'https://i.pravatar.cc/150?img=3',
             verified: Math.random() > 0.7, // Random verification for demo
           },
           content: notification.content,
           post: typeof notification.metadata === 'object' && notification.metadata 
-                ? String(notification.metadata.post_excerpt || '') 
+                ? (notification.metadata.post_excerpt ? String(notification.metadata.post_excerpt) : undefined)
                 : undefined,
           time: formatTimeAgo(new Date(notification.created_at)),
           isRead: notification.is_read,
@@ -115,7 +116,7 @@ const Notifications = () => {
               },
               content: newNotification.content,
               post: typeof newNotification.metadata === 'object' && newNotification.metadata 
-                    ? String(newNotification.metadata.post_excerpt || '') 
+                    ? (newNotification.metadata.post_excerpt ? String(newNotification.metadata.post_excerpt) : undefined)
                     : undefined,
               time: formatTimeAgo(new Date(newNotification.created_at)),
               isRead: newNotification.is_read,
