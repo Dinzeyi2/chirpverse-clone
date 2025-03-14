@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, X, Camera, UserCircle, Smile, Award } from 'lucide-react';
@@ -309,11 +310,11 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   className="w-32 h-32 rounded-full object-cover border-4 border-background"
                 />
                 <button 
-                  className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/70 transition-colors text-white z-10" 
+                  className="absolute top-0 right-0 p-2 rounded-full bg-black/70 hover:bg-black/90 transition-colors text-white z-10" 
                   aria-label="Change profile picture"
                   onClick={handleProfilePictureClick}
                 >
-                  <Camera size={24} />
+                  <Camera size={18} />
                 </button>
                 <input
                   type="file"
