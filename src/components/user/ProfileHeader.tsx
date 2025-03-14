@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, X, Camera, UserCircle, Smile, Award } from 'lucide-react';
@@ -52,15 +51,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     profession: user.profession || '',
   });
   
-  // Updated array with Unsplash images and existing avatars
   const platformAvatars = [
-    // Unsplash images
-    'https://images.unsplash.com/photo-1582562124811-c09040d0a901', // orange and white tabby cat
-    'https://images.unsplash.com/photo-1618160702438-9b02ab6515c9', // brown fruit on wooden plate
-    'https://images.unsplash.com/photo-1535268647677-300dbf3d78d1', // grey tabby kitten
-    'https://images.unsplash.com/photo-1441057206919-63d19fac2369', // two penguins
-    'https://images.unsplash.com/photo-1501286353178-1ec881214838', // monkey with banana
-    // Original avatars
     '/lovable-uploads/a72f2c4e-2c65-4947-bb68-1e05dfaba4a7.png',
     '/lovable-uploads/9f76599d-59dd-4311-9fb9-4ff1755fd69e.png',
     '/lovable-uploads/65a8cce4-ba15-44b1-b458-1ab068dfce39.png',
