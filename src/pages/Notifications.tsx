@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Bell, AtSign, Heart, Repeat, MessageSquare, ChevronDown } from 'lucide-react';
@@ -74,8 +73,6 @@ const Notifications = () => {
 
   const filterNotifications = (type) => {
     if (type === 'all') return notifications;
-    if (type === 'mentions') return notifications.filter(n => n.type === 'mention');
-    if (type === 'verified') return notifications.filter(n => Math.random() > 0.5); // Just a random selection for demo
     return [];
   };
 
@@ -101,7 +98,7 @@ const Notifications = () => {
         <div className="px-4 py-3 border-b border-xExtraLightGray">
           <h1 className="text-xl font-bold">Notifications</h1>
           
-          {/* Tabs */}
+          {/* Tabs - removed Verified and Mentions, keeping only All */}
           <Tabs defaultValue="all" className="mt-2" onValueChange={setActiveTab}>
             <TabsList className="w-full bg-transparent border-b border-xExtraLightGray">
               <TabsTrigger 
@@ -113,36 +110,10 @@ const Notifications = () => {
               >
                 All
               </TabsTrigger>
-              <TabsTrigger 
-                value="verified" 
-                className={cn(
-                  "flex-1 rounded-none border-transparent data-[state=active]:border-b-2 data-[state=active]:border-xBlue data-[state=active]:shadow-none pb-3",
-                  activeTab === 'verified' ? "font-bold" : "text-xGray"
-                )}
-              >
-                Verified
-              </TabsTrigger>
-              <TabsTrigger 
-                value="mentions" 
-                className={cn(
-                  "flex-1 rounded-none border-transparent data-[state=active]:border-b-2 data-[state=active]:border-xBlue data-[state=active]:shadow-none pb-3",
-                  activeTab === 'mentions' ? "font-bold" : "text-xGray"
-                )}
-              >
-                Mentions
-              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="all" className="mt-0">
               <NotificationsList notifications={filterNotifications('all')} getIcon={getNotificationIcon} />
-            </TabsContent>
-            
-            <TabsContent value="verified" className="mt-0">
-              <NotificationsList notifications={filterNotifications('verified')} getIcon={getNotificationIcon} />
-            </TabsContent>
-            
-            <TabsContent value="mentions" className="mt-0">
-              <NotificationsList notifications={filterNotifications('mentions')} getIcon={getNotificationIcon} />
             </TabsContent>
           </Tabs>
         </div>
