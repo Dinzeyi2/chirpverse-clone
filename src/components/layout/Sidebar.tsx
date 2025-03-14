@@ -96,7 +96,7 @@ const Sidebar = () => {
                   )}
                 >
                   <item.icon size={24} className={isActive ? "text-foreground" : "text-muted-foreground"} />
-                  {!isCollapsed && <span className="ml-4 sr-only">{item.name}</span>}
+                  {!isCollapsed && <span className="ml-4">{item.name}</span>}
                 </a>
               );
             }
@@ -114,7 +114,7 @@ const Sidebar = () => {
                 )}
               >
                 <item.icon size={24} className={isActive ? "text-foreground" : "text-muted-foreground"} />
-                {!isCollapsed && <span className="ml-4 sr-only">{item.name}</span>}
+                {!isCollapsed && <span className="ml-4">{item.name}</span>}
               </Link>
             );
           })}
@@ -128,7 +128,7 @@ const Sidebar = () => {
               )}
             >
               <LogOut size={24} className="text-muted-foreground" />
-              {!isCollapsed && <span className="ml-4 sr-only">Sign out</span>}
+              {!isCollapsed && <span className="ml-4">Sign out</span>}
             </button>
           ) : (
             <button
@@ -139,7 +139,7 @@ const Sidebar = () => {
               )}
             >
               <LogIn size={24} className="text-muted-foreground" />
-              {!isCollapsed && <span className="ml-4 sr-only">Sign in</span>}
+              {!isCollapsed && <span className="ml-4">Sign in</span>}
             </button>
           )}
         </nav>
@@ -159,9 +159,11 @@ const Sidebar = () => {
                   {isCollapsed ? (
                     <PlusCircle size={24} />
                   ) : (
-                    <PlusCircle size={24} className="mx-auto" />
+                    <>
+                      <PlusCircle size={24} className="mr-2" />
+                      <span>Post</span>
+                    </>
                   )}
-                  <span className="sr-only">Post</span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[600px] p-0 rounded-2xl bg-background border-border">
