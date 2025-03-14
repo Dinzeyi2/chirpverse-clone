@@ -59,22 +59,31 @@ const Notifications = () => {
         if (error) throw error;
 
         // Transform the data
-        const formattedNotifications = data.map(notification => ({
-          id: notification.id,
-          type: notification.type as 'like' | 'reply' | 'mention' | 'retweet' | 'bookmark' | 'reaction',
-          user: {
-            name: notification.sender?.full_name || 'Anonymous User',
-            username: notification.sender?.user_id?.substring(0, 8) || 'user',
-            avatar: notification.sender?.avatar_url || 'https://i.pravatar.cc/150?img=3',
-            verified: Math.random() > 0.7, // Random verification for demo
-          },
-          content: notification.content,
-          post: typeof notification.metadata === 'object' && notification.metadata 
-                ? (notification.metadata.post_excerpt ? String(notification.metadata.post_excerpt) : undefined)
-                : undefined,
-          time: formatTimeAgo(new Date(notification.created_at)),
-          isRead: notification.is_read,
-        }));
+        const formattedNotifications = data.map(notification => {
+          // Safe extraction of post_excerpt from metadata
+          let postExcerpt: string | undefined = undefined;
+          if (notification.metadata && typeof notification.metadata === 'object' && !Array.isArray(notification.metadata)) {
+            const metadataObj = notification.metadata as Record<string, any>;
+            if (metadataObj.post_excerpt) {
+              postExcerpt = String(metadataObj.post_excerpt);
+            }
+          }
+
+          return {
+            id: notification.id,
+            type: notification.type as 'like' | 'reply' | 'mention' | 'retweet' | 'bookmark' | 'reaction',
+            user: {
+              name: notification.sender?.full_name || 'Anonymous User',
+              username: notification.sender?.user_id?.substring(0, 8) || 'user',
+              avatar: notification.sender?.avatar_url || 'https://i.pravatar.cc/150?img=3',
+              verified: Math.random() > 0.7, // Random verification for demo
+            },
+            content: notification.content,
+            post: postExcerpt,
+            time: formatTimeAgo(new Date(notification.created_at)),
+            isRead: notification.is_read,
+          };
+        });
 
         setNotifications(formattedNotifications);
       } catch (error) {
@@ -105,6 +114,15 @@ const Notifications = () => {
           .eq('user_id', newNotification.sender_id)
           .single()
           .then(({ data: profile }) => {
+            // Safe extraction of post_excerpt from metadata
+            let postExcerpt: string | undefined = undefined;
+            if (newNotification.metadata && typeof newNotification.metadata === 'object' && !Array.isArray(newNotification.metadata)) {
+              const metadataObj = newNotification.metadata as Record<string, any>;
+              if (metadataObj.post_excerpt) {
+                postExcerpt = String(metadataObj.post_excerpt);
+              }
+            }
+
             const formattedNotification = {
               id: newNotification.id,
               type: newNotification.type as 'like' | 'reply' | 'mention' | 'retweet' | 'bookmark' | 'reaction',
@@ -115,9 +133,7 @@ const Notifications = () => {
                 verified: Math.random() > 0.7, // Random verification for demo
               },
               content: newNotification.content,
-              post: typeof newNotification.metadata === 'object' && newNotification.metadata 
-                    ? (newNotification.metadata.post_excerpt ? String(newNotification.metadata.post_excerpt) : undefined)
-                    : undefined,
+              post: postExcerpt,
               time: formatTimeAgo(new Date(newNotification.created_at)),
               isRead: newNotification.is_read,
             };
