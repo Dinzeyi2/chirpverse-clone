@@ -222,12 +222,6 @@ const Index = () => {
             )}
           </div>
         </div>
-        
-        <div className="flex border-b border-xExtraLightGray">
-          <div className="flex-1 py-3 relative">
-            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-xBlue rounded-full" />
-          </div>
-        </div>
       </div>
       
       {loading && (
