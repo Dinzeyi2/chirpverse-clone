@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile, ThumbsUp } from 'lucide-react';
@@ -57,17 +58,22 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     
     const checkBludifyStatus = async () => {
       try {
-        const { data: bludifyData, error: bludifyError } = await supabase
-          .from('post_bludifies')
-          .select('*')
-          .eq('post_id', getPostId(post.id))
-          .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-          .single();
-        
-        if (bludifyData) {
-          setIsBludified(true);
+        // Check if the current user has bludified this post
+        const user = (await supabase.auth.getUser()).data.user;
+        if (user) {
+          const { data } = await supabase
+            .from('post_bludifies')
+            .select('*')
+            .eq('post_id', getPostId(post.id))
+            .eq('user_id', user.id)
+            .maybeSingle();
+          
+          if (data) {
+            setIsBludified(true);
+          }
         }
         
+        // Get the total count of bludifies for this post
         const { count } = await supabase
           .from('post_bludifies')
           .select('*', { count: 'exact', head: true })
@@ -75,7 +81,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           
         if (count !== null) setBludifyCount(count);
       } catch (error) {
-        console.log('Bludify check error or not found:', error);
+        console.log('Bludify check error:', error);
       }
     };
     
@@ -153,6 +159,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       }
       
       if (isBludified) {
+        // Remove bludify
         const { error } = await supabase
           .from('post_bludifies')
           .delete()
@@ -164,6 +171,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         setBludifyCount(prev => Math.max(0, prev - 1));
         toast.success('Bludify removed');
       } else {
+        // Add bludify
         const { error } = await supabase
           .from('post_bludifies')
           .insert({
