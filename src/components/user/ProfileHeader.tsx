@@ -207,15 +207,16 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 className="w-32 h-32 rounded-full object-cover border-4 border-background"
               />
               {isCurrentUser && (
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                  <div className="absolute inset-0 bg-black/40 rounded-full"></div>
-                  <button 
-                    className="relative z-10 p-2 rounded-full"
-                    aria-label="Change profile picture"
-                    onClick={handleProfilePictureClick}
-                  >
-                    <Camera size={24} className="text-white" />
-                  </button>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="bg-black/60 rounded-full p-2">
+                    <button 
+                      className="text-white"
+                      aria-label="Change profile picture"
+                      onClick={handleProfilePictureClick}
+                    >
+                      <Camera size={20} />
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -330,15 +331,16 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     alt={profileData.name}
                     className="w-32 h-32 rounded-full object-cover border-4 border-background"
                   />
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                    <div className="absolute inset-0 bg-black/40 rounded-full"></div>
-                    <button 
-                      className="relative z-10 p-2 rounded-full"
-                      aria-label="Change profile picture"
-                      onClick={handleProfilePictureClick}
-                    >
-                      <Camera size={24} className="text-white" />
-                    </button>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="bg-black/60 rounded-full p-2">
+                      <button 
+                        className="text-white"
+                        aria-label="Change profile picture"
+                        onClick={handleProfilePictureClick}
+                      >
+                        <Camera size={20} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
