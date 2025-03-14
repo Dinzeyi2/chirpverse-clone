@@ -306,7 +306,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </div>
       </div>
 
-      {/* Profile Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[650px] p-0 border-none rounded-2xl">
           <div className="flex justify-between items-center p-4 border-b">
@@ -327,15 +326,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           <ScrollArea className="max-h-[70vh]">
             <div className="h-48 bg-xExtraLightGray relative">
               <div className="h-full w-full bg-gradient-to-br from-xBlue/20 to-purple-500/20"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <button 
-                  className="p-2 rounded-full bg-black/50 text-white"
-                  onClick={handleCoverPhotoClick}
-                  aria-label="Change cover photo"
-                >
-                  <Camera size={20} />
-                </button>
-              </div>
             </div>
             
             <div className="p-4 space-y-4 mt-4">
@@ -377,7 +367,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* Profile Picture Selection Dialog */}
       <Dialog open={isAvatarDialogOpen} onOpenChange={setIsAvatarDialogOpen}>
         <DialogContent className="sm:max-w-[500px] p-6 rounded-2xl">
           <DialogHeader className="mb-4">
