@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile } from 'lucide-react';
+import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile, ThumbsUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Post, formatDate } from '@/lib/data';
 import { toast } from 'sonner';
@@ -28,8 +27,9 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [reactions, setReactions] = useState<EmojiReaction[]>([]);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const [isBludified, setIsBludified] = useState(false);
+  const [bludifyCount, setBludifyCount] = useState(0);
 
-  // Check if the post has media content
   const hasMedia = post.images && post.images.length > 0;
 
   const getPostId = (postId: string): string => {
@@ -54,6 +54,32 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     };
     
     checkBookmarkStatus();
+    
+    const checkBludifyStatus = async () => {
+      try {
+        const { data: bludifyData, error: bludifyError } = await supabase
+          .from('post_bludifies')
+          .select('*')
+          .eq('post_id', getPostId(post.id))
+          .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+          .single();
+        
+        if (bludifyData) {
+          setIsBludified(true);
+        }
+        
+        const { count } = await supabase
+          .from('post_bludifies')
+          .select('*', { count: 'exact', head: true })
+          .eq('post_id', getPostId(post.id));
+          
+        if (count !== null) setBludifyCount(count);
+      } catch (error) {
+        console.log('Bludify check error or not found:', error);
+      }
+    };
+    
+    checkBludifyStatus();
   }, [post.id]);
 
   useEffect(() => {
@@ -113,6 +139,47 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       toast.success('You liked a post');
     }
     setIsLiked(!isLiked);
+  };
+
+  const handleBludify = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      if (!user) {
+        toast.error('Please sign in to bludify this post');
+        return;
+      }
+      
+      if (isBludified) {
+        const { error } = await supabase
+          .from('post_bludifies')
+          .delete()
+          .eq('post_id', getPostId(post.id))
+          .eq('user_id', user.id);
+        
+        if (error) throw error;
+        setIsBludified(false);
+        setBludifyCount(prev => Math.max(0, prev - 1));
+        toast.success('Bludify removed');
+      } else {
+        const { error } = await supabase
+          .from('post_bludifies')
+          .insert({
+            post_id: getPostId(post.id),
+            user_id: user.id
+          });
+        
+        if (error) throw error;
+        setIsBludified(true);
+        setBludifyCount(prev => prev + 1);
+        toast.success('Post bludified! This was useful');
+      }
+    } catch (error) {
+      console.error('Error toggling bludify:', error);
+      toast.error('Failed to update bludify. Please sign in.');
+    }
   };
 
   const handleBookmark = async (e: React.MouseEvent) => {
@@ -246,7 +313,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       )}
     >
       {hasMedia ? (
-        // Media content view
         <div className="w-full aspect-[4/3] relative overflow-hidden bg-black">
           <img 
             src={post.images[0]} 
@@ -259,13 +325,37 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           />
         </div>
       ) : (
-        // Text-only view
         <div className="p-6 flex-1 flex items-center justify-center">
           <p className="text-xl text-center text-white/90 font-medium">{post.content}</p>
         </div>
       )}
       
       <div className="flex justify-between items-center p-2 border-t border-b border-neutral-800/50 bg-black/40">
+        <button 
+          className={cn(
+            "flex items-center group",
+            isBludified && "text-xBlue"
+          )}
+          onClick={handleBludify}
+          aria-label={`${bludifyCount} bludifies`}
+        >
+          <div className={cn(
+            "p-1 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors",
+            isBludified && "text-xBlue"
+          )}>
+            <div className="flex items-center">
+              <img 
+                src="/lovable-uploads/574535bb-701a-4bd6-9e65-e462c713c41d.png" 
+                alt="Bludify" 
+                className="w-5 h-5 rounded-full"
+              />
+              <span className="ml-1 text-xs group-hover:text-xBlue">
+                {formatNumber(bludifyCount)}
+              </span>
+            </div>
+          </div>
+        </button>
+        
         <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
           <PopoverTrigger asChild>
             <button 
