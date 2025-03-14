@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
 import SwipeablePostView from '@/components/feed/SwipeablePostView';
-import { Settings } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -196,23 +195,6 @@ const Index = () => {
                 <line x1="3" y1="18" x2="21" y2="18" />
               </svg>
             </button>
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="p-2 rounded-full hover:bg-neutral-800/50 transition-colors">
-                  <Settings size={20} />
-                  <span className="sr-only">Settings</span>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => window.location.href = "/settings"}>
-                  Settings
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => window.location.href = `/profile/${user?.id}`}>
-                  My Profile
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
             
             {user && (
               <Avatar className="w-8 h-8 cursor-pointer" onClick={() => window.location.href = `/profile/${user?.id}`}>
