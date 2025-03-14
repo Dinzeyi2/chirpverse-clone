@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile } from 'lucide-react';
@@ -18,6 +19,20 @@ interface EmojiReaction {
   reacted: boolean;
 }
 
+// Pastel color palette for cards
+const cardColors = [
+  'bg-[#F2FCE2] border-green-500', // Soft Green
+  'bg-[#FEF7CD] border-yellow-500', // Soft Yellow
+  'bg-[#FEC6A1] border-orange-500', // Soft Orange
+  'bg-[#E5DEFF] border-purple-500', // Soft Purple
+  'bg-[#FFDEE2] border-pink-500', // Soft Pink
+  'bg-[#FDE1D3] border-orange-300', // Soft Peach
+  'bg-[#D3E4FD] border-blue-500', // Soft Blue
+  'bg-[#F1F0FB] border-gray-400', // Soft Gray
+  'bg-[#E1F8F5] border-teal-500', // Soft Teal
+  'bg-[#FFE8F0] border-rose-400', // Soft Rose
+];
+
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(post.liked || false);
@@ -27,6 +42,13 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [reactions, setReactions] = useState<EmojiReaction[]>([]);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  
+  // Generate a consistent color for each post based on post ID
+  const colorIndex = Math.abs(
+    post.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  ) % cardColors.length;
+  
+  const cardColor = cardColors[colorIndex];
 
   const hasMedia = post.images && post.images.length > 0;
 
@@ -237,10 +259,10 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       onClick={handlePostClick}
       className={cn(
         'cursor-pointer block animate-fade-in relative rounded-xl overflow-hidden border',
-        'bg-gradient-to-b from-cream to-cream backdrop-blur-sm',
         'transition-all duration-300 hover:shadow-xl hover:scale-[1.01]',
         'border-neutral-300/50',
-        !hasMedia && 'flex flex-col justify-center'
+        !hasMedia && 'flex flex-col justify-center',
+        cardColor // Apply the unique color to each card
       )}
     >
       {hasMedia ? (
@@ -261,7 +283,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         </div>
       )}
       
-      <div className="flex justify-between items-center p-2 border-t border-b border-neutral-300/50 bg-cream/90">
+      <div className="flex justify-between items-center p-2 border-t border-b border-neutral-300/50 bg-white/60">
         <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
           <PopoverTrigger asChild>
             <button 
@@ -318,7 +340,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       </div>
       
       {hasMedia && (
-        <div className="p-3 bg-cream">
+        <div className="p-3">
           <h2 className="text-base font-bold text-black leading-tight mb-1 line-clamp-2">
             {post.content}
           </h2>
@@ -343,7 +365,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       )}
       
       {!hasMedia && (
-        <div className="p-3 bg-cream">
+        <div className="p-3">
           <div className="flex items-center">
             <img 
               src={post.user?.avatar} 
