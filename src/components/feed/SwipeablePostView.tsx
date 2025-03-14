@@ -84,16 +84,16 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   }
 
   return (
-    <div className="w-full overflow-hidden py-8">
+    <div className="w-full overflow-hidden py-4">
       <Carousel 
-        className="w-full max-w-6xl mx-auto"
+        className="w-full max-w-4xl mx-auto"
         setApi={setApi}
       >
         <CarouselContent>
           {posts.map((post, index) => (
-            <CarouselItem key={post.id} className="md:basis-2/3 lg:basis-1/2 mx-auto flex justify-center items-center pl-0">
+            <CarouselItem key={post.id} className="md:basis-1/2 lg:basis-1/3 mx-auto flex justify-center items-center pl-0">
               <div className={cn(
-                "relative w-full max-w-xl transition-all duration-300",
+                "relative w-full transition-all duration-300 max-w-[320px] sm:max-w-[360px]",
                 currentIndex === index ? "scale-100 opacity-100" : "scale-90 opacity-80"
               )}>
                 <PostCard post={post} />

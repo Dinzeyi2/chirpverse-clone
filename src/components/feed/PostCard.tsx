@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile } from 'lucide-react';
@@ -234,13 +235,13 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     <div 
       onClick={handlePostClick}
       className={cn(
-        'cursor-pointer block animate-fade-in relative rounded-2xl overflow-hidden border-2',
+        'cursor-pointer block animate-fade-in relative rounded-xl overflow-hidden border',
         'bg-gradient-to-b from-black/20 to-black/40 backdrop-blur-sm',
         'transition-all duration-300 hover:shadow-xl hover:scale-[1.01]',
         'border-neutral-800/50'
       )}
     >
-      <div className="aspect-square w-full relative overflow-hidden bg-black">
+      <div className="w-full aspect-[4/3] relative overflow-hidden bg-black">
         {post.images && post.images.length > 0 ? (
           <img 
             src={post.images[0]} 
@@ -253,20 +254,20 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-neutral-800 to-neutral-950 flex items-center justify-center">
-            <p className="text-neutral-400 text-lg p-8 text-center">{post.content}</p>
+            <p className="text-neutral-400 text-sm p-4 text-center">{post.content}</p>
           </div>
         )}
       </div>
       
-      <div className="flex justify-between items-center p-3 border-t border-b border-neutral-800/50 bg-black/40">
+      <div className="flex justify-between items-center p-2 border-t border-b border-neutral-800/50 bg-black/40">
         <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
           <PopoverTrigger asChild>
             <button 
               className="flex items-center group"
               onClick={handleEmojiPickerOpen}
             >
-              <div className="p-2 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors">
-                <Smile size={18} />
+              <div className="p-1 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors">
+                <Smile size={16} />
               </div>
             </button>
           </PopoverTrigger>
@@ -278,8 +279,8 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               onEmojiClick={(emojiData, event) => handleEmojiSelect(emojiData, event as unknown as React.MouseEvent)}
               searchDisabled
               skinTonesDisabled
-              width={300}
-              height={400}
+              width={280}
+              height={350}
               theme={"dark" as Theme}
             />
           </PopoverContent>
@@ -290,10 +291,10 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           onClick={handleCommentClick}
           aria-label={`${replyCount} replies`}
         >
-          <div className="p-2 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors">
-            <MessageCircle size={18} className="text-white" />
+          <div className="p-1 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors">
+            <MessageCircle size={16} className="text-white" />
           </div>
-          <span className="ml-1 text-sm group-hover:text-xBlue">
+          <span className="ml-1 text-xs group-hover:text-xBlue">
             {formatNumber(replyCount)}
           </span>
         </button>
@@ -306,34 +307,34 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           onClick={handleBookmark}
         >
           <div className={cn(
-            "p-2 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors",
+            "p-1 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors",
             isBookmarked && "text-xBlue"
           )}>
-            <Bookmark size={18} className={cn("text-white", isBookmarked ? "fill-current" : "")} />
+            <Bookmark size={16} className={cn("text-white", isBookmarked ? "fill-current" : "")} />
           </div>
         </button>
       </div>
       
-      <div className="p-4 bg-black/90">
-        <h2 className="text-lg font-bold text-white leading-tight mb-1">
-          {post.content.length > 60 ? post.content.substring(0, 60) + '...' : post.content}
+      <div className="p-3 bg-black/90">
+        <h2 className="text-base font-bold text-white leading-tight mb-1 line-clamp-2">
+          {post.content}
         </h2>
         
-        <div className="flex items-center mt-2">
+        <div className="flex items-center mt-1">
           <img 
             src={post.user?.avatar} 
             alt={post.user?.name} 
-            className="w-8 h-8 rounded-full object-cover mr-2"
+            className="w-6 h-6 rounded-full object-cover mr-1.5"
           />
           <div className="flex items-center">
-            <span className="font-medium text-white/90 mr-1">{post.user?.name}</span>
+            <span className="font-medium text-white/90 mr-1 text-sm">{post.user?.name}</span>
             {post.user?.verified && (
               <span className="text-xBlue">
-                <CheckCircle size={14} className="fill-xBlue text-black" />
+                <CheckCircle size={12} className="fill-xBlue text-black" />
               </span>
             )}
           </div>
-          <span className="text-neutral-400 text-sm ml-auto">{formatDate(post.createdAt)}</span>
+          <span className="text-neutral-400 text-xs ml-auto">{formatDate(post.createdAt)}</span>
         </div>
       </div>
       
@@ -344,7 +345,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               key={index}
               onClick={(e) => handleReactionClick(reaction.emoji, e)}
               className={cn(
-                "flex items-center gap-1 px-2 py-1 rounded-full text-sm border transition-colors",
+                "flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs border transition-colors",
                 reaction.reacted 
                   ? "bg-xBlue/10 border-xBlue/20 text-xBlue" 
                   : "bg-xSecondary border-xBorder text-gray-300 hover:bg-xSecondary/80"
