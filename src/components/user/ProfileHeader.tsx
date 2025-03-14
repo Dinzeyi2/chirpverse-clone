@@ -57,34 +57,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     'https://i.pravatar.cc/150?img=3',
     'https://i.pravatar.cc/150?img=4',
     'https://i.pravatar.cc/150?img=5',
-    'https://i.pravatar.cc/150?img=6',
-    '/lovable-uploads/c6109bd8-8870-4278-84ad-e885727d6c8f.png',
-    '/lovable-uploads/f517c267-a063-4eec-8c76-5049b613ec21.png',
-    '/lovable-uploads/70d95e9c-9cc7-4203-a41a-0e21e67bfa0b.png',
-    '/lovable-uploads/5262c9be-ef8c-4c99-9e4a-ff1e1d0b7d33.png',
+    'https://i.pravatar.cc/150?img=6'
   ];
   
   const [imageLoadState, setImageLoadState] = useState<{[key: string]: boolean}>({});
-  
-  useEffect(() => {
-    const checkImages = async () => {
-      const imageStates: {[key: string]: boolean} = {};
-      
-      for (const avatar of platformAvatars) {
-        try {
-          console.log('Checking image URL:', avatar);
-          imageStates[avatar] = true;
-        } catch (error) {
-          console.error('Error loading image:', avatar, error);
-          imageStates[avatar] = false;
-        }
-      }
-      
-      setImageLoadState(imageStates);
-    };
-    
-    checkImages();
-  }, []);
   
   const coverPhotoInputRef = useRef<HTMLInputElement>(null);
 
@@ -414,7 +390,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   src={avatar}
                   alt={`Avatar option ${index + 1}`}
                   className="w-full h-full object-cover"
-                  onLoad={() => console.log('Image loaded:', avatar)}
                   onError={(e) => {
                     console.error('Error loading image:', avatar);
                     e.currentTarget.src = 'https://i.pravatar.cc/150?img=1'; // Fallback image
