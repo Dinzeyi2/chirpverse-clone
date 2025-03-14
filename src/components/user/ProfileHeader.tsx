@@ -1,5 +1,4 @@
-
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, X, Camera, UserCircle, Smile, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,13 +13,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 interface ProfileHeaderProps {
   user: User;
@@ -53,28 +50,16 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     profession: user.profession || '',
   });
   
-  // Fixed platform avatars with working URLs
   const platformAvatars = [
     'https://i.pravatar.cc/150?img=1',
     'https://i.pravatar.cc/150?img=2',
-    'https://i.pravatar.cc/150?img=3'
+    'https://i.pravatar.cc/150?img=3',
+    'https://i.pravatar.cc/150?img=4',
+    'https://i.pravatar.cc/150?img=5',
+    'https://i.pravatar.cc/150?img=6',
+    'https://i.pravatar.cc/150?img=7',
+    'https://i.pravatar.cc/150?img=8',
   ];
-  
-  const [avatarErrors, setAvatarErrors] = useState<{[key: string]: boolean}>({});
-  
-  useEffect(() => {
-    platformAvatars.forEach(avatar => {
-      const img = new Image();
-      img.onload = () => {
-        console.log('Successfully loaded image:', avatar);
-      };
-      img.onerror = () => {
-        console.error('Failed to load image:', avatar);
-        setAvatarErrors(prev => ({...prev, [avatar]: true}));
-      };
-      img.src = avatar;
-    });
-  }, []);
   
   const coverPhotoInputRef = useRef<HTMLInputElement>(null);
 
@@ -168,8 +153,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     if (!authUser) return;
 
     try {
-      console.log('Selected avatar URL:', avatarUrl);
-      
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -197,15 +180,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     if (!file || !authUser) return;
 
     toast.info('Cover photo update feature will be implemented soon');
-  };
-
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2);
   };
 
   return (
@@ -249,13 +223,11 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <div className="flex justify-between items-start">
           <div className="relative -mt-16">
             <div className="relative">
-              <Avatar className="w-32 h-32 border-4 border-background">
-                <AvatarImage src={profileData.avatar} alt={profileData.name} className="object-cover" />
-                <AvatarFallback className="bg-muted text-3xl font-semibold">
-                  {getInitials(profileData.name)}
-                </AvatarFallback>
-              </Avatar>
-              
+              <img
+                src={profileData.avatar}
+                alt={profileData.name}
+                className="w-32 h-32 rounded-full object-cover border-4 border-background"
+              />
               {isCurrentUser && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <button 
@@ -396,43 +368,30 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       </Dialog>
 
       <Dialog open={isAvatarDialogOpen} onOpenChange={setIsAvatarDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] p-6 rounded-2xl">
+        <DialogContent className="sm:max-w-[500px] p-6 rounded-2xl">
           <DialogHeader className="mb-4">
             <DialogTitle className="text-xl font-bold">Choose your profile picture</DialogTitle>
-            <DialogDescription className="text-sm text-muted-foreground">
-              Select one of the available avatars below.
-            </DialogDescription>
           </DialogHeader>
           
-          <div className="grid grid-cols-3 gap-4">
-            {platformAvatars.map((avatar, index) => {
-              const isErrorImage = avatarErrors[avatar];
-              return (
-                <button
-                  key={index}
-                  className="relative rounded-full overflow-hidden transition-all hover:ring-4 hover:ring-xBlue focus:ring-4 focus:ring-xBlue focus:outline-none w-32 h-32 mx-auto"
-                  onClick={() => handleSelectAvatar(avatar)}
-                  disabled={isErrorImage}
-                >
-                  <Avatar className="w-full h-full">
-                    <AvatarImage 
-                      src={avatar}
-                      alt={`Avatar option ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                    <AvatarFallback className="bg-muted">
-                      <UserCircle className="h-12 w-12 text-muted-foreground" />
-                    </AvatarFallback>
-                  </Avatar>
-                  
-                  {avatar === profileData.avatar && !isErrorImage && (
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                      <CheckCircle className="text-white h-8 w-8" />
-                    </div>
-                  )}
-                </button>
-              );
-            })}
+          <div className="grid grid-cols-4 gap-4">
+            {platformAvatars.map((avatar, index) => (
+              <button
+                key={index}
+                className="relative rounded-full overflow-hidden transition-all hover:ring-2 hover:ring-xBlue focus:ring-2 focus:ring-xBlue focus:outline-none"
+                onClick={() => handleSelectAvatar(avatar)}
+              >
+                <img
+                  src={avatar}
+                  alt={`Avatar option ${index + 1}`}
+                  className="w-20 h-20 object-cover"
+                />
+                {avatar === profileData.avatar && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <CheckCircle className="text-white" />
+                  </div>
+                )}
+              </button>
+            ))}
           </div>
           
           <div className="flex justify-end mt-4">
