@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
@@ -258,7 +257,7 @@ const Index = () => {
       )}
       
       {!loading && (
-        <div className="pt-4 bg-black">
+        <div className="pt-0 bg-black">
           {feedView === 'swipeable' ? (
             <SwipeablePostView posts={feedPosts} />
           ) : (
