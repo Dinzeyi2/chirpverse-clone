@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, X, Camera, UserCircle, Smile, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -62,6 +63,28 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     '/lovable-uploads/70d95e9c-9cc7-4203-a41a-0e21e67bfa0b.png',
     '/lovable-uploads/5262c9be-ef8c-4c99-9e4a-ff1e1d0b7d33.png',
   ];
+  
+  const [imageLoadState, setImageLoadState] = useState<{[key: string]: boolean}>({});
+  
+  useEffect(() => {
+    const checkImages = async () => {
+      const imageStates: {[key: string]: boolean} = {};
+      
+      for (const avatar of platformAvatars) {
+        try {
+          console.log('Checking image URL:', avatar);
+          imageStates[avatar] = true;
+        } catch (error) {
+          console.error('Error loading image:', avatar, error);
+          imageStates[avatar] = false;
+        }
+      }
+      
+      setImageLoadState(imageStates);
+    };
+    
+    checkImages();
+  }, []);
   
   const coverPhotoInputRef = useRef<HTMLInputElement>(null);
 
@@ -155,6 +178,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     if (!authUser) return;
 
     try {
+      console.log('Selected avatar URL:', avatarUrl);
+      
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -373,19 +398,27 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <DialogContent className="sm:max-w-[500px] p-6 rounded-2xl">
           <DialogHeader className="mb-4">
             <DialogTitle className="text-xl font-bold">Choose your profile picture</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Select one of the available avatars below.
+            </DialogDescription>
           </DialogHeader>
           
           <div className="grid grid-cols-4 gap-4">
             {platformAvatars.map((avatar, index) => (
               <button
                 key={index}
-                className="relative rounded-full overflow-hidden transition-all hover:ring-2 hover:ring-xBlue focus:ring-2 focus:ring-xBlue focus:outline-none"
+                className="relative rounded-full overflow-hidden transition-all hover:ring-2 hover:ring-xBlue focus:ring-2 focus:ring-xBlue focus:outline-none w-20 h-20"
                 onClick={() => handleSelectAvatar(avatar)}
               >
                 <img
                   src={avatar}
                   alt={`Avatar option ${index + 1}`}
-                  className="w-20 h-20 object-cover"
+                  className="w-full h-full object-cover"
+                  onLoad={() => console.log('Image loaded:', avatar)}
+                  onError={(e) => {
+                    console.error('Error loading image:', avatar);
+                    e.currentTarget.src = 'https://i.pravatar.cc/150?img=1'; // Fallback image
+                  }}
                 />
                 {avatar === profileData.avatar && (
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
