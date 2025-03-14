@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, X, Camera, UserCircle, Smile, Award } from 'lucide-react';
@@ -40,7 +41,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const [isFollowing, setIsFollowing] = useState(false);
   const { user: authUser } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false);
   const [profileData, setProfileData] = useState({
     ...user,
     profession: user.profession || ''
@@ -141,38 +141,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     }
   };
 
-  const handleProfilePictureClick = () => {
-    setIsAvatarDialogOpen(true);
-  };
-
   const handleCoverPhotoClick = () => {
     coverPhotoInputRef.current?.click();
-  };
-
-  const handleSelectAvatar = async (avatarUrl: string) => {
-    if (!authUser) return;
-
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          avatar_url: avatarUrl
-        })
-        .eq('id', authUser.id);
-
-      if (error) throw error;
-
-      setProfileData(prev => ({
-        ...prev,
-        avatar: avatarUrl
-      }));
-
-      setIsAvatarDialogOpen(false);
-      toast.success('Profile picture updated successfully');
-    } catch (error: any) {
-      console.error('Error updating profile picture:', error);
-      toast.error('Failed to update profile picture');
-    }
   };
 
   const handleCoverPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -227,17 +197,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 <AvatarImage src={profileData.avatar} alt={profileData.name} />
                 <AvatarFallback>{profileData.name.slice(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
-              {isCurrentUser && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <button 
-                    className="bg-black/60 rounded-full p-2 text-white"
-                    aria-label="Change profile picture"
-                    onClick={handleProfilePictureClick}
-                  >
-                    <Camera size={20} />
-                  </button>
-                </div>
-              )}
             </div>
             <input
               type="file"
@@ -363,41 +322,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               </div>
             </div>
           </ScrollArea>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isAvatarDialogOpen} onOpenChange={setIsAvatarDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] p-6 rounded-2xl">
-          <DialogHeader className="mb-4">
-            <DialogTitle className="text-xl font-bold">Choose your profile picture</DialogTitle>
-          </DialogHeader>
-          
-          <div className="grid grid-cols-3 gap-4">
-            {platformAvatars.map((avatar, index) => (
-              <button
-                key={index}
-                className="relative rounded-full overflow-hidden transition-all hover:ring-2 hover:ring-xBlue focus:ring-2 focus:ring-xBlue focus:outline-none"
-                onClick={() => handleSelectAvatar(avatar)}
-              >
-                <img 
-                  src={avatar} 
-                  alt={`Avatar option ${index + 1}`}
-                  className="w-20 h-20 object-cover rounded-full"
-                />
-                {avatar === profileData.avatar && (
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                    <CheckCircle className="text-white" />
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-          
-          <div className="flex justify-end mt-4">
-            <Button variant="outline" onClick={() => setIsAvatarDialogOpen(false)}>
-              Cancel
-            </Button>
-          </div>
         </DialogContent>
       </Dialog>
     </div>
