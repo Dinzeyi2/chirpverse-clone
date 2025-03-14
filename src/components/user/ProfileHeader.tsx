@@ -54,8 +54,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const platformAvatars = [
     '/lovable-uploads/9f76599d-59dd-4311-9fb9-4ff1755fd69e.png',
     '/lovable-uploads/65a8cce4-ba15-44b1-b458-1ab068dfce39.png',
+    '/lovable-uploads/bca1a3b3-49f1-49c4-937c-1a7a8174f3e0.png',
     'https://i.pravatar.cc/150?img=1',
-    'https://i.pravatar.cc/150?img=2',
     'https://i.pravatar.cc/150?img=3',
     'https://i.pravatar.cc/150?img=4',
   ];
@@ -378,10 +378,18 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 className="relative rounded-full overflow-hidden transition-all hover:ring-2 hover:ring-xBlue focus:ring-2 focus:ring-xBlue focus:outline-none"
                 onClick={() => handleSelectAvatar(avatar)}
               >
-                <Avatar className="w-20 h-20">
-                  <AvatarImage src={avatar} alt={`Avatar option ${index + 1}`} />
-                  <AvatarFallback>AV{index + 1}</AvatarFallback>
-                </Avatar>
+                {index < 2 ? (
+                  <img 
+                    src={avatar} 
+                    alt={`Avatar option ${index + 1}`}
+                    className="w-20 h-20 object-cover rounded-full"
+                  />
+                ) : (
+                  <Avatar className="w-20 h-20">
+                    <AvatarImage src={avatar} alt={`Avatar option ${index + 1}`} />
+                    <AvatarFallback>AV{index + 1}</AvatarFallback>
+                  </Avatar>
+                )}
                 {avatar === profileData.avatar && (
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                     <CheckCircle className="text-white" />
