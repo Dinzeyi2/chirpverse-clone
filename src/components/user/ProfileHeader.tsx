@@ -257,9 +257,14 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               <span className="text-xGray"> Replies</span>
             </div>
             <div className="mr-4 hover:underline flex items-center">
-              <Heart size={14} className="mr-1 text-pink-500" />
-              <span className="font-bold">{stats.reactions}</span>
-              <span className="text-xGray"> Reactions</span>
+              <div className="flex items-center mr-1 bg-gray-100 dark:bg-gray-800 rounded-full px-2 py-0.5">
+                <img 
+                  src="/lovable-uploads/55203e1d-de1b-42fa-8a30-a1f9054b4c6a.png" 
+                  alt="Stickers" 
+                  className="h-5 mr-1" 
+                />
+                <span className="font-bold text-sm">{stats.reactions}</span>
+              </div>
             </div>
             <div className="hover:underline flex items-center">
               <Award size={14} className="mr-1 text-blue-500" />
