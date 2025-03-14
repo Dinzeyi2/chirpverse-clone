@@ -1,24 +1,24 @@
 
 import React, { useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import { Search, TrendingUp } from 'lucide-react';
+import { Search, TrendingUp, Users } from 'lucide-react';
 
 const Explore = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('for-you');
   
-  // Trending topics - in a real app these would come from an API
+  // Trending topics with research statistics - in a real app these would come from an API
   const trendingTopics = [
-    { id: 1, category: 'Technology', name: 'Apple Vision Pro', posts: '125K' },
-    { id: 2, category: 'Entertainment', name: 'New Movie Release', posts: '98K' },
-    { id: 3, category: 'Sports', name: '#WorldCup2023', posts: '87K' },
-    { id: 4, category: 'Business', name: 'Tesla Stock', posts: '52K' },
-    { id: 5, category: 'Politics', name: 'Election Updates', posts: '45K' },
-    { id: 6, category: 'Science', name: 'SpaceX Launch', posts: '38K' },
-    { id: 7, category: 'Health', name: 'Nutrition Facts', posts: '25K' },
-    { id: 8, category: 'Music', name: 'New Album Release', posts: '22K' },
-    { id: 9, category: 'Gaming', name: 'E3 Conference', posts: '18K' },
-    { id: 10, category: 'Travel', name: 'Summer Destinations', posts: '15K' },
+    { id: 1, category: 'Technology', name: 'Apple Vision Pro', posts: '125K', researchers: '48K' },
+    { id: 2, category: 'Entertainment', name: 'New Movie Release', posts: '98K', researchers: '36K' },
+    { id: 3, category: 'Sports', name: '#WorldCup2023', posts: '87K', researchers: '29K' },
+    { id: 4, category: 'Business', name: 'Tesla Stock', posts: '52K', researchers: '19K' },
+    { id: 5, category: 'Politics', name: 'Election Updates', posts: '45K', researchers: '22K' },
+    { id: 6, category: 'Science', name: 'SpaceX Launch', posts: '38K', researchers: '17K' },
+    { id: 7, category: 'Health', name: 'Nutrition Facts', posts: '25K', researchers: '12K' },
+    { id: 8, category: 'Music', name: 'New Album Release', posts: '22K', researchers: '8K' },
+    { id: 9, category: 'Gaming', name: 'E3 Conference', posts: '18K', researchers: '7K' },
+    { id: 10, category: 'Travel', name: 'Summer Destinations', posts: '15K', researchers: '6K' },
   ];
 
   // News sections
@@ -72,9 +72,9 @@ const Explore = () => {
         {/* First highlighted trending topic */}
         <div className="px-4 py-3 border-b border-xExtraLightGray">
           <div className="flex items-center text-sm text-xGray">
-            <span>Trending</span>
+            <span>Research Statistics</span>
           </div>
-          <h2 className="font-bold text-xl mt-1">What's happening today</h2>
+          <h2 className="font-bold text-xl mt-1">People asking similar questions</h2>
         </div>
         
         {/* Trending topics */}
@@ -84,10 +84,16 @@ const Explore = () => {
               <div className="flex justify-between">
                 <div>
                   <div className="flex items-center text-sm text-xGray">
-                    <span>{topic.category} · Trending</span>
+                    <span>{topic.category} · Popular Research</span>
                   </div>
                   <p className="font-bold">{topic.name}</p>
-                  <p className="text-sm text-xGray">{topic.posts} posts</p>
+                  <div className="flex items-center text-sm text-xGray gap-3">
+                    <span>{topic.posts} posts</span>
+                    <span className="flex items-center">
+                      <Users size={14} className="mr-1" />
+                      {topic.researchers} people researching
+                    </span>
+                  </div>
                 </div>
                 <div className="flex items-center justify-center h-10 w-10">
                   <TrendingUp size={18} className="text-xGray" />
