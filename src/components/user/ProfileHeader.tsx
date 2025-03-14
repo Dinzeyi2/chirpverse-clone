@@ -256,12 +256,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               <span className="font-bold">{stats.replies}</span>
               <span className="text-xGray"> Replies</span>
             </div>
-            <div className="mr-4 hover:underline bg-gray-100 dark:bg-gray-800 rounded-full px-2 py-1 flex items-center">
-              <span className="inline-flex mr-1">
-                <span className="text-yellow-500 text-lg">😊</span>
-                <span className="text-pink-500 text-lg">❤️</span>
-                <span className="text-blue-500 text-lg">🏆</span>
-              </span>
+            <div className="mr-4 hover:underline flex items-center">
+              <span className="text-red-500 mr-1">🔥</span>
               <span className="font-bold">{stats.reactions}</span>
             </div>
             <div className="hover:underline flex items-center">
