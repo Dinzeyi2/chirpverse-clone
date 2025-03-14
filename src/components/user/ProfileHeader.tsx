@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, X, Camera, UserCircle, Smile, Award } from 'lucide-react';
@@ -40,6 +41,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const [isFollowing, setIsFollowing] = useState(false);
   const { user: authUser } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false);
   const [profileData, setProfileData] = useState({
     ...user,
     profession: user.profession || ''
@@ -138,6 +140,35 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     }
   };
 
+  const handleAvatarClick = () => {
+    if (isCurrentUser) {
+      setIsAvatarDialogOpen(true);
+    }
+  };
+
+  const handleSelectAvatar = (avatarUrl: string) => {
+    if (authUser) {
+      setProfileData(prev => ({
+        ...prev,
+        avatar: avatarUrl
+      }));
+      
+      supabase
+        .from('profiles')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', authUser.id)
+        .then(({ error }) => {
+          if (error) {
+            console.error('Error updating avatar:', error);
+            toast.error('Failed to update avatar');
+          } else {
+            toast.success('Profile picture updated');
+          }
+          setIsAvatarDialogOpen(false);
+        });
+    }
+  };
+
   return (
     <div className="animate-fade-in">
       <div className="flex items-center p-4 sticky top-0 z-10 bg-background/90 backdrop-blur-md">
@@ -158,10 +189,21 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         
         <div className="absolute left-0 right-0 -bottom-16 flex justify-center">
           <div className="relative">
-            <Avatar className="w-32 h-32 border-4 border-background">
+            <Avatar 
+              className="w-32 h-32 border-4 border-background cursor-pointer"
+              onClick={handleAvatarClick}
+            >
               <AvatarImage src={profileData.avatar} alt={profileData.name} />
               <AvatarFallback>{profileData.name.slice(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>
+            {isCurrentUser && (
+              <div 
+                className="absolute bottom-0 right-0 bg-background p-1.5 rounded-full border border-border cursor-pointer"
+                onClick={handleAvatarClick}
+              >
+                <Camera size={16} />
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -283,6 +325,34 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               </div>
             </div>
           </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isAvatarDialogOpen} onOpenChange={setIsAvatarDialogOpen}>
+        <DialogContent className="sm:max-w-[500px] p-4">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold mb-4">Choose a profile picture</DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-3 gap-4 mt-4">
+            {platformAvatars.map((avatar, index) => (
+              <div 
+                key={index}
+                className="aspect-square overflow-hidden rounded-full border-2 hover:border-xBlue transition-all cursor-pointer"
+                onClick={() => handleSelectAvatar(avatar)}
+              >
+                <img 
+                  src={avatar} 
+                  alt={`Avatar option ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ))}
+          </div>
+          
+          <DialogClose className="mt-4 w-full">
+            <Button variant="outline" className="w-full">Cancel</Button>
+          </DialogClose>
         </DialogContent>
       </Dialog>
     </div>
