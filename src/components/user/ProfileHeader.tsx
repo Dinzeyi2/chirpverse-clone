@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, X, Camera, UserCircle, Smile, Award } from 'lucide-react';
@@ -154,21 +153,21 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </div>
       </div>
       
-      <div className="h-48 bg-xExtraLightGray relative">
-        <div className="h-full w-full bg-gradient-to-br from-xBlue/20 to-purple-500/20"></div>
+      <div className="h-48 bg-black relative">
+        <div className="h-full w-full bg-black"></div>
+        
+        <div className="absolute left-0 right-0 -bottom-16 flex justify-center">
+          <div className="relative">
+            <Avatar className="w-32 h-32 border-4 border-background">
+              <AvatarImage src={profileData.avatar} alt={profileData.name} />
+              <AvatarFallback>{profileData.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+            </Avatar>
+          </div>
+        </div>
       </div>
       
-      <div className="px-4 pb-4 relative">
-        <div className="flex justify-between items-start">
-          <div className="relative -mt-16">
-            <div className="relative">
-              <Avatar className="w-32 h-32 border-4 border-background">
-                <AvatarImage src={profileData.avatar} alt={profileData.name} />
-                <AvatarFallback>{profileData.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-              </Avatar>
-            </div>
-          </div>
-          
+      <div className="px-4 pb-4 relative mt-20">
+        <div className="flex justify-end items-start">
           <div className="mt-4">
             {isCurrentUser ? (
               <Button
@@ -193,8 +192,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </div>
         </div>
         
-        <div className="mt-4">
-          <div className="flex items-center mb-1">
+        <div className="mt-4 text-center">
+          <div className="flex items-center justify-center mb-1">
             <h1 className="text-xl font-bold mr-1">{profileData.name}</h1>
             {profileData.verified && (
               <span className="text-xBlue">
@@ -209,7 +208,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           
           {profileData.bio && <p className="mt-3">{profileData.bio}</p>}
           
-          <div className="flex mt-3 flex-wrap">
+          <div className="flex mt-3 justify-center flex-wrap">
             <div className="mr-4 hover:underline flex items-center">
               <span className="text-red-500 mr-1">🔥</span>
               <span className="font-bold">{stats.reactions}</span>
@@ -244,8 +243,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </div>
           
           <ScrollArea className="max-h-[70vh]">
-            <div className="h-48 bg-xExtraLightGray relative">
-              <div className="h-full w-full bg-gradient-to-br from-xBlue/20 to-purple-500/20"></div>
+            <div className="h-48 bg-black relative">
+              <div className="h-full w-full bg-black"></div>
             </div>
             
             <div className="p-4 space-y-4 mt-4">
