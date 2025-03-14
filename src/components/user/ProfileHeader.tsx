@@ -248,9 +248,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           {profileData.bio && <p className="mt-3">{profileData.bio}</p>}
           
           <div className="flex mt-3 flex-wrap">
-            <div className="mr-4 hover:underline">
-              <span className="font-bold">{stats.posts}</span>
-            </div>
             <div className="mr-4 hover:underline flex items-center">
               <span className="text-red-500 mr-1">🔥</span>
               <span className="font-bold">{stats.reactions}</span>
