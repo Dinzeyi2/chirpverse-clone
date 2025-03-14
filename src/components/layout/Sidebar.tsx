@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -97,7 +96,7 @@ const Sidebar = () => {
                 >
                   <item.icon size={24} className={isActive ? "text-foreground" : "text-muted-foreground"} />
                   {!isCollapsed && (
-                    <span className="ml-4 border border-secondary/80 rounded-full px-3 py-1">{item.name}</span>
+                    <span className="ml-4 border border-white/20 rounded-full px-4 py-1">{item.name}</span>
                   )}
                 </a>
               );
@@ -117,7 +116,7 @@ const Sidebar = () => {
               >
                 <item.icon size={24} className={isActive ? "text-foreground" : "text-muted-foreground"} />
                 {!isCollapsed && (
-                  <span className="ml-4 border border-secondary/80 rounded-full px-3 py-1">{item.name}</span>
+                  <span className="ml-4 border border-white/20 rounded-full px-4 py-1">{item.name}</span>
                 )}
               </Link>
             );
@@ -133,7 +132,7 @@ const Sidebar = () => {
             >
               <LogOut size={24} className="text-muted-foreground" />
               {!isCollapsed && (
-                <span className="ml-4 border border-secondary/80 rounded-full px-3 py-1">Sign out</span>
+                <span className="ml-4 border border-white/20 rounded-full px-4 py-1">Sign out</span>
               )}
             </button>
           ) : (
@@ -146,7 +145,7 @@ const Sidebar = () => {
             >
               <LogIn size={24} className="text-muted-foreground" />
               {!isCollapsed && (
-                <span className="ml-4 border border-secondary/80 rounded-full px-3 py-1">Sign in</span>
+                <span className="ml-4 border border-white/20 rounded-full px-4 py-1">Sign in</span>
               )}
             </button>
           )}
@@ -169,7 +168,7 @@ const Sidebar = () => {
                   ) : (
                     <>
                       <PlusCircle size={24} className="mr-2" />
-                      <span className="border border-white/20 rounded-full px-3 py-1">Post</span>
+                      <span className="border border-white/20 rounded-full px-4 py-1">Post</span>
                     </>
                   )}
                 </Button>
