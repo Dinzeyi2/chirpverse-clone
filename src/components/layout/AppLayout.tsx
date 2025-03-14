@@ -18,7 +18,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       <div className="flex">
         <div 
           className={cn(
-            "flex-grow min-h-screen",
+            "flex-grow min-h-screen bg-black",
             "ml-[275px] lg:ml-[275px]"
           )}
         >

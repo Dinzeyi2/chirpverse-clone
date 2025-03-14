@@ -152,7 +152,7 @@ const Index = () => {
 
   return (
     <AppLayout>
-      <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-md">
+      <div className="sticky top-0 z-20 bg-black backdrop-blur-md">
         <div className="flex justify-between items-center px-4 py-3">
           <h1 className="text-xl font-bold">Home</h1>
           <div className="flex items-center">
@@ -178,7 +178,7 @@ const Index = () => {
             >
               List View
             </button>
-            <button className="p-2 rounded-full hover:bg-xExtraLightGray/50 transition-colors">
+            <button className="p-2 rounded-full hover:bg-neutral-800/50 transition-colors">
               <Settings size={20} />
             </button>
           </div>
@@ -193,23 +193,23 @@ const Index = () => {
       </div>
       
       {loading && (
-        <div className="p-4 space-y-6">
+        <div className="p-4 space-y-6 bg-black">
           {[1, 2, 3].map((item) => (
             <div key={item} className="animate-pulse">
               <div className="flex space-x-4">
-                <div className="rounded-full bg-gray-200 h-12 w-12"></div>
+                <div className="rounded-full bg-gray-800 h-12 w-12"></div>
                 <div className="flex-1 space-y-4 py-1">
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-800 rounded w-3/4"></div>
                   <div className="space-y-2">
-                    <div className="h-4 bg-gray-200 rounded"></div>
-                    <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                    <div className="h-4 bg-gray-800 rounded"></div>
+                    <div className="h-4 bg-gray-800 rounded w-5/6"></div>
                   </div>
-                  <div className="h-40 bg-gray-200 rounded"></div>
+                  <div className="h-40 bg-gray-800 rounded"></div>
                   <div className="flex justify-between">
-                    <div className="h-4 bg-gray-200 rounded w-1/5"></div>
-                    <div className="h-4 bg-gray-200 rounded w-1/5"></div>
-                    <div className="h-4 bg-gray-200 rounded w-1/5"></div>
-                    <div className="h-4 bg-gray-200 rounded w-1/5"></div>
+                    <div className="h-4 bg-gray-800 rounded w-1/5"></div>
+                    <div className="h-4 bg-gray-800 rounded w-1/5"></div>
+                    <div className="h-4 bg-gray-800 rounded w-1/5"></div>
+                    <div className="h-4 bg-gray-800 rounded w-1/5"></div>
                   </div>
                 </div>
               </div>
@@ -219,10 +219,7 @@ const Index = () => {
       )}
       
       {!loading && (
-        <div className={cn(
-          "pt-4",
-          feedView === 'swipeable' ? "bg-gradient-to-b from-black to-neutral-900" : ""
-        )}>
+        <div className="pt-4 bg-black">
           {feedView === 'swipeable' ? (
             <SwipeablePostView posts={feedPosts} />
           ) : (
