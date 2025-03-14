@@ -3,15 +3,13 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { cn } from '@/lib/utils';
-import { Search, Settings } from 'lucide-react';
+import { Settings } from 'lucide-react';
 
 interface AppLayoutProps {
   children?: React.ReactNode;
 }
 
 const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
-  const [searchQuery, setSearchQuery] = React.useState('');
-
   // Trending topics for the right sidebar
   const trendingTopics = [
     { id: 1, category: 'Technology', name: 'Apple Vision Pro', posts: '125K' },
@@ -46,22 +44,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         
         {/* Right Sidebar */}
         <div className="hidden xl:block w-[350px] pt-4 px-4">
-          {/* Search Bar */}
-          <div className="sticky top-0 pt-2 pb-4 z-10 bg-black">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                className="bg-[#202327] h-12 pl-10 pr-4 py-2 w-full rounded-full border-none focus:ring-2 focus:ring-xBlue focus:bg-black transition-all"
-                placeholder="Search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </div>
-          
           {/* Trending Topics */}
           <div className="bg-[#16181C] rounded-2xl p-4 mb-4">
             <div className="flex items-center justify-between mb-6">
