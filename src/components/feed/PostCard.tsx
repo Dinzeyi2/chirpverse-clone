@@ -29,6 +29,9 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [reactions, setReactions] = useState<EmojiReaction[]>([]);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
 
+  // Check if the post has media content
+  const hasMedia = post.images && post.images.length > 0;
+
   const getPostId = (postId: string): string => {
     return String(postId);
   };
@@ -238,11 +241,13 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         'cursor-pointer block animate-fade-in relative rounded-xl overflow-hidden border',
         'bg-gradient-to-b from-black/20 to-black/40 backdrop-blur-sm',
         'transition-all duration-300 hover:shadow-xl hover:scale-[1.01]',
-        'border-neutral-800/50'
+        'border-neutral-800/50',
+        !hasMedia && 'flex flex-col justify-center'
       )}
     >
-      <div className="w-full aspect-[4/3] relative overflow-hidden bg-black">
-        {post.images && post.images.length > 0 ? (
+      {hasMedia ? (
+        // Media content view
+        <div className="w-full aspect-[4/3] relative overflow-hidden bg-black">
           <img 
             src={post.images[0]} 
             alt="Post content" 
@@ -252,12 +257,13 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             )}
             onLoad={() => setIsImageLoaded(true)}
           />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-neutral-800 to-neutral-950 flex items-center justify-center">
-            <p className="text-neutral-400 text-sm p-4 text-center">{post.content}</p>
-          </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        // Text-only view
+        <div className="p-6 flex-1 flex items-center justify-center">
+          <p className="text-xl text-center text-white/90 font-medium">{post.content}</p>
+        </div>
+      )}
       
       <div className="flex justify-between items-center p-2 border-t border-b border-neutral-800/50 bg-black/40">
         <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
@@ -315,28 +321,51 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         </button>
       </div>
       
-      <div className="p-3 bg-black/90">
-        <h2 className="text-base font-bold text-white leading-tight mb-1 line-clamp-2">
-          {post.content}
-        </h2>
-        
-        <div className="flex items-center mt-1">
-          <img 
-            src={post.user?.avatar} 
-            alt={post.user?.name} 
-            className="w-6 h-6 rounded-full object-cover mr-1.5"
-          />
-          <div className="flex items-center">
-            <span className="font-medium text-white/90 mr-1 text-sm">{post.user?.name}</span>
-            {post.user?.verified && (
-              <span className="text-xBlue">
-                <CheckCircle size={12} className="fill-xBlue text-black" />
-              </span>
-            )}
+      {hasMedia && (
+        <div className="p-3 bg-black/90">
+          <h2 className="text-base font-bold text-white leading-tight mb-1 line-clamp-2">
+            {post.content}
+          </h2>
+          
+          <div className="flex items-center mt-1">
+            <img 
+              src={post.user?.avatar} 
+              alt={post.user?.name} 
+              className="w-6 h-6 rounded-full object-cover mr-1.5"
+            />
+            <div className="flex items-center">
+              <span className="font-medium text-white/90 mr-1 text-sm">{post.user?.name}</span>
+              {post.user?.verified && (
+                <span className="text-xBlue">
+                  <CheckCircle size={12} className="fill-xBlue text-black" />
+                </span>
+              )}
+            </div>
+            <span className="text-neutral-400 text-xs ml-auto">{formatDate(post.createdAt)}</span>
           </div>
-          <span className="text-neutral-400 text-xs ml-auto">{formatDate(post.createdAt)}</span>
         </div>
-      </div>
+      )}
+      
+      {!hasMedia && (
+        <div className="p-3 bg-black/90">
+          <div className="flex items-center">
+            <img 
+              src={post.user?.avatar} 
+              alt={post.user?.name} 
+              className="w-6 h-6 rounded-full object-cover mr-1.5"
+            />
+            <div className="flex items-center">
+              <span className="font-medium text-white/90 mr-1 text-sm">{post.user?.name}</span>
+              {post.user?.verified && (
+                <span className="text-xBlue">
+                  <CheckCircle size={12} className="fill-xBlue text-black" />
+                </span>
+              )}
+            </div>
+            <span className="text-neutral-400 text-xs ml-auto">{formatDate(post.createdAt)}</span>
+          </div>
+        </div>
+      )}
       
       {reactions.length > 0 && (
         <div className="flex flex-wrap gap-1 p-2 pt-0">
