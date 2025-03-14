@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -179,27 +180,6 @@ const Sidebar = () => {
             </Dialog>
           )}
         </div>
-        
-        {user && (
-          <div className="mt-4">
-            <div 
-              onClick={handleProfileClick}
-              className="flex items-center p-3 rounded-full hover:bg-secondary/70 transition-colors cursor-pointer"
-            >
-              <img 
-                src="https://i.pravatar.cc/150?img=1" 
-                alt="Profile" 
-                className="w-10 h-10 rounded-full object-cover"
-              />
-              {!isCollapsed && (
-                <div className="ml-3 overflow-hidden">
-                  <p className="font-bold text-sm truncate">{user.user_metadata?.full_name || 'User'}</p>
-                  <p className="text-muted-foreground text-sm truncate">@{user.user_metadata?.username || user.email}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
