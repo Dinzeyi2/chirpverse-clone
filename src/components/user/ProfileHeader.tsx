@@ -55,12 +55,33 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     'https://i.pravatar.cc/150?img=1',
     'https://i.pravatar.cc/150?img=2',
     'https://i.pravatar.cc/150?img=3',
-    'https://i.pravatar.cc/150?img=4',
-    'https://i.pravatar.cc/150?img=5',
-    'https://i.pravatar.cc/150?img=6'
+    '/lovable-uploads/7a5ab600-f017-437f-ad73-35a52ee3b4d2.png',
+    '/lovable-uploads/9bc18b3a-1e34-4aac-9e0d-fcfe3c2023ad.png'
   ];
   
   const [imageLoadState, setImageLoadState] = useState<{[key: string]: boolean}>({});
+  
+  useEffect(() => {
+    const checkImages = async () => {
+      const imageStates: {[key: string]: boolean} = {};
+      
+      for (const avatar of platformAvatars) {
+        try {
+          console.log('Checking image URL:', avatar);
+          const img = new Image();
+          img.src = avatar;
+          imageStates[avatar] = true;
+        } catch (error) {
+          console.error('Error loading image:', avatar, error);
+          imageStates[avatar] = false;
+        }
+      }
+      
+      setImageLoadState(imageStates);
+    };
+    
+    checkImages();
+  }, []);
   
   const coverPhotoInputRef = useRef<HTMLInputElement>(null);
 
@@ -371,7 +392,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       </Dialog>
 
       <Dialog open={isAvatarDialogOpen} onOpenChange={setIsAvatarDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] p-6 rounded-2xl">
+        <DialogContent className="sm:max-w-[600px] p-6 rounded-2xl">
           <DialogHeader className="mb-4">
             <DialogTitle className="text-xl font-bold">Choose your profile picture</DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">
@@ -379,17 +400,18 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             {platformAvatars.map((avatar, index) => (
               <button
                 key={index}
-                className="relative rounded-full overflow-hidden transition-all hover:ring-2 hover:ring-xBlue focus:ring-2 focus:ring-xBlue focus:outline-none w-20 h-20"
+                className="relative rounded-full overflow-hidden transition-all hover:ring-4 hover:ring-xBlue focus:ring-4 focus:ring-xBlue focus:outline-none w-32 h-32 mx-auto"
                 onClick={() => handleSelectAvatar(avatar)}
               >
                 <img
                   src={avatar}
                   alt={`Avatar option ${index + 1}`}
                   className="w-full h-full object-cover"
+                  onLoad={() => console.log('Image loaded:', avatar)}
                   onError={(e) => {
                     console.error('Error loading image:', avatar);
                     e.currentTarget.src = 'https://i.pravatar.cc/150?img=1'; // Fallback image
@@ -397,7 +419,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 />
                 {avatar === profileData.avatar && (
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                    <CheckCircle className="text-white" />
+                    <CheckCircle className="text-white h-8 w-8" />
                   </div>
                 )}
               </button>
