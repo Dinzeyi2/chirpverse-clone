@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface ProfileHeaderProps {
   user: User;
@@ -51,14 +52,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   });
   
   const platformAvatars = [
+    '/lovable-uploads/9f76599d-59dd-4311-9fb9-4ff1755fd69e.png',
+    '/lovable-uploads/65a8cce4-ba15-44b1-b458-1ab068dfce39.png',
     'https://i.pravatar.cc/150?img=1',
     'https://i.pravatar.cc/150?img=2',
     'https://i.pravatar.cc/150?img=3',
     'https://i.pravatar.cc/150?img=4',
-    'https://i.pravatar.cc/150?img=5',
-    'https://i.pravatar.cc/150?img=6',
-    'https://i.pravatar.cc/150?img=7',
-    'https://i.pravatar.cc/150?img=8',
   ];
   
   const coverPhotoInputRef = useRef<HTMLInputElement>(null);
@@ -223,11 +222,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <div className="flex justify-between items-start">
           <div className="relative -mt-16">
             <div className="relative">
-              <img
-                src={profileData.avatar}
-                alt={profileData.name}
-                className="w-32 h-32 rounded-full object-cover border-4 border-background"
-              />
+              <Avatar className="w-32 h-32 border-4 border-background">
+                <AvatarImage src={profileData.avatar} alt={profileData.name} />
+                <AvatarFallback>{profileData.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+              </Avatar>
               {isCurrentUser && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <button 
@@ -373,18 +371,17 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             <DialogTitle className="text-xl font-bold">Choose your profile picture</DialogTitle>
           </DialogHeader>
           
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             {platformAvatars.map((avatar, index) => (
               <button
                 key={index}
                 className="relative rounded-full overflow-hidden transition-all hover:ring-2 hover:ring-xBlue focus:ring-2 focus:ring-xBlue focus:outline-none"
                 onClick={() => handleSelectAvatar(avatar)}
               >
-                <img
-                  src={avatar}
-                  alt={`Avatar option ${index + 1}`}
-                  className="w-20 h-20 object-cover"
-                />
+                <Avatar className="w-20 h-20">
+                  <AvatarImage src={avatar} alt={`Avatar option ${index + 1}`} />
+                  <AvatarFallback>AV{index + 1}</AvatarFallback>
+                </Avatar>
                 {avatar === profileData.avatar && (
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                     <CheckCircle className="text-white" />
