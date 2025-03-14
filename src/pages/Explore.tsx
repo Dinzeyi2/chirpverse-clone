@@ -61,39 +61,9 @@ const Explore = () => {
               <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-xBlue rounded-full" />
             )}
           </button>
-          <button
-            className={`flex-1 py-4 font-medium text-center relative ${
-              activeTab === 'trending' ? 'font-bold' : 'text-xGray'
-            }`}
-            onClick={() => setActiveTab('trending')}
-          >
-            Trending
-            {activeTab === 'trending' && (
-              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-xBlue rounded-full" />
-            )}
-          </button>
-          <button
-            className={`flex-1 py-4 font-medium text-center relative ${
-              activeTab === 'news' ? 'font-bold' : 'text-xGray'
-            }`}
-            onClick={() => setActiveTab('news')}
-          >
-            News
-            {activeTab === 'news' && (
-              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-xBlue rounded-full" />
-            )}
-          </button>
-          <button
-            className={`flex-1 py-4 font-medium text-center relative ${
-              activeTab === 'sports' ? 'font-bold' : 'text-xGray'
-            }`}
-            onClick={() => setActiveTab('sports')}
-          >
-            Sports
-            {activeTab === 'sports' && (
-              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-xBlue rounded-full" />
-            )}
-          </button>
+          {/* Removed "Trending" tab */}
+          {/* Removed "News" tab */}
+          {/* Removed "Sports" tab */}
         </div>
       </div>
       
