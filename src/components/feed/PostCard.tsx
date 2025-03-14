@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile } from 'lucide-react';
@@ -29,7 +28,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [reactions, setReactions] = useState<EmojiReaction[]>([]);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
 
-  // Check if the post has media content
   const hasMedia = post.images && post.images.length > 0;
 
   const getPostId = (postId: string): string => {
@@ -239,15 +237,14 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       onClick={handlePostClick}
       className={cn(
         'cursor-pointer block animate-fade-in relative rounded-xl overflow-hidden border',
-        'bg-gradient-to-b from-black/20 to-black/40 backdrop-blur-sm',
+        'bg-gradient-to-b from-cream to-cream backdrop-blur-sm',
         'transition-all duration-300 hover:shadow-xl hover:scale-[1.01]',
-        'border-neutral-800/50',
+        'border-neutral-300/50',
         !hasMedia && 'flex flex-col justify-center'
       )}
     >
       {hasMedia ? (
-        // Media content view
-        <div className="w-full aspect-[4/3] relative overflow-hidden bg-black">
+        <div className="w-full aspect-[4/3] relative overflow-hidden bg-white">
           <img 
             src={post.images[0]} 
             alt="Post content" 
@@ -259,13 +256,12 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           />
         </div>
       ) : (
-        // Text-only view
         <div className="p-6 flex-1 flex items-center justify-center">
-          <p className="text-xl text-center text-white/90 font-medium">{post.content}</p>
+          <p className="text-xl text-center text-black font-medium">{post.content}</p>
         </div>
       )}
       
-      <div className="flex justify-between items-center p-2 border-t border-b border-neutral-800/50 bg-black/40">
+      <div className="flex justify-between items-center p-2 border-t border-b border-neutral-300/50 bg-cream/90">
         <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
           <PopoverTrigger asChild>
             <button 
@@ -298,7 +294,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           aria-label={`${replyCount} replies`}
         >
           <div className="p-1 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors">
-            <MessageCircle size={16} className="text-white" />
+            <MessageCircle size={16} className="text-black" />
           </div>
           <span className="ml-1 text-xs group-hover:text-xBlue">
             {formatNumber(replyCount)}
@@ -316,14 +312,14 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             "p-1 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors",
             isBookmarked && "text-xBlue"
           )}>
-            <Bookmark size={16} className={cn("text-white", isBookmarked ? "fill-current" : "")} />
+            <Bookmark size={16} className={cn("text-black", isBookmarked ? "fill-current" : "")} />
           </div>
         </button>
       </div>
       
       {hasMedia && (
-        <div className="p-3 bg-black/90">
-          <h2 className="text-base font-bold text-white leading-tight mb-1 line-clamp-2">
+        <div className="p-3 bg-cream">
+          <h2 className="text-base font-bold text-black leading-tight mb-1 line-clamp-2">
             {post.content}
           </h2>
           
@@ -334,20 +330,20 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               className="w-6 h-6 rounded-full object-cover mr-1.5"
             />
             <div className="flex items-center">
-              <span className="font-medium text-white/90 mr-1 text-sm">{post.user?.name}</span>
+              <span className="font-medium text-black mr-1 text-sm">{post.user?.name}</span>
               {post.user?.verified && (
                 <span className="text-xBlue">
-                  <CheckCircle size={12} className="fill-xBlue text-black" />
+                  <CheckCircle size={12} className="fill-xBlue text-white" />
                 </span>
               )}
             </div>
-            <span className="text-neutral-400 text-xs ml-auto">{formatDate(post.createdAt)}</span>
+            <span className="text-neutral-600 text-xs ml-auto">{formatDate(post.createdAt)}</span>
           </div>
         </div>
       )}
       
       {!hasMedia && (
-        <div className="p-3 bg-black/90">
+        <div className="p-3 bg-cream">
           <div className="flex items-center">
             <img 
               src={post.user?.avatar} 
@@ -355,14 +351,14 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               className="w-6 h-6 rounded-full object-cover mr-1.5"
             />
             <div className="flex items-center">
-              <span className="font-medium text-white/90 mr-1 text-sm">{post.user?.name}</span>
+              <span className="font-medium text-black mr-1 text-sm">{post.user?.name}</span>
               {post.user?.verified && (
                 <span className="text-xBlue">
-                  <CheckCircle size={12} className="fill-xBlue text-black" />
+                  <CheckCircle size={12} className="fill-xBlue text-white" />
                 </span>
               )}
             </div>
-            <span className="text-neutral-400 text-xs ml-auto">{formatDate(post.createdAt)}</span>
+            <span className="text-neutral-600 text-xs ml-auto">{formatDate(post.createdAt)}</span>
           </div>
         </div>
       )}

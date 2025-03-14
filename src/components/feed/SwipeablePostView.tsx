@@ -84,7 +84,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   }
 
   return (
-    <div className="w-full overflow-hidden py-8">
+    <div className="w-full overflow-hidden py-8 bg-cream">
       <Carousel 
         className="w-full max-w-6xl mx-auto"
         setApi={setApi}
