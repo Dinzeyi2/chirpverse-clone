@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, X, Camera, UserCircle, Smile, Award } from 'lucide-react';
@@ -51,7 +50,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     profession: user.profession || '',
   });
   
-  // Predefined platform avatars
   const platformAvatars = [
     'https://i.pravatar.cc/150?img=1',
     'https://i.pravatar.cc/150?img=2',
@@ -201,6 +199,24 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       
       <div className="h-48 bg-xExtraLightGray relative">
         <div className="h-full w-full bg-gradient-to-br from-xBlue/20 to-purple-500/20"></div>
+        {isCurrentUser && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <button 
+              className="p-2 rounded-full bg-black/50 text-white"
+              onClick={handleCoverPhotoClick}
+              aria-label="Change cover photo"
+            >
+              <Camera size={20} />
+            </button>
+            <input
+              type="file"
+              ref={coverPhotoInputRef}
+              onChange={handleCoverPhotoChange}
+              accept="image/*"
+              className="hidden"
+            />
+          </div>
+        )}
       </div>
       
       <div className="px-4 pb-4 relative">
@@ -214,15 +230,13 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               />
               {isCurrentUser && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="bg-black/60 rounded-full p-2">
-                    <button 
-                      className="text-white"
-                      aria-label="Change profile picture"
-                      onClick={handleProfilePictureClick}
-                    >
-                      <Camera size={20} />
-                    </button>
-                  </div>
+                  <button 
+                    className="bg-black/60 rounded-full p-2 text-white"
+                    aria-label="Change profile picture"
+                    onClick={handleProfilePictureClick}
+                  >
+                    <Camera size={20} />
+                  </button>
                 </div>
               )}
             </div>
@@ -315,45 +329,16 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               <div className="h-full w-full bg-gradient-to-br from-xBlue/20 to-purple-500/20"></div>
               <div className="absolute inset-0 flex items-center justify-center">
                 <button 
-                  className="p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors text-white"
+                  className="p-2 rounded-full bg-black/50 text-white"
                   onClick={handleCoverPhotoClick}
+                  aria-label="Change cover photo"
                 >
                   <Camera size={20} />
                 </button>
-                <input
-                  type="file"
-                  ref={coverPhotoInputRef}
-                  onChange={handleCoverPhotoChange}
-                  accept="image/*"
-                  className="hidden"
-                />
               </div>
             </div>
             
-            <div className="px-4 relative">
-              <div className="relative -mt-16 mb-6">
-                <div className="relative">
-                  <img
-                    src={profileData.avatar}
-                    alt={profileData.name}
-                    className="w-32 h-32 rounded-full object-cover border-4 border-background"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="bg-black/60 rounded-full p-2">
-                      <button 
-                        className="text-white"
-                        aria-label="Change profile picture"
-                        onClick={handleProfilePictureClick}
-                      >
-                        <Camera size={20} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="p-4 space-y-4">
+            <div className="p-4 space-y-4 mt-4">
               <div className="space-y-1">
                 <Label htmlFor="name" className="text-xGray text-sm">Name</Label>
                 <Input 
