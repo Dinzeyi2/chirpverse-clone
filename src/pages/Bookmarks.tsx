@@ -45,10 +45,8 @@ const Bookmarks = () => {
       // Extract the post IDs
       const postIds = bookmarksData.map(bookmark => bookmark.post_id);
 
-      // For this example, we'll use the sample data as we don't have a direct API
-      // In a real app, you would fetch the actual posts from your API
-      // This is just for demonstration purposes
-      const sampleData = postIds.map((id, index) => {
+      // Create sample data with all required Post interface properties
+      const sampleData: Post[] = postIds.map((id, index) => {
         return {
           id: id,
           content: `Bookmarked post #${index + 1}`,
@@ -61,6 +59,9 @@ const Bookmarks = () => {
           createdAt: new Date().toISOString(),
           likes: Math.floor(Math.random() * 100),
           replies: Math.floor(Math.random() * 50),
+          reposts: Math.floor(Math.random() * 30), // Added missing required property
+          views: Math.floor(Math.random() * 500), // Added missing required property
+          userId: userData.user.id, // Added missing required property
           bookmarked: true,
           images: index % 2 === 0 ? [`https://picsum.photos/500/300?random=${index}`] : []
         };
