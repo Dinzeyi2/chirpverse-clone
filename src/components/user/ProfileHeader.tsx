@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, X, Camera, UserCircle, Smile, Award } from 'lucide-react';
@@ -39,6 +40,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const [isFollowing, setIsFollowing] = useState(false);
   const { user: authUser } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false);
   const [profileData, setProfileData] = useState({
     ...user,
     profession: user.profession || ''
@@ -49,7 +51,18 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     profession: user.profession || '',
   });
   
-  const profilePictureInputRef = useRef<HTMLInputElement>(null);
+  // Predefined platform avatars
+  const platformAvatars = [
+    'https://i.pravatar.cc/150?img=1',
+    'https://i.pravatar.cc/150?img=2',
+    'https://i.pravatar.cc/150?img=3',
+    'https://i.pravatar.cc/150?img=4',
+    'https://i.pravatar.cc/150?img=5',
+    'https://i.pravatar.cc/150?img=6',
+    'https://i.pravatar.cc/150?img=7',
+    'https://i.pravatar.cc/150?img=8',
+  ];
+  
   const coverPhotoInputRef = useRef<HTMLInputElement>(null);
 
   const handleFollow = async () => {
@@ -131,42 +144,35 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   };
 
   const handleProfilePictureClick = () => {
-    profilePictureInputRef.current?.click();
+    setIsAvatarDialogOpen(true);
   };
 
   const handleCoverPhotoClick = () => {
     coverPhotoInputRef.current?.click();
   };
 
-  const handleProfilePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !authUser) return;
+  const handleSelectAvatar = async (avatarUrl: string) => {
+    if (!authUser) return;
 
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${authUser.id}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
+      const { error } = await supabase
         .from('profiles')
-        .upload(filePath, file);
+        .update({
+          avatar_url: avatarUrl
+        })
+        .eq('id', authUser.id);
 
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('profiles')
-        .getPublicUrl(filePath);
-
-      if (!urlData) throw new Error('Failed to get public URL');
+      if (error) throw error;
 
       setProfileData(prev => ({
         ...prev,
-        avatar: urlData.publicUrl
+        avatar: avatarUrl
       }));
 
+      setIsAvatarDialogOpen(false);
       toast.success('Profile picture updated successfully');
     } catch (error: any) {
-      console.error('Error uploading profile picture:', error);
+      console.error('Error updating profile picture:', error);
       toast.error('Failed to update profile picture');
     }
   };
@@ -222,8 +228,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </div>
             <input
               type="file"
-              ref={profilePictureInputRef}
-              onChange={handleProfilePictureChange}
+              ref={coverPhotoInputRef}
+              onChange={handleCoverPhotoChange}
               accept="image/*"
               className="hidden"
             />
@@ -286,6 +292,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </div>
       </div>
 
+      {/* Profile Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[650px] p-0 border-none rounded-2xl">
           <div className="flex justify-between items-center p-4 border-b">
@@ -382,6 +389,42 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               </div>
             </div>
           </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Profile Picture Selection Dialog */}
+      <Dialog open={isAvatarDialogOpen} onOpenChange={setIsAvatarDialogOpen}>
+        <DialogContent className="sm:max-w-[500px] p-6 rounded-2xl">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-xl font-bold">Choose your profile picture</DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-4 gap-4">
+            {platformAvatars.map((avatar, index) => (
+              <button
+                key={index}
+                className="relative rounded-full overflow-hidden transition-all hover:ring-2 hover:ring-xBlue focus:ring-2 focus:ring-xBlue focus:outline-none"
+                onClick={() => handleSelectAvatar(avatar)}
+              >
+                <img
+                  src={avatar}
+                  alt={`Avatar option ${index + 1}`}
+                  className="w-20 h-20 object-cover"
+                />
+                {avatar === profileData.avatar && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <CheckCircle className="text-white" />
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+          
+          <div className="flex justify-end mt-4">
+            <Button variant="outline" onClick={() => setIsAvatarDialogOpen(false)}>
+              Cancel
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
