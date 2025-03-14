@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, X, Camera, UserCircle, Smile, Award } from 'lucide-react';
@@ -56,8 +55,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     'https://i.pravatar.cc/150?img=1',
     'https://i.pravatar.cc/150?img=2',
     'https://i.pravatar.cc/150?img=3',
-    'https://lovable-uploads.s3.amazonaws.com/7a5ab600-f017-437f-ad73-35a52ee3b4d2.png',
-    'https://lovable-uploads.s3.amazonaws.com/9bc18b3a-1e34-4aac-9e0d-fcfe3c2023ad.png'
+    '/lovable-uploads/de7444c4-ade8-4cdc-b7ba-27f567f84ffb.png'
   ];
   
   const [avatarErrors, setAvatarErrors] = useState<{[key: string]: boolean}>({});
