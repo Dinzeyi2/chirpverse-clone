@@ -110,12 +110,12 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
         
         {!isMobile && (
           <>
-            <CarouselPrevious className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white border-none z-30" />
-            <CarouselNext className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white border-none z-30" />
+            <CarouselPrevious className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-cream/80 hover:bg-cream text-black border-none z-30" />
+            <CarouselNext className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-cream/80 hover:bg-cream text-black border-none z-30" />
           </>
         )}
 
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/60 text-white px-3 py-1 rounded-full text-sm z-30">
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-cream/80 text-black px-3 py-1 rounded-full text-sm z-30">
           {currentIndex + 1} / {posts.length}
         </div>
       </Carousel>

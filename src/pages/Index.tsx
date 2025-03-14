@@ -219,10 +219,7 @@ const Index = () => {
       )}
       
       {!loading && (
-        <div className={cn(
-          "pt-4",
-          feedView === 'swipeable' ? "bg-gradient-to-b from-black to-neutral-900" : ""
-        )}>
+        <div className="pt-4 bg-cream">
           {feedView === 'swipeable' ? (
             <SwipeablePostView posts={feedPosts} />
           ) : (
