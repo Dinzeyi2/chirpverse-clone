@@ -34,18 +34,18 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       <Sidebar />
       
       {/* Main Content */}
-      <div className="flex w-full">
+      <div className="flex justify-center">
         <div 
           className={cn(
-            "flex-1 min-h-screen border-r border-[#2F3336]",
-            "ml-[275px]"
+            "w-full max-w-[600px] min-h-screen border-r border-[#2F3336]",
+            "ml-[275px] lg:ml-[275px]"
           )}
         >
           {children || <Outlet />}
         </div>
         
         {/* Right Sidebar */}
-        <div className="hidden xl:block w-[350px] pt-4 px-4">
+        <div className="hidden xl:block w-[350px] ml-8 pt-4 px-4">
           {/* Search Bar */}
           <div className="sticky top-0 pt-2 pb-4 z-10 bg-black">
             <div className="relative">
