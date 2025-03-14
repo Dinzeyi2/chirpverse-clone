@@ -378,18 +378,11 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 className="relative rounded-full overflow-hidden transition-all hover:ring-2 hover:ring-xBlue focus:ring-2 focus:ring-xBlue focus:outline-none"
                 onClick={() => handleSelectAvatar(avatar)}
               >
-                {index < 2 ? (
-                  <img 
-                    src={avatar} 
-                    alt={`Avatar option ${index + 1}`}
-                    className="w-20 h-20 object-cover rounded-full"
-                  />
-                ) : (
-                  <Avatar className="w-20 h-20">
-                    <AvatarImage src={avatar} alt={`Avatar option ${index + 1}`} />
-                    <AvatarFallback>AV{index + 1}</AvatarFallback>
-                  </Avatar>
-                )}
+                <img 
+                  src={avatar} 
+                  alt={`Avatar option ${index + 1}`}
+                  className="w-20 h-20 object-cover rounded-full"
+                />
                 {avatar === profileData.avatar && (
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                     <CheckCircle className="text-white" />
