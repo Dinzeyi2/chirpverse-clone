@@ -10,7 +10,7 @@ interface AppLayoutProps {
 
 const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   return (
-    <div className="min-h-screen bg-black dark">
+    <div className="min-h-screen bg-cream">
       {/* Sidebar Navigation */}
       <Sidebar />
       

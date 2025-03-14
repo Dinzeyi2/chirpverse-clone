@@ -62,7 +62,7 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Custom X/Twitter clone colors for dark mode
+				// Custom X/Twitter clone colors for light mode
 				xDark: {
 					DEFAULT: '#15202B',
 					darker: '#14171A',
@@ -70,20 +70,21 @@ export default {
 				},
 				xBlack: '#000000',
 				xGray: {
-					DEFAULT: '#AAB8C2',
+					DEFAULT: '#657786',
 					dark: '#657786',
-					light: '#E1E8ED'
+					light: '#AAB8C2'
 				},
 				xBlue: {
 					DEFAULT: '#1DA1F2',
 					dark: '#1A91DA'
 				},
 				xWhite: '#FFFFFF',
-				// Twitter (X) specific UI colors
-				xBackground: '#000000',
-				xSecondary: '#16181C',
-				xBorder: '#2F3336',
-				xSearchBg: '#202327',
+				cream: '#F9F7F0',  // Added cream color based on the image
+				// Twitter (X) specific UI colors for light mode
+				xBackground: '#F9F7F0',
+				xSecondary: '#F5F3E8',
+				xBorder: '#E5E1D5',
+				xSearchBg: '#EFECE0',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
