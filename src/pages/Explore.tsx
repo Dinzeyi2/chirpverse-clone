@@ -1,11 +1,15 @@
 
 import React, { useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import { Search, TrendingUp, Users } from 'lucide-react';
+import SwipeablePostView from '@/components/feed/SwipeablePostView';
+import { Search, TrendingUp, Users, ArrowLeft } from 'lucide-react';
+import { Post } from '@/lib/data';
 
 const Explore = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('for-you');
+  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
+  const [showingTopicView, setShowingTopicView] = useState(false);
   
   // Trending topics with research statistics - in a real app these would come from an API
   const trendingTopics = [
@@ -20,6 +24,117 @@ const Explore = () => {
     { id: 9, category: 'Gaming', name: 'E3 Conference', posts: '18K', researchers: '7K' },
     { id: 10, category: 'Travel', name: 'Summer Destinations', posts: '15K', researchers: '6K' },
   ];
+
+  // Sample related posts for demonstration - in a real app, these would be fetched from an API
+  const getRelatedPosts = (topicName: string): Post[] => {
+    return [
+      {
+        id: `${topicName}-1`,
+        content: `Amazing new developments about ${topicName} today! #trending`,
+        createdAt: new Date().toISOString(),
+        likes: 1200,
+        reposts: 450,
+        replies: 89,
+        views: 14500,
+        userId: 'user1',
+        user: {
+          id: 'user1',
+          name: 'John Doe',
+          username: 'johndoe',
+          avatar: 'https://i.pravatar.cc/150?img=1',
+          verified: true,
+          followers: 5000,
+          following: 750
+        }
+      },
+      {
+        id: `${topicName}-2`,
+        content: `Just saw the latest on ${topicName} and I'm impressed! What do you all think?`,
+        createdAt: new Date(Date.now() - 3600000).toISOString(),
+        likes: 850,
+        reposts: 210,
+        replies: 45,
+        views: 9200,
+        userId: 'user2',
+        user: {
+          id: 'user2',
+          name: 'Jane Smith',
+          username: 'janesmith',
+          avatar: 'https://i.pravatar.cc/150?img=2',
+          verified: false,
+          followers: 3200,
+          following: 420
+        }
+      },
+      {
+        id: `${topicName}-3`,
+        content: `Breaking: New information on ${topicName} just dropped. This changes everything!`,
+        createdAt: new Date(Date.now() - 7200000).toISOString(),
+        likes: 1500,
+        reposts: 730,
+        replies: 112,
+        views: 19800,
+        userId: 'user3',
+        user: {
+          id: 'user3',
+          name: 'Mark Wilson',
+          username: 'markwilson',
+          avatar: 'https://i.pravatar.cc/150?img=3',
+          verified: true,
+          followers: 12000,
+          following: 350
+        }
+      },
+      {
+        id: `${topicName}-4`,
+        content: `My thoughts on ${topicName} after a week of research. Thread 🧵`,
+        createdAt: new Date(Date.now() - 10800000).toISOString(),
+        likes: 2200,
+        reposts: 1100,
+        replies: 205,
+        views: 32500,
+        userId: 'user4',
+        user: {
+          id: 'user4',
+          name: 'Sarah Johnson',
+          username: 'sarahj',
+          avatar: 'https://i.pravatar.cc/150?img=4',
+          verified: true,
+          followers: 25000,
+          following: 410
+        }
+      },
+      {
+        id: `${topicName}-5`,
+        content: `I can't believe what's happening with ${topicName} right now. Anyone else following this?`,
+        createdAt: new Date(Date.now() - 14400000).toISOString(),
+        likes: 970,
+        reposts: 320,
+        replies: 78,
+        views: 11200,
+        userId: 'user5',
+        user: {
+          id: 'user5',
+          name: 'Alex Thompson',
+          username: 'alexthompson',
+          avatar: 'https://i.pravatar.cc/150?img=5',
+          verified: false,
+          followers: 4800,
+          following: 650
+        }
+      }
+    ];
+  };
+
+  const handleTopicClick = (topic: string) => {
+    setSelectedTopic(topic);
+    setShowingTopicView(true);
+  };
+
+  const handleBackToTopics = () => {
+    setShowingTopicView(false);
+    setSelectedTopic(null);
+  };
 
   // News sections
   const newsSections = [
@@ -61,53 +176,75 @@ const Explore = () => {
               <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-xBlue rounded-full" />
             )}
           </button>
-          {/* Removed "Trending" tab */}
-          {/* Removed "News" tab */}
-          {/* Removed "Sports" tab */}
         </div>
       </div>
       
       {/* Main content */}
-      <div className="pb-4">
-        {/* First highlighted trending topic */}
-        <div className="px-4 py-3 border-b border-xExtraLightGray">
-          <div className="flex items-center text-sm text-xGray">
-            <span>Research Statistics</span>
+      {showingTopicView && selectedTopic ? (
+        <div className="pb-4">
+          {/* Back button and topic header */}
+          <div className="px-4 py-3 border-b border-xExtraLightGray">
+            <button 
+              onClick={handleBackToTopics}
+              className="flex items-center text-xBlue mb-2"
+            >
+              <ArrowLeft size={18} className="mr-1" /> Back to Topics
+            </button>
+            <h2 className="font-bold text-xl">{selectedTopic}</h2>
+            <p className="text-sm text-xGray">Trending posts about this topic</p>
           </div>
-          <h2 className="font-bold text-xl mt-1">People asking similar questions</h2>
+          
+          {/* Swipeable posts view for the selected topic */}
+          <SwipeablePostView 
+            posts={getRelatedPosts(selectedTopic)} 
+          />
         </div>
-        
-        {/* Trending topics */}
-        <div className="divide-y divide-xExtraLightGray">
-          {trendingTopics.map((topic) => (
-            <div key={topic.id} className="px-4 py-3 hover:bg-xExtraLightGray/30 transition-colors cursor-pointer">
-              <div className="flex justify-between">
-                <div>
-                  <div className="flex items-center text-sm text-xGray">
-                    <span>{topic.category} · Popular Research</span>
+      ) : (
+        <div className="pb-4">
+          {/* First highlighted trending topic */}
+          <div className="px-4 py-3 border-b border-xExtraLightGray">
+            <div className="flex items-center text-sm text-xGray">
+              <span>Research Statistics</span>
+            </div>
+            <h2 className="font-bold text-xl mt-1">People asking similar questions</h2>
+          </div>
+          
+          {/* Trending topics */}
+          <div className="divide-y divide-xExtraLightGray">
+            {trendingTopics.map((topic) => (
+              <div 
+                key={topic.id} 
+                className="px-4 py-3 hover:bg-xExtraLightGray/30 transition-colors cursor-pointer"
+                onClick={() => handleTopicClick(topic.name)}
+              >
+                <div className="flex justify-between">
+                  <div>
+                    <div className="flex items-center text-sm text-xGray">
+                      <span>{topic.category} · Popular Research</span>
+                    </div>
+                    <p className="font-bold">{topic.name}</p>
+                    <div className="flex items-center text-sm text-xGray gap-3">
+                      <span>{topic.posts} posts</span>
+                      <span className="flex items-center">
+                        <Users size={14} className="mr-1" />
+                        {topic.researchers} people researching
+                      </span>
+                    </div>
                   </div>
-                  <p className="font-bold">{topic.name}</p>
-                  <div className="flex items-center text-sm text-xGray gap-3">
-                    <span>{topic.posts} posts</span>
-                    <span className="flex items-center">
-                      <Users size={14} className="mr-1" />
-                      {topic.researchers} people researching
-                    </span>
+                  <div className="flex items-center justify-center h-10 w-10">
+                    <TrendingUp size={18} className="text-xGray" />
                   </div>
-                </div>
-                <div className="flex items-center justify-center h-10 w-10">
-                  <TrendingUp size={18} className="text-xGray" />
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          
+          {/* Show more button */}
+          <div className="px-4 py-3 text-xBlue hover:bg-xExtraLightGray/30 transition-colors cursor-pointer">
+            <span>Show more</span>
+          </div>
         </div>
-        
-        {/* Show more button */}
-        <div className="px-4 py-3 text-xBlue hover:bg-xExtraLightGray/30 transition-colors cursor-pointer">
-          <span>Show more</span>
-        </div>
-      </div>
+      )}
     </AppLayout>
   );
 };
