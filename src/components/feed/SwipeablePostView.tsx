@@ -93,7 +93,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
           {posts.map((post, index) => (
             <CarouselItem key={post.id} className="md:basis-2/3 lg:basis-1/2 mx-auto flex justify-center items-center pl-0">
               <div className={cn(
-                "relative w-full max-w-2xl transition-all duration-300",
+                "relative w-full max-w-xl transition-all duration-300",
                 currentIndex === index ? "scale-100 opacity-100" : "scale-90 opacity-80"
               )}>
                 <PostCard post={post} />
