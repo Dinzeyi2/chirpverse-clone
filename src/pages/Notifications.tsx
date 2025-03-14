@@ -39,7 +39,8 @@ const Notifications = () => {
           return;
         }
 
-        // Fetch notifications from the database with specific column references to avoid ambiguity
+        // Fetch notifications from the database
+        // Use explicit column naming for the joined profile table to avoid ambiguity
         const { data, error } = await supabase
           .from('notifications')
           .select(`
@@ -49,8 +50,7 @@ const Notifications = () => {
             created_at, 
             is_read,
             metadata,
-            sender_id,
-            sender:sender_id (full_name, user_id, avatar_url)
+            profiles:sender_id (full_name, user_id, avatar_url)
           `)
           .eq('recipient_id', user.id)
           .order('created_at', { ascending: false });
@@ -62,13 +62,15 @@ const Notifications = () => {
           id: notification.id,
           type: notification.type as 'like' | 'reply' | 'mention' | 'retweet' | 'bookmark' | 'reaction',
           user: {
-            name: notification.sender?.full_name || 'Anonymous User',
-            username: notification.sender?.user_id?.substring(0, 8) || 'user',
-            avatar: notification.sender?.avatar_url || 'https://i.pravatar.cc/150?img=3',
+            name: notification.profiles?.full_name || 'Anonymous User',
+            username: notification.profiles?.user_id?.substring(0, 8) || 'user',
+            avatar: notification.profiles?.avatar_url || 'https://i.pravatar.cc/150?img=3',
             verified: Math.random() > 0.7, // Random verification for demo
           },
           content: notification.content,
-          post: notification.metadata?.post_text || undefined, // Changed from post_content to post_text
+          post: typeof notification.metadata === 'object' && notification.metadata 
+                ? String(notification.metadata.post_excerpt || '') 
+                : undefined,
           time: formatTimeAgo(new Date(notification.created_at)),
           isRead: notification.is_read,
         }));
@@ -112,7 +114,9 @@ const Notifications = () => {
                 verified: Math.random() > 0.7, // Random verification for demo
               },
               content: newNotification.content,
-              post: newNotification.metadata?.post_text, // Changed from post_content to post_text
+              post: typeof newNotification.metadata === 'object' && newNotification.metadata 
+                    ? String(newNotification.metadata.post_excerpt || '') 
+                    : undefined,
               time: formatTimeAgo(new Date(newNotification.created_at)),
               isRead: newNotification.is_read,
             };
