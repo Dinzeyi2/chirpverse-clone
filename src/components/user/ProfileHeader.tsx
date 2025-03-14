@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, X, Camera, UserCircle, Smile, Award } from 'lucide-react';
@@ -19,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 interface ProfileHeaderProps {
   user: User;
@@ -51,11 +53,11 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     profession: user.profession || '',
   });
   
+  // Fixed platform avatars with working URLs
   const platformAvatars = [
     'https://i.pravatar.cc/150?img=1',
     'https://i.pravatar.cc/150?img=2',
-    'https://i.pravatar.cc/150?img=3',
-    '/lovable-uploads/de7444c4-ade8-4cdc-b7ba-27f567f84ffb.png'
+    'https://i.pravatar.cc/150?img=3'
   ];
   
   const [avatarErrors, setAvatarErrors] = useState<{[key: string]: boolean}>({});
@@ -197,6 +199,15 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     toast.info('Cover photo update feature will be implemented soon');
   };
 
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
   return (
     <div className="animate-fade-in">
       <div className="flex items-center p-4 sticky top-0 z-10 bg-background/90 backdrop-blur-md">
@@ -238,11 +249,13 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <div className="flex justify-between items-start">
           <div className="relative -mt-16">
             <div className="relative">
-              <img
-                src={profileData.avatar}
-                alt={profileData.name}
-                className="w-32 h-32 rounded-full object-cover border-4 border-background"
-              />
+              <Avatar className="w-32 h-32 border-4 border-background">
+                <AvatarImage src={profileData.avatar} alt={profileData.name} className="object-cover" />
+                <AvatarFallback className="bg-muted text-3xl font-semibold">
+                  {getInitials(profileData.name)}
+                </AvatarFallback>
+              </Avatar>
+              
               {isCurrentUser && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <button 
@@ -401,21 +414,17 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   onClick={() => handleSelectAvatar(avatar)}
                   disabled={isErrorImage}
                 >
-                  {isErrorImage ? (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                      <X className="text-gray-400 h-8 w-8" />
-                    </div>
-                  ) : (
-                    <img
+                  <Avatar className="w-full h-full">
+                    <AvatarImage 
                       src={avatar}
                       alt={`Avatar option ${index + 1}`}
                       className="w-full h-full object-cover"
-                      onError={(e) => {
-                        console.error('Error loading avatar image:', avatar);
-                        setAvatarErrors(prev => ({...prev, [avatar]: true}));
-                      }}
                     />
-                  )}
+                    <AvatarFallback className="bg-muted">
+                      <UserCircle className="h-12 w-12 text-muted-foreground" />
+                    </AvatarFallback>
+                  </Avatar>
+                  
                   {avatar === profileData.avatar && !isErrorImage && (
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                       <CheckCircle className="text-white h-8 w-8" />

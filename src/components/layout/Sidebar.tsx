@@ -7,6 +7,7 @@ import Button from '@/components/common/Button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import CreatePost from '@/components/feed/CreatePost';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 const Sidebar = () => {
   const location = useLocation();
@@ -48,6 +49,18 @@ const Sidebar = () => {
     } else {
       navigate(`/profile/${user.id}`);
     }
+  };
+
+  // Helper function to get user initials
+  const getUserInitials = () => {
+    if (!user) return 'U';
+    const name = user.user_metadata?.full_name || '';
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2) || 'U';
   };
 
   return (
@@ -175,11 +188,17 @@ const Sidebar = () => {
               onClick={handleProfileClick}
               className="flex items-center p-3 rounded-full hover:bg-secondary/70 transition-colors cursor-pointer"
             >
-              <img 
-                src="https://i.pravatar.cc/150?img=1" 
-                alt="Profile" 
-                className="w-10 h-10 rounded-full object-cover"
-              />
+              <Avatar className="w-10 h-10">
+                <AvatarImage 
+                  src="https://i.pravatar.cc/150?img=1" 
+                  alt="Profile"
+                  className="object-cover"
+                />
+                <AvatarFallback className="bg-primary text-primary-foreground">
+                  {getUserInitials()}
+                </AvatarFallback>
+              </Avatar>
+              
               {!isCollapsed && (
                 <div className="ml-3 overflow-hidden">
                   <p className="font-bold text-sm truncate">{user.user_metadata?.full_name || 'User'}</p>
