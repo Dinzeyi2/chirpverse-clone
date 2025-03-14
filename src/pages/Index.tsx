@@ -5,6 +5,7 @@ import SwipeablePostView from '@/components/feed/SwipeablePostView';
 import { Settings } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
 
 const Index = () => {
   const [feedPosts, setFeedPosts] = useState<any[]>([]);
@@ -12,7 +13,6 @@ const Index = () => {
   const { user, username } = useAuth();
   const [loading, setLoading] = useState(true);
   
-  // Fetch all posts for the feed
   useEffect(() => {
     const fetchPosts = async () => {
       try {
@@ -31,7 +31,6 @@ const Index = () => {
         
         if (data) {
           const formattedPosts = data.map(post => {
-            // Get username from user metadata or provide a fallback
             const userMetadata = post.profiles.user_id ? 
               supabase.auth.admin.getUserById(post.profiles.user_id) : null;
             
@@ -72,7 +71,6 @@ const Index = () => {
     
     fetchPosts();
     
-    // Set up real-time subscription for new posts
     const channel = supabase
       .channel('public:shoutouts')
       .on('postgres_changes', 
@@ -82,7 +80,6 @@ const Index = () => {
           table: 'shoutouts'
         }, 
         async (payload) => {
-          // Fetch the complete data with user info
           const { data, error } = await supabase
             .from('shoutouts')
             .select(`
@@ -94,7 +91,6 @@ const Index = () => {
             
           if (error || !data) return;
           
-          // Get username from user metadata or provide a fallback
           const usernameToUse = username || 
             data.profiles.user_id?.substring(0, 8) || 
             'user';
@@ -128,12 +124,11 @@ const Index = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [username]); // Add username as a dependency
+  }, [username]);
   
   const handlePostCreated = (content: string, media?: {type: string, url: string}[]) => {
     if (!user) return;
     
-    // Create a new post in Supabase
     const createPost = async () => {
       try {
         const { data, error } = await supabase
@@ -147,8 +142,6 @@ const Index = () => {
           .single();
           
         if (error) throw error;
-        
-        // The real-time subscription will handle adding this to the UI
       } catch (error) {
         console.error('Error creating post:', error);
       }
@@ -159,16 +152,31 @@ const Index = () => {
 
   return (
     <AppLayout>
-      {/* Header */}
       <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-md">
         <div className="flex justify-between items-center px-4 py-3">
           <h1 className="text-xl font-bold">Home</h1>
           <div className="flex items-center">
             <button 
-              className="p-2 mr-2 rounded-full hover:bg-xExtraLightGray/50 transition-colors text-xs font-medium"
-              onClick={() => setFeedView(feedView === 'swipeable' ? 'list' : 'swipeable')}
+              className={cn(
+                "p-2 mr-2 rounded-full transition-colors text-xs font-medium",
+                feedView === 'swipeable' 
+                  ? "bg-neutral-800 text-white" 
+                  : "hover:bg-neutral-800/50 text-neutral-400"
+              )}
+              onClick={() => setFeedView('swipeable')}
             >
-              {feedView === 'swipeable' ? 'Switch to List View' : 'Switch to Swipe View'}
+              Gallery View
+            </button>
+            <button 
+              className={cn(
+                "p-2 mr-2 rounded-full transition-colors text-xs font-medium",
+                feedView === 'list' 
+                  ? "bg-neutral-800 text-white" 
+                  : "hover:bg-neutral-800/50 text-neutral-400"
+              )}
+              onClick={() => setFeedView('list')}
+            >
+              List View
             </button>
             <button className="p-2 rounded-full hover:bg-xExtraLightGray/50 transition-colors">
               <Settings size={20} />
@@ -176,7 +184,6 @@ const Index = () => {
           </div>
         </div>
         
-        {/* Tabs - Removed Following tab, keeping only "For You" title with styling */}
         <div className="flex border-b border-xExtraLightGray">
           <div className="flex-1 py-4 font-bold text-center relative">
             For you
@@ -185,9 +192,6 @@ const Index = () => {
         </div>
       </div>
       
-      {/* Removed CreatePost component from here */}
-      
-      {/* Loading State */}
       {loading && (
         <div className="p-4 space-y-6">
           {[1, 2, 3].map((item) => (
@@ -214,13 +218,17 @@ const Index = () => {
         </div>
       )}
       
-      {/* Posts */}
       {!loading && (
-        feedView === 'swipeable' ? (
-          <SwipeablePostView posts={feedPosts} />
-        ) : (
-          <PostList posts={feedPosts} />
-        )
+        <div className={cn(
+          "pt-4",
+          feedView === 'swipeable' ? "bg-gradient-to-b from-black to-neutral-900" : ""
+        )}>
+          {feedView === 'swipeable' ? (
+            <SwipeablePostView posts={feedPosts} />
+          ) : (
+            <PostList posts={feedPosts} />
+          )}
+        </div>
       )}
     </AppLayout>
   );

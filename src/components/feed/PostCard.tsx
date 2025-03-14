@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile } from 'lucide-react';
@@ -12,8 +11,6 @@ import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
 interface PostCardProps {
   post: Post;
 }
-
-const darkCardColor = 'bg-black border-xBorder hover:bg-xSecondary';
 
 interface EmojiReaction {
   emoji: string;
@@ -237,172 +234,128 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     <div 
       onClick={handlePostClick}
       className={cn(
-        'p-4 transition-colors cursor-pointer block animate-fade-in relative',
-        'rounded-none shadow-none border-t border-b border-xBorder',
-        'my-3', // Added vertical margin for spacing between posts
-        darkCardColor,
-        'after:content-[""] after:absolute after:inset-0 after:rounded-lg after:pointer-events-none',
-        'after:border-t-2 after:border-l-2 after:border-r-2 after:border-b-2',
-        'after:border-transparent',
-        'after:shadow-[0_0_12px_rgba(14,165,233,0.7),inset_0_0_12px_rgba(14,165,233,0.3)]', // Increased glow intensity
-        'after:opacity-80 after:transition-opacity hover:after:opacity-100' // Increased base opacity
+        'cursor-pointer block animate-fade-in relative rounded-2xl overflow-hidden border-2',
+        'bg-gradient-to-b from-black/20 to-black/40 backdrop-blur-sm',
+        'transition-all duration-300 hover:shadow-xl hover:scale-[1.01]',
+        'border-neutral-800/50'
       )}
     >
-      <div className="flex">
-        <div className="mr-3 flex-shrink-0">
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/profile/${post.userId}`);
-            }}
-            className="block cursor-pointer"
-          >
-            <img 
-              src={post.user?.avatar} 
-              alt={post.user?.name} 
-              className="w-12 h-12 rounded-full object-cover"
-            />
+      <div className="aspect-square w-full relative overflow-hidden bg-black">
+        {post.images && post.images.length > 0 ? (
+          <img 
+            src={post.images[0]} 
+            alt="Post content" 
+            className={cn(
+              "w-full h-full object-cover transition-all duration-500",
+              !isImageLoaded ? "scale-105 blur-sm" : "scale-100 blur-0"
+            )}
+            onLoad={() => setIsImageLoaded(true)}
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-neutral-800 to-neutral-950 flex items-center justify-center">
+            <p className="text-neutral-400 text-lg p-8 text-center">{post.content}</p>
           </div>
-        </div>
-        
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center mb-1">
-            <div 
-              className="font-bold hover:underline mr-1 truncate cursor-pointer"
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(`/profile/${post.userId}`);
-              }}
+        )}
+      </div>
+      
+      <div className="flex justify-between items-center p-3 border-t border-b border-neutral-800/50 bg-black/40">
+        <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
+          <PopoverTrigger asChild>
+            <button 
+              className="flex items-center group"
+              onClick={handleEmojiPickerOpen}
             >
-              {post.user?.name}
-            </div>
-            
+              <div className="p-2 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors">
+                <Smile size={18} />
+              </div>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent 
+            className="p-0 border-none shadow-xl"
+            side="top"
+          >
+            <EmojiPicker
+              onEmojiClick={(emojiData, event) => handleEmojiSelect(emojiData, event as unknown as React.MouseEvent)}
+              searchDisabled
+              skinTonesDisabled
+              width={300}
+              height={400}
+              theme={"dark" as Theme}
+            />
+          </PopoverContent>
+        </Popover>
+        
+        <button 
+          className="flex items-center group"
+          onClick={handleCommentClick}
+          aria-label={`${replyCount} replies`}
+        >
+          <div className="p-2 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors">
+            <MessageCircle size={18} className="text-white" />
+          </div>
+          <span className="ml-1 text-sm group-hover:text-xBlue">
+            {formatNumber(replyCount)}
+          </span>
+        </button>
+        
+        <button 
+          className={cn(
+            "flex items-center group",
+            isBookmarked && "text-xBlue"
+          )}
+          onClick={handleBookmark}
+        >
+          <div className={cn(
+            "p-2 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors",
+            isBookmarked && "text-xBlue"
+          )}>
+            <Bookmark size={18} className={cn("text-white", isBookmarked ? "fill-current" : "")} />
+          </div>
+        </button>
+      </div>
+      
+      <div className="p-4 bg-black/90">
+        <h2 className="text-lg font-bold text-white leading-tight mb-1">
+          {post.content.length > 60 ? post.content.substring(0, 60) + '...' : post.content}
+        </h2>
+        
+        <div className="flex items-center mt-2">
+          <img 
+            src={post.user?.avatar} 
+            alt={post.user?.name} 
+            className="w-8 h-8 rounded-full object-cover mr-2"
+          />
+          <div className="flex items-center">
+            <span className="font-medium text-white/90 mr-1">{post.user?.name}</span>
             {post.user?.verified && (
-              <span className="text-xBlue mr-1">
-                <CheckCircle size={16} className="fill-xBlue text-black" />
+              <span className="text-xBlue">
+                <CheckCircle size={14} className="fill-xBlue text-black" />
               </span>
             )}
-            
-            <span className="text-xGray truncate">@{post.user?.username}</span>
-            <span className="text-xGray mx-1">·</span>
-            <span className="text-xGray">{formatDate(post.createdAt)}</span>
-            
-            <button 
-              className="ml-auto text-xGray hover:text-xBlue hover:bg-xBlue/10 rounded-full p-1.5 transition-colors"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                toast.info('More options');
-              }}
-            >
-              <MoreHorizontal size={16} />
-            </button>
           </div>
-          
-          <div className="mb-3">
-            <p className="whitespace-pre-line">{post.content}</p>
-          </div>
-          
-          {post.images && post.images.length > 0 && (
-            <div className="mt-2 mb-3 rounded-2xl overflow-hidden">
-              <img 
-                src={post.images[0]} 
-                alt="Post media" 
-                className={cn(
-                  "w-full h-auto max-h-[500px] object-cover transition-all duration-500",
-                  !isImageLoaded ? "image-loading" : "image-loaded"
-                )}
-                onLoad={() => setIsImageLoaded(true)}
-              />
-            </div>
-          )}
-          
-          {reactions.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-3">
-              {reactions.map((reaction, index) => (
-                <button
-                  key={index}
-                  onClick={(e) => handleReactionClick(reaction.emoji, e)}
-                  className={cn(
-                    "flex items-center gap-1 px-2 py-1 rounded-full text-sm border transition-colors",
-                    reaction.reacted 
-                      ? "bg-xBlue/10 border-xBlue/20 text-xBlue" 
-                      : "bg-xSecondary border-xBorder text-gray-300 hover:bg-xSecondary/80"
-                  )}
-                >
-                  <span>{reaction.emoji}</span>
-                  <span>{reaction.count}</span>
-                </button>
-              ))}
-            </div>
-          )}
-          
-          <div className="flex justify-between items-center mt-3 max-w-md text-xGray gap-4">
-            <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
-              <PopoverTrigger asChild>
-                <button 
-                  className="flex items-center group"
-                  onClick={handleEmojiPickerOpen}
-                >
-                  <div className="p-2 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors">
-                    <Smile size={18} />
-                  </div>
-                </button>
-              </PopoverTrigger>
-              <PopoverContent 
-                className="p-0 border-none shadow-xl"
-                side="top"
-                onPointerDownOutside={(e) => {
-                  if (e.target instanceof HTMLElement && 
-                      (e.target.closest('.emoji-picker-react') || 
-                       e.target.classList.contains('emoji-picker-react'))) {
-                    e.preventDefault();
-                  }
-                }}
-              >
-                <EmojiPicker
-                  onEmojiClick={(emojiData, event) => handleEmojiSelect(emojiData, event as unknown as React.MouseEvent)}
-                  searchDisabled
-                  skinTonesDisabled
-                  width={300}
-                  height={400}
-                  theme={"dark" as Theme}
-                />
-              </PopoverContent>
-            </Popover>
-            
-            <div className="flex ml-auto gap-4">
-              <button 
-                className="flex items-center group"
-                onClick={handleCommentClick}
-                aria-label={`${replyCount} replies`}
-              >
-                <div className="p-2 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors">
-                  <MessageCircle size={18} className="text-white" /> {/* Added text-white class */}
-                </div>
-                <span className="ml-1 text-sm group-hover:text-xBlue">
-                  {formatNumber(replyCount)}
-                </span>
-              </button>
-              
-              <button 
-                className={cn(
-                  "flex items-center group",
-                  isBookmarked && "text-xBlue"
-                )}
-                onClick={handleBookmark}
-              >
-                <div className={cn(
-                  "p-2 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors",
-                  isBookmarked && "text-xBlue"
-                )}>
-                  <Bookmark size={18} className={cn("text-white", isBookmarked ? "fill-current" : "")} /> {/* Added text-white class */}
-                </div>
-              </button>
-            </div>
-          </div>
+          <span className="text-neutral-400 text-sm ml-auto">{formatDate(post.createdAt)}</span>
         </div>
       </div>
+      
+      {reactions.length > 0 && (
+        <div className="flex flex-wrap gap-1 p-2 pt-0">
+          {reactions.map((reaction, index) => (
+            <button
+              key={index}
+              onClick={(e) => handleReactionClick(reaction.emoji, e)}
+              className={cn(
+                "flex items-center gap-1 px-2 py-1 rounded-full text-sm border transition-colors",
+                reaction.reacted 
+                  ? "bg-xBlue/10 border-xBlue/20 text-xBlue" 
+                  : "bg-xSecondary border-xBorder text-gray-300 hover:bg-xSecondary/80"
+              )}
+            >
+              <span>{reaction.emoji}</span>
+              <span>{reaction.count}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

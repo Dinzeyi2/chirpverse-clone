@@ -14,23 +14,7 @@ const PostList: React.FC<PostListProps> = ({ posts, loading = false }) => {
       <div className="p-4 space-y-6">
         {[1, 2, 3].map((item) => (
           <div key={item} className="animate-pulse">
-            <div className="flex space-x-4">
-              <div className="rounded-full bg-gray-200 h-12 w-12"></div>
-              <div className="flex-1 space-y-4 py-1">
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                <div className="space-y-2">
-                  <div className="h-4 bg-gray-200 rounded"></div>
-                  <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-                </div>
-                <div className="h-40 bg-gray-200 rounded"></div>
-                <div className="flex justify-between">
-                  <div className="h-4 bg-gray-200 rounded w-1/5"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/5"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/5"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/5"></div>
-                </div>
-              </div>
-            </div>
+            <div className="aspect-square max-w-md mx-auto bg-neutral-800 rounded-xl"></div>
           </div>
         ))}
       </div>
@@ -54,9 +38,11 @@ const PostList: React.FC<PostListProps> = ({ posts, loading = false }) => {
   }
 
   return (
-    <div className="divide-y divide-xExtraLightGray">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
       {posts.map((post) => (
-        <PostCard key={post.id} post={post} />
+        <div key={post.id} className="max-w-sm mx-auto w-full">
+          <PostCard post={post} />
+        </div>
       ))}
     </div>
   );
