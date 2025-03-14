@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -57,13 +56,6 @@ const Sidebar = () => {
         isCollapsed ? "w-20" : "w-[275px]"
       )}
     >
-      <button 
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute right-3 top-3 p-1 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors lg:hidden"
-      >
-        <X size={20} />
-      </button>
-      
       <div className="flex flex-col h-full px-3 py-5">
         <div className="mb-6 flex justify-center lg:justify-start">
           <Link to="/" className="text-xBlue p-2 rounded-full hover:bg-xBlue/10 transition-colors">
