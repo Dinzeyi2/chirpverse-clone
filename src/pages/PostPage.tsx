@@ -183,7 +183,7 @@ const PostPage: React.FC = () => {
         <div className="p-4">
           <div className="flex items-center">
             <button 
-              onClick={() => navigate(-1)}
+              onClick={() => navigate('/')}
               className="p-2 rounded-full hover:bg-xExtraLightGray/50 transition-colors mr-4"
             >
               <ArrowLeft size={20} />
@@ -221,7 +221,7 @@ const PostPage: React.FC = () => {
         <div className="p-4">
           <div className="flex items-center">
             <button 
-              onClick={() => navigate(-1)}
+              onClick={() => navigate('/')}
               className="p-2 rounded-full hover:bg-xExtraLightGray/50 transition-colors mr-4"
             >
               <ArrowLeft size={20} />
@@ -242,7 +242,7 @@ const PostPage: React.FC = () => {
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md">
         <div className="flex items-center p-4">
           <button 
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/')}
             className="p-2 rounded-full hover:bg-xExtraLightGray/50 transition-colors mr-4"
           >
             <ArrowLeft size={20} />
