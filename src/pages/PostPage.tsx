@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -19,7 +18,6 @@ const PostPage: React.FC = () => {
   const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Fetch post and comments
   useEffect(() => {
     const fetchPostAndComments = async () => {
       if (!postId) return;
@@ -27,7 +25,6 @@ const PostPage: React.FC = () => {
       try {
         setLoading(true);
         
-        // Fetch the post
         const { data: postData, error: postError } = await supabase
           .from('shoutouts')
           .select(`
@@ -43,12 +40,11 @@ const PostPage: React.FC = () => {
         }
         
         if (postData) {
-          // Format the post to match our PostCard component expectations
           const formattedPost = {
             id: postData.id,
             content: postData.content,
             createdAt: postData.created_at,
-            likes: 0, // We'll calculate this separately
+            likes: 0,
             reposts: 0,
             replies: 0,
             views: 0,
@@ -67,7 +63,6 @@ const PostPage: React.FC = () => {
           
           setPost(formattedPost);
           
-          // Fetch post stats (likes, comments, etc.)
           const [likesResponse, commentsCountResponse] = await Promise.all([
             supabase.from('likes').select('*', { count: 'exact' }).eq('shoutout_id', postId),
             supabase.from('comments').select('*', { count: 'exact' }).eq('shoutout_id', postId)
@@ -76,14 +71,12 @@ const PostPage: React.FC = () => {
           const likesCount = likesResponse.count || 0;
           const commentsCount = commentsCountResponse.count || 0;
           
-          // Update post with stats
           setPost(prev => ({
             ...prev,
             likes: likesCount,
             replies: commentsCount
           }));
           
-          // Fetch comments
           const { data: commentsData, error: commentsError } = await supabase
             .from('comments')
             .select(`
@@ -96,7 +89,6 @@ const PostPage: React.FC = () => {
           if (commentsError) {
             console.error('Error fetching comments:', commentsError);
           } else if (commentsData) {
-            // Format comments
             const formattedComments = commentsData.map(comment => ({
               id: comment.id,
               content: comment.content,
@@ -134,7 +126,6 @@ const PostPage: React.FC = () => {
     if (!user || !postId) return;
     
     try {
-      // Create a new comment in the database
       const { data, error } = await supabase
         .from('comments')
         .insert({
@@ -152,7 +143,6 @@ const PostPage: React.FC = () => {
       if (error) throw error;
       
       if (data) {
-        // Format the new comment
         const newComment = {
           id: data.id,
           content: data.content,
@@ -172,10 +162,8 @@ const PostPage: React.FC = () => {
           }
         };
         
-        // Add the comment to the list
         setComments(prevComments => [newComment, ...prevComments]);
         
-        // Update the post reply count
         setPost(prevPost => ({
           ...prevPost,
           replies: (prevPost?.replies || 0) + 1
@@ -251,7 +239,6 @@ const PostPage: React.FC = () => {
   
   return (
     <AppLayout>
-      {/* Header */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md">
         <div className="flex items-center p-4">
           <button 
@@ -264,30 +251,29 @@ const PostPage: React.FC = () => {
         </div>
       </div>
       
-      {/* Original Post */}
       <div className="border-b border-xExtraLightGray">
         <PostCard post={post} />
       </div>
       
-      {/* Comment Form */}
-      {user && (
-        <CommentForm 
-          postId={post.id} 
-          currentUser={{
-            id: user.id,
-            name: user.user_metadata?.full_name || 'User',
-            username: user.user_metadata?.username || user.id.substring(0, 8),
-            avatar: 'https://i.pravatar.cc/150?img=1',
-            followers: 0,
-            following: 0,
-            verified: false,
-          }}
-          onCommentAdded={handleCommentAdded}
-        />
-      )}
-      
-      {/* Comments */}
-      <CommentList comments={comments} />
+      <div className="comment-container">
+        {user && (
+          <CommentForm 
+            postId={post.id} 
+            currentUser={{
+              id: user.id,
+              name: user.user_metadata?.full_name || 'User',
+              username: user.user_metadata?.username || user.id.substring(0, 8),
+              avatar: 'https://i.pravatar.cc/150?img=1',
+              followers: 0,
+              following: 0,
+              verified: false,
+            }}
+            onCommentAdded={handleCommentAdded}
+          />
+        )}
+        
+        <CommentList comments={comments} />
+      </div>
     </AppLayout>
   );
 };

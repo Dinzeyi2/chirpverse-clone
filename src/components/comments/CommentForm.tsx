@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -183,13 +182,13 @@ const CommentForm: React.FC<CommentFormProps> = ({ postId, currentUser, onCommen
   };
 
   return (
-    <div className="p-4 border-b border-xExtraLightGray">
+    <div className="p-3 border-b border-xExtraLightGray">
       <div className="flex">
         <div className="mr-3 flex-shrink-0">
           <img 
             src={currentUser.avatar} 
             alt={currentUser.name} 
-            className="w-10 h-10 rounded-full object-cover"
+            className="w-8 h-8 rounded-full object-cover"
           />
         </div>
         
@@ -200,11 +199,11 @@ const CommentForm: React.FC<CommentFormProps> = ({ postId, currentUser, onCommen
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Write a comment..."
-              className="w-full min-h-[80px] mb-3 p-3 border border-xExtraLightGray focus:border-xBlue rounded-lg resize-none"
+              className="w-full min-h-[60px] max-h-[120px] mb-2 p-2 border border-xExtraLightGray focus:border-xBlue rounded-lg resize-none"
             />
             
             {mediaFiles.length > 0 && (
-              <div className="mt-2 mb-4 relative">
+              <div className="mt-2 mb-3 relative">
                 <div className={`grid ${mediaFiles.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-2 rounded-lg overflow-hidden`}>
                   {mediaFiles.map((media, index) => (
                     <div key={index} className="relative rounded-lg overflow-hidden group">
@@ -212,12 +211,12 @@ const CommentForm: React.FC<CommentFormProps> = ({ postId, currentUser, onCommen
                         <img 
                           src={media.preview} 
                           alt={`Uploaded media ${index}`}
-                          className="w-full h-48 object-cover"
+                          className="w-full h-32 object-cover"
                         />
                       ) : (
                         <video 
                           src={media.preview} 
-                          className="w-full h-48 object-cover" 
+                          className="w-full h-32 object-cover" 
                           controls
                         />
                       )}
@@ -299,7 +298,7 @@ const CommentForm: React.FC<CommentFormProps> = ({ postId, currentUser, onCommen
               <Button 
                 type="submit" 
                 disabled={(!content.trim() && mediaFiles.length === 0) || isSubmitting}
-                className={`px-4 py-2 rounded-full bg-xBlue text-white ${isSubmitting ? 'opacity-70' : 'hover:bg-opacity-90'}`}
+                className={`px-3 py-1.5 rounded-full bg-xBlue text-white text-sm ${isSubmitting ? 'opacity-70' : 'hover:bg-opacity-90'}`}
               >
                 {isSubmitting ? 'Posting...' : 'Reply'}
               </Button>
