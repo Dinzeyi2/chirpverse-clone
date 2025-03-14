@@ -19,18 +19,24 @@ interface EmojiReaction {
   reacted: boolean;
 }
 
-// Pastel color palette for cards
+// Vibrant color palette for cards (matching the reference images)
 const cardColors = [
-  'bg-[#F2FCE2] border-green-500', // Soft Green
-  'bg-[#FEF7CD] border-yellow-500', // Soft Yellow
-  'bg-[#FEC6A1] border-orange-500', // Soft Orange
-  'bg-[#E5DEFF] border-purple-500', // Soft Purple
-  'bg-[#FFDEE2] border-pink-500', // Soft Pink
-  'bg-[#FDE1D3] border-orange-300', // Soft Peach
-  'bg-[#D3E4FD] border-blue-500', // Soft Blue
-  'bg-[#F1F0FB] border-gray-400', // Soft Gray
-  'bg-[#E1F8F5] border-teal-500', // Soft Teal
-  'bg-[#FFE8F0] border-rose-400', // Soft Rose
+  'bg-[#FF426F] border-[#FF1A53] text-white', // Bright Pink
+  'bg-[#0EA5E9] border-[#0284C7] text-white', // Ocean Blue
+  'bg-[#7209B7] border-[#5B0E91] text-white', // Deep Purple
+  'bg-[#4CC9F0] border-[#0EA5E9] text-white', // Sky Blue
+  'bg-[#F72585] border-[#D61F69] text-white', // Magenta
+  'bg-[#3A0CA3] border-[#2D0A7A] text-white', // Royal Purple
+  'bg-[#4361EE] border-[#3A56D4] text-white', // Indigo Blue
+  'bg-[#FB8500] border-[#DD7100] text-white', // Bright Orange
+  'bg-[#F97316] border-[#EA580C] text-white', // Vivid Orange
+  'bg-[#06D6A0] border-[#059669] text-white', // Emerald Green
+  'bg-[#FFBE0B] border-[#FAA307] text-black', // Golden Yellow
+  'bg-[#8B5CF6] border-[#7C3AED] text-white', // Vivid Purple
+  'bg-[#D946EF] border-[#C026D3] text-white', // Magenta Pink
+  'bg-[#EC4899] border-[#DB2777] text-white', // Hot Pink
+  'bg-[#22D3EE] border-[#06B6D4] text-white', // Cyan
+  'bg-[#FCDC00] border-[#FFC800] text-black', // Bright Yellow
 ];
 
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
@@ -49,6 +55,9 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   ) % cardColors.length;
   
   const cardColor = cardColors[colorIndex];
+
+  // Check if the selected color scheme has white text
+  const hasWhiteText = !cardColor.includes('text-black');
 
   const hasMedia = post.images && post.images.length > 0;
 
@@ -258,11 +267,10 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     <div 
       onClick={handlePostClick}
       className={cn(
-        'cursor-pointer block animate-fade-in relative rounded-xl overflow-hidden border',
+        'cursor-pointer block animate-fade-in relative rounded-xl overflow-hidden border-2',
         'transition-all duration-300 hover:shadow-xl hover:scale-[1.01]',
-        'border-neutral-300/50',
         !hasMedia && 'flex flex-col justify-center',
-        cardColor // Apply the unique color to each card
+        cardColor // Apply the vibrant color to each card
       )}
     >
       {hasMedia ? (
@@ -279,18 +287,31 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         </div>
       ) : (
         <div className="p-6 flex-1 flex items-center justify-center">
-          <p className="text-xl text-center text-black font-medium">{post.content}</p>
+          <p className={cn(
+            "text-xl text-center font-medium", 
+            hasWhiteText ? "text-white" : "text-black"
+          )}>
+            {post.content}
+          </p>
         </div>
       )}
       
-      <div className="flex justify-between items-center p-2 border-t border-b border-neutral-300/50 bg-white/60">
+      <div className={cn(
+        "flex justify-between items-center p-2 border-t border-b",
+        hasWhiteText ? "border-white/30 bg-black/20" : "border-black/30 bg-white/20"
+      )}>
         <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
           <PopoverTrigger asChild>
             <button 
               className="flex items-center group"
               onClick={handleEmojiPickerOpen}
             >
-              <div className="p-1 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors">
+              <div className={cn(
+                "p-1 rounded-full transition-colors",
+                hasWhiteText 
+                  ? "group-hover:bg-white/20 text-white" 
+                  : "group-hover:bg-black/20 text-black"
+              )}>
                 <Smile size={16} />
               </div>
             </button>
@@ -315,10 +336,18 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           onClick={handleCommentClick}
           aria-label={`${replyCount} replies`}
         >
-          <div className="p-1 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors">
-            <MessageCircle size={16} className="text-black" />
+          <div className={cn(
+            "p-1 rounded-full transition-colors",
+            hasWhiteText 
+              ? "group-hover:bg-white/20" 
+              : "group-hover:bg-black/20"
+          )}>
+            <MessageCircle size={16} className={hasWhiteText ? "text-white" : "text-black"} />
           </div>
-          <span className="ml-1 text-xs group-hover:text-xBlue">
+          <span className={cn(
+            "ml-1 text-xs", 
+            hasWhiteText ? "text-white group-hover:text-white/80" : "text-black group-hover:text-black/80"
+          )}>
             {formatNumber(replyCount)}
           </span>
         </button>
@@ -326,22 +355,34 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         <button 
           className={cn(
             "flex items-center group",
-            isBookmarked && "text-xBlue"
+            isBookmarked && (hasWhiteText ? "text-white" : "text-black")
           )}
           onClick={handleBookmark}
         >
           <div className={cn(
-            "p-1 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors",
-            isBookmarked && "text-xBlue"
+            "p-1 rounded-full transition-colors",
+            hasWhiteText 
+              ? "group-hover:bg-white/20" 
+              : "group-hover:bg-black/20",
+            isBookmarked && (hasWhiteText ? "text-white" : "text-black")
           )}>
-            <Bookmark size={16} className={cn("text-black", isBookmarked ? "fill-current" : "")} />
+            <Bookmark 
+              size={16} 
+              className={cn(
+                hasWhiteText ? "text-white" : "text-black", 
+                isBookmarked ? "fill-current" : ""
+              )} 
+            />
           </div>
         </button>
       </div>
       
       {hasMedia && (
         <div className="p-3">
-          <h2 className="text-base font-bold text-black leading-tight mb-1 line-clamp-2">
+          <h2 className={cn(
+            "text-base font-bold leading-tight mb-1 line-clamp-2", 
+            hasWhiteText ? "text-white" : "text-black"
+          )}>
             {post.content}
           </h2>
           
@@ -352,14 +393,24 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               className="w-6 h-6 rounded-full object-cover mr-1.5"
             />
             <div className="flex items-center">
-              <span className="font-medium text-black mr-1 text-sm">{post.user?.name}</span>
+              <span className={cn(
+                "font-medium mr-1 text-sm", 
+                hasWhiteText ? "text-white" : "text-black"
+              )}>
+                {post.user?.name}
+              </span>
               {post.user?.verified && (
-                <span className="text-xBlue">
-                  <CheckCircle size={12} className="fill-xBlue text-white" />
+                <span className="text-white">
+                  <CheckCircle size={12} className="fill-white text-blue-500" />
                 </span>
               )}
             </div>
-            <span className="text-neutral-600 text-xs ml-auto">{formatDate(post.createdAt)}</span>
+            <span className={cn(
+              "text-xs ml-auto", 
+              hasWhiteText ? "text-white/70" : "text-black/70"
+            )}>
+              {formatDate(post.createdAt)}
+            </span>
           </div>
         </div>
       )}
@@ -373,14 +424,24 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               className="w-6 h-6 rounded-full object-cover mr-1.5"
             />
             <div className="flex items-center">
-              <span className="font-medium text-black mr-1 text-sm">{post.user?.name}</span>
+              <span className={cn(
+                "font-medium mr-1 text-sm", 
+                hasWhiteText ? "text-white" : "text-black"
+              )}>
+                {post.user?.name}
+              </span>
               {post.user?.verified && (
-                <span className="text-xBlue">
-                  <CheckCircle size={12} className="fill-xBlue text-white" />
+                <span className="text-white">
+                  <CheckCircle size={12} className="fill-white text-blue-500" />
                 </span>
               )}
             </div>
-            <span className="text-neutral-600 text-xs ml-auto">{formatDate(post.createdAt)}</span>
+            <span className={cn(
+              "text-xs ml-auto", 
+              hasWhiteText ? "text-white/70" : "text-black/70"
+            )}>
+              {formatDate(post.createdAt)}
+            </span>
           </div>
         </div>
       )}
@@ -394,8 +455,12 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               className={cn(
                 "flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs border transition-colors",
                 reaction.reacted 
-                  ? "bg-xBlue/10 border-xBlue/20 text-xBlue" 
-                  : "bg-xSecondary border-xBorder text-gray-300 hover:bg-xSecondary/80"
+                  ? hasWhiteText
+                    ? "bg-white/20 border-white/30 text-white" 
+                    : "bg-black/20 border-black/30 text-black"
+                  : hasWhiteText
+                    ? "bg-black/30 border-white/10 text-white/70 hover:bg-black/40" 
+                    : "bg-white/30 border-black/10 text-black/70 hover:bg-white/40"
               )}
             >
               <span>{reaction.emoji}</span>
