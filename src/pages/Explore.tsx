@@ -15,7 +15,6 @@ const Explore = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
   
-  // Trending topics with research statistics - in a real app these would come from an API
   const trendingTopics = [
     { id: 1, category: 'Technology', name: 'Apple Vision Pro', posts: '125K', researchers: '48K' },
     { id: 2, category: 'Entertainment', name: 'New Movie Release', posts: '98K', researchers: '36K' },
@@ -29,7 +28,6 @@ const Explore = () => {
     { id: 10, category: 'Travel', name: 'Summer Destinations', posts: '15K', researchers: '6K' },
   ];
 
-  // Sample related posts for demonstration - in a real app, these would be fetched from an API
   const getRelatedPosts = (topicName: string): Post[] => {
     return [
       {
@@ -189,7 +187,6 @@ const Explore = () => {
     }
   };
 
-  // News sections
   const newsSections = [
     { id: 1, title: 'Technology News', image: 'https://i.pravatar.cc/150?img=50' },
     { id: 2, title: 'Sports Updates', image: 'https://i.pravatar.cc/150?img=51' },
@@ -198,9 +195,7 @@ const Explore = () => {
 
   return (
     <AppLayout>
-      {/* Header with search bar - sticky */}
       <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-md pt-0.5">
-        {/* Search input */}
         <div className="px-4 py-2">
           <form onSubmit={handleSearch}>
             <div className="relative">
@@ -210,7 +205,7 @@ const Explore = () => {
               <input
                 type="text"
                 placeholder="Search"
-                className="bg-xExtraLightGray/70 h-12 pl-10 pr-4 py-2 w-full rounded-full border-none focus:ring-2 focus:ring-xBlue focus:bg-background transition-all"
+                className="bg-black h-12 pl-10 pr-4 py-2 w-full rounded-full border-none focus:ring-2 focus:ring-xBlue focus:bg-black transition-all text-white"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -226,7 +221,6 @@ const Explore = () => {
           </form>
         </div>
         
-        {/* Tabs */}
         <div className="flex border-b border-xExtraLightGray">
           <button
             className={`flex-1 py-4 font-medium text-center relative ${
@@ -242,10 +236,8 @@ const Explore = () => {
         </div>
       </div>
       
-      {/* Main content */}
       {showSearchResults ? (
         <div className="pb-4">
-          {/* Back button and search header */}
           <div className="px-4 py-3 border-b border-xExtraLightGray">
             <button 
               onClick={handleBackToSearch}
@@ -274,7 +266,6 @@ const Explore = () => {
         </div>
       ) : showingTopicView && selectedTopic ? (
         <div className="pb-4">
-          {/* Back button and topic header */}
           <div className="px-4 py-3 border-b border-xExtraLightGray">
             <button 
               onClick={handleBackToTopics}
@@ -286,14 +277,12 @@ const Explore = () => {
             <p className="text-sm text-xGray">Trending posts about this topic</p>
           </div>
           
-          {/* Swipeable posts view for the selected topic */}
           <SwipeablePostView 
             posts={getRelatedPosts(selectedTopic)} 
           />
         </div>
       ) : (
         <div className="pb-4">
-          {/* First highlighted trending topic */}
           <div className="px-4 py-3 border-b border-xExtraLightGray">
             <div className="flex items-center text-sm text-xGray">
               <span>Research Statistics</span>
@@ -301,7 +290,6 @@ const Explore = () => {
             <h2 className="font-bold text-xl mt-1">People asking similar questions</h2>
           </div>
           
-          {/* Trending topics */}
           <div className="divide-y divide-xExtraLightGray">
             {trendingTopics.map((topic) => (
               <div 
@@ -331,7 +319,6 @@ const Explore = () => {
             ))}
           </div>
           
-          {/* Show more button */}
           <div className="px-4 py-3 text-xBlue hover:bg-xExtraLightGray/30 transition-colors cursor-pointer">
             <span>Show more</span>
           </div>
