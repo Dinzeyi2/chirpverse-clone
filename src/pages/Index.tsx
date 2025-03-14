@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
@@ -6,6 +7,13 @@ import { Settings } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 
 const Index = () => {
   const [feedPosts, setFeedPosts] = useState<any[]>([]);
@@ -154,39 +162,70 @@ const Index = () => {
     <AppLayout>
       <div className="sticky top-0 z-20 bg-black backdrop-blur-md">
         <div className="flex justify-between items-center px-4 py-3">
-          <h1 className="text-xl font-bold">Home</h1>
-          <div className="flex items-center">
+          <div className="flex-1"></div>
+          <div className="flex items-center gap-2">
             <button 
               className={cn(
-                "p-2 mr-2 rounded-full transition-colors text-xs font-medium",
+                "p-2 rounded-full transition-colors",
                 feedView === 'swipeable' 
                   ? "bg-neutral-800 text-white" 
                   : "hover:bg-neutral-800/50 text-neutral-400"
               )}
               onClick={() => setFeedView('swipeable')}
             >
-              Gallery View
+              <span className="sr-only">Gallery View</span>
+              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+                <rect x="14" y="14" width="7" height="7" rx="1" />
+              </svg>
             </button>
             <button 
               className={cn(
-                "p-2 mr-2 rounded-full transition-colors text-xs font-medium",
+                "p-2 rounded-full transition-colors",
                 feedView === 'list' 
                   ? "bg-neutral-800 text-white" 
                   : "hover:bg-neutral-800/50 text-neutral-400"
               )}
               onClick={() => setFeedView('list')}
             >
-              List View
+              <span className="sr-only">List View</span>
+              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
             </button>
-            <button className="p-2 rounded-full hover:bg-neutral-800/50 transition-colors">
-              <Settings size={20} />
-            </button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="p-2 rounded-full hover:bg-neutral-800/50 transition-colors">
+                  <Settings size={20} />
+                  <span className="sr-only">Settings</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => window.location.href = "/settings"}>
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => window.location.href = `/profile/${user?.id}`}>
+                  My Profile
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            {user && (
+              <Avatar className="w-8 h-8 cursor-pointer" onClick={() => window.location.href = `/profile/${user?.id}`}>
+                <AvatarImage src="https://i.pravatar.cc/150?img=1" alt="Profile" />
+                <AvatarFallback>{user.user_metadata?.username?.[0] || user.email?.[0] || 'U'}</AvatarFallback>
+              </Avatar>
+            )}
           </div>
         </div>
         
         <div className="flex border-b border-xExtraLightGray">
-          <div className="flex-1 py-4 font-bold text-center relative">
-            For you
+          <div className="flex-1 py-3 relative">
             <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-xBlue rounded-full" />
           </div>
         </div>
