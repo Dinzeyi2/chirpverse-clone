@@ -11,6 +11,7 @@ import {
   CarouselNext,
   CarouselPrevious
 } from "@/components/ui/carousel";
+import type { CarouselApi } from "@/components/ui/carousel";
 
 interface SwipeablePostViewProps {
   posts: Post[];
@@ -20,6 +21,22 @@ interface SwipeablePostViewProps {
 const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = false }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+  const [api, setApi] = useState<CarouselApi | null>(null);
+
+  useEffect(() => {
+    if (!api) {
+      return;
+    }
+
+    const onSelect = () => {
+      setCurrentIndex(api.selectedScrollSnap());
+    };
+
+    api.on("select", onSelect);
+    return () => {
+      api.off("select", onSelect);
+    };
+  }, [api]);
 
   useEffect(() => {
     const checkIsMobile = () => {
@@ -70,9 +87,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     <div className="w-full overflow-hidden py-8">
       <Carousel 
         className="w-full max-w-6xl mx-auto"
-        onSelect={(api) => {
-          if (api) setCurrentIndex(api.selectedScrollSnap());
-        }}
+        setApi={setApi}
       >
         <CarouselContent>
           {posts.map((post, index) => (
