@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import CreatePost from '@/components/feed/CreatePost';
@@ -10,7 +9,6 @@ import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
   const [feedPosts, setFeedPosts] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState('for-you');
   const [feedView, setFeedView] = useState<'swipeable' | 'list'>('swipeable');
   const { user, username } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -133,18 +131,6 @@ const Index = () => {
     };
   }, [username]); // Add username as a dependency
   
-  // Filter posts based on active tab
-  const displayPosts = React.useMemo(() => {
-    if (activeTab === 'for-you') {
-      return feedPosts;
-    } else if (activeTab === 'following' && user) {
-      // This would ideally filter based on followed users
-      // For now just return an empty array or some subset
-      return [];
-    }
-    return feedPosts;
-  }, [feedPosts, activeTab, user]);
-  
   const handlePostCreated = (content: string, media?: {type: string, url: string}[]) => {
     if (!user) return;
     
@@ -191,30 +177,12 @@ const Index = () => {
           </div>
         </div>
         
-        {/* Tabs */}
+        {/* Tabs - Removed Following tab, keeping only "For You" title with styling */}
         <div className="flex border-b border-xExtraLightGray">
-          <button
-            className={`flex-1 py-4 font-medium text-center relative ${
-              activeTab === 'for-you' ? 'font-bold' : 'text-xGray'
-            }`}
-            onClick={() => setActiveTab('for-you')}
-          >
+          <div className="flex-1 py-4 font-bold text-center relative">
             For you
-            {activeTab === 'for-you' && (
-              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-xBlue rounded-full" />
-            )}
-          </button>
-          <button
-            className={`flex-1 py-4 font-medium text-center relative ${
-              activeTab === 'following' ? 'font-bold' : 'text-xGray'
-            }`}
-            onClick={() => setActiveTab('following')}
-          >
-            Following
-            {activeTab === 'following' && (
-              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-xBlue rounded-full" />
-            )}
-          </button>
+            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-xBlue rounded-full" />
+          </div>
         </div>
       </div>
       
@@ -250,28 +218,11 @@ const Index = () => {
       
       {/* Posts */}
       {!loading && (
-        <>
-          {activeTab === 'following' && displayPosts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-              <h2 className="text-2xl font-bold mb-2">Welcome to your timeline!</h2>
-              <p className="text-xGray mb-6 max-w-md">
-                When you follow someone, their posts will show up here. You can discover accounts to follow in the "For you" section.
-              </p>
-              <button 
-                className="bg-xBlue text-white px-6 py-2 rounded-full font-bold hover:bg-xBlue/90 transition-colors"
-                onClick={() => setActiveTab('for-you')}
-              >
-                Discover people to follow
-              </button>
-            </div>
-          ) : (
-            feedView === 'swipeable' ? (
-              <SwipeablePostView posts={displayPosts} />
-            ) : (
-              <PostList posts={displayPosts} />
-            )
-          )}
-        </>
+        feedView === 'swipeable' ? (
+          <SwipeablePostView posts={feedPosts} />
+        ) : (
+          <PostList posts={feedPosts} />
+        )
       )}
     </AppLayout>
   );
