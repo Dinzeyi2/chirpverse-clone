@@ -19,26 +19,6 @@ interface EmojiReaction {
   reacted: boolean;
 }
 
-// Vibrant color palette for cards (matching the reference images)
-const cardColors = [
-  'bg-[#FF426F] border-[#FF1A53] text-white', // Bright Pink
-  'bg-[#0EA5E9] border-[#0284C7] text-white', // Ocean Blue
-  'bg-[#7209B7] border-[#5B0E91] text-white', // Deep Purple
-  'bg-[#4CC9F0] border-[#0EA5E9] text-white', // Sky Blue
-  'bg-[#F72585] border-[#D61F69] text-white', // Magenta
-  'bg-[#3A0CA3] border-[#2D0A7A] text-white', // Royal Purple
-  'bg-[#4361EE] border-[#3A56D4] text-white', // Indigo Blue
-  'bg-[#FB8500] border-[#DD7100] text-white', // Bright Orange
-  'bg-[#F97316] border-[#EA580C] text-white', // Vivid Orange
-  'bg-[#06D6A0] border-[#059669] text-white', // Emerald Green
-  'bg-[#FFBE0B] border-[#FAA307] text-black', // Golden Yellow
-  'bg-[#8B5CF6] border-[#7C3AED] text-white', // Vivid Purple
-  'bg-[#D946EF] border-[#C026D3] text-white', // Magenta Pink
-  'bg-[#EC4899] border-[#DB2777] text-white', // Hot Pink
-  'bg-[#22D3EE] border-[#06B6D4] text-white', // Cyan
-  'bg-[#FCDC00] border-[#FFC800] text-black', // Bright Yellow
-];
-
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(post.liked || false);
@@ -48,17 +28,8 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [reactions, setReactions] = useState<EmojiReaction[]>([]);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
-  
-  // Generate a consistent color for each post based on post ID
-  const colorIndex = Math.abs(
-    post.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-  ) % cardColors.length;
-  
-  const cardColor = cardColors[colorIndex];
 
-  // Check if the selected color scheme has white text
-  const hasWhiteText = !cardColor.includes('text-black');
-
+  // Check if the post has media content
   const hasMedia = post.images && post.images.length > 0;
 
   const getPostId = (postId: string): string => {
@@ -267,14 +238,16 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     <div 
       onClick={handlePostClick}
       className={cn(
-        'cursor-pointer block animate-fade-in relative rounded-xl overflow-hidden border-2',
+        'cursor-pointer block animate-fade-in relative rounded-xl overflow-hidden border',
+        'bg-gradient-to-b from-black/20 to-black/40 backdrop-blur-sm',
         'transition-all duration-300 hover:shadow-xl hover:scale-[1.01]',
-        !hasMedia && 'flex flex-col justify-center',
-        cardColor // Apply the vibrant color to each card
+        'border-neutral-800/50',
+        !hasMedia && 'flex flex-col justify-center'
       )}
     >
       {hasMedia ? (
-        <div className="w-full aspect-[4/3] relative overflow-hidden bg-white">
+        // Media content view
+        <div className="w-full aspect-[4/3] relative overflow-hidden bg-black">
           <img 
             src={post.images[0]} 
             alt="Post content" 
@@ -286,32 +259,20 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           />
         </div>
       ) : (
+        // Text-only view
         <div className="p-6 flex-1 flex items-center justify-center">
-          <p className={cn(
-            "text-xl text-center font-medium", 
-            hasWhiteText ? "text-white" : "text-black"
-          )}>
-            {post.content}
-          </p>
+          <p className="text-xl text-center text-white/90 font-medium">{post.content}</p>
         </div>
       )}
       
-      <div className={cn(
-        "flex justify-between items-center p-2 border-t border-b",
-        hasWhiteText ? "border-white/30 bg-black/20" : "border-black/30 bg-white/20"
-      )}>
+      <div className="flex justify-between items-center p-2 border-t border-b border-neutral-800/50 bg-black/40">
         <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
           <PopoverTrigger asChild>
             <button 
               className="flex items-center group"
               onClick={handleEmojiPickerOpen}
             >
-              <div className={cn(
-                "p-1 rounded-full transition-colors",
-                hasWhiteText 
-                  ? "group-hover:bg-white/20 text-white" 
-                  : "group-hover:bg-black/20 text-black"
-              )}>
+              <div className="p-1 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors">
                 <Smile size={16} />
               </div>
             </button>
@@ -336,18 +297,10 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           onClick={handleCommentClick}
           aria-label={`${replyCount} replies`}
         >
-          <div className={cn(
-            "p-1 rounded-full transition-colors",
-            hasWhiteText 
-              ? "group-hover:bg-white/20" 
-              : "group-hover:bg-black/20"
-          )}>
-            <MessageCircle size={16} className={hasWhiteText ? "text-white" : "text-black"} />
+          <div className="p-1 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors">
+            <MessageCircle size={16} className="text-white" />
           </div>
-          <span className={cn(
-            "ml-1 text-xs", 
-            hasWhiteText ? "text-white group-hover:text-white/80" : "text-black group-hover:text-black/80"
-          )}>
+          <span className="ml-1 text-xs group-hover:text-xBlue">
             {formatNumber(replyCount)}
           </span>
         </button>
@@ -355,34 +308,22 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         <button 
           className={cn(
             "flex items-center group",
-            isBookmarked && (hasWhiteText ? "text-white" : "text-black")
+            isBookmarked && "text-xBlue"
           )}
           onClick={handleBookmark}
         >
           <div className={cn(
-            "p-1 rounded-full transition-colors",
-            hasWhiteText 
-              ? "group-hover:bg-white/20" 
-              : "group-hover:bg-black/20",
-            isBookmarked && (hasWhiteText ? "text-white" : "text-black")
+            "p-1 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors",
+            isBookmarked && "text-xBlue"
           )}>
-            <Bookmark 
-              size={16} 
-              className={cn(
-                hasWhiteText ? "text-white" : "text-black", 
-                isBookmarked ? "fill-current" : ""
-              )} 
-            />
+            <Bookmark size={16} className={cn("text-white", isBookmarked ? "fill-current" : "")} />
           </div>
         </button>
       </div>
       
       {hasMedia && (
-        <div className="p-3">
-          <h2 className={cn(
-            "text-base font-bold leading-tight mb-1 line-clamp-2", 
-            hasWhiteText ? "text-white" : "text-black"
-          )}>
+        <div className="p-3 bg-black/90">
+          <h2 className="text-base font-bold text-white leading-tight mb-1 line-clamp-2">
             {post.content}
           </h2>
           
@@ -393,30 +334,20 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               className="w-6 h-6 rounded-full object-cover mr-1.5"
             />
             <div className="flex items-center">
-              <span className={cn(
-                "font-medium mr-1 text-sm", 
-                hasWhiteText ? "text-white" : "text-black"
-              )}>
-                {post.user?.name}
-              </span>
+              <span className="font-medium text-white/90 mr-1 text-sm">{post.user?.name}</span>
               {post.user?.verified && (
-                <span className="text-white">
-                  <CheckCircle size={12} className="fill-white text-blue-500" />
+                <span className="text-xBlue">
+                  <CheckCircle size={12} className="fill-xBlue text-black" />
                 </span>
               )}
             </div>
-            <span className={cn(
-              "text-xs ml-auto", 
-              hasWhiteText ? "text-white/70" : "text-black/70"
-            )}>
-              {formatDate(post.createdAt)}
-            </span>
+            <span className="text-neutral-400 text-xs ml-auto">{formatDate(post.createdAt)}</span>
           </div>
         </div>
       )}
       
       {!hasMedia && (
-        <div className="p-3">
+        <div className="p-3 bg-black/90">
           <div className="flex items-center">
             <img 
               src={post.user?.avatar} 
@@ -424,24 +355,14 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               className="w-6 h-6 rounded-full object-cover mr-1.5"
             />
             <div className="flex items-center">
-              <span className={cn(
-                "font-medium mr-1 text-sm", 
-                hasWhiteText ? "text-white" : "text-black"
-              )}>
-                {post.user?.name}
-              </span>
+              <span className="font-medium text-white/90 mr-1 text-sm">{post.user?.name}</span>
               {post.user?.verified && (
-                <span className="text-white">
-                  <CheckCircle size={12} className="fill-white text-blue-500" />
+                <span className="text-xBlue">
+                  <CheckCircle size={12} className="fill-xBlue text-black" />
                 </span>
               )}
             </div>
-            <span className={cn(
-              "text-xs ml-auto", 
-              hasWhiteText ? "text-white/70" : "text-black/70"
-            )}>
-              {formatDate(post.createdAt)}
-            </span>
+            <span className="text-neutral-400 text-xs ml-auto">{formatDate(post.createdAt)}</span>
           </div>
         </div>
       )}
@@ -455,12 +376,8 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               className={cn(
                 "flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs border transition-colors",
                 reaction.reacted 
-                  ? hasWhiteText
-                    ? "bg-white/20 border-white/30 text-white" 
-                    : "bg-black/20 border-black/30 text-black"
-                  : hasWhiteText
-                    ? "bg-black/30 border-white/10 text-white/70 hover:bg-black/40" 
-                    : "bg-white/30 border-black/10 text-black/70 hover:bg-white/40"
+                  ? "bg-xBlue/10 border-xBlue/20 text-xBlue" 
+                  : "bg-xSecondary border-xBorder text-gray-300 hover:bg-xSecondary/80"
               )}
             >
               <span>{reaction.emoji}</span>

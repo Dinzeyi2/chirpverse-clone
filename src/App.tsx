@@ -21,10 +21,10 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <ThemeProvider defaultTheme="light" forcedTheme="light">
+      <ThemeProvider defaultTheme="dark" forcedTheme="dark">
         <TooltipProvider>
           <Toaster />
-          <Sonner position="top-center" theme="light" />
+          <Sonner position="top-center" theme="dark" />
           <BrowserRouter>
             <Routes>
               <Route path="/auth" element={<Auth />} />
