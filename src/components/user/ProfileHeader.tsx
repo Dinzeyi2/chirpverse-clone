@@ -59,28 +59,20 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     '/lovable-uploads/9bc18b3a-1e34-4aac-9e0d-fcfe3c2023ad.png'
   ];
   
-  const [imageLoadState, setImageLoadState] = useState<{[key: string]: boolean}>({});
+  const [avatarErrors, setAvatarErrors] = useState<{[key: string]: boolean}>({});
   
   useEffect(() => {
-    const checkImages = async () => {
-      const imageStates: {[key: string]: boolean} = {};
-      
-      for (const avatar of platformAvatars) {
-        try {
-          console.log('Checking image URL:', avatar);
-          const img = new Image();
-          img.src = avatar;
-          imageStates[avatar] = true;
-        } catch (error) {
-          console.error('Error loading image:', avatar, error);
-          imageStates[avatar] = false;
-        }
-      }
-      
-      setImageLoadState(imageStates);
-    };
-    
-    checkImages();
+    platformAvatars.forEach(avatar => {
+      const img = new Image();
+      img.onload = () => {
+        console.log('Successfully loaded image:', avatar);
+      };
+      img.onerror = () => {
+        console.error('Failed to load image:', avatar);
+        setAvatarErrors(prev => ({...prev, [avatar]: true}));
+      };
+      img.src = avatar;
+    });
   }, []);
   
   const coverPhotoInputRef = useRef<HTMLInputElement>(null);
@@ -401,29 +393,38 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </DialogHeader>
           
           <div className="grid grid-cols-3 gap-4">
-            {platformAvatars.map((avatar, index) => (
-              <button
-                key={index}
-                className="relative rounded-full overflow-hidden transition-all hover:ring-4 hover:ring-xBlue focus:ring-4 focus:ring-xBlue focus:outline-none w-32 h-32 mx-auto"
-                onClick={() => handleSelectAvatar(avatar)}
-              >
-                <img
-                  src={avatar}
-                  alt={`Avatar option ${index + 1}`}
-                  className="w-full h-full object-cover"
-                  onLoad={() => console.log('Image loaded:', avatar)}
-                  onError={(e) => {
-                    console.error('Error loading image:', avatar);
-                    e.currentTarget.src = 'https://i.pravatar.cc/150?img=1'; // Fallback image
-                  }}
-                />
-                {avatar === profileData.avatar && (
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                    <CheckCircle className="text-white h-8 w-8" />
-                  </div>
-                )}
-              </button>
-            ))}
+            {platformAvatars.map((avatar, index) => {
+              const isErrorImage = avatarErrors[avatar];
+              return (
+                <button
+                  key={index}
+                  className="relative rounded-full overflow-hidden transition-all hover:ring-4 hover:ring-xBlue focus:ring-4 focus:ring-xBlue focus:outline-none w-32 h-32 mx-auto"
+                  onClick={() => handleSelectAvatar(avatar)}
+                  disabled={isErrorImage}
+                >
+                  {isErrorImage ? (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                      <X className="text-gray-400 h-8 w-8" />
+                    </div>
+                  ) : (
+                    <img
+                      src={avatar}
+                      alt={`Avatar option ${index + 1}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.error('Error loading avatar image:', avatar);
+                        setAvatarErrors(prev => ({...prev, [avatar]: true}));
+                      }}
+                    />
+                  )}
+                  {avatar === profileData.avatar && !isErrorImage && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <CheckCircle className="text-white h-8 w-8" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
           
           <div className="flex justify-end mt-4">
