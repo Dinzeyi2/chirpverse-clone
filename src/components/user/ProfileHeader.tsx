@@ -251,9 +251,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             <div className="mr-4 hover:underline">
               <span className="font-bold">{stats.posts}</span>
             </div>
-            <div className="mr-4 hover:underline">
-              <span className="font-bold">{stats.replies}</span>
-            </div>
             <div className="mr-4 hover:underline flex items-center">
               <span className="text-red-500 mr-1">🔥</span>
               <span className="font-bold">{stats.reactions}</span>
@@ -376,4 +373,3 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 };
 
 export default ProfileHeader;
-
