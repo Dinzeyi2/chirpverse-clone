@@ -205,6 +205,22 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               alt={profileData.name}
               className="w-32 h-32 rounded-full object-cover border-4 border-background"
             />
+            {isCurrentUser && (
+              <button 
+                className="absolute top-3 right-3 p-1.5 rounded-full bg-black/70 hover:bg-black/80 transition-colors text-white z-10" 
+                aria-label="Change profile picture"
+                onClick={handleProfilePictureClick}
+              >
+                <Camera size={16} />
+              </button>
+            )}
+            <input
+              type="file"
+              ref={profilePictureInputRef}
+              onChange={handleProfilePictureChange}
+              accept="image/*"
+              className="hidden"
+            />
           </div>
           
           <div className="mt-4">
@@ -309,19 +325,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   className="w-32 h-32 rounded-full object-cover border-4 border-background"
                 />
                 <button 
-                  className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/70 transition-colors text-white z-10" 
+                  className="absolute top-3 right-3 p-1.5 rounded-full bg-black/70 hover:bg-black/80 transition-colors text-white z-10" 
                   aria-label="Change profile picture"
                   onClick={handleProfilePictureClick}
                 >
-                  <Camera size={24} />
+                  <Camera size={16} />
                 </button>
-                <input
-                  type="file"
-                  ref={profilePictureInputRef}
-                  onChange={handleProfilePictureChange}
-                  accept="image/*"
-                  className="hidden"
-                />
               </div>
             </div>
             
