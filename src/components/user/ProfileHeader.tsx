@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, MessageCircle, UserCircle, Grid } from 'lucide-react';
@@ -264,8 +263,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </div>
             
             <div className="mt-10">
-              <h2 className="font-bold text-left mb-4 text-white">Friends</h2>
-              
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="flex flex-col items-center bg-gray-800 dark:bg-gray-800 rounded-xl p-4">
                   <span className="text-2xl font-bold text-white">10K</span>
