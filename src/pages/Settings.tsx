@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, User, Lock, Bell, Monitor, Globe, Accessibility, AtSign, Users, MessageCircle, Brush, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Lock, Bell, Monitor, Globe, Accessibility, AtSign, Users, MessageCircle, Brush, ChevronRight } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -35,12 +35,7 @@ const Settings = () => {
   const { user } = useAuth();
 
   const settingsCategories = [
-    {
-      icon: User,
-      title: 'Your account',
-      description: 'See information about your account, change your password',
-      to: '/settings/account'
-    },
+    // Removed "Your account" section
     {
       icon: Lock,
       title: 'Security and account access',
