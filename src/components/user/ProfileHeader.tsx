@@ -225,7 +225,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             <h1 className="text-xl font-bold mt-2 text-white">User</h1>
             
             <p className="text-gray-400 text-sm mt-2 px-6">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+              
             </p>
             
             <div className="mt-6 flex justify-center">
