@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, MessageCircle, UserCircle, Grid } from 'lucide-react';
@@ -184,13 +185,13 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
   return (
     <div className="animate-fade-in">
-      {/* Cream/beige grid pattern background */}
+      {/* White background with more visible grid pattern */}
       <div className="relative">
-        <div className="absolute top-0 left-0 right-0 h-48 bg-[#f0ece1] z-0" 
+        <div className="absolute top-0 left-0 right-0 h-48 bg-white z-0" 
              style={{
-               backgroundImage: `linear-gradient(rgba(240, 236, 225, 0.8) 1px, transparent 1px), 
-                                linear-gradient(90deg, rgba(240, 236, 225, 0.8) 1px, #f5f2e9 1px)`,
-               backgroundSize: '40px 40px',
+               backgroundImage: `linear-gradient(rgba(220, 220, 220, 0.7) 1px, transparent 1px), 
+                                linear-gradient(90deg, rgba(220, 220, 220, 0.7) 1px, #ffffff 1px)`,
+               backgroundSize: '30px 30px',
                backgroundPosition: '-1px -1px'
              }}>
         </div>
@@ -199,13 +200,13 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <div className="relative z-10 flex justify-between items-center p-4">
           <button
             onClick={handleBackClick}
-            className="p-2 rounded-full bg-white/70 text-gray-800 hover:bg-white/90 transition-colors"
+            className="p-2 rounded-full bg-white/90 text-gray-800 hover:bg-white shadow-sm transition-colors"
             aria-label="Go back"
           >
             <ArrowLeft size={20} />
           </button>
           <button 
-            className="p-2 rounded-full bg-white/70 text-gray-800 hover:bg-white/90 transition-colors"
+            className="p-2 rounded-full bg-white/90 text-gray-800 hover:bg-white shadow-sm transition-colors"
             aria-label="View grid"
           >
             <Grid size={20} />
@@ -218,7 +219,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             className="relative cursor-pointer mt-4" 
             onClick={handleProfilePictureClick}
           >
-            <Avatar className="w-40 h-40 border-4 border-white dark:border-white">
+            <Avatar className="w-40 h-40 border-4 border-white shadow-md">
               <AvatarImage src={profileData.avatar} alt={profileData.name} className="object-cover" />
               <AvatarFallback>{profileData.name.charAt(0)}</AvatarFallback>
             </Avatar>
