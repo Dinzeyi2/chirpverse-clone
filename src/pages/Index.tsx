@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 type SortOption = 'latest' | 'popular' | 'commented';
 
@@ -31,68 +32,82 @@ const Index = () => {
     const fetchPosts = async () => {
       try {
         setLoading(true);
-        const { data, error } = await supabase
+        
+        // Fixed the query to correctly fetch posts with their related data
+        const { data: shoutoutData, error: shoutoutError } = await supabase
           .from('shoutouts')
-          .select(`
-            *,
-            profiles:user_id (*),
-            likes:id (count),
-            comments:id (count),
-            saved_posts:id (count)
-          `)
+          .select('*')
           .order('created_at', { ascending: false });
           
-        if (error) {
-          throw error;
+        if (shoutoutError) {
+          console.error('Error fetching shoutouts:', shoutoutError);
+          toast.error('Could not load posts');
+          return;
         }
         
-        if (data) {
-          const formattedPosts = data.map(post => {
-            const userMetadata = post.profiles.user_id ? 
-              supabase.auth.admin.getUserById(post.profiles.user_id) : null;
-            
-            const usernameToUse = username || 
-              post.profiles.user_id?.substring(0, 8) || 
-              'user';
-            
-            // Safely extract count values with appropriate type checking
-            const likesCount = post.likes && Array.isArray(post.likes) && post.likes[0] ? 
-              Number(post.likes[0].count) || 0 : 0;
-              
-            const commentsCount = post.comments && Array.isArray(post.comments) && post.comments[0] ? 
-              Number(post.comments[0].count) || 0 : 0;
-              
-            const savesCount = post.saved_posts && Array.isArray(post.saved_posts) && post.saved_posts[0] ? 
-              Number(post.saved_posts[0].count) || 0 : 0;
-            
-            return {
-              id: post.id,
-              content: post.content,
-              createdAt: post.created_at,
-              likes: likesCount,
-              comments: commentsCount,
-              saves: savesCount,
-              reposts: 0,
-              replies: commentsCount,
-              views: 0,
-              userId: post.user_id,
-              images: post.media,
-              user: {
-                id: post.profiles.id,
-                name: post.profiles.full_name || 'User',
-                username: usernameToUse,
-                avatar: post.profiles.avatar_url || 'https://i.pravatar.cc/150?img=1',
-                verified: false,
-                followers: 0,
-                following: 0,
-              }
-            };
-          });
-          
-          setFeedPosts(formattedPosts);
+        if (!shoutoutData) {
+          setFeedPosts([]);
+          return;
         }
+        
+        // For each shoutout, fetch the profile data separately
+        const formattedPosts = await Promise.all(shoutoutData.map(async post => {
+          // Get profile data
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', post.user_id)
+            .single();
+            
+          // Get counts in separate queries
+          const { count: likesCount } = await supabase
+            .from('likes')
+            .select('*', { count: 'exact', head: true })
+            .eq('shoutout_id', post.id);
+            
+          const { count: commentsCount } = await supabase
+            .from('comments')
+            .select('*', { count: 'exact', head: true })
+            .eq('shoutout_id', post.id);
+            
+          const { count: savesCount } = await supabase
+            .from('saved_posts')
+            .select('*', { count: 'exact', head: true })
+            .eq('shoutout_id', post.id);
+          
+          const profile = profileData || {
+            full_name: 'User',
+            avatar_url: 'https://i.pravatar.cc/150?img=1',
+          };
+          
+          return {
+            id: post.id,
+            content: post.content,
+            createdAt: post.created_at,
+            likes: likesCount || 0,
+            comments: commentsCount || 0,
+            saves: savesCount || 0,
+            reposts: 0,
+            replies: commentsCount || 0,
+            views: 0,
+            userId: post.user_id,
+            images: post.media,
+            user: {
+              id: post.user_id,
+              name: profile.full_name || 'User',
+              username: profile.username || post.user_id?.substring(0, 8) || 'user',
+              avatar: profile.avatar_url || 'https://i.pravatar.cc/150?img=1',
+              verified: false,
+              followers: 0,
+              following: 0,
+            }
+          };
+        }));
+        
+        setFeedPosts(formattedPosts);
       } catch (error) {
         console.error('Error fetching posts:', error);
+        toast.error('Could not load posts');
       } finally {
         setLoading(false);
       }
@@ -100,6 +115,7 @@ const Index = () => {
     
     fetchPosts();
     
+    // Set up realtime subscription to listen for new posts
     const channel = supabase
       .channel('public:shoutouts')
       .on('postgres_changes', 
@@ -109,43 +125,47 @@ const Index = () => {
           table: 'shoutouts'
         }, 
         async (payload) => {
-          const { data, error } = await supabase
-            .from('shoutouts')
-            .select(`
-              *,
-              profiles:user_id (*)
-            `)
-            .eq('id', payload.new.id)
-            .single();
+          try {
+            // Get the profile data for the new post
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('user_id', payload.new.user_id)
+              .single();
+              
+            const profile = profileData || {
+              full_name: 'User',
+              avatar_url: 'https://i.pravatar.cc/150?img=1',
+            };
+          
+            const newPost = {
+              id: payload.new.id,
+              content: payload.new.content,
+              createdAt: payload.new.created_at,
+              likes: 0,
+              comments: 0,
+              saves: 0,
+              reposts: 0,
+              replies: 0,
+              views: 0,
+              userId: payload.new.user_id,
+              images: payload.new.media,
+              user: {
+                id: payload.new.user_id,
+                name: profile.full_name || 'User',
+                username: profile.username || payload.new.user_id?.substring(0, 8) || 'user',
+                avatar: profile.avatar_url || 'https://i.pravatar.cc/150?img=1',
+                verified: false,
+                followers: 0,
+                following: 0,
+              }
+            };
             
-          if (error || !data) return;
-          
-          const usernameToUse = username || 
-            data.profiles.user_id?.substring(0, 8) || 
-            'user';
-          
-          const newPost = {
-            id: data.id,
-            content: data.content,
-            createdAt: data.created_at,
-            likes: 0,
-            reposts: 0,
-            replies: 0,
-            views: 0,
-            userId: data.user_id,
-            images: data.media,
-            user: {
-              id: data.profiles.id,
-              name: data.profiles.full_name || 'User',
-              username: usernameToUse,
-              avatar: data.profiles.avatar_url || 'https://i.pravatar.cc/150?img=1',
-              verified: false,
-              followers: 0,
-              following: 0,
-            }
-          };
-          
-          setFeedPosts(prev => [newPost, ...prev]);
+            toast.success('New post added!');
+            setFeedPosts(prev => [newPost, ...prev]);
+          } catch (error) {
+            console.error('Error processing new post:', error);
+          }
         }
       )
       .subscribe();
@@ -153,7 +173,7 @@ const Index = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [username]);
+  }, []);
   
   // Apply both filtering and sorting to posts
   useEffect(() => {
@@ -209,8 +229,11 @@ const Index = () => {
           .single();
           
         if (error) throw error;
+        
+        toast.success('Post created successfully!');
       } catch (error) {
         console.error('Error creating post:', error);
+        toast.error('Failed to create post');
       }
     };
     
