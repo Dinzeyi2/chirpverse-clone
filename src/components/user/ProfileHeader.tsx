@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, MessageCircle, UserCircle, Grid } from 'lucide-react';
@@ -207,8 +208,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         
         {/* Profile card with dark background */}
         <div className="relative z-10 mx-0 mt-16 pt-20 bg-gray-950 dark:bg-gray-950 rounded-t-3xl shadow-lg overflow-hidden">
-          {/* Profile image - positioned to be half inside the blue area */}
-          <div className="absolute -top-32 left-1/2 transform -translate-x-1/2">
+          {/* Profile image - correctly positioned to overlap the blue area and white area */}
+          <div className="absolute -top-20 left-1/2 transform -translate-x-1/2 z-20">
             <div 
               className="relative cursor-pointer" 
               onClick={handleProfilePictureClick}
