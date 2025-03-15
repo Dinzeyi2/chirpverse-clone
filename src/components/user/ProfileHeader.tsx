@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, MessageCircle, UserCircle, Grid } from 'lucide-react';
@@ -186,13 +185,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   return (
     <div className="animate-fade-in">
       <div className="relative">
-        <div className="absolute top-0 left-0 right-0 h-48 bg-xBlack z-0" 
-             style={{
-               backgroundImage: `linear-gradient(rgba(20, 20, 20, 0.7) 1px, transparent 1px), 
-                                linear-gradient(90deg, rgba(20, 20, 20, 0.7) 1px, #000000 1px)`,
-               backgroundSize: '30px 30px',
-               backgroundPosition: '-1px -1px'
-             }}>
+        <div className="absolute top-0 left-0 right-0 h-48 bg-black z-0">
         </div>
         
         <div className="relative z-10 flex justify-between items-center p-4">
@@ -228,7 +221,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </div>
         </div>
         
-        <div className="relative z-10 mx-0 mt-20 bg-xBlack dark:bg-xBlack shadow-lg overflow-hidden">
+        <div className="relative z-10 mx-0 mt-20 bg-black shadow-lg overflow-hidden">
           <div className="px-6 pt-6 pb-6 text-center">
             <h1 className="text-xl font-bold mt-2 text-foreground">{profileData.name}</h1>
             
