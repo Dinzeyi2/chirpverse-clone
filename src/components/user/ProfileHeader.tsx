@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, MessageCircle, UserCircle, Grid } from 'lucide-react';
@@ -19,7 +20,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
 
 interface ProfileHeaderProps {
   user: User;
@@ -72,7 +72,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     'https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=2070',
     'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?q=80&w=2070',
   ];
-
+  
   const handleFollow = async () => {
     if (!authUser) {
       toast.error('You need to be logged in to follow users');
@@ -185,6 +185,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
   return (
     <div className="animate-fade-in">
+      {/* White background with more visible grid pattern */}
       <div className="relative">
         <div className="absolute top-0 left-0 right-0 h-48 bg-white z-0" 
              style={{
@@ -195,6 +196,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
              }}>
         </div>
         
+        {/* Header with back button and grid button */}
         <div className="relative z-10 flex justify-between items-center p-4">
           <button
             onClick={handleBackClick}
@@ -211,6 +213,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </button>
         </div>
         
+        {/* Profile picture - positioned to sit on top of the boundary */}
         <div className="relative z-20 flex justify-center">
           <div 
             className="relative cursor-pointer mt-4" 
@@ -228,95 +231,95 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </div>
         </div>
         
-        <div className="relative z-10 mt-20">
-          <div className="h-20 bg-white"></div>
-          <div className="h-[100px] bg-gray-950 dark:bg-gray-950 rounded-tl-[28px] rounded-tr-[28px]"></div>
-          
-          <div className="bg-gray-950 dark:bg-gray-950 shadow-lg overflow-hidden mt-[-100px]">
-            <div className="px-6 pt-6 pb-6 text-center">
-              <h1 className="text-xl font-bold mt-2 text-white">{profileData.name}</h1>
-              
-              <p className="text-gray-400 text-sm mt-2 px-6">
-                {profileData.bio || "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."}
-              </p>
-              
-              <div className="mt-6 flex justify-center gap-2">
-                {isCurrentUser ? (
+        {/* Profile card with dark background - starts lower to accommodate the avatar */}
+        <div className="relative z-10 mx-0 mt-20 bg-gray-950 dark:bg-gray-950 shadow-lg overflow-hidden">
+          {/* Profile info */}
+          <div className="px-6 pt-6 pb-6 text-center">
+            <h1 className="text-xl font-bold mt-2 text-white">{profileData.name}</h1>
+            
+            <p className="text-gray-400 text-sm mt-2 px-6">
+              {profileData.bio || "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."}
+            </p>
+            
+            <div className="mt-6 flex justify-center gap-2">
+              {isCurrentUser ? (
+                <Button
+                  variant="outline"
+                  onClick={handleEditProfile}
+                  className="rounded-full px-8 py-2 text-white bg-transparent border-gray-700 hover:bg-gray-800"
+                >
+                  Edit profile
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    className="bg-blue-500 hover:bg-blue-600 text-white rounded-full px-8 py-1"
+                    onClick={handleFollow}
+                  >
+                    Follow
+                  </Button>
                   <Button
                     variant="outline"
-                    onClick={handleEditProfile}
-                    className="rounded-full px-8 py-2 text-white bg-transparent border-gray-700 hover:bg-gray-800"
+                    className="rounded-full p-2 aspect-square border-gray-300 dark:border-gray-700"
                   >
-                    Edit profile
+                    <MessageCircle size={18} />
                   </Button>
-                ) : (
-                  <>
-                    <Button
-                      className="bg-blue-500 hover:bg-blue-600 text-white rounded-full px-8 py-1"
-                      onClick={handleFollow}
-                    >
-                      Follow
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="rounded-full p-2 aspect-square border-gray-300 dark:border-gray-700"
-                    >
-                      <MessageCircle size={18} />
-                    </Button>
-                  </>
-                )}
+                </>
+              )}
+            </div>
+            
+            {/* Stats section */}
+            <div className="mt-10">
+              <h2 className="font-bold text-left mb-4 text-white">Friends</h2>
+              
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="flex flex-col items-center bg-gray-800 dark:bg-gray-800 rounded-xl p-4">
+                  <span className="text-2xl font-bold text-white">10K</span>
+                  <span className="text-gray-400 text-sm">Likes</span>
+                </div>
+                <div className="flex flex-col items-center bg-gray-800 dark:bg-gray-800 rounded-xl p-4">
+                  <span className="text-2xl font-bold text-white">528</span>
+                  <span className="text-gray-400 text-sm">Following</span>
+                </div>
+                <div className="flex flex-col items-center bg-gray-800 dark:bg-gray-800 rounded-xl p-4">
+                  <span className="text-2xl font-bold text-white">1.2K</span>
+                  <span className="text-gray-400 text-sm">Followers</span>
+                </div>
+                <div className="flex flex-col items-center bg-gray-800 dark:bg-gray-800 rounded-xl p-4">
+                  <div className="flex -space-x-2">
+                    {[1, 2, 3, 4].map((i) => (
+                      <Avatar key={i} className="w-8 h-8 border-2 border-gray-800 dark:border-gray-800">
+                        <AvatarImage src={`https://i.pravatar.cc/150?img=${i}`} alt="Friend" />
+                        <AvatarFallback>F{i}</AvatarFallback>
+                      </Avatar>
+                    ))}
+                  </div>
+                  <span className="text-gray-400 text-sm mt-1">Gallery</span>
+                </div>
               </div>
               
-              <div className="mt-10">
-                <h2 className="font-bold text-left mb-4 text-white">Friends</h2>
-                
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="flex flex-col items-center bg-gray-800 dark:bg-gray-800 rounded-xl p-4">
-                    <span className="text-2xl font-bold text-white">10K</span>
-                    <span className="text-gray-400 text-sm">Likes</span>
+              {/* Gallery grid */}
+              <div className="grid grid-cols-2 gap-2">
+                {galleryImages.map((image, index) => (
+                  <div 
+                    key={index} 
+                    className={`overflow-hidden rounded-xl ${index >= 4 ? 'hidden md:block' : ''}`}
+                    style={{aspectRatio: '1'}}
+                  >
+                    <img 
+                      src={image} 
+                      alt={`Gallery image ${index + 1}`} 
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-                  <div className="flex flex-col items-center bg-gray-800 dark:bg-gray-800 rounded-xl p-4">
-                    <span className="text-2xl font-bold text-white">528</span>
-                    <span className="text-gray-400 text-sm">Following</span>
-                  </div>
-                  <div className="flex flex-col items-center bg-gray-800 dark:bg-gray-800 rounded-xl p-4">
-                    <span className="text-2xl font-bold text-white">1.2K</span>
-                    <span className="text-gray-400 text-sm">Followers</span>
-                  </div>
-                  <div className="flex flex-col items-center bg-gray-800 dark:bg-gray-800 rounded-xl p-4">
-                    <div className="flex -space-x-2">
-                      {[1, 2, 3, 4].map((i) => (
-                        <Avatar key={i} className="w-8 h-8 border-2 border-gray-800 dark:border-gray-800">
-                          <AvatarImage src={`https://i.pravatar.cc/150?img=${i}`} alt="Friend" />
-                          <AvatarFallback>F{i}</AvatarFallback>
-                        </Avatar>
-                      ))}
-                    </div>
-                    <span className="text-gray-400 text-sm mt-1">Gallery</span>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-2">
-                  {galleryImages.map((image, index) => (
-                    <div 
-                      key={index} 
-                      className={`overflow-hidden rounded-xl ${index >= 4 ? 'hidden md:block' : ''}`}
-                      style={{aspectRatio: '1'}}
-                    >
-                      <img 
-                        src={image} 
-                        alt={`Gallery image ${index + 1}`} 
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
+                ))}
               </div>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Edit profile dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[650px] p-0 border-none rounded-2xl">
           <div className="flex justify-between items-center p-4 border-b">
@@ -374,6 +377,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </DialogContent>
       </Dialog>
 
+      {/* Avatar selection dialog */}
       <Dialog open={isAvatarDialogOpen} onOpenChange={setIsAvatarDialogOpen}>
         <DialogContent className="sm:max-w-[500px] p-6 rounded-2xl">
           <DialogHeader className="mb-4">
@@ -413,6 +417,3 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 };
 
 export default ProfileHeader;
-
-
-
