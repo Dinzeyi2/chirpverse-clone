@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import PostCard from './PostCard';
 import { Post } from '@/lib/data';
@@ -12,8 +13,12 @@ import {
 } from "@/components/ui/carousel";
 import type { CarouselApi } from "@/components/ui/carousel";
 
+interface PostWithActions extends Post {
+  actions?: React.ReactNode;
+}
+
 interface SwipeablePostViewProps {
-  posts: Post[];
+  posts: PostWithActions[];
   loading?: boolean;
 }
 
@@ -97,7 +102,14 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
                   ? "scale-100 opacity-100 z-20" 
                   : "scale-90 opacity-50 z-10"
               )}>
-                <PostCard post={post} />
+                <div className="relative">
+                  {post.actions && (
+                    <div className="absolute top-3 right-3 z-30">
+                      {post.actions}
+                    </div>
+                  )}
+                  <PostCard post={post} />
+                </div>
               </div>
             </CarouselItem>
           ))}

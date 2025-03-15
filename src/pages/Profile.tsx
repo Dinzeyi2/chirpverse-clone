@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
@@ -16,6 +17,7 @@ import {
   PaginationPrevious
 } from '@/components/ui/pagination';
 import PostActionMenu from '@/components/feed/PostActionMenu';
+import SwipeablePostView from '@/components/feed/SwipeablePostView';
 
 const Profile = () => {
   const { userId } = useParams<{ userId?: string }>();
@@ -402,44 +404,6 @@ const Profile = () => {
     }
   };
 
-  const renderPostList = (items: Post[], loading: boolean) => {
-    if (loading) {
-      return (
-        <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      );
-    }
-
-    if (items.length === 0) {
-      return (
-        <div className="text-center py-10">
-          <p className="text-gray-500">No posts to display</p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-4">
-        {items.map((post) => (
-          <div key={post.id} className="relative">
-            <div className="absolute top-3 right-3 z-10">
-              <PostActionMenu
-                postId={post.id}
-                isOwner={post.userId === user?.id}
-                onPostDeleted={handlePostDeleted}
-              />
-            </div>
-            <PostList 
-              posts={[post]} 
-              loading={false} 
-            />
-          </div>
-        ))}
-      </div>
-    );
-  };
-
   if (loading) {
     return (
       <AppLayout>
@@ -474,7 +438,29 @@ const Profile = () => {
         <div className="px-4 py-6">
           {activeTab === 'posts' && (
             <>
-              {renderPostList(posts, loadingPosts)}
+              {loadingPosts ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                </div>
+              ) : posts.length === 0 ? (
+                <div className="text-center py-10">
+                  <p className="text-gray-500">No posts to display</p>
+                </div>
+              ) : (
+                <SwipeablePostView 
+                  posts={posts.map(post => ({
+                    ...post,
+                    actions: (
+                      <PostActionMenu
+                        postId={post.id}
+                        isOwner={post.userId === user?.id}
+                        onPostDeleted={handlePostDeleted}
+                      />
+                    )
+                  }))} 
+                />
+              )}
+              
               {posts.length > 0 && (
                 <Pagination className="mt-6">
                   <PaginationContent>
@@ -501,7 +487,29 @@ const Profile = () => {
           
           {activeTab === 'replies' && (
             <>
-              {renderPostList(replies, loadingReplies)}
+              {loadingReplies ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                </div>
+              ) : replies.length === 0 ? (
+                <div className="text-center py-10">
+                  <p className="text-gray-500">No replies to display</p>
+                </div>
+              ) : (
+                <SwipeablePostView 
+                  posts={replies.map(reply => ({
+                    ...reply,
+                    actions: (
+                      <PostActionMenu
+                        postId={reply.id}
+                        isOwner={reply.userId === user?.id}
+                        onPostDeleted={handlePostDeleted}
+                      />
+                    )
+                  }))} 
+                />
+              )}
+              
               {replies.length > 0 && (
                 <Pagination className="mt-6">
                   <PaginationContent>

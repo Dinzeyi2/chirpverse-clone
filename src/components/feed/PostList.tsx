@@ -4,8 +4,12 @@ import { Post } from '@/lib/data';
 import { Inbox } from 'lucide-react';
 import SwipeablePostView from './SwipeablePostView';
 
+interface PostWithActions extends Post {
+  actions?: React.ReactNode;
+}
+
 interface PostListProps {
-  posts: Post[];
+  posts: PostWithActions[];
   loading?: boolean;
 }
 
