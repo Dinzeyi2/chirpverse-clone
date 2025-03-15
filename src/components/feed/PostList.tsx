@@ -1,6 +1,5 @@
 
 import React from 'react';
-import PostCard from './PostCard';
 import { Post } from '@/lib/data';
 import { Inbox } from 'lucide-react';
 import SwipeablePostView from './SwipeablePostView';
