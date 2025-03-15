@@ -1,13 +1,14 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bookmark, MoreHorizontal, CheckCircle, Smile } from 'lucide-react';
+import { Bookmark, MoreHorizontal, CheckCircle, Smile, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Comment as CommentType, formatDate } from '@/lib/data';
 import { toast } from 'sonner';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from "@/integrations/supabase/client";
 
 interface CommentProps {
   comment: CommentType;
@@ -25,6 +26,56 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
   const [savedToBookmarks, setSavedToBookmarks] = useState(false);
   const [reactions, setReactions] = useState<EmojiReaction[]>([]);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const [isBludified, setIsBludified] = useState(false);
+  const [bludifyCount, setBludifyCount] = useState(0);
+
+  useEffect(() => {
+    // Check if the user has bludified this comment
+    const checkBludifyStatus = async () => {
+      try {
+        if (!user) return;
+        
+        const { data } = await supabase
+          .from('post_bludifies')
+          .select('*')
+          .eq('post_id', String(comment.id))
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        if (data) {
+          setIsBludified(true);
+        }
+        
+        const { count } = await supabase
+          .from('post_bludifies')
+          .select('*', { count: 'exact', head: true })
+          .eq('post_id', String(comment.id));
+          
+        if (count !== null) setBludifyCount(count);
+      } catch (error) {
+        console.log('Bludify check error:', error);
+      }
+    };
+    
+    checkBludifyStatus();
+
+    // Set up realtime subscription for bludifies
+    const bludifyChannel = supabase
+      .channel(`comment-bludifies-${comment.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'post_bludifies',
+        filter: `post_id=eq.${String(comment.id)}`
+      }, () => {
+        checkBludifyStatus();
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(bludifyChannel);
+    };
+  }, [comment.id, user]);
 
   const handleSave = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -32,6 +83,46 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
     
     setSavedToBookmarks(!savedToBookmarks);
     toast.success(savedToBookmarks ? 'Removed from bookmarks' : 'Saved to bookmarks');
+  };
+
+  const handleBludify = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    try {
+      if (!user) {
+        toast.error('Please sign in to bludify this comment');
+        return;
+      }
+      
+      if (isBludified) {
+        const { error } = await supabase
+          .from('post_bludifies')
+          .delete()
+          .eq('post_id', String(comment.id))
+          .eq('user_id', user.id);
+        
+        if (error) throw error;
+        setIsBludified(false);
+        setBludifyCount(prev => Math.max(0, prev - 1));
+        toast.success('Bludify removed');
+      } else {
+        const { error } = await supabase
+          .from('post_bludifies')
+          .insert({
+            post_id: String(comment.id),
+            user_id: user.id
+          });
+        
+        if (error) throw error;
+        setIsBludified(true);
+        setBludifyCount(prev => prev + 1);
+        toast.success('Comment bludified! This was useful');
+      }
+    } catch (error) {
+      console.error('Error toggling bludify:', error);
+      toast.error('Failed to update bludify. Please sign in.');
+    }
   };
 
   const handleEmojiPickerOpen = (e: React.MouseEvent) => {
@@ -208,6 +299,26 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
           )}
           
           <div className="flex items-center mt-2 justify-between text-xGray">
+            <button 
+              className={cn(
+                "flex items-center group",
+                isBludified && "text-blue-500"
+              )}
+              onClick={handleBludify}
+            >
+              <div className={cn(
+                "p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors",
+                isBludified && "text-blue-500"
+              )}>
+                <Flame size={18} className={cn(
+                  isBludified && "fill-current"
+                )} />
+                {bludifyCount > 0 && (
+                  <span className="ml-1 text-xs">{formatNumber(bludifyCount)}</span>
+                )}
+              </div>
+            </button>
+
             <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
               <PopoverTrigger asChild>
                 <button 
