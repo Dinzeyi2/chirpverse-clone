@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
@@ -41,7 +40,6 @@ const Profile = () => {
   
   const navigate = useNavigate();
   
-  // If userId is not provided, use the current user's id
   const profileUserId = userId || (user ? user.id : null);
   const isCurrentUser = user && profileUserId === user.id;
   
@@ -50,13 +48,11 @@ const Profile = () => {
     console.log("Profile component - Current user ID:", user?.id);
     console.log("Profile component - Using profile ID:", profileUserId);
     
-    // If no profile user ID is available and user is not logged in, redirect to auth
     if (!profileUserId && !user) {
       navigate('/auth');
       return;
     }
     
-    // If no profile user ID is available but user is logged in, redirect to their profile
     if (!profileUserId && user) {
       navigate(`/profile/${user.id}`);
       return;
@@ -153,7 +149,6 @@ const Profile = () => {
         if (error || !profile) {
           console.error("Error fetching profile or profile not found:", error);
           
-          // If this is the current user, create a default profile
           if (isCurrentUser && user) {
             const usernameToUse = username || 
               user.user_metadata?.username || 
@@ -172,7 +167,6 @@ const Profile = () => {
               following: 0
             });
           } else {
-            // Check if user exists in auth system
             try {
               const { data, error: userError } = await supabase.auth.admin.getUserById(profileUserId);
               
@@ -182,7 +176,6 @@ const Profile = () => {
                 return;
               }
               
-              // User exists in auth but not in profiles, create minimal profile data
               setProfileData({
                 id: profileUserId,
                 name: 'User',
@@ -196,7 +189,6 @@ const Profile = () => {
               });
             } catch (authCheckError) {
               console.error("Error checking user in auth system:", authCheckError);
-              // Fallback - try to show some profile
               setProfileData({
                 id: profileUserId,
                 name: 'User',
@@ -211,7 +203,6 @@ const Profile = () => {
             }
           }
         } else {
-          // Got profile data from database
           const usernameToUse = isCurrentUser ? 
             (username || profile.user_id?.substring(0, 8) || 'user') : 
             profile.user_id?.substring(0, 8) || 'user';
@@ -242,8 +233,6 @@ const Profile = () => {
   }, [profileUserId, user, isCurrentUser, navigate, username]);
 
   useEffect(() => {
-    if (!profileUserId) return;
-    
     const profileChannel = supabase
       .channel('profile-changes')
       .on('postgres_changes', 
@@ -273,7 +262,6 @@ const Profile = () => {
     };
   }, [profileUserId]);
 
-  // Fetch posts by the user
   useEffect(() => {
     const fetchPosts = async () => {
       if (!profileUserId) return;
@@ -281,7 +269,6 @@ const Profile = () => {
       try {
         setLoadingPosts(true);
         
-        // Fetch posts created by the user
         const { data, error } = await supabase
           .from('shoutouts')
           .select(`
@@ -301,24 +288,24 @@ const Profile = () => {
           return;
         }
         
-        // Format posts to match the Post type
         const formattedPosts: Post[] = data.map((post: any) => ({
           id: post.id,
           content: post.content,
-          author: {
+          images: post.media?.url ? [post.media.url] : undefined,
+          createdAt: post.created_at,
+          likes: 0,
+          reposts: 0,
+          replies: 0,
+          views: 0,
+          userId: post.user_id,
+          user: {
             id: post.user_id,
             name: post.profiles?.full_name || 'Unknown User',
-            username: post.user_id,
+            username: post.user_id.substring(0, 8),
             avatar: post.profiles?.avatar_url || 'https://i.pravatar.cc/150?img=1',
+            following: 0,
+            followers: 0,
             verified: false
-          },
-          media: post.media,
-          createdAt: new Date(post.created_at),
-          stats: {
-            replies: 0,
-            likes: 0,
-            reposts: 0,
-            views: 0
           }
         }));
         
@@ -336,7 +323,6 @@ const Profile = () => {
     }
   }, [profileUserId, postsPage, activeTab]);
 
-  // Fetch replies by the user
   useEffect(() => {
     const fetchReplies = async () => {
       if (!profileUserId) return;
@@ -344,7 +330,6 @@ const Profile = () => {
       try {
         setLoadingReplies(true);
         
-        // Fetch comments (replies) created by the user
         const { data, error } = await supabase
           .from('comments')
           .select(`
@@ -365,24 +350,24 @@ const Profile = () => {
           return;
         }
         
-        // Format replies to match the Post type
         const formattedReplies: Post[] = data.map((reply: any) => ({
           id: reply.id,
           content: reply.content,
-          author: {
+          images: reply.media?.url ? [reply.media.url] : undefined,
+          createdAt: reply.created_at,
+          likes: 0,
+          reposts: 0,
+          replies: 0,
+          views: 0,
+          userId: reply.user_id,
+          user: {
             id: reply.user_id,
             name: reply.profiles?.full_name || 'Unknown User',
-            username: reply.user_id,
+            username: reply.user_id.substring(0, 8),
             avatar: reply.profiles?.avatar_url || 'https://i.pravatar.cc/150?img=1',
+            following: 0,
+            followers: 0,
             verified: false
-          },
-          media: reply.media,
-          createdAt: new Date(reply.created_at),
-          stats: {
-            replies: 0,
-            likes: 0,
-            reposts: 0,
-            views: 0
           },
           isReply: true,
           parentId: reply.shoutout_id

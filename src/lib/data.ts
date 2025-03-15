@@ -25,6 +25,22 @@ export interface Post {
   user?: User;
   liked?: boolean;
   reposted?: boolean;
+  isReply?: boolean;
+  parentId?: string;
+  author?: {
+    id: string;
+    name: string;
+    username: string;
+    avatar: string;
+    verified: boolean;
+  };
+  media?: any;
+  stats?: {
+    replies: number;
+    likes: number;
+    reposts: number;
+    views: number;
+  };
 }
 
 // Sample comment data
