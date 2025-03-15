@@ -2,13 +2,13 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Home, Search, Bell, User, Bookmark, Settings, PlusCircle, X, LogOut, LogIn } from 'lucide-react';
+import { Home, Search, Bell, User, Bookmark, Settings, PlusCircle, LogOut, LogIn } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import CreatePost from '@/components/feed/CreatePost';
 
-const Sidebar = () => {
+export const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -41,7 +41,7 @@ const Sidebar = () => {
   };
 
   // Handle profile navigation separately to ensure proper user check
-  const handleProfileClick = (e) => {
+  const handleProfileClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (!user) {
       e.preventDefault();
       navigate('/auth');

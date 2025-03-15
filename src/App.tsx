@@ -13,6 +13,7 @@ import Bookmarks from "./pages/Bookmarks";
 import NotFound from "./pages/NotFound";
 import PostPage from "./pages/PostPage";
 import Auth from "./pages/Auth";
+import Settings from "./pages/Settings";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -81,6 +82,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <PostPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/settings" 
+                element={
+                  <ProtectedRoute>
+                    <Settings />
                   </ProtectedRoute>
                 } 
               />
