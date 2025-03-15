@@ -1,177 +1,205 @@
+import * as React from "react"
+import {
+  Home,
+  Search,
+  Bell,
+  Bookmark,
+  User,
+  Settings,
+  LayoutDashboard,
+  Calendar,
+  HelpCircle,
+  LogOut,
+} from "lucide-react"
+import { Link } from "react-router-dom"
 
-import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { cn } from '@/lib/utils';
-import { Home, Search, Bell, User, Bookmark, Settings, PlusCircle, X, LogOut, LogIn } from 'lucide-react';
-import Button from '@/components/common/Button';
-import { useAuth } from '@/contexts/AuthContext';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import CreatePost from '@/components/feed/CreatePost';
+import { useAuth } from "@/contexts/AuthContext"
+import { useToast } from "@/hooks/use-toast"
+import { useIsMobile } from "@/hooks/use-mobile"
+import { cn } from "@/lib/utils"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Separator } from "@/components/ui/separator"
+import { Sheet, SheetContent } from "@/components/ui/sheet"
 
-const Sidebar = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const { user, signOut } = useAuth();
-  const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
-  
-  // Make sure we're using a proper path for the profile
-  const profilePath = '/profile';
-  
-  const navigation = [
-    { name: 'Home', icon: Home, href: '/' },
-    { name: 'Explore', icon: Search, href: '/explore' },
-    { name: 'Notifications', icon: Bell, href: '/notifications' },
-    { name: 'Bookmarks', icon: Bookmark, href: '/bookmarks' },
-    { name: 'Profile', icon: User, href: profilePath },
-    { name: 'Settings', icon: Settings, href: '/settings' },
-  ];
+const SidebarLinks = [
+  {
+    label: "Home",
+    href: "/",
+    icon: Home,
+  },
+  {
+    label: "Explore",
+    href: "/explore",
+    icon: Search,
+  },
+  {
+    label: "Notifications",
+    href: "/notifications",
+    icon: Bell,
+  },
+  {
+    label: "Bookmarks",
+    href: "/bookmarks",
+    icon: Bookmark,
+  },
+  {
+    label: "Profile",
+    href: "/profile",
+    icon: User,
+  },
+  {
+    label: "Settings",
+    href: "/settings",
+    icon: Settings,
+  },
+]
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/auth');
-  };
+interface SidebarProps extends React.HTMLAttributes<HTMLElement> {}
 
-  const handleSignIn = () => {
-    navigate('/auth');
-  };
+const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(
+  ({ className, ...props }, ref) => {
+    const { user, signOut } = useAuth()
+    const { toast } = useToast()
+    const isMobile = useIsMobile()
+    const [open, setOpen] = React.useState(false)
 
-  const handlePostCreated = (content: string) => {
-    setIsPostDialogOpen(false);
-  };
-
-  // Handle profile navigation separately to ensure proper user check
-  const handleProfileClick = (e) => {
-    if (!user) {
-      e.preventDefault();
-      navigate('/auth');
-    } else {
-      navigate(`/profile/${user.id}`);
+    const handleSignOut = async (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault()
+      try {
+        await signOut()
+        toast({
+          title: "Success",
+          description: "Signed out successfully.",
+        })
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to sign out. Please try again.",
+          variant: "destructive",
+        })
+      }
     }
-  };
 
-  return (
-    <div 
-      className={cn(
-        "fixed left-0 top-0 z-40 h-screen transition-all duration-300 ease-in-out bg-background border-r border-border",
-        isCollapsed ? "w-20" : "w-[275px]"
-      )}
-    >
-      <div className="flex flex-col h-full px-3 py-5">
-        <div className="mb-6 flex justify-center lg:justify-start">
-          <Link to="/" className="text-xBlue p-2 rounded-full hover:bg-xBlue/10 transition-colors">
-            <span className="text-white font-bold text-2xl tracking-tight">iblue</span>
-            <span className="sr-only">Home</span>
-          </Link>
-        </div>
-        
-        <nav className="space-y-1.5">
-          {navigation.map((item) => {
-            const isActive = location.pathname === item.href || 
-              (item.href !== '/' && location.pathname.startsWith(item.href));
-              
-            // Special handling for profile link
-            if (item.name === 'Profile') {
-              return (
-                <a
-                  key={item.name}
-                  onClick={handleProfileClick}
-                  className={cn(
-                    "flex items-center p-3 text-lg font-medium rounded-full transition-colors cursor-pointer",
-                    isActive 
-                      ? "font-bold" 
-                      : "text-foreground hover:bg-secondary/70",
-                    isCollapsed && "justify-center"
-                  )}
-                >
-                  <item.icon size={24} className={isActive ? "text-foreground" : "text-muted-foreground"} />
-                  {!isCollapsed && (
-                    <span className="ml-4 font-heading tracking-wide text-lg uppercase">{item.name}</span>
-                  )}
-                </a>
-              );
-            }
-            
-            return (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={cn(
-                  "flex items-center p-3 text-lg font-medium rounded-full transition-colors",
-                  isActive 
-                    ? "font-bold" 
-                    : "text-foreground hover:bg-secondary/70",
-                  isCollapsed && "justify-center"
-                )}
-              >
-                <item.icon size={24} className={isActive ? "text-foreground" : "text-muted-foreground"} />
-                {!isCollapsed && (
-                  <span className="ml-4 font-heading tracking-wide text-lg uppercase">{item.name}</span>
-                )}
+    if (isMobile) {
+      return (
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetContent side="left" className="w-full sm:w-64">
+            <div className="flex flex-col gap-4">
+              <Link to="/" className="flex items-center space-x-2">
+                <Avatar>
+                  <AvatarImage src={user?.photoURL || ""} alt={user?.displayName || "Avatar"} />
+                  <AvatarFallback>
+                    {user?.displayName?.charAt(0).toUpperCase() || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col">
+                  <span className="font-semibold">{user?.displayName || "User"}</span>
+                  <span className="text-sm text-muted-foreground">{user?.email}</span>
+                </div>
               </Link>
-            );
-          })}
+              <Separator />
+              <nav className="flex flex-col space-y-1">
+                {SidebarLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    to={link.href}
+                    className="flex items-center space-x-2 px-4 py-2 rounded-md hover:bg-secondary"
+                  >
+                    <link.icon className="h-4 w-4" />
+                    <span>{link.label}</span>
+                  </Link>
+                ))}
+              </nav>
+              <Separator />
+              <Button variant="outline" onClick={handleSignOut}>
+                Sign Out
+              </Button>
+            </div>
+          </SheetContent>
+        </Sheet>
+      )
+    }
 
-          {user ? (
-            <button
-              onClick={handleSignOut}
-              className={cn(
-                "flex items-center p-3 text-lg font-medium rounded-full transition-colors text-foreground hover:bg-secondary/70",
-                isCollapsed && "justify-center w-full"
-              )}
+    return (
+      <div
+        className={cn(
+          "hidden border-r bg-secondary/50 flex-col p-3 md:flex",
+          className
+        )}
+        ref={ref}
+        {...props}
+      >
+        <Link to="/" className="flex items-center space-x-2">
+          <Avatar>
+            <AvatarImage src={user?.photoURL || ""} alt={user?.displayName || "Avatar"} />
+            <AvatarFallback>
+              {user?.displayName?.charAt(0).toUpperCase() || "U"}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <span className="font-semibold">{user?.displayName || "User"}</span>
+            <span className="text-sm text-muted-foreground">{user?.email}</span>
+          </div>
+        </Link>
+        <Separator className="my-2" />
+        <nav className="flex flex-col space-y-1">
+          {SidebarLinks.map((link) => (
+            <Link
+              key={link.href}
+              to={link.href}
+              className="flex items-center space-x-2 px-4 py-2 rounded-md hover:bg-secondary"
             >
-              <LogOut size={24} className="text-muted-foreground" />
-              {!isCollapsed && (
-                <span className="ml-4 font-heading tracking-wide text-lg uppercase">Sign out</span>
-              )}
-            </button>
-          ) : (
-            <button
-              onClick={handleSignIn}
-              className={cn(
-                "flex items-center p-3 text-lg font-medium rounded-full transition-colors text-foreground hover:bg-secondary/70",
-                isCollapsed && "justify-center w-full"
-              )}
-            >
-              <LogIn size={24} className="text-muted-foreground" />
-              {!isCollapsed && (
-                <span className="ml-4 font-heading tracking-wide text-lg uppercase">Sign in</span>
-              )}
-            </button>
-          )}
+              <link.icon className="h-4 w-4" />
+              <span>{link.label}</span>
+            </Link>
+          ))}
         </nav>
-        
-        <div className="mt-auto">
-          {user && (
-            <Dialog open={isPostDialogOpen} onOpenChange={setIsPostDialogOpen}>
-              <DialogTrigger asChild>
-                <Button 
-                  variant="outline"
-                  size={isCollapsed ? "icon" : "lg"}
-                  className={cn(
-                    "w-full font-bold bg-white text-black hover:bg-white/90 hover:text-black border-0", 
-                    isCollapsed ? "p-3" : "px-6 py-3 rounded-full"
-                  )}
-                >
-                  {isCollapsed ? (
-                    <PlusCircle size={24} />
-                  ) : (
-                    <>
-                      <PlusCircle size={24} className="mr-2" />
-                      <span className="font-heading tracking-wide uppercase border border-black/20 rounded-full px-4 py-1">Post</span>
-                    </>
-                  )}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[600px] p-0 rounded-2xl bg-background border-border">
-                <CreatePost onPostCreated={handlePostCreated} inDialog={true} />
-              </DialogContent>
-            </Dialog>
-          )}
-        </div>
+        <Separator className="my-2" />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline">My Account</Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-60" align="end" forceMount>
+            <DropdownMenuItem>
+              <LayoutDashboard className="mr-2 h-4 w-4" />
+              <span>Dashboard</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <User className="mr-2 h-4 w-4" />
+              <span>Profile</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Calendar className="mr-2 h-4 w-4" />
+              <span>Calendar</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Settings</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>
+              <HelpCircle className="mr-2 h-4 w-4" />
+              <span>Support</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleSignOut}>
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Log out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
-    </div>
-  );
-};
+    )
+  }
+)
+Sidebar.displayName = "Sidebar"
 
-export default Sidebar;
+export { Sidebar }
