@@ -1,6 +1,7 @@
+
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, X, Camera, UserCircle, Smile, Award } from 'lucide-react';
+import { ArrowLeft, Camera, MessageCircle, UserCircle, Grid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { User } from '@/lib/data';
 import { cn } from '@/lib/utils';
@@ -18,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 interface ProfileHeaderProps {
   user: User;
@@ -44,6 +46,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     ...user,
     profession: user.profession || ''
   });
+  
   const [formData, setFormData] = useState({
     name: user.name,
     bio: user.bio || '',
@@ -61,8 +64,15 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     'https://i.pravatar.cc/150?img=8',
   ];
   
-  const coverPhotoInputRef = useRef<HTMLInputElement>(null);
-
+  const galleryImages = [
+    'https://images.unsplash.com/photo-1682685797828-d3b2561deef4?q=80&w=2070',
+    'https://images.unsplash.com/photo-1682685797661-9e0c87f59c60?q=80&w=2070',
+    'https://images.unsplash.com/photo-1498036882173-b41c28a8ba34?q=80&w=2070',
+    'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=2070',
+    'https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=2070',
+    'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?q=80&w=2070',
+  ];
+  
   const handleFollow = async () => {
     if (!authUser) {
       toast.error('You need to be logged in to follow users');
@@ -142,11 +152,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   };
 
   const handleProfilePictureClick = () => {
-    setIsAvatarDialogOpen(true);
-  };
-
-  const handleCoverPhotoClick = () => {
-    coverPhotoInputRef.current?.click();
+    if (isCurrentUser) {
+      setIsAvatarDialogOpen(true);
+    }
   };
 
   const handleSelectAvatar = async (avatarUrl: string) => {
@@ -175,143 +183,142 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     }
   };
 
-  const handleCoverPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !authUser) return;
-
-    toast.info('Cover photo update feature will be implemented soon');
-  };
-
   return (
     <div className="animate-fade-in">
-      <div className="flex items-center p-4 sticky top-0 z-10 bg-background/90 backdrop-blur-md">
-        <button
-          onClick={handleBackClick}
-          className="mr-6 p-2 rounded-full hover:bg-xExtraLightGray/50 transition-colors"
-        >
-          <ArrowLeft size={18} />
-        </button>
-        <div>
-          <h2 className="font-bold text-xl">{profileData.name}</h2>
-          <p className="text-xGray text-sm">{stats.posts + stats.replies} total interactions</p>
+      {/* Blue gradient background */}
+      <div className="relative">
+        <div className="absolute top-0 left-0 right-0 h-48 bg-gradient-to-br from-blue-400 to-purple-500 z-0"></div>
+        
+        {/* Header with back button and grid button */}
+        <div className="relative z-10 flex justify-between items-center p-4">
+          <button
+            onClick={handleBackClick}
+            className="p-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors"
+            aria-label="Go back"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <button 
+            className="p-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors"
+            aria-label="View grid"
+          >
+            <Grid size={20} />
+          </button>
         </div>
-      </div>
-      
-      <div className="h-48 bg-xExtraLightGray relative">
-        <div className="h-full w-full bg-gradient-to-br from-xBlue/20 to-purple-500/20"></div>
-        {isCurrentUser && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <button 
-              className="p-2 rounded-full bg-black/50 text-white"
-              onClick={handleCoverPhotoClick}
-              aria-label="Change cover photo"
+        
+        {/* Profile card */}
+        <div className="relative z-10 mx-4 mt-8 pt-12 bg-white dark:bg-gray-900 rounded-3xl shadow-lg overflow-hidden">
+          {/* Profile image - positioned to overlap */}
+          <div className="absolute -top-16 left-1/2 transform -translate-x-1/2">
+            <div 
+              className="relative cursor-pointer" 
+              onClick={handleProfilePictureClick}
             >
-              <Camera size={20} />
-            </button>
-            <input
-              type="file"
-              ref={coverPhotoInputRef}
-              onChange={handleCoverPhotoChange}
-              accept="image/*"
-              className="hidden"
-            />
-          </div>
-        )}
-      </div>
-      
-      <div className="px-4 pb-4 relative">
-        <div className="flex justify-between items-start">
-          <div className="relative -mt-16">
-            <div className="relative">
-              <img
-                src={profileData.avatar}
-                alt={profileData.name}
-                className="w-32 h-32 rounded-full object-cover border-4 border-background"
-              />
+              <Avatar className="w-32 h-32 border-4 border-white dark:border-gray-900">
+                <AvatarImage src={profileData.avatar} alt={profileData.name} className="object-cover" />
+                <AvatarFallback>{profileData.name.charAt(0)}</AvatarFallback>
+              </Avatar>
               {isCurrentUser && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <button 
-                    className="bg-black/60 rounded-full p-2 text-white"
-                    aria-label="Change profile picture"
-                    onClick={handleProfilePictureClick}
-                  >
-                    <Camera size={20} />
-                  </button>
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full opacity-0 hover:opacity-100 transition-opacity">
+                  <Camera size={24} className="text-white" />
                 </div>
               )}
             </div>
-            <input
-              type="file"
-              ref={coverPhotoInputRef}
-              onChange={handleCoverPhotoChange}
-              accept="image/*"
-              className="hidden"
-            />
           </div>
           
-          <div className="mt-4">
-            {isCurrentUser ? (
-              <Button
-                variant="outline"
-                onClick={handleEditProfile}
-                className="font-bold text-sm rounded-full px-4 py-1.5 h-9 bg-background hover:bg-black/5 dark:hover:bg-white/10 border border-gray-300 dark:border-gray-700 transition-colors"
-              >
-                Edit profile
-              </Button>
-            ) : (
-              <Button
-                variant={isFollowing ? 'outline' : 'default'}
-                onClick={handleFollow}
-                className={cn(
-                  "rounded-full font-bold",
-                  isFollowing && "hover:bg-pink-50 hover:text-pink-600 hover:border-pink-200"
-                )}
-              >
-                {isFollowing ? 'Following' : 'Follow'}
-              </Button>
-            )}
-          </div>
-        </div>
-        
-        <div className="mt-4">
-          <div className="flex items-center mb-1">
-            <h1 className="text-xl font-bold mr-1">{profileData.name}</h1>
-            {profileData.verified && (
-              <span className="text-xBlue">
-                <CheckCircle size={20} className="fill-xBlue text-white" />
-              </span>
-            )}
-          </div>
-          
-          {profileData.profession && (
-            <p className="text-gray-600 dark:text-gray-400 mb-2">{profileData.profession}</p>
-          )}
-          
-          {profileData.bio && <p className="mt-3">{profileData.bio}</p>}
-          
-          <div className="flex mt-3 flex-wrap">
-            <div className="mr-4 hover:underline flex items-center">
-              <span className="text-red-500 mr-1">🔥</span>
-              <span className="font-bold">{stats.reactions}</span>
+          {/* Profile info */}
+          <div className="px-6 pb-6 text-center">
+            <h1 className="text-xl font-bold mt-2">{profileData.name}</h1>
+            
+            <p className="text-gray-500 text-sm mt-2 px-6">
+              {profileData.bio || "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."}
+            </p>
+            
+            <div className="mt-4 flex justify-center gap-2">
+              {isCurrentUser ? (
+                <Button
+                  variant="outline"
+                  onClick={handleEditProfile}
+                  className="rounded-full px-4 py-1 border-gray-300 dark:border-gray-700"
+                >
+                  Edit profile
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    className="bg-blue-500 hover:bg-blue-600 text-white rounded-full px-8 py-1"
+                    onClick={handleFollow}
+                  >
+                    Follow
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="rounded-full p-2 aspect-square border-gray-300 dark:border-gray-700"
+                  >
+                    <MessageCircle size={18} />
+                  </Button>
+                </>
+              )}
             </div>
-            <div className="hover:underline flex items-center">
-              <img 
-                src="/lovable-uploads/574535bb-701a-4bd6-9e65-e462c713c41d.png" 
-                alt="Bluedify Bot" 
-                className="w-6 h-6 mr-1.5 rounded-full object-cover border border-blue-300"
-              />
-              <span className="font-bold">{stats.bluedify}</span>
+            
+            {/* Stats section */}
+            <div className="mt-8">
+              <h2 className="font-bold text-left mb-4">Friends</h2>
+              
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="flex flex-col items-center bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
+                  <span className="text-2xl font-bold">10K</span>
+                  <span className="text-gray-500 text-sm">Likes</span>
+                </div>
+                <div className="flex flex-col items-center bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
+                  <span className="text-2xl font-bold">528</span>
+                  <span className="text-gray-500 text-sm">Following</span>
+                </div>
+                <div className="flex flex-col items-center bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
+                  <span className="text-2xl font-bold">1.2K</span>
+                  <span className="text-gray-500 text-sm">Followers</span>
+                </div>
+                <div className="flex flex-col items-center bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
+                  <div className="flex -space-x-2">
+                    {[1, 2, 3, 4].map((i) => (
+                      <Avatar key={i} className="w-8 h-8 border-2 border-white dark:border-gray-800">
+                        <AvatarImage src={`https://i.pravatar.cc/150?img=${i}`} alt="Friend" />
+                        <AvatarFallback>F{i}</AvatarFallback>
+                      </Avatar>
+                    ))}
+                  </div>
+                  <span className="text-gray-500 text-sm mt-1">Gallery</span>
+                </div>
+              </div>
+              
+              {/* Gallery grid */}
+              <div className="grid grid-cols-2 gap-2">
+                {galleryImages.map((image, index) => (
+                  <div 
+                    key={index} 
+                    className={`overflow-hidden rounded-xl ${index >= 4 ? 'hidden md:block' : ''}`}
+                    style={{aspectRatio: '1'}}
+                  >
+                    <img 
+                      src={image} 
+                      alt={`Gallery image ${index + 1}`} 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Edit profile dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[650px] p-0 border-none rounded-2xl">
           <div className="flex justify-between items-center p-4 border-b">
             <div className="flex items-center">
               <DialogClose className="mr-4 p-2 rounded-full hover:bg-xExtraLightGray/50 transition-colors">
-                <X size={18} />
+                <ArrowLeft size={18} />
               </DialogClose>
               <DialogTitle className="text-xl font-bold">Edit profile</DialogTitle>
             </div>
@@ -324,42 +331,38 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </div>
           
           <ScrollArea className="max-h-[70vh]">
-            <div className="h-48 bg-xExtraLightGray relative">
-              <div className="h-full w-full bg-gradient-to-br from-xBlue/20 to-purple-500/20"></div>
-            </div>
-            
             <div className="p-4 space-y-4 mt-4">
               <div className="space-y-1">
-                <Label htmlFor="name" className="text-xGray text-sm">Name</Label>
+                <Label htmlFor="name" className="text-gray-500 text-sm">Name</Label>
                 <Input 
                   id="name" 
                   name="name" 
                   value={formData.name} 
                   onChange={handleChange}
-                  className="border-none bg-xExtraLightGray/50 focus-visible:ring-xBlue"
+                  className="border-none bg-gray-100 dark:bg-gray-800 focus-visible:ring-blue-500"
                 />
               </div>
               
               <div className="space-y-1">
-                <Label htmlFor="profession" className="text-xGray text-sm">Profession</Label>
+                <Label htmlFor="profession" className="text-gray-500 text-sm">Profession</Label>
                 <Input 
                   id="profession" 
                   name="profession" 
                   value={formData.profession} 
                   onChange={handleChange}
                   placeholder="Software Engineer, Designer, etc."
-                  className="border-none bg-xExtraLightGray/50 focus-visible:ring-xBlue"
+                  className="border-none bg-gray-100 dark:bg-gray-800 focus-visible:ring-blue-500"
                 />
               </div>
               
               <div className="space-y-1 mb-6">
-                <Label htmlFor="bio" className="text-xGray text-sm">Bio</Label>
+                <Label htmlFor="bio" className="text-gray-500 text-sm">Bio</Label>
                 <Textarea 
                   id="bio" 
                   name="bio" 
                   value={formData.bio} 
                   onChange={handleChange}
-                  className="border-none bg-xExtraLightGray/50 focus-visible:ring-xBlue resize-none h-24"
+                  className="border-none bg-gray-100 dark:bg-gray-800 focus-visible:ring-blue-500 resize-none h-24"
                 />
               </div>
             </div>
@@ -367,6 +370,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </DialogContent>
       </Dialog>
 
+      {/* Avatar selection dialog */}
       <Dialog open={isAvatarDialogOpen} onOpenChange={setIsAvatarDialogOpen}>
         <DialogContent className="sm:max-w-[500px] p-6 rounded-2xl">
           <DialogHeader className="mb-4">
@@ -377,7 +381,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             {platformAvatars.map((avatar, index) => (
               <button
                 key={index}
-                className="relative rounded-full overflow-hidden transition-all hover:ring-2 hover:ring-xBlue focus:ring-2 focus:ring-xBlue focus:outline-none"
+                className="relative rounded-full overflow-hidden transition-all hover:ring-2 hover:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 onClick={() => handleSelectAvatar(avatar)}
               >
                 <img
@@ -387,7 +391,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 />
                 {avatar === profileData.avatar && (
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                    <CheckCircle className="text-white" />
+                    <div className="text-white">✓</div>
                   </div>
                 )}
               </button>

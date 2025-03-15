@@ -3,20 +3,15 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import ProfileHeader from '@/components/user/ProfileHeader';
-import PostList from '@/components/feed/PostList';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const Profile = () => {
   const { userId } = useParams<{ userId?: string }>();
-  const [activeTab, setActiveTab] = useState("posts");
   const { user, username } = useAuth();
   const [profileData, setProfileData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [userPosts, setUserPosts] = useState<any[]>([]);
-  const [userReplies, setUserReplies] = useState<any[]>([]);
   const [userStats, setUserStats] = useState({
     posts: 0,
     replies: 0,
@@ -227,65 +222,6 @@ const Profile = () => {
   }, [profileUserId, user, isCurrentUser, navigate, username]);
 
   useEffect(() => {
-    const fetchUserPosts = async () => {
-      if (!profileUserId) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('shoutouts')
-          .select(`
-            *,
-            profiles:user_id (*)
-          `)
-          .eq('user_id', profileUserId)
-          .order('created_at', { ascending: false });
-          
-        if (error) {
-          throw error;
-        }
-        
-        if (data) {
-          const formattedPosts = data.map(post => {
-            // Get username from context or provide a fallback
-            const usernameToUse = isCurrentUser ? 
-              (username || post.user_id.substring(0, 8) || 'user') : 
-              post.user_id.substring(0, 8) || 'user';
-              
-            return {
-              id: post.id,
-              content: post.content,
-              createdAt: post.created_at,
-              likes: 0,
-              reposts: 0,
-              replies: 0,
-              views: 0,
-              userId: post.user_id,
-              images: post.media,
-              user: {
-                id: post.profiles?.id || profileUserId,
-                name: post.profiles?.full_name || 'User',
-                username: usernameToUse,
-                avatar: post.profiles?.avatar_url || 'https://i.pravatar.cc/150?img=1',
-                verified: false,
-                followers: 0,
-                following: 0,
-              }
-            };
-          });
-          
-          setUserPosts(formattedPosts);
-        }
-      } catch (error) {
-        console.error('Error fetching user posts:', error);
-      }
-    };
-    
-    if (profileUserId) {
-      fetchUserPosts();
-    }
-  }, [profileUserId, isCurrentUser, username]);
-
-  useEffect(() => {
     if (!profileUserId) return;
     
     const profileChannel = supabase
@@ -316,16 +252,12 @@ const Profile = () => {
       supabase.removeChannel(profileChannel);
     };
   }, [profileUserId]);
-  
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-  };
 
   if (loading) {
     return (
       <AppLayout>
         <div className="flex flex-col items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-xBlue"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
         </div>
       </AppLayout>
     );
@@ -336,7 +268,7 @@ const Profile = () => {
       <AppLayout>
         <div className="flex flex-col items-center justify-center py-12">
           <h2 className="text-2xl font-bold mb-4">User not found</h2>
-          <p className="text-xGray">The user you're looking for doesn't exist or was removed.</p>
+          <p className="text-gray-500">The user you're looking for doesn't exist or was removed.</p>
         </div>
       </AppLayout>
     );
@@ -344,38 +276,13 @@ const Profile = () => {
 
   return (
     <AppLayout>
-      <ProfileHeader 
-        user={profileData} 
-        isCurrentUser={isCurrentUser}
-        stats={userStats}
-      />
-      
-      <Tabs defaultValue="posts" className="w-full" onValueChange={handleTabChange}>
-        <TabsList className="w-full grid grid-cols-2 bg-transparent border-b rounded-none">
-          <TabsTrigger 
-            value="posts" 
-            className="data-[state=active]:border-b-2 data-[state=active]:border-xBlue data-[state=active]:shadow-none rounded-none data-[state=active]:font-bold"
-          >
-            Posts
-          </TabsTrigger>
-          <TabsTrigger 
-            value="replies" 
-            className="data-[state=active]:border-b-2 data-[state=active]:border-xBlue data-[state=active]:shadow-none rounded-none data-[state=active]:font-bold"
-          >
-            Replies
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="posts" className="mt-0">
-          <PostList posts={userPosts} />
-        </TabsContent>
-        
-        <TabsContent value="replies" className="mt-0">
-          <div className="flex flex-col items-center justify-center py-12 text-xGray">
-            <p>No replies yet</p>
-          </div>
-        </TabsContent>
-      </Tabs>
+      <div className="bg-white dark:bg-gray-950 min-h-screen">
+        <ProfileHeader 
+          user={profileData} 
+          isCurrentUser={isCurrentUser}
+          stats={userStats}
+        />
+      </div>
     </AppLayout>
   );
 };
