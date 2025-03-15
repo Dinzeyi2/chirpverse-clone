@@ -184,57 +184,61 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
   return (
     <div className="animate-fade-in">
+      {/* Blue gradient background */}
       <div className="relative">
-        <div className="absolute top-0 left-0 right-0 h-48 bg-black z-0">
-        </div>
+        <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-br from-blue-500 to-indigo-600 z-0"></div>
         
+        {/* Header with back button and grid button */}
         <div className="relative z-10 flex justify-between items-center p-4">
           <button
             onClick={handleBackClick}
-            className="p-2 rounded-full bg-white/90 text-gray-800 hover:bg-white shadow-sm transition-colors"
+            className="p-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors"
             aria-label="Go back"
           >
             <ArrowLeft size={20} />
           </button>
           <button 
-            className="p-2 rounded-full bg-white/90 text-gray-800 hover:bg-white shadow-sm transition-colors"
+            className="p-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors"
             aria-label="View grid"
           >
             <Grid size={20} />
           </button>
         </div>
         
-        <div className="relative z-20 flex justify-center">
-          <div 
-            className="relative cursor-pointer mt-4" 
-            onClick={handleProfilePictureClick}
-          >
-            <Avatar className="w-40 h-40 border-4 border-white shadow-md">
-              <AvatarImage src={profileData.avatar} alt={profileData.name} className="object-cover" />
-              <AvatarFallback>{profileData.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            {isCurrentUser && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full opacity-0 hover:opacity-100 transition-opacity">
-                <Camera size={24} className="text-white" />
-              </div>
-            )}
+        {/* Profile card with dark background */}
+        <div className="relative z-10 mx-0 mt-16 pt-20 bg-gray-950 dark:bg-gray-950 rounded-t-3xl shadow-lg overflow-hidden">
+          {/* Profile image - positioned to be half inside the blue area */}
+          <div className="absolute -top-32 left-1/2 transform -translate-x-1/2">
+            <div 
+              className="relative cursor-pointer" 
+              onClick={handleProfilePictureClick}
+            >
+              <Avatar className="w-40 h-40 border-4 border-gray-950 dark:border-gray-950">
+                <AvatarImage src={profileData.avatar} alt={profileData.name} className="object-cover" />
+                <AvatarFallback>{profileData.name.charAt(0)}</AvatarFallback>
+              </Avatar>
+              {isCurrentUser && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full opacity-0 hover:opacity-100 transition-opacity">
+                  <Camera size={24} className="text-white" />
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-        
-        <div className="relative z-10 mx-0 mt-20 bg-white dark:bg-background shadow-lg overflow-hidden">
-          <div className="px-6 pt-6 pb-6 text-center">
-            <h1 className="text-xl font-bold mt-2 text-foreground">{profileData.name}</h1>
+          
+          {/* Profile info */}
+          <div className="px-6 pb-6 text-center">
+            <h1 className="text-xl font-bold mt-2 text-white">User</h1>
             
-            <p className="text-muted-foreground text-sm mt-2 px-6">
-              {profileData.bio || "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."}
+            <p className="text-gray-400 text-sm mt-2 px-6">
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
             </p>
             
-            <div className="mt-6 flex justify-center gap-2">
+            <div className="mt-6 flex justify-center">
               {isCurrentUser ? (
                 <Button
                   variant="outline"
                   onClick={handleEditProfile}
-                  className="rounded-full px-8 py-2 text-foreground bg-transparent border-border hover:bg-secondary"
+                  className="rounded-full px-8 py-2 text-white bg-transparent border-gray-700 hover:bg-gray-800"
                 >
                   Edit profile
                 </Button>
@@ -248,7 +252,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   </Button>
                   <Button
                     variant="outline"
-                    className="rounded-full p-2 aspect-square border-border"
+                    className="rounded-full p-2 aspect-square border-gray-300 dark:border-gray-700"
                   >
                     <MessageCircle size={18} />
                   </Button>
@@ -256,35 +260,37 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               )}
             </div>
             
+            {/* Stats section */}
             <div className="mt-10">
-              <h2 className="font-bold text-left mb-4 text-foreground">Friends</h2>
+              <h2 className="font-bold text-left mb-4 text-white">Friends</h2>
               
               <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="flex flex-col items-center bg-secondary rounded-xl p-4">
-                  <span className="text-2xl font-bold text-foreground">10K</span>
-                  <span className="text-muted-foreground text-sm">Likes</span>
+                <div className="flex flex-col items-center bg-gray-800 dark:bg-gray-800 rounded-xl p-4">
+                  <span className="text-2xl font-bold text-white">10K</span>
+                  <span className="text-gray-400 text-sm">Likes</span>
                 </div>
-                <div className="flex flex-col items-center bg-secondary rounded-xl p-4">
-                  <span className="text-2xl font-bold text-foreground">528</span>
-                  <span className="text-muted-foreground text-sm">Following</span>
+                <div className="flex flex-col items-center bg-gray-800 dark:bg-gray-800 rounded-xl p-4">
+                  <span className="text-2xl font-bold text-white">528</span>
+                  <span className="text-gray-400 text-sm">Following</span>
                 </div>
-                <div className="flex flex-col items-center bg-secondary rounded-xl p-4">
-                  <span className="text-2xl font-bold text-foreground">1.2K</span>
-                  <span className="text-muted-foreground text-sm">Followers</span>
+                <div className="flex flex-col items-center bg-gray-800 dark:bg-gray-800 rounded-xl p-4">
+                  <span className="text-2xl font-bold text-white">1.2K</span>
+                  <span className="text-gray-400 text-sm">Followers</span>
                 </div>
-                <div className="flex flex-col items-center bg-secondary rounded-xl p-4">
+                <div className="flex flex-col items-center bg-gray-800 dark:bg-gray-800 rounded-xl p-4">
                   <div className="flex -space-x-2">
                     {[1, 2, 3, 4].map((i) => (
-                      <Avatar key={i} className="w-8 h-8 border-2 border-secondary">
+                      <Avatar key={i} className="w-8 h-8 border-2 border-gray-800 dark:border-gray-800">
                         <AvatarImage src={`https://i.pravatar.cc/150?img=${i}`} alt="Friend" />
                         <AvatarFallback>F{i}</AvatarFallback>
                       </Avatar>
                     ))}
                   </div>
-                  <span className="text-muted-foreground text-sm mt-1">Gallery</span>
+                  <span className="text-gray-400 text-sm mt-1">Gallery</span>
                 </div>
               </div>
               
+              {/* Gallery grid */}
               <div className="grid grid-cols-2 gap-2">
                 {galleryImages.map((image, index) => (
                   <div 
@@ -305,6 +311,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </div>
       </div>
 
+      {/* Edit profile dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[650px] p-0 border-none rounded-2xl">
           <div className="flex justify-between items-center p-4 border-b">
@@ -362,6 +369,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </DialogContent>
       </Dialog>
 
+      {/* Avatar selection dialog */}
       <Dialog open={isAvatarDialogOpen} onOpenChange={setIsAvatarDialogOpen}>
         <DialogContent className="sm:max-w-[500px] p-6 rounded-2xl">
           <DialogHeader className="mb-4">
