@@ -60,71 +60,65 @@ const Profile = () => {
     }
   }, [profileUserId, user, navigate, userId]);
   
-  useEffect(() => {
-    const fetchUserStats = async () => {
-      if (!profileUserId) return;
-      
-      try {
-        const { data: posts, error: postsError } = await supabase
-          .from('shoutouts')
-          .select('id', { count: 'exact' })
-          .eq('user_id', profileUserId);
-          
-        const { data: replies, error: repliesError } = await supabase
-          .from('comments')
-          .select('id', { count: 'exact' })
-          .eq('user_id', profileUserId);
-
-        const { data: userShoutouts, error: shoutoutsError } = await supabase
-          .from('shoutouts')
-          .select('id')
-          .eq('user_id', profileUserId);
-
-        let reactionsCount = 0;
-        let bluedifyCount = 0;
-        
-        if (userShoutouts && userShoutouts.length > 0) {
-          const shoutoutIds = userShoutouts.map(shoutout => shoutout.id);
-          
-          const { count: likesCount, error: likesError } = await supabase
-            .from('likes')
-            .select('*', { count: 'exact', head: true })
-            .in('shoutout_id', shoutoutIds);
-            
-          const { count: repostsCount, error: repostsError } = await supabase
-            .from('reposts')
-            .select('*', { count: 'exact', head: true })
-            .in('shoutout_id', shoutoutIds);
-            
-          if (likesCount !== null) reactionsCount = likesCount;
-          if (repostsCount !== null) bluedifyCount = repostsCount;
-          
-          if (likesError || repostsError) {
-            console.error('Error counting interactions:', { likesError, repostsError });
-          }
-        }
-          
-        setUserStats({
-          posts: posts?.length || 0,
-          replies: replies?.length || 0,
-          reactions: reactionsCount,
-          bluedify: bluedifyCount
-        });
-        
-        if (postsError || repliesError || shoutoutsError) {
-          console.error('Error fetching user stats:', {
-            postsError, repliesError, shoutoutsError
-          });
-        }
-      } catch (err) {
-        console.error('Error computing user stats:', err);
-      }
-    };
+  const fetchUserStats = async () => {
+    if (!profileUserId) return;
     
-    if (profileUserId) {
-      fetchUserStats();
+    try {
+      const { data: posts, error: postsError } = await supabase
+        .from('shoutouts')
+        .select('id', { count: 'exact' })
+        .eq('user_id', profileUserId);
+        
+      const { data: replies, error: repliesError } = await supabase
+        .from('comments')
+        .select('id', { count: 'exact' })
+        .eq('user_id', profileUserId);
+
+      const { data: userShoutouts, error: shoutoutsError } = await supabase
+        .from('shoutouts')
+        .select('id')
+        .eq('user_id', profileUserId);
+
+      let reactionsCount = 0;
+      let bluedifyCount = 0;
+      
+      if (userShoutouts && userShoutouts.length > 0) {
+        const shoutoutIds = userShoutouts.map(shoutout => shoutout.id);
+        
+        const { count: likesCount, error: likesError } = await supabase
+          .from('likes')
+          .select('*', { count: 'exact', head: true })
+          .in('shoutout_id', shoutoutIds);
+          
+        const { count: repostsCount, error: repostsError } = await supabase
+          .from('reposts')
+          .select('*', { count: 'exact', head: true })
+          .in('shoutout_id', shoutoutIds);
+          
+        if (likesCount !== null) reactionsCount = likesCount;
+        if (repostsCount !== null) bluedifyCount = repostsCount;
+        
+        if (likesError || repostsError) {
+          console.error('Error counting interactions:', { likesError, repostsError });
+        }
+      }
+        
+      setUserStats({
+        posts: posts?.length || 0,
+        replies: replies?.length || 0,
+        reactions: reactionsCount,
+        bluedify: bluedifyCount
+      });
+      
+      if (postsError || repliesError || shoutoutsError) {
+        console.error('Error fetching user stats:', {
+          postsError, repliesError, shoutoutsError
+        });
+      }
+    } catch (err) {
+      console.error('Error computing user stats:', err);
     }
-  }, [profileUserId]);
+  };
   
   useEffect(() => {
     const fetchProfileData = async () => {
