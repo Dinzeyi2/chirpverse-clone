@@ -222,7 +222,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </div>
           
           <div className="px-6 pb-6 text-center">
-            <h1 className="text-xl font-bold mt-2 text-white">User</h1>
+            <h1 className="text-xl font-bold mt-2 text-white">{profileData.name}</h1>
             
             <p className="text-gray-400 text-sm mt-2 px-6">
               
