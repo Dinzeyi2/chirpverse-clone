@@ -184,9 +184,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
   return (
     <div className="animate-fade-in">
-      {/* Blue gradient background */}
+      {/* Blue gradient background with reduced height */}
       <div className="relative">
-        <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-br from-blue-500 to-indigo-600 z-0"></div>
+        <div className="absolute top-0 left-0 right-0 h-48 bg-gradient-to-br from-blue-500 to-indigo-600 z-0"></div>
         
         {/* Header with back button and grid button */}
         <div className="relative z-10 flex justify-between items-center p-4">
@@ -205,35 +205,35 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </button>
         </div>
         
-        {/* Profile card with dark background */}
-        <div className="relative z-10 mx-0 mt-16 pt-20 bg-gray-950 dark:bg-gray-950 rounded-t-3xl shadow-lg overflow-hidden">
-          {/* Profile image - positioned to be half inside the blue area */}
-          <div className="absolute -top-32 left-1/2 transform -translate-x-1/2">
-            <div 
-              className="relative cursor-pointer" 
-              onClick={handleProfilePictureClick}
-            >
-              <Avatar className="w-40 h-40 border-4 border-gray-950 dark:border-gray-950">
-                <AvatarImage src={profileData.avatar} alt={profileData.name} className="object-cover" />
-                <AvatarFallback>{profileData.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              {isCurrentUser && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full opacity-0 hover:opacity-100 transition-opacity">
-                  <Camera size={24} className="text-white" />
-                </div>
-              )}
-            </div>
+        {/* Profile picture - positioned to sit on top of the boundary */}
+        <div className="relative z-20 flex justify-center">
+          <div 
+            className="relative cursor-pointer mt-4" 
+            onClick={handleProfilePictureClick}
+          >
+            <Avatar className="w-40 h-40 border-4 border-gray-950 dark:border-gray-950">
+              <AvatarImage src={profileData.avatar} alt={profileData.name} className="object-cover" />
+              <AvatarFallback>{profileData.name.charAt(0)}</AvatarFallback>
+            </Avatar>
+            {isCurrentUser && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full opacity-0 hover:opacity-100 transition-opacity">
+                <Camera size={24} className="text-white" />
+              </div>
+            )}
           </div>
-          
+        </div>
+        
+        {/* Profile card with dark background - starts lower to accommodate the avatar */}
+        <div className="relative z-10 mx-0 mt-20 bg-gray-950 dark:bg-gray-950 shadow-lg overflow-hidden">
           {/* Profile info */}
-          <div className="px-6 pb-6 text-center">
-            <h1 className="text-xl font-bold mt-2 text-white">User</h1>
+          <div className="px-6 pt-6 pb-6 text-center">
+            <h1 className="text-xl font-bold mt-2 text-white">{profileData.name}</h1>
             
             <p className="text-gray-400 text-sm mt-2 px-6">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+              {profileData.bio || "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."}
             </p>
             
-            <div className="mt-6 flex justify-center">
+            <div className="mt-6 flex justify-center gap-2">
               {isCurrentUser ? (
                 <Button
                   variant="outline"
