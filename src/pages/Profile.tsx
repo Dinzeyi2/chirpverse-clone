@@ -15,6 +15,7 @@ import {
   PaginationNext,
   PaginationPrevious
 } from '@/components/ui/pagination';
+import PostActionMenu from '@/components/feed/PostActionMenu';
 
 const Profile = () => {
   const { userId } = useParams<{ userId?: string }>();
@@ -306,7 +307,8 @@ const Profile = () => {
             following: 0,
             followers: 0,
             verified: false
-          }
+          },
+          isOwner: isCurrentUser
         }));
         
         setPosts(formattedPosts);
@@ -321,7 +323,7 @@ const Profile = () => {
     if (profileUserId && activeTab === 'posts') {
       fetchPosts();
     }
-  }, [profileUserId, postsPage, activeTab]);
+  }, [profileUserId, postsPage, activeTab, isCurrentUser]);
 
   useEffect(() => {
     const fetchReplies = async () => {
@@ -396,6 +398,54 @@ const Profile = () => {
     }
   };
 
+  const handlePostDeleted = async () => {
+    if (activeTab === 'posts') {
+      setPostsPage(1);
+      await fetchUserStats();
+    } else if (activeTab === 'replies') {
+      setRepliesPage(1);
+      await fetchUserStats();
+    }
+  };
+
+  const renderPostList = (items: Post[], loading: boolean) => {
+    if (loading) {
+      return (
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      );
+    }
+
+    if (items.length === 0) {
+      return (
+        <div className="text-center py-10">
+          <p className="text-gray-500">No posts to display</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {items.map((post) => (
+          <div key={post.id} className="relative">
+            <div className="absolute top-3 right-3 z-10">
+              <PostActionMenu
+                postId={post.id}
+                isOwner={post.userId === user?.id}
+                onPostDeleted={handlePostDeleted}
+              />
+            </div>
+            <PostList 
+              posts={[post]} 
+              loading={false} 
+            />
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <AppLayout>
@@ -430,10 +480,7 @@ const Profile = () => {
         <div className="px-4 py-6">
           {activeTab === 'posts' && (
             <>
-              <PostList 
-                posts={posts} 
-                loading={loadingPosts} 
-              />
+              {renderPostList(posts, loadingPosts)}
               {posts.length > 0 && (
                 <Pagination className="mt-6">
                   <PaginationContent>
@@ -460,10 +507,7 @@ const Profile = () => {
           
           {activeTab === 'replies' && (
             <>
-              <PostList 
-                posts={replies} 
-                loading={loadingReplies} 
-              />
+              {renderPostList(replies, loadingReplies)}
               {replies.length > 0 && (
                 <Pagination className="mt-6">
                   <PaginationContent>
