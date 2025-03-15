@@ -185,13 +185,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   return (
     <div className="animate-fade-in">
       <div className="relative">
-        <div className="absolute top-0 left-0 right-0 h-48 bg-white z-0" 
-             style={{
-               backgroundImage: `linear-gradient(rgba(220, 220, 220, 0.7) 1px, transparent 1px), 
-                                linear-gradient(90deg, rgba(220, 220, 220, 0.7) 1px, #ffffff 1px)`,
-               backgroundSize: '30px 30px',
-               backgroundPosition: '-1px -1px'
-             }}>
+        <div className="absolute top-0 left-0 right-0 h-48 bg-black z-0">
         </div>
         
         <div className="relative z-10 flex justify-between items-center p-4">
