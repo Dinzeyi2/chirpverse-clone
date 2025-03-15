@@ -16,11 +16,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 
+type SortOption = 'latest' | 'popular' | 'commented';
+
 const Index = () => {
   const [feedPosts, setFeedPosts] = useState<any[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<any[]>([]);
   const [feedView, setFeedView] = useState<'swipeable' | 'list'>('swipeable');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [sortOption, setSortOption] = useState<SortOption>('latest');
   const { user, username } = useAuth();
   const [loading, setLoading] = useState(true);
   
@@ -32,7 +35,10 @@ const Index = () => {
           .from('shoutouts')
           .select(`
             *,
-            profiles:user_id (*)
+            profiles:user_id (*),
+            likes:id (count),
+            comments:id (count),
+            saved_posts:id (count)
           `)
           .order('created_at', { ascending: false });
           
@@ -53,9 +59,11 @@ const Index = () => {
               id: post.id,
               content: post.content,
               createdAt: post.created_at,
-              likes: 0,
+              likes: post.likes?.[0]?.count || 0,
+              comments: post.comments?.[0]?.count || 0,
+              saves: post.saved_posts?.[0]?.count || 0,
               reposts: 0,
-              replies: 0,
+              replies: post.comments?.[0]?.count || 0,
               views: 0,
               userId: post.user_id,
               images: post.media,
@@ -137,22 +145,43 @@ const Index = () => {
     };
   }, [username]);
   
-  // Filter posts based on selected categories
+  // Apply both filtering and sorting to posts
   useEffect(() => {
-    if (selectedCategories.length === 0) {
-      setFilteredPosts(feedPosts);
-    } else {
-      // In a real app, posts would have category tags
-      // This is a simplified example that filters based on post content matching categories
-      const filtered = feedPosts.filter(post => {
+    // Step 1: Filter posts by categories if any are selected
+    let postsToDisplay = [...feedPosts];
+    
+    if (selectedCategories.length > 0) {
+      postsToDisplay = feedPosts.filter(post => {
         const content = post.content.toLowerCase();
         return selectedCategories.some(category => 
           content.includes(category.toLowerCase())
         );
       });
-      setFilteredPosts(filtered);
     }
-  }, [feedPosts, selectedCategories]);
+    
+    // Step 2: Sort the filtered posts according to selected sort option
+    switch (sortOption) {
+      case 'latest':
+        postsToDisplay.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        break;
+      case 'popular':
+        postsToDisplay.sort((a, b) => {
+          // Calculate popularity score (likes + comments + saves)
+          const scoreA = a.likes + a.comments + a.saves;
+          const scoreB = b.likes + b.comments + b.saves;
+          return scoreB - scoreA;
+        });
+        break;
+      case 'commented':
+        postsToDisplay.sort((a, b) => b.comments - a.comments);
+        break;
+      default:
+        // Default to latest if sortOption is invalid
+        postsToDisplay.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+    
+    setFilteredPosts(postsToDisplay);
+  }, [feedPosts, selectedCategories, sortOption]);
   
   const handlePostCreated = (content: string, media?: {type: string, url: string}[]) => {
     if (!user) return;
@@ -178,6 +207,10 @@ const Index = () => {
     createPost();
   };
 
+  const handleSortChange = (option: SortOption) => {
+    setSortOption(option);
+  };
+
   return (
     <AppLayout>
       <div className="sticky top-0 z-20 bg-black backdrop-blur-md border-b border-neutral-800">
@@ -196,13 +229,22 @@ const Index = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="bg-black border border-neutral-800 text-white">
-                <DropdownMenuItem className="hover:bg-neutral-800">
+                <DropdownMenuItem 
+                  className={cn("hover:bg-neutral-800", sortOption === 'latest' && "bg-neutral-800")}
+                  onClick={() => handleSortChange('latest')}
+                >
                   Latest
                 </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-neutral-800">
+                <DropdownMenuItem 
+                  className={cn("hover:bg-neutral-800", sortOption === 'popular' && "bg-neutral-800")}
+                  onClick={() => handleSortChange('popular')}
+                >
                   Most Popular
                 </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-neutral-800">
+                <DropdownMenuItem 
+                  className={cn("hover:bg-neutral-800", sortOption === 'commented' && "bg-neutral-800")}
+                  onClick={() => handleSortChange('commented')}
+                >
                   Most Commented
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -267,9 +309,9 @@ const Index = () => {
       {!loading && (
         <div className="pt-0 bg-black">
           {feedView === 'swipeable' ? (
-            <SwipeablePostView posts={filteredPosts.length > 0 ? filteredPosts : feedPosts} />
+            <SwipeablePostView posts={filteredPosts} />
           ) : (
-            <PostList posts={filteredPosts.length > 0 ? filteredPosts : feedPosts} />
+            <PostList posts={filteredPosts} />
           )}
         </div>
       )}
