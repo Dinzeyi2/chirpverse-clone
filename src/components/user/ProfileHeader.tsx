@@ -221,7 +221,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </div>
         </div>
         
-        <div className="relative z-10 mx-0 mt-20 bg-background dark:bg-background shadow-lg overflow-hidden">
+        <div className="relative z-10 mx-0 mt-20 bg-white dark:bg-background shadow-lg overflow-hidden">
           <div className="px-6 pt-6 pb-6 text-center">
             <h1 className="text-xl font-bold mt-2 text-foreground">{profileData.name}</h1>
             
