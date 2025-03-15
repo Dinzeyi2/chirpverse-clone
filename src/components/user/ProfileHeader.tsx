@@ -264,28 +264,28 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             
             <div className="mt-10">
               <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="flex flex-col items-center bg-gray-800 dark:bg-gray-800 rounded-xl p-4">
-                  <span className="text-2xl font-bold text-white">10K</span>
-                  <span className="text-gray-400 text-sm">Likes</span>
+                <div className="flex flex-col items-center bg-white dark:bg-white rounded-xl p-4">
+                  <span className="text-2xl font-bold text-black dark:text-black">10K</span>
+                  <span className="text-black dark:text-black text-sm">Likes</span>
                 </div>
-                <div className="flex flex-col items-center bg-gray-800 dark:bg-gray-800 rounded-xl p-4">
-                  <span className="text-2xl font-bold text-white">528</span>
-                  <span className="text-gray-400 text-sm">Following</span>
+                <div className="flex flex-col items-center bg-white dark:bg-white rounded-xl p-4">
+                  <span className="text-2xl font-bold text-black dark:text-black">528</span>
+                  <span className="text-black dark:text-black text-sm">Following</span>
                 </div>
-                <div className="flex flex-col items-center bg-gray-800 dark:bg-gray-800 rounded-xl p-4">
-                  <span className="text-2xl font-bold text-white">1.2K</span>
-                  <span className="text-gray-400 text-sm">Followers</span>
+                <div className="flex flex-col items-center bg-white dark:bg-white rounded-xl p-4">
+                  <span className="text-2xl font-bold text-black dark:text-black">1.2K</span>
+                  <span className="text-black dark:text-black text-sm">Followers</span>
                 </div>
-                <div className="flex flex-col items-center bg-gray-800 dark:bg-gray-800 rounded-xl p-4">
+                <div className="flex flex-col items-center bg-white dark:bg-white rounded-xl p-4">
                   <div className="flex -space-x-2">
                     {[1, 2, 3, 4].map((i) => (
-                      <Avatar key={i} className="w-8 h-8 border-2 border-gray-800 dark:border-gray-800">
+                      <Avatar key={i} className="w-8 h-8 border-2 border-white dark:border-white">
                         <AvatarImage src={`https://i.pravatar.cc/150?img=${i}`} alt="Friend" />
                         <AvatarFallback>F{i}</AvatarFallback>
                       </Avatar>
                     ))}
                   </div>
-                  <span className="text-gray-400 text-sm mt-1">Gallery</span>
+                  <span className="text-black dark:text-black text-sm mt-1">Gallery</span>
                 </div>
               </div>
               
