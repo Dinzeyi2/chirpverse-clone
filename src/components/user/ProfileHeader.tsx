@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, MessageCircle, UserCircle, Grid } from 'lucide-react';
@@ -206,15 +205,15 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </button>
         </div>
         
-        {/* Profile card */}
-        <div className="relative z-10 mx-4 mt-8 pt-12 bg-white dark:bg-gray-900 rounded-3xl shadow-lg overflow-hidden">
-          {/* Profile image - positioned to overlap */}
-          <div className="absolute -top-16 left-1/2 transform -translate-x-1/2">
+        {/* Profile card - adjusted to show more of the profile image */}
+        <div className="relative z-10 mx-4 mt-24 pt-16 bg-white dark:bg-gray-900 rounded-3xl shadow-lg overflow-hidden">
+          {/* Profile image - repositioned higher up */}
+          <div className="absolute -top-24 left-1/2 transform -translate-x-1/2">
             <div 
               className="relative cursor-pointer" 
               onClick={handleProfilePictureClick}
             >
-              <Avatar className="w-32 h-32 border-4 border-white dark:border-gray-900">
+              <Avatar className="w-40 h-40 border-4 border-white dark:border-gray-900">
                 <AvatarImage src={profileData.avatar} alt={profileData.name} className="object-cover" />
                 <AvatarFallback>{profileData.name.charAt(0)}</AvatarFallback>
               </Avatar>
