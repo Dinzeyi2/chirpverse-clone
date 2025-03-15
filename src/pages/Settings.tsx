@@ -2,7 +2,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  ArrowLeft, User, Lock, Bell, Display, Accessibility, 
+  ArrowLeft, User, Lock, Bell, Monitor, Accessibility, 
   Languages, UserPlus, Users, MessageCircle, Brush, AtSign
 } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
@@ -63,7 +63,7 @@ const Settings = () => {
       onClick: () => navigate("/settings/notifications")
     },
     {
-      icon: Display,
+      icon: Monitor,
       title: "Accessibility, display, and languages",
       description: "Manage how content is displayed to you",
       onClick: () => navigate("/settings/display")

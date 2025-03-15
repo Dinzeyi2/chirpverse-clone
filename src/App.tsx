@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { Route, Routes } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme/theme-provider";
@@ -29,7 +30,6 @@ function App() {
     <ThemeProvider
       defaultTheme="system"
       storageKey="vite-react-theme"
-      attribute="class"
     >
       <AuthProvider>
         <Toaster />
