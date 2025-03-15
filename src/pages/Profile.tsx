@@ -419,7 +419,7 @@ const Profile = () => {
 
   return (
     <AppLayout>
-      <div className="bg-white dark:bg-gray-950 min-h-screen">
+      <div className="bg-black dark:bg-black min-h-screen">
         <ProfileHeader 
           user={profileData} 
           isCurrentUser={isCurrentUser}

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, MessageCircle, UserCircle, Grid, Heart, Star, ThumbsUp, Flame } from 'lucide-react';
@@ -209,26 +210,26 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <div className="relative z-10 flex justify-between items-center p-4">
           <button
             onClick={handleBackClick}
-            className="p-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors"
+            className="p-2 rounded-full bg-black/60 text-white hover:bg-black/70 transition-colors"
             aria-label="Go back"
           >
             <ArrowLeft size={20} />
           </button>
           <button 
-            className="p-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors"
+            className="p-2 rounded-full bg-black/60 text-white hover:bg-black/70 transition-colors"
             aria-label="View grid"
           >
             <Grid size={20} />
           </button>
         </div>
         
-        <div className="relative z-10 mx-0 mt-16 pt-20 bg-gray-950 dark:bg-gray-950 rounded-t-3xl shadow-lg overflow-hidden">
+        <div className="relative z-10 mx-0 mt-16 pt-20 bg-black dark:bg-black rounded-t-3xl shadow-lg overflow-hidden">
           <div className="flex flex-col items-center mt-[-80px] mb-4">
             <div 
               className="relative cursor-pointer" 
               onClick={handleProfilePictureClick}
             >
-              <Avatar className="w-40 h-40 border-4 border-gray-950 dark:border-gray-950">
+              <Avatar className="w-40 h-40 border-4 border-black dark:border-black">
                 <AvatarImage src={profileData.avatar} alt={profileData.name} className="object-cover" />
                 <AvatarFallback>{profileData.name.charAt(0)}</AvatarFallback>
               </Avatar>
@@ -276,17 +277,17 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             
             <div className="mt-10">
               <div className="flex justify-center gap-4 mb-4">
-                <div className="bg-black/80 backdrop-blur-sm border border-white/10 rounded-full px-4 py-2 text-white flex items-center gap-2">
+                <div className="bg-black backdrop-blur-sm border border-gray-800/50 rounded-full px-4 py-2 text-white flex items-center gap-2">
                   <div className="w-5 h-5 rounded-full flex items-center justify-center">
                     <MessageCircle size={14} className="text-white" />
                   </div>
                   <span className="text-sm font-medium">{stats.replies || 0} Replies</span>
                 </div>
                 
-                <div className="bg-black/80 backdrop-blur-sm border border-white/10 rounded-full px-4 py-2 text-white flex items-center gap-2">
+                <div className="bg-black backdrop-blur-sm border border-gray-800/50 rounded-full px-4 py-2 text-white flex items-center gap-2">
                   <div className="flex -space-x-1 mr-1">
                     {emojiReactions.slice(0, 4).map((reaction, index) => (
-                      <div key={index} className="w-5 h-5 rounded-full bg-gray-700 flex items-center justify-center">
+                      <div key={index} className="w-5 h-5 rounded-full bg-gray-800 flex items-center justify-center">
                         <reaction.icon size={10} className="text-white" />
                       </div>
                     ))}
@@ -294,7 +295,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   <span className="text-sm font-medium">{stats.reactions || 0} Reactions</span>
                 </div>
                 
-                <div className="bg-black/80 backdrop-blur-sm border border-white/10 rounded-full px-4 py-2 text-white flex items-center gap-2">
+                <div className="bg-black backdrop-blur-sm border border-gray-800/50 rounded-full px-4 py-2 text-white flex items-center gap-2">
                   <div className="w-5 h-5 rounded-full flex items-center justify-center">
                     <Flame size={14} className="text-white" />
                   </div>
