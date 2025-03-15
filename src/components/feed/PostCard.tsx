@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile, ThumbsUp, Flame } from 'lucide-react';
@@ -40,7 +39,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   useEffect(() => {
     const fetchPostReactions = async () => {
       try {
-        // We need to cast here to work around TypeScript issues
         const { data: reactionData, error } = await (supabase as any)
           .from('post_reactions')
           .select('emoji, user_id')
