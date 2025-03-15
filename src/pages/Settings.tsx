@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Bell, Monitor, Globe, Accessibility, AtSign, Users, MessageCircle, Brush, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Monitor, Globe, Accessibility, AtSign, Users, MessageCircle, Brush, ChevronRight } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -37,12 +37,7 @@ const Settings = () => {
   const settingsCategories = [
     // Removed "Your account" section
     // Removed "Security and account access" section
-    {
-      icon: Bell,
-      title: 'Notifications',
-      description: 'Select the kinds of notifications you get about your activities, interests',
-      to: '/settings/notifications'
-    },
+    // Removed "Notifications" section
     {
       icon: Monitor,
       title: 'Display',
