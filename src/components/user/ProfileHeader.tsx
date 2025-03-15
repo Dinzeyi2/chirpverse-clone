@@ -184,6 +184,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
   return (
     <div className="animate-fade-in">
+      {/* White background with more visible grid pattern */}
       <div className="relative">
         <div className="absolute top-0 left-0 right-0 h-48 bg-white z-0" 
              style={{
@@ -194,6 +195,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
              }}>
         </div>
         
+        {/* Header with back button and grid button */}
         <div className="relative z-10 flex justify-between items-center p-4">
           <button
             onClick={handleBackClick}
@@ -210,30 +212,28 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </button>
         </div>
         
-        <div className="relative z-10 mt-16">
-          <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
+        {/* Profile picture - positioned to sit on top of the boundary */}
+        <div className="relative z-20 flex justify-center">
+          <div 
+            className="relative cursor-pointer mt-4" 
+            onClick={handleProfilePictureClick}
+          >
             <Avatar className="w-40 h-40 border-4 border-white shadow-md">
               <AvatarImage src={profileData.avatar} alt={profileData.name} className="object-cover" />
               <AvatarFallback>{profileData.name.charAt(0)}</AvatarFallback>
             </Avatar>
             {isCurrentUser && (
-              <div 
-                className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
-                onClick={handleProfilePictureClick}
-              >
+              <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full opacity-0 hover:opacity-100 transition-opacity">
                 <Camera size={24} className="text-white" />
               </div>
             )}
           </div>
-
-          <div className="h-20 bg-white" style={{
-            borderBottomLeftRadius: '50% 100%',
-            borderBottomRightRadius: '50% 100%',
-          }}></div>
         </div>
         
-        <div className="relative z-10 mx-0 -mt-1 bg-gray-950 dark:bg-gray-950 shadow-lg overflow-hidden">
-          <div className="px-6 pt-24 pb-6 text-center">
+        {/* Profile card with dark background - starts lower to accommodate the avatar */}
+        <div className="relative z-10 mx-0 mt-20 bg-gray-950 dark:bg-gray-950 shadow-lg overflow-hidden rounded-t-[30px]">
+          {/* Profile info */}
+          <div className="px-6 pt-6 pb-6 text-center">
             <h1 className="text-xl font-bold mt-2 text-white">{profileData.name}</h1>
             
             <p className="text-gray-400 text-sm mt-2 px-6">
@@ -267,6 +267,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               )}
             </div>
             
+            {/* Stats section */}
             <div className="mt-10">
               <h2 className="font-bold text-left mb-4 text-white">Friends</h2>
               
@@ -296,6 +297,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 </div>
               </div>
               
+              {/* Gallery grid */}
               <div className="grid grid-cols-2 gap-2">
                 {galleryImages.map((image, index) => (
                   <div 
@@ -316,6 +318,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </div>
       </div>
 
+      {/* Edit profile dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[650px] p-0 border-none rounded-2xl">
           <div className="flex justify-between items-center p-4 border-b">
@@ -373,6 +376,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </DialogContent>
       </Dialog>
 
+      {/* Avatar selection dialog */}
       <Dialog open={isAvatarDialogOpen} onOpenChange={setIsAvatarDialogOpen}>
         <DialogContent className="sm:max-w-[500px] p-6 rounded-2xl">
           <DialogHeader className="mb-4">
