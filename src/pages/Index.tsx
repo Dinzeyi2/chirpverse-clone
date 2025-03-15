@@ -5,12 +5,14 @@ import SwipeablePostView from '@/components/feed/SwipeablePostView';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { Filter, SlidersHorizontal, ChevronDown, Grid, List } from 'lucide-react';
 import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 
 const Index = () => {
   const [feedPosts, setFeedPosts] = useState<any[]>([]);
@@ -157,42 +159,59 @@ const Index = () => {
 
   return (
     <AppLayout>
-      <div className="sticky top-0 z-20 bg-black backdrop-blur-md">
-        <div className="flex justify-between items-center px-4 py-3">
-          <div className="flex-1"></div>
-          <div className="flex items-center gap-2">
+      <div className="sticky top-0 z-20 bg-black backdrop-blur-md border-b border-neutral-800">
+        <div className="flex justify-between items-center px-4 py-4">
+          <div className="flex items-center gap-6">
+            <Button variant="ghost" className="text-white flex items-center gap-2 text-lg font-medium p-0 hover:bg-transparent">
+              <Filter className="w-5 h-5" />
+              Filter
+            </Button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="text-white flex items-center gap-2 text-lg font-medium p-0 hover:bg-transparent">
+                  Sort
+                  <ChevronDown className="w-5 h-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="bg-black border border-neutral-800 text-white">
+                <DropdownMenuItem className="hover:bg-neutral-800">
+                  Latest
+                </DropdownMenuItem>
+                <DropdownMenuItem className="hover:bg-neutral-800">
+                  Most Popular
+                </DropdownMenuItem>
+                <DropdownMenuItem className="hover:bg-neutral-800">
+                  Most Commented
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          
+          <div className="flex items-center gap-4">
             <button 
               className={cn(
-                "p-2 rounded-full transition-colors",
+                "p-2 rounded-md transition-colors",
                 feedView === 'swipeable' 
                   ? "bg-neutral-800 text-white" 
-                  : "hover:bg-neutral-800/50 text-neutral-400"
+                  : "text-neutral-400"
               )}
               onClick={() => setFeedView('swipeable')}
             >
               <span className="sr-only">Gallery View</span>
-              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="3" width="7" height="7" rx="1" />
-                <rect x="14" y="3" width="7" height="7" rx="1" />
-                <rect x="3" y="14" width="7" height="7" rx="1" />
-                <rect x="14" y="14" width="7" height="7" rx="1" />
-              </svg>
+              <Grid className="w-5 h-5" />
             </button>
             <button 
               className={cn(
-                "p-2 rounded-full transition-colors",
+                "p-2 rounded-md transition-colors",
                 feedView === 'list' 
                   ? "bg-neutral-800 text-white" 
-                  : "hover:bg-neutral-800/50 text-neutral-400"
+                  : "text-neutral-400"
               )}
               onClick={() => setFeedView('list')}
             >
               <span className="sr-only">List View</span>
-              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
+              <List className="w-5 h-5" />
             </button>
           </div>
         </div>
