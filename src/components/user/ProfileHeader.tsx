@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, MessageCircle, UserCircle, Grid } from 'lucide-react';
@@ -227,7 +228,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </div>
         </div>
         
-        <div className="relative z-10 mx-0 mt-20 bg-gray-950 dark:bg-gray-950 shadow-lg overflow-hidden rounded-t-3xl">
+        {/* Adding rounded top corners to the black background section */}
+        <div className="relative z-10 mx-0 mt-20 bg-gray-950 dark:bg-gray-950 shadow-lg overflow-hidden rounded-t-[30px]">
           <div className="px-6 pt-6 pb-6 text-center">
             <h1 className="text-xl font-bold mt-2 text-white">{profileData.name}</h1>
             
