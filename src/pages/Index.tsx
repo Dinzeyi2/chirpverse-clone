@@ -1,11 +1,13 @@
+
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
 import SwipeablePostView from '@/components/feed/SwipeablePostView';
+import FilterDialog from '@/components/feed/FilterDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
-import { Filter, SlidersHorizontal, ChevronDown, Grid, List } from 'lucide-react';
+import { ChevronDown, Grid, List } from 'lucide-react';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -16,7 +18,9 @@ import { Button } from '@/components/ui/button';
 
 const Index = () => {
   const [feedPosts, setFeedPosts] = useState<any[]>([]);
+  const [filteredPosts, setFilteredPosts] = useState<any[]>([]);
   const [feedView, setFeedView] = useState<'swipeable' | 'list'>('swipeable');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const { user, username } = useAuth();
   const [loading, setLoading] = useState(true);
   
@@ -133,6 +137,23 @@ const Index = () => {
     };
   }, [username]);
   
+  // Filter posts based on selected categories
+  useEffect(() => {
+    if (selectedCategories.length === 0) {
+      setFilteredPosts(feedPosts);
+    } else {
+      // In a real app, posts would have category tags
+      // This is a simplified example that filters based on post content matching categories
+      const filtered = feedPosts.filter(post => {
+        const content = post.content.toLowerCase();
+        return selectedCategories.some(category => 
+          content.includes(category.toLowerCase())
+        );
+      });
+      setFilteredPosts(filtered);
+    }
+  }, [feedPosts, selectedCategories]);
+  
   const handlePostCreated = (content: string, media?: {type: string, url: string}[]) => {
     if (!user) return;
     
@@ -162,10 +183,10 @@ const Index = () => {
       <div className="sticky top-0 z-20 bg-black backdrop-blur-md border-b border-neutral-800">
         <div className="flex justify-between items-center px-4 py-4">
           <div className="flex items-center gap-6">
-            <Button variant="ghost" className="text-white flex items-center gap-2 text-lg font-medium p-0 hover:bg-transparent">
-              <Filter className="w-5 h-5" />
-              Filter
-            </Button>
+            <FilterDialog 
+              selectedCategories={selectedCategories}
+              setSelectedCategories={setSelectedCategories}
+            />
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -246,9 +267,9 @@ const Index = () => {
       {!loading && (
         <div className="pt-0 bg-black">
           {feedView === 'swipeable' ? (
-            <SwipeablePostView posts={feedPosts} />
+            <SwipeablePostView posts={filteredPosts.length > 0 ? filteredPosts : feedPosts} />
           ) : (
-            <PostList posts={feedPosts} />
+            <PostList posts={filteredPosts.length > 0 ? filteredPosts : feedPosts} />
           )}
         </div>
       )}
