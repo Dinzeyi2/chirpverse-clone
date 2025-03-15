@@ -37,6 +37,67 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   };
 
   useEffect(() => {
+    const fetchPostReactions = async () => {
+      try {
+        const { data: reactionData, error } = await supabase
+          .from('post_reactions')
+          .select('emoji, user_id')
+          .eq('post_id', getPostId(post.id));
+        
+        if (error) throw error;
+        
+        if (reactionData && reactionData.length > 0) {
+          const reactionCounts: Record<string, { count: number, reacted: boolean }> = {};
+          const user = (await supabase.auth.getUser()).data.user;
+          
+          reactionData.forEach(reaction => {
+            if (!reactionCounts[reaction.emoji]) {
+              reactionCounts[reaction.emoji] = {
+                count: 0,
+                reacted: false
+              };
+            }
+            
+            reactionCounts[reaction.emoji].count += 1;
+            
+            if (user && reaction.user_id === user.id) {
+              reactionCounts[reaction.emoji].reacted = true;
+            }
+          });
+          
+          const formattedReactions: EmojiReaction[] = Object.entries(reactionCounts).map(([emoji, data]) => ({
+            emoji,
+            count: data.count,
+            reacted: data.reacted
+          }));
+          
+          setReactions(formattedReactions);
+        }
+      } catch (error) {
+        console.error('Error fetching post reactions:', error);
+      }
+    };
+    
+    fetchPostReactions();
+    
+    const reactionsChannel = supabase
+      .channel(`post-reactions-${post.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'post_reactions',
+        filter: `post_id=eq.${getPostId(post.id)}`
+      }, () => {
+        fetchPostReactions();
+      })
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(reactionsChannel);
+    };
+  }, [post.id]);
+
+  useEffect(() => {
     const checkBookmarkStatus = async () => {
       try {
         const { data, error } = await supabase
@@ -246,62 +307,95 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     setEmojiPickerOpen(!emojiPickerOpen);
   };
 
-  const handleEmojiSelect = (emojiData: EmojiClickData, e: React.MouseEvent) => {
+  const handleEmojiSelect = async (emojiData: EmojiClickData, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
     const selectedEmoji = emojiData.emoji;
+    const user = (await supabase.auth.getUser()).data.user;
     
-    const existingReaction = reactions.find(reaction => reaction.emoji === selectedEmoji);
-    
-    if (existingReaction) {
-      if (existingReaction.reacted) {
-        setReactions(prev => 
-          prev.map(r => 
-            r.emoji === selectedEmoji 
-              ? { ...r, count: r.count - 1, reacted: false } 
-              : r
-          ).filter(r => r.count > 0)
-        );
-        toast.success(`Removed ${selectedEmoji} reaction`);
-      } else {
-        setReactions(prev => 
-          prev.map(r => 
-            r.emoji === selectedEmoji 
-              ? { ...r, count: r.count + 1, reacted: true } 
-              : r
-          )
-        );
-        toast.success(`Added ${selectedEmoji} reaction`);
-      }
-    } else {
-      setReactions(prev => [...prev, { emoji: selectedEmoji, count: 1, reacted: true }]);
-      toast.success(`Added ${selectedEmoji} reaction`);
+    if (!user) {
+      toast.error('Please sign in to react to posts');
+      return;
     }
     
-    setEmojiPickerOpen(false);
+    try {
+      const existingReaction = reactions.find(reaction => reaction.emoji === selectedEmoji && reaction.reacted);
+      
+      if (existingReaction) {
+        const { error } = await supabase
+          .from('post_reactions')
+          .delete()
+          .eq('post_id', getPostId(post.id))
+          .eq('user_id', user.id)
+          .eq('emoji', selectedEmoji);
+          
+        if (error) throw error;
+        
+        toast.success(`Removed ${selectedEmoji} reaction`);
+      } else {
+        const { error } = await supabase
+          .from('post_reactions')
+          .insert({
+            post_id: getPostId(post.id),
+            user_id: user.id,
+            emoji: selectedEmoji
+          });
+          
+        if (error) throw error;
+        
+        toast.success(`Added ${selectedEmoji} reaction`);
+      }
+      
+      setEmojiPickerOpen(false);
+    } catch (error) {
+      console.error('Error saving reaction:', error);
+      toast.error('Failed to save reaction');
+    }
   };
 
-  const handleReactionClick = (emoji: string, e: React.MouseEvent) => {
+  const handleReactionClick = async (emoji: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    setReactions(prev => 
-      prev.map(r => 
-        r.emoji === emoji 
-          ? { 
-              ...r, 
-              count: r.reacted ? r.count - 1 : r.count + 1, 
-              reacted: !r.reacted 
-            } 
-          : r
-      ).filter(r => r.count > 0)
-    );
+    const user = (await supabase.auth.getUser()).data.user;
     
-    const action = reactions.find(r => r.emoji === emoji)?.reacted 
-      ? 'Removed' 
-      : 'Added';
-    toast.success(`${action} ${emoji} reaction`);
+    if (!user) {
+      toast.error('Please sign in to react to posts');
+      return;
+    }
+    
+    try {
+      const existingReaction = reactions.find(r => r.emoji === emoji && r.reacted);
+      
+      if (existingReaction) {
+        const { error } = await supabase
+          .from('post_reactions')
+          .delete()
+          .eq('post_id', getPostId(post.id))
+          .eq('user_id', user.id)
+          .eq('emoji', emoji);
+          
+        if (error) throw error;
+        
+        toast.success(`Removed ${emoji} reaction`);
+      } else {
+        const { error } = await supabase
+          .from('post_reactions')
+          .insert({
+            post_id: getPostId(post.id),
+            user_id: user.id,
+            emoji: emoji
+          });
+          
+        if (error) throw error;
+        
+        toast.success(`Added ${emoji} reaction`);
+      }
+    } catch (error) {
+      console.error('Error toggling reaction:', error);
+      toast.error('Failed to update reaction');
+    }
   };
 
   return (
