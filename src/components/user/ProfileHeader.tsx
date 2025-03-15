@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, MessageCircle, UserCircle, Grid, Heart, Star, ThumbsUp, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -53,6 +53,83 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     name: user.name,
     profession: user.profession || '',
   });
+  
+  const [userReactionsCount, setUserReactionsCount] = useState(stats.reactions || 0);
+  const [userBludifyCount, setUserBludifyCount] = useState(stats.bluedify || 0);
+
+  useEffect(() => {
+    if (user?.id) {
+      const reactionsChannel = supabase
+        .channel('profile-reactions-changes')
+        .on('postgres_changes', 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'post_reactions',
+            filter: `user_id=eq.${user.id}`
+          }, 
+          () => {
+            fetchUserReactions();
+          }
+        )
+        .subscribe();
+
+      const bludifiesChannel = supabase
+        .channel('profile-bludifies-changes')
+        .on('postgres_changes', 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'post_bludifies',
+            filter: `user_id=eq.${user.id}`
+          }, 
+          () => {
+            fetchUserBludifies();
+          }
+        )
+        .subscribe();
+        
+      fetchUserReactions();
+      fetchUserBludifies();
+      
+      return () => {
+        supabase.removeChannel(reactionsChannel);
+        supabase.removeChannel(bludifiesChannel);
+      };
+    }
+  }, [user?.id]);
+  
+  const fetchUserReactions = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { count, error } = await (supabase as any)
+        .from('post_reactions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+        
+      if (error) throw error;
+      if (count !== null) setUserReactionsCount(count);
+    } catch (error) {
+      console.error('Error fetching user reactions count:', error);
+    }
+  };
+  
+  const fetchUserBludifies = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { count, error } = await supabase
+        .from('post_bludifies')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+        
+      if (error) throw error;
+      if (count !== null) setUserBludifyCount(count);
+    } catch (error) {
+      console.error('Error fetching user bludifies count:', error);
+    }
+  };
   
   const platformAvatars = [
     'https://i.pravatar.cc/150?img=1',
@@ -291,14 +368,14 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                       </div>
                     ))}
                   </div>
-                  <span className="text-sm font-medium font-heading tracking-wide">{stats.reactions || 0} Reactions</span>
+                  <span className="text-sm font-medium font-heading tracking-wide">{userReactionsCount || 0} Reactions</span>
                 </div>
                 
                 <div className="bg-black backdrop-blur-sm border border-gray-800/50 rounded-full px-4 py-2 text-white flex items-center gap-2">
                   <div className="w-5 h-5 rounded-full flex items-center justify-center">
                     <Flame size={14} className="text-white" />
                   </div>
-                  <span className="text-sm font-medium font-heading tracking-wide">{stats.bluedify || 0} Bluedify</span>
+                  <span className="text-sm font-medium font-heading tracking-wide">{userBludifyCount || 0} Bluedify</span>
                 </div>
               </div>
             </div>

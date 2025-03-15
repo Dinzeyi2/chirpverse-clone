@@ -14,14 +14,14 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 // Add a helper function to enable realtime on tables we need
 export const enableRealtimeForTables = () => {
   supabase.channel('schema-db-changes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'post_reactions' }, () => {
-      console.log('Reaction changes detected');
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'post_reactions' }, (payload) => {
+      console.log('Reaction changes detected', payload);
     })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'post_bludifies' }, () => {
-      console.log('Bludify changes detected');
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'post_bludifies' }, (payload) => {
+      console.log('Bludify changes detected', payload);
     })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'post_bookmarks' }, () => {
-      console.log('Bookmark changes detected');
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'post_bookmarks' }, (payload) => {
+      console.log('Bookmark changes detected', payload);
     })
     .subscribe();
 };

@@ -79,6 +79,28 @@ const Profile = () => {
       let reactionsCount = 0;
       let bluedifyCount = 0;
       
+      const { count: userReactionsCount, error: reactionsError } = await (supabase as any)
+        .from('post_reactions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', profileUserId);
+        
+      if (userReactionsCount !== null) reactionsCount = userReactionsCount;
+      
+      if (reactionsError) {
+        console.error('Error counting user reactions:', reactionsError);
+      }
+      
+      const { count: userBludifiesCount, error: bludifiesError } = await supabase
+        .from('post_bludifies')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', profileUserId);
+        
+      if (userBludifiesCount !== null) bluedifyCount = userBludifiesCount;
+      
+      if (bludifiesError) {
+        console.error('Error counting user bludifies:', bludifiesError);
+      }
+      
       if (userShoutouts && userShoutouts.length > 0) {
         const shoutoutIds = userShoutouts.map(shoutout => shoutout.id);
         
@@ -91,24 +113,6 @@ const Profile = () => {
         
         if (repliesError) {
           console.error('Error counting replies:', repliesError);
-        }
-        
-        const { count: likesTotal, error: likesError } = await supabase
-          .from('likes')
-          .select('*', { count: 'exact', head: true })
-          .in('shoutout_id', shoutoutIds);
-          
-        if (likesTotal !== null) reactionsCount = likesTotal;
-        
-        const { count: repostsTotal, error: repostsError } = await supabase
-          .from('reposts')
-          .select('*', { count: 'exact', head: true })
-          .in('shoutout_id', shoutoutIds);
-          
-        if (repostsTotal !== null) bluedifyCount = repostsTotal;
-        
-        if (likesError || repostsError) {
-          console.error('Error counting interactions:', { likesError, repostsError });
         }
       }
         
@@ -262,8 +266,42 @@ const Profile = () => {
       )
       .subscribe();
       
+    const reactionsChannel = supabase
+      .channel('profile-reactions-stats')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'post_reactions',
+          filter: `user_id=eq.${profileUserId}`
+        }, 
+        () => {
+          console.log('Reactions updated, refreshing stats');
+          fetchUserStats();
+        }
+      )
+      .subscribe();
+      
+    const bludifiesChannel = supabase
+      .channel('profile-bludifies-stats')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'post_bludifies',
+          filter: `user_id=eq.${profileUserId}`
+        }, 
+        () => {
+          console.log('Bludifies updated, refreshing stats');
+          fetchUserStats();
+        }
+      )
+      .subscribe();
+      
     return () => {
       supabase.removeChannel(profileChannel);
+      supabase.removeChannel(reactionsChannel);
+      supabase.removeChannel(bludifiesChannel);
     };
   }, [profileUserId]);
 
