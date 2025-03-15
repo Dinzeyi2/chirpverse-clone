@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, MessageCircle, UserCircle, Grid } from 'lucide-react';
@@ -232,7 +231,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </div>
         
         {/* Profile card with dark background - starts lower to accommodate the avatar */}
-        <div className="relative z-10 mx-0 mt-20 bg-gray-950 dark:bg-gray-950 shadow-lg overflow-hidden">
+        <div className="relative z-10 mx-0 mt-20 bg-gray-950 dark:bg-gray-950 shadow-lg overflow-hidden rounded-t-[30px]">
           {/* Profile info */}
           <div className="px-6 pt-6 pb-6 text-center">
             <h1 className="text-xl font-bold mt-2 text-white">{profileData.name}</h1>
