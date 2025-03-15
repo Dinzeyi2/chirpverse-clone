@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile, ThumbsUp } from 'lucide-react';
+import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile, ThumbsUp, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Post, formatDate } from '@/lib/data';
 import { toast } from 'sonner';
@@ -58,7 +57,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     
     const checkBludifyStatus = async () => {
       try {
-        // Check if the current user has bludified this post
         const user = (await supabase.auth.getUser()).data.user;
         if (user) {
           const { data } = await supabase
@@ -73,7 +71,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           }
         }
         
-        // Get the total count of bludifies for this post
         const { count } = await supabase
           .from('post_bludifies')
           .select('*', { count: 'exact', head: true })
@@ -159,7 +156,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       }
       
       if (isBludified) {
-        // Remove bludify
         const { error } = await supabase
           .from('post_bludifies')
           .delete()
@@ -171,7 +167,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         setBludifyCount(prev => Math.max(0, prev - 1));
         toast.success('Bludify removed');
       } else {
-        // Add bludify
         const { error } = await supabase
           .from('post_bludifies')
           .insert({
@@ -352,11 +347,10 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             isBludified && "text-xBlue"
           )}>
             <div className="flex items-center">
-              <img 
-                src="/lovable-uploads/574535bb-701a-4bd6-9e65-e462c713c41d.png" 
-                alt="Bludify" 
-                className="w-5 h-5 rounded-full"
-              />
+              <Flame size={16} className={cn(
+                "text-white transition-colors",
+                isBludified && "text-xBlue fill-xBlue"
+              )} />
               <span className="ml-1 text-xs group-hover:text-xBlue">
                 {formatNumber(bludifyCount)}
               </span>
