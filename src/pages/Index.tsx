@@ -80,6 +80,9 @@ const Index = () => {
             avatar_url: 'https://i.pravatar.cc/150?img=1',
           };
           
+          // Create a default username using user_id if username is not available
+          const displayUsername = profile.username || post.user_id?.substring(0, 8) || 'user';
+          
           return {
             id: post.id,
             content: post.content,
@@ -95,7 +98,7 @@ const Index = () => {
             user: {
               id: post.user_id,
               name: profile.full_name || 'User',
-              username: profile.username || post.user_id?.substring(0, 8) || 'user',
+              username: displayUsername,
               avatar: profile.avatar_url || 'https://i.pravatar.cc/150?img=1',
               verified: false,
               followers: 0,
@@ -137,6 +140,9 @@ const Index = () => {
               full_name: 'User',
               avatar_url: 'https://i.pravatar.cc/150?img=1',
             };
+            
+            // Create a default username using user_id if username is not available
+            const displayUsername = profile.username || payload.new.user_id?.substring(0, 8) || 'user';
           
             const newPost = {
               id: payload.new.id,
@@ -153,7 +159,7 @@ const Index = () => {
               user: {
                 id: payload.new.user_id,
                 name: profile.full_name || 'User',
-                username: profile.username || payload.new.user_id?.substring(0, 8) || 'user',
+                username: displayUsername,
                 avatar: profile.avatar_url || 'https://i.pravatar.cc/150?img=1',
                 verified: false,
                 followers: 0,
