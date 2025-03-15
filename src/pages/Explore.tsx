@@ -202,19 +202,7 @@ const Explore = () => {
           </form>
         </div>
         
-        <div className="flex border-b border-xExtraLightGray">
-          <button
-            className={`flex-1 py-4 font-medium text-center relative ${
-              activeTab === 'for-you' ? 'font-bold' : 'text-xGray'
-            }`}
-            onClick={() => setActiveTab('for-you')}
-          >
-            For you
-            {activeTab === 'for-you' && (
-              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-xBlue rounded-full" />
-            )}
-          </button>
-        </div>
+        
       </div>
       
       {showSearchResults ? (
