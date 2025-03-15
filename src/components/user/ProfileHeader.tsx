@@ -184,9 +184,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
   return (
     <div className="animate-fade-in">
-      {/* Blue gradient background with reduced height */}
+      {/* Soft peach/orange gradient background with reduced height */}
       <div className="relative">
-        <div className="absolute top-0 left-0 right-0 h-48 bg-gradient-to-br from-blue-500 to-indigo-600 z-0"></div>
+        <div className="absolute top-0 left-0 right-0 h-48 bg-gradient-to-br from-[#FDE1D3] to-[#FEC6A1] z-0"></div>
         
         {/* Header with back button and grid button */}
         <div className="relative z-10 flex justify-between items-center p-4">
