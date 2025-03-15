@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -145,10 +146,10 @@ const Sidebar = () => {
             <Dialog open={isPostDialogOpen} onOpenChange={setIsPostDialogOpen}>
               <DialogTrigger asChild>
                 <Button 
-                  variant="primary"
+                  variant="outline"
                   size={isCollapsed ? "icon" : "lg"}
                   className={cn(
-                    "w-full font-bold", 
+                    "w-full font-bold bg-white text-black hover:bg-white/90 hover:text-black border-0", 
                     isCollapsed ? "p-3" : "px-6 py-3 rounded-full"
                   )}
                 >
@@ -157,7 +158,7 @@ const Sidebar = () => {
                   ) : (
                     <>
                       <PlusCircle size={24} className="mr-2" />
-                      <span className="border border-white/20 rounded-full px-4 py-1">Post</span>
+                      <span className="border border-black/20 rounded-full px-4 py-1">Post</span>
                     </>
                   )}
                 </Button>
