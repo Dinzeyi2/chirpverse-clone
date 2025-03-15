@@ -6,6 +6,16 @@ import ProfileHeader from '@/components/user/ProfileHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import PostList from '@/components/feed/PostList';
+import { Post } from '@/lib/data';
+import { 
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious
+} from '@/components/ui/pagination';
 
 const Profile = () => {
   const { userId } = useParams<{ userId?: string }>();
@@ -18,6 +28,16 @@ const Profile = () => {
     reactions: 0,
     bluedify: 0
   });
+  
+  const [activeTab, setActiveTab] = useState('posts');
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [replies, setReplies] = useState<Post[]>([]);
+  const [postsPage, setPostsPage] = useState(1);
+  const [repliesPage, setRepliesPage] = useState(1);
+  const [loadingPosts, setLoadingPosts] = useState(false);
+  const [loadingReplies, setLoadingReplies] = useState(false);
+  
+  const postsPerPage = 10;
   
   const navigate = useNavigate();
   
@@ -253,6 +273,144 @@ const Profile = () => {
     };
   }, [profileUserId]);
 
+  // Fetch posts by the user
+  useEffect(() => {
+    const fetchPosts = async () => {
+      if (!profileUserId) return;
+      
+      try {
+        setLoadingPosts(true);
+        
+        // Fetch posts created by the user
+        const { data, error } = await supabase
+          .from('shoutouts')
+          .select(`
+            id,
+            content,
+            created_at,
+            media,
+            user_id,
+            profiles:user_id (full_name, avatar_url)
+          `)
+          .eq('user_id', profileUserId)
+          .order('created_at', { ascending: false })
+          .range((postsPage - 1) * postsPerPage, postsPage * postsPerPage - 1);
+          
+        if (error) {
+          console.error('Error fetching posts:', error);
+          return;
+        }
+        
+        // Format posts to match the Post type
+        const formattedPosts: Post[] = data.map((post: any) => ({
+          id: post.id,
+          content: post.content,
+          author: {
+            id: post.user_id,
+            name: post.profiles?.full_name || 'Unknown User',
+            username: post.user_id,
+            avatar: post.profiles?.avatar_url || 'https://i.pravatar.cc/150?img=1',
+            verified: false
+          },
+          media: post.media,
+          createdAt: new Date(post.created_at),
+          stats: {
+            replies: 0,
+            likes: 0,
+            reposts: 0,
+            views: 0
+          }
+        }));
+        
+        setPosts(formattedPosts);
+      } catch (err) {
+        console.error('Error in fetchPosts:', err);
+        toast.error('Failed to load posts');
+      } finally {
+        setLoadingPosts(false);
+      }
+    };
+    
+    if (profileUserId && activeTab === 'posts') {
+      fetchPosts();
+    }
+  }, [profileUserId, postsPage, activeTab]);
+
+  // Fetch replies by the user
+  useEffect(() => {
+    const fetchReplies = async () => {
+      if (!profileUserId) return;
+      
+      try {
+        setLoadingReplies(true);
+        
+        // Fetch comments (replies) created by the user
+        const { data, error } = await supabase
+          .from('comments')
+          .select(`
+            id,
+            content,
+            created_at,
+            media,
+            user_id,
+            shoutout_id,
+            profiles:user_id (full_name, avatar_url)
+          `)
+          .eq('user_id', profileUserId)
+          .order('created_at', { ascending: false })
+          .range((repliesPage - 1) * postsPerPage, repliesPage * postsPerPage - 1);
+          
+        if (error) {
+          console.error('Error fetching replies:', error);
+          return;
+        }
+        
+        // Format replies to match the Post type
+        const formattedReplies: Post[] = data.map((reply: any) => ({
+          id: reply.id,
+          content: reply.content,
+          author: {
+            id: reply.user_id,
+            name: reply.profiles?.full_name || 'Unknown User',
+            username: reply.user_id,
+            avatar: reply.profiles?.avatar_url || 'https://i.pravatar.cc/150?img=1',
+            verified: false
+          },
+          media: reply.media,
+          createdAt: new Date(reply.created_at),
+          stats: {
+            replies: 0,
+            likes: 0,
+            reposts: 0,
+            views: 0
+          },
+          isReply: true,
+          parentId: reply.shoutout_id
+        }));
+        
+        setReplies(formattedReplies);
+      } catch (err) {
+        console.error('Error in fetchReplies:', err);
+        toast.error('Failed to load replies');
+      } finally {
+        setLoadingReplies(false);
+      }
+    };
+    
+    if (profileUserId && activeTab === 'replies') {
+      fetchReplies();
+    }
+  }, [profileUserId, repliesPage, activeTab]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (value === 'posts') {
+      setPostsPage(1);
+    } else if (value === 'replies') {
+      setRepliesPage(1);
+    }
+  };
+
   if (loading) {
     return (
       <AppLayout>
@@ -281,7 +439,70 @@ const Profile = () => {
           user={profileData} 
           isCurrentUser={isCurrentUser}
           stats={userStats}
+          onTabChange={handleTabChange}
         />
+        
+        <div className="px-4 py-6">
+          {activeTab === 'posts' && (
+            <>
+              <PostList 
+                posts={posts} 
+                loading={loadingPosts} 
+              />
+              {posts.length > 0 && (
+                <Pagination className="mt-6">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => setPostsPage(prev => Math.max(prev - 1, 1))}
+                        className={postsPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+                    <PaginationItem>
+                      <PaginationLink isActive>{postsPage}</PaginationLink>
+                    </PaginationItem>
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => setPostsPage(prev => prev + 1)}
+                        className={posts.length < postsPerPage ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
+            </>
+          )}
+          
+          {activeTab === 'replies' && (
+            <>
+              <PostList 
+                posts={replies} 
+                loading={loadingReplies} 
+              />
+              {replies.length > 0 && (
+                <Pagination className="mt-6">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => setRepliesPage(prev => Math.max(prev - 1, 1))}
+                        className={repliesPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+                    <PaginationItem>
+                      <PaginationLink isActive>{repliesPage}</PaginationLink>
+                    </PaginationItem>
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => setRepliesPage(prev => prev + 1)}
+                        className={replies.length < postsPerPage ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </AppLayout>
   );

@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 interface ProfileHeaderProps {
   user: User;
@@ -29,12 +30,14 @@ interface ProfileHeaderProps {
     reactions: number;
     bluedify: number;
   };
+  onTabChange?: (value: string) => void;
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({ 
   user, 
   isCurrentUser = false,
-  stats = { posts: 0, replies: 0, reactions: 0, bluedify: 0 }
+  stats = { posts: 0, replies: 0, reactions: 0, bluedify: 0 },
+  onTabChange
 }) => {
   const navigate = useNavigate();
   const [isFollowing, setIsFollowing] = useState(false);
@@ -189,6 +192,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     }
   };
 
+  const handleTabChange = (value: string) => {
+    if (onTabChange) {
+      onTabChange(value);
+    }
+  };
+
   return (
     <div className="animate-fade-in">
       <div className="relative">
@@ -297,6 +306,25 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="border-t border-gray-800">
+            <Tabs defaultValue="posts" onValueChange={handleTabChange} className="w-full">
+              <TabsList className="w-full grid grid-cols-2 bg-gray-950 border-b border-gray-800 rounded-none h-14">
+                <TabsTrigger 
+                  value="posts" 
+                  className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none text-gray-400"
+                >
+                  Posts
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="replies" 
+                  className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none text-gray-400"
+                >
+                  Replies
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
         </div>
       </div>
