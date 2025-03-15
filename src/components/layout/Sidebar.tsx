@@ -86,7 +86,7 @@ const Sidebar = () => {
                 >
                   <item.icon size={24} className={isActive ? "text-foreground" : "text-muted-foreground"} />
                   {!isCollapsed && (
-                    <span className="ml-4 border border-white/20 rounded-full px-4 py-1">{item.name}</span>
+                    <span className="ml-4 font-heading tracking-wide text-lg uppercase">{item.name}</span>
                   )}
                 </a>
               );
@@ -106,7 +106,7 @@ const Sidebar = () => {
               >
                 <item.icon size={24} className={isActive ? "text-foreground" : "text-muted-foreground"} />
                 {!isCollapsed && (
-                  <span className="ml-4 border border-white/20 rounded-full px-4 py-1">{item.name}</span>
+                  <span className="ml-4 font-heading tracking-wide text-lg uppercase">{item.name}</span>
                 )}
               </Link>
             );
@@ -122,7 +122,7 @@ const Sidebar = () => {
             >
               <LogOut size={24} className="text-muted-foreground" />
               {!isCollapsed && (
-                <span className="ml-4 border border-white/20 rounded-full px-4 py-1">Sign out</span>
+                <span className="ml-4 font-heading tracking-wide text-lg uppercase">Sign out</span>
               )}
             </button>
           ) : (
@@ -135,7 +135,7 @@ const Sidebar = () => {
             >
               <LogIn size={24} className="text-muted-foreground" />
               {!isCollapsed && (
-                <span className="ml-4 border border-white/20 rounded-full px-4 py-1">Sign in</span>
+                <span className="ml-4 font-heading tracking-wide text-lg uppercase">Sign in</span>
               )}
             </button>
           )}
@@ -158,7 +158,7 @@ const Sidebar = () => {
                   ) : (
                     <>
                       <PlusCircle size={24} className="mr-2" />
-                      <span className="border border-black/20 rounded-full px-4 py-1">Post</span>
+                      <span className="font-heading tracking-wide uppercase border border-black/20 rounded-full px-4 py-1">Post</span>
                     </>
                   )}
                 </Button>
