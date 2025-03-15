@@ -76,39 +76,36 @@ const Profile = () => {
         .eq('user_id', profileUserId);
         
       let repliesCount = 0;
-      if (userShoutouts && userShoutouts.length > 0) {
-        const shoutoutIds = userShoutouts.map(shoutout => shoutout.id);
-        
-        const { count, error: repliesError } = await supabase
-          .from('comments')
-          .select('*', { count: 'exact', head: true })
-          .in('shoutout_id', shoutoutIds);
-          
-        if (count !== null) repliesCount = count;
-        
-        if (repliesError) {
-          console.error('Error counting replies:', repliesError);
-        }
-      }
-
       let reactionsCount = 0;
       let bluedifyCount = 0;
       
       if (userShoutouts && userShoutouts.length > 0) {
         const shoutoutIds = userShoutouts.map(shoutout => shoutout.id);
         
-        const { count: likesCount, error: likesError } = await supabase
+        const { count: repliesTotal, error: repliesError } = await supabase
+          .from('comments')
+          .select('*', { count: 'exact', head: true })
+          .in('shoutout_id', shoutoutIds);
+          
+        if (repliesTotal !== null) repliesCount = repliesTotal;
+        
+        if (repliesError) {
+          console.error('Error counting replies:', repliesError);
+        }
+        
+        const { count: likesTotal, error: likesError } = await supabase
           .from('likes')
           .select('*', { count: 'exact', head: true })
           .in('shoutout_id', shoutoutIds);
           
-        const { count: repostsCount, error: repostsError } = await supabase
+        if (likesTotal !== null) reactionsCount = likesTotal;
+        
+        const { count: repostsTotal, error: repostsError } = await supabase
           .from('reposts')
           .select('*', { count: 'exact', head: true })
           .in('shoutout_id', shoutoutIds);
           
-        if (likesCount !== null) reactionsCount = likesCount;
-        if (repostsCount !== null) bluedifyCount = repostsCount;
+        if (repostsTotal !== null) bluedifyCount = repostsTotal;
         
         if (likesError || repostsError) {
           console.error('Error counting interactions:', { likesError, repostsError });
