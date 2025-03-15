@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
 
 interface ProfileHeaderProps {
   user: User;
@@ -212,11 +213,35 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </button>
         </div>
         
-        {/* Profile picture - positioned to sit on top of the boundary */}
+        {/* Curved border between white and black sections */}
+        <div className="relative w-full h-16 mt-32">
+          <div className="absolute inset-0 overflow-hidden">
+            <div 
+              className="absolute inset-0 bg-gray-950 dark:bg-gray-950"
+              style={{
+                borderTopLeftRadius: '30px',
+                borderTopRightRadius: '30px',
+                top: '30%'
+              }}
+            />
+          </div>
+          {/* Middle circle cutout */}
+          <div 
+            className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-white rounded-full"
+            style={{
+              top: '0%'
+            }}
+          />
+        </div>
+        
+        {/* Profile picture - positioned to sit on top of the curved border */}
         <div className="relative z-20 flex justify-center">
           <div 
-            className="relative cursor-pointer mt-4" 
+            className="relative cursor-pointer" 
             onClick={handleProfilePictureClick}
+            style={{
+              marginTop: '-90px'
+            }}
           >
             <Avatar className="w-40 h-40 border-4 border-white shadow-md">
               <AvatarImage src={profileData.avatar} alt={profileData.name} className="object-cover" />
@@ -230,8 +255,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </div>
         </div>
         
-        {/* Profile card with dark background - starts lower to accommodate the avatar */}
-        <div className="relative z-10 mx-0 mt-20 bg-gray-950 dark:bg-gray-950 shadow-lg overflow-hidden rounded-t-[30px]">
+        {/* Profile card with dark background - shifted up to connect with the curved border */}
+        <div className="relative z-10 mx-0 -mt-8 bg-gray-950 dark:bg-gray-950 shadow-lg overflow-hidden">
           {/* Profile info */}
           <div className="px-6 pt-6 pb-6 text-center">
             <h1 className="text-xl font-bold mt-2 text-white">{profileData.name}</h1>
