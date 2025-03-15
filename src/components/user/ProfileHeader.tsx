@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, MessageCircle, UserCircle, Grid } from 'lucide-react';
@@ -189,7 +188,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <div 
           className="absolute top-0 left-0 right-0 h-64 z-0"
           style={{
-            backgroundImage: "url('/lovable-uploads/574535bb-701a-4bd6-9e65-e462c713c41d.png')",
+            backgroundImage: "url('/lovable-uploads/2d2388b6-8225-416d-b9ec-45840ae010b9.png')",
             backgroundSize: 'cover',
             backgroundPosition: 'center'
           }}
