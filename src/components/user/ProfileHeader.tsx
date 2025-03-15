@@ -186,7 +186,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     <div className="animate-fade-in">
       {/* Blue gradient background */}
       <div className="relative">
-        <div className="absolute top-0 left-0 right-0 h-48 bg-gradient-to-br from-blue-400 to-purple-500 z-0"></div>
+        <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-br from-blue-500 to-indigo-600 z-0"></div>
         
         {/* Header with back button and grid button */}
         <div className="relative z-10 flex justify-between items-center p-4">
@@ -205,15 +205,15 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </button>
         </div>
         
-        {/* Profile card - adjusted to show more of the profile image */}
-        <div className="relative z-10 mx-4 mt-24 pt-16 bg-white dark:bg-gray-900 rounded-3xl shadow-lg overflow-hidden">
-          {/* Profile image - repositioned higher up */}
-          <div className="absolute -top-24 left-1/2 transform -translate-x-1/2">
+        {/* Profile card with dark background */}
+        <div className="relative z-10 mx-0 mt-16 pt-20 bg-gray-950 dark:bg-gray-950 rounded-t-3xl shadow-lg overflow-hidden">
+          {/* Profile image - positioned to be half inside the blue area */}
+          <div className="absolute -top-32 left-1/2 transform -translate-x-1/2">
             <div 
               className="relative cursor-pointer" 
               onClick={handleProfilePictureClick}
             >
-              <Avatar className="w-40 h-40 border-4 border-white dark:border-gray-900">
+              <Avatar className="w-40 h-40 border-4 border-gray-950 dark:border-gray-950">
                 <AvatarImage src={profileData.avatar} alt={profileData.name} className="object-cover" />
                 <AvatarFallback>{profileData.name.charAt(0)}</AvatarFallback>
               </Avatar>
@@ -227,18 +227,18 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           
           {/* Profile info */}
           <div className="px-6 pb-6 text-center">
-            <h1 className="text-xl font-bold mt-2">{profileData.name}</h1>
+            <h1 className="text-xl font-bold mt-2 text-white">User</h1>
             
-            <p className="text-gray-500 text-sm mt-2 px-6">
-              {profileData.bio || "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."}
+            <p className="text-gray-400 text-sm mt-2 px-6">
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
             </p>
             
-            <div className="mt-4 flex justify-center gap-2">
+            <div className="mt-6 flex justify-center">
               {isCurrentUser ? (
                 <Button
                   variant="outline"
                   onClick={handleEditProfile}
-                  className="rounded-full px-4 py-1 border-gray-300 dark:border-gray-700"
+                  className="rounded-full px-8 py-2 text-white bg-transparent border-gray-700 hover:bg-gray-800"
                 >
                   Edit profile
                 </Button>
@@ -261,32 +261,32 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </div>
             
             {/* Stats section */}
-            <div className="mt-8">
-              <h2 className="font-bold text-left mb-4">Friends</h2>
+            <div className="mt-10">
+              <h2 className="font-bold text-left mb-4 text-white">Friends</h2>
               
               <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="flex flex-col items-center bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-                  <span className="text-2xl font-bold">10K</span>
-                  <span className="text-gray-500 text-sm">Likes</span>
+                <div className="flex flex-col items-center bg-gray-800 dark:bg-gray-800 rounded-xl p-4">
+                  <span className="text-2xl font-bold text-white">10K</span>
+                  <span className="text-gray-400 text-sm">Likes</span>
                 </div>
-                <div className="flex flex-col items-center bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-                  <span className="text-2xl font-bold">528</span>
-                  <span className="text-gray-500 text-sm">Following</span>
+                <div className="flex flex-col items-center bg-gray-800 dark:bg-gray-800 rounded-xl p-4">
+                  <span className="text-2xl font-bold text-white">528</span>
+                  <span className="text-gray-400 text-sm">Following</span>
                 </div>
-                <div className="flex flex-col items-center bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-                  <span className="text-2xl font-bold">1.2K</span>
-                  <span className="text-gray-500 text-sm">Followers</span>
+                <div className="flex flex-col items-center bg-gray-800 dark:bg-gray-800 rounded-xl p-4">
+                  <span className="text-2xl font-bold text-white">1.2K</span>
+                  <span className="text-gray-400 text-sm">Followers</span>
                 </div>
-                <div className="flex flex-col items-center bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
+                <div className="flex flex-col items-center bg-gray-800 dark:bg-gray-800 rounded-xl p-4">
                   <div className="flex -space-x-2">
                     {[1, 2, 3, 4].map((i) => (
-                      <Avatar key={i} className="w-8 h-8 border-2 border-white dark:border-gray-800">
+                      <Avatar key={i} className="w-8 h-8 border-2 border-gray-800 dark:border-gray-800">
                         <AvatarImage src={`https://i.pravatar.cc/150?img=${i}`} alt="Friend" />
                         <AvatarFallback>F{i}</AvatarFallback>
                       </Avatar>
                     ))}
                   </div>
-                  <span className="text-gray-500 text-sm mt-1">Gallery</span>
+                  <span className="text-gray-400 text-sm mt-1">Gallery</span>
                 </div>
               </div>
               
