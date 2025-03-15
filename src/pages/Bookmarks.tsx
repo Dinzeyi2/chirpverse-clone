@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Bookmark, Search, MoreHorizontal, Trash2, BookmarkX } from 'lucide-react';
@@ -137,7 +136,6 @@ const Bookmarks = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold">Bookmarks</h1>
-              <p className="text-sm text-xGray">@johndoe</p>
             </div>
             {bookmarks.length > 0 && (
               <DropdownMenu>
