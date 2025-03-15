@@ -284,15 +284,13 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   <span className="text-black dark:text-black text-sm">Followers</span>
                 </div>
                 <div className="flex flex-col items-center bg-white dark:bg-white rounded-xl p-4">
-                  <span className="text-2xl font-bold text-black dark:text-black">{stats.reactions || 1200}</span>
-                  <div className="flex -space-x-1 mt-1">
-                    {emojiReactions.map((reaction, index) => (
-                      <div key={index} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
-                        <reaction.icon size={16} className="text-black" />
-                      </div>
-                    ))}
+                  <span className="text-2xl font-bold text-black dark:text-black">{stats.replies || 0}</span>
+                  <div className="flex justify-center mt-1">
+                    <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
+                      <MessageCircle size={16} className="text-black" />
+                    </div>
                   </div>
-                  <span className="text-black dark:text-black text-sm mt-1">Reactions</span>
+                  <span className="text-black dark:text-black text-sm mt-1">Replies</span>
                 </div>
               </div>
               
