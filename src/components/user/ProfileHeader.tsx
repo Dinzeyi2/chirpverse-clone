@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, MessageCircle, UserCircle, Grid } from 'lucide-react';
@@ -185,11 +184,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
   return (
     <div className="animate-fade-in">
-      {/* Blue gradient background */}
       <div className="relative">
         <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-br from-blue-500 to-indigo-600 z-0"></div>
         
-        {/* Header with back button and grid button */}
         <div className="relative z-10 flex justify-between items-center p-4">
           <button
             onClick={handleBackClick}
@@ -206,10 +203,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </button>
         </div>
         
-        {/* Profile card with dark background */}
         <div className="relative z-10 mx-0 mt-16 pt-20 bg-gray-950 dark:bg-gray-950 rounded-t-3xl shadow-lg overflow-hidden">
-          {/* Profile image - correctly positioned to overlap the blue area and white area */}
-          <div className="absolute -top-20 left-1/2 transform -translate-x-1/2 z-20">
+          <div className="absolute top-32 left-1/2 transform -translate-x-1/2 z-20">
             <div 
               className="relative cursor-pointer" 
               onClick={handleProfilePictureClick}
@@ -226,7 +221,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </div>
           </div>
           
-          {/* Profile info */}
           <div className="px-6 pb-6 text-center">
             <h1 className="text-xl font-bold mt-2 text-white">User</h1>
             
@@ -261,7 +255,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               )}
             </div>
             
-            {/* Stats section */}
             <div className="mt-10">
               <h2 className="font-bold text-left mb-4 text-white">Friends</h2>
               
@@ -291,7 +284,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 </div>
               </div>
               
-              {/* Gallery grid */}
               <div className="grid grid-cols-2 gap-2">
                 {galleryImages.map((image, index) => (
                   <div 
@@ -312,7 +304,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </div>
       </div>
 
-      {/* Edit profile dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[650px] p-0 border-none rounded-2xl">
           <div className="flex justify-between items-center p-4 border-b">
@@ -370,7 +361,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* Avatar selection dialog */}
       <Dialog open={isAvatarDialogOpen} onOpenChange={setIsAvatarDialogOpen}>
         <DialogContent className="sm:max-w-[500px] p-6 rounded-2xl">
           <DialogHeader className="mb-4">
