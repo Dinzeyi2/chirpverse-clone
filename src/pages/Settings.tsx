@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Users, ChevronRight, Shield } from 'lucide-react';
+import { ArrowLeft, Shield, ChevronRight, Moon, Sun, Laptop } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -15,6 +15,8 @@ import {
   DialogDescription
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { useTheme } from '@/components/theme/theme-provider';
 
 const PrivacyPolicyContent = () => (
   <ScrollArea className="h-[80vh] pr-4">
@@ -123,6 +125,7 @@ const SettingsItem = ({ icon: Icon, title, description, onClick }: {
 const Settings = () => {
   const { user } = useAuth();
   const [openPrivacyDialog, setOpenPrivacyDialog] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   const handlePrivacyClick = () => {
     setOpenPrivacyDialog(true);
@@ -152,6 +155,36 @@ const Settings = () => {
               description="Manage what information you see and share on iblue"
               onClick={handlePrivacyClick}
             />
+            
+            <div className="p-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2">
+                  <Sun className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex flex-col text-left">
+                  <span className="text-white font-medium text-lg">Theme</span>
+                  <span className="text-xGray-dark text-sm">Manage your display preferences</span>
+                  <div className="mt-3">
+                    <ToggleGroup type="single" value={theme} onValueChange={(value) => value && setTheme(value as "light" | "dark" | "system")}>
+                      <ToggleGroupItem value="light" aria-label="Light mode">
+                        <Sun className="h-4 w-4" />
+                        <span className="ml-2">Light</span>
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="dark" aria-label="Dark mode">
+                        <Moon className="h-4 w-4" />
+                        <span className="ml-2">Dark</span>
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="system" aria-label="System mode">
+                        <Laptop className="h-4 w-4" />
+                        <span className="ml-2">System</span>
+                      </ToggleGroupItem>
+                    </ToggleGroup>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <Separator className="bg-xBorder" />
           </Card>
         </div>
       </div>
