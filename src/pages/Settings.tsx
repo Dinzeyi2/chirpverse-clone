@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Monitor, Globe, Accessibility, AtSign, Users, MessageCircle, Brush, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Monitor, Users, ChevronRight } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -35,9 +34,6 @@ const Settings = () => {
   const { user } = useAuth();
 
   const settingsCategories = [
-    // Removed "Your account" section
-    // Removed "Security and account access" section
-    // Removed "Notifications" section
     {
       icon: Monitor,
       title: 'Display',
@@ -45,28 +41,10 @@ const Settings = () => {
       to: '/settings/display'
     },
     {
-      icon: Accessibility,
-      title: 'Accessibility, display and languages',
-      description: 'Manage how content is displayed to you',
-      to: '/settings/accessibility'
-    },
-    {
       icon: Users,
       title: 'Privacy and safety',
       description: 'Manage what information you see and share on iblue',
       to: '/settings/privacy'
-    },
-    {
-      icon: AtSign,
-      title: 'Monetization',
-      description: 'Manage your account\'s monetization options',
-      to: '/settings/monetization'
-    },
-    {
-      icon: MessageCircle,
-      title: 'Additional resources',
-      description: 'Check out other places for helpful information',
-      to: '/settings/resources'
     }
   ];
 
@@ -74,7 +52,6 @@ const Settings = () => {
     <AppLayout>
       <div className="bg-black min-h-screen">
         <div className="max-w-3xl mx-auto">
-          {/* Header */}
           <header className="sticky top-0 z-10 bg-black/80 backdrop-blur-md">
             <div className="p-4 flex items-center gap-6">
               <Link to="/" className="text-white">
@@ -85,7 +62,6 @@ const Settings = () => {
             <Separator className="bg-xBorder" />
           </header>
 
-          {/* Settings Categories */}
           <Card className={cn(
             "rounded-none bg-transparent border-none",
             "divide-y divide-xBorder"
