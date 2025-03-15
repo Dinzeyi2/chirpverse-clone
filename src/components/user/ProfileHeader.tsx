@@ -204,7 +204,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </div>
         
         <div className="relative z-10 mx-0 mt-16 pt-20 bg-gray-950 dark:bg-gray-950 rounded-t-3xl shadow-lg overflow-hidden">
-          <div className="absolute top-32 left-1/2 transform -translate-x-1/2 z-20">
+          <div className="flex flex-col items-center mt-[-80px] mb-4">
             <div 
               className="relative cursor-pointer" 
               onClick={handleProfilePictureClick}
@@ -222,7 +222,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </div>
           
           <div className="px-6 pb-6 text-center">
-            <h1 className="text-xl font-bold mt-2 text-white">User</h1>
+            <h1 className="text-xl font-bold mt-2 text-white">{profileData.name}</h1>
             
             <p className="text-gray-400 text-sm mt-2 px-6">
               
