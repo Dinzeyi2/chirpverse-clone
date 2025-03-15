@@ -306,16 +306,16 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
           <div className="border-t border-gray-800">
             <Tabs defaultValue="posts" onValueChange={handleTabChange} className="w-full">
-              <TabsList className="w-full grid grid-cols-2 bg-gray-950 border-b border-gray-800 rounded-none h-14">
+              <TabsList className="w-full grid grid-cols-2 bg-transparent rounded-none h-14">
                 <TabsTrigger 
                   value="posts" 
-                  className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none text-gray-400"
+                  className="rounded-none h-full data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none text-gray-400 text-sm font-medium"
                 >
                   Posts
                 </TabsTrigger>
                 <TabsTrigger 
                   value="replies" 
-                  className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none text-gray-400"
+                  className="rounded-none h-full data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none text-gray-400 text-sm font-medium"
                 >
                   Replies
                 </TabsTrigger>
