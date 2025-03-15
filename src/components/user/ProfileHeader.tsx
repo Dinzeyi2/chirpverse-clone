@@ -270,14 +270,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </div>
             
             <div className="mt-10">
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 gap-4 mb-6">
                 <div className="flex flex-col items-center bg-white dark:bg-white rounded-xl p-4">
                   <span className="text-2xl font-bold text-black dark:text-black">10K</span>
                   <span className="text-black dark:text-black text-sm">Likes</span>
-                </div>
-                <div className="flex flex-col items-center bg-white dark:bg-white rounded-xl p-4">
-                  <span className="text-2xl font-bold text-black dark:text-black">528</span>
-                  <span className="text-black dark:text-black text-sm">Following</span>
                 </div>
                 <div className="flex flex-col items-center bg-white dark:bg-white rounded-xl p-4">
                   <span className="text-2xl font-bold text-black dark:text-black">{stats.reactions || 0}</span>
