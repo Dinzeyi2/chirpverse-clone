@@ -252,7 +252,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 <Button
                   variant="default"
                   onClick={handleEditProfile}
-                  className="rounded-full px-8 py-2 text-white bg-blue-500 hover:bg-blue-600 w-28"
+                  className="rounded-full px-8 py-2 text-black bg-white hover:bg-gray-100 w-28"
                 >
                   Edit profile
                 </Button>
