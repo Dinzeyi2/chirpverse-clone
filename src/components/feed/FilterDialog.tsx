@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { SlidersHorizontal } from 'lucide-react';
+import React, { useState } from 'react';
+import { SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
@@ -14,26 +14,184 @@ interface FilterDialogProps {
   setSelectedCategories: (categories: string[]) => void;
 }
 
-const FILTER_CATEGORIES = [
-  "Software Engineering",
-  "Prompt Engineering",
-  "Tech Sales",
-  "IT",
-  "Gamer",
-  "Youtuber",
-  "Book Readers",
-  "News",
-  "Journalism",
-  "Youth Adult"
-];
+const FILTER_CATEGORIES = {
+  "Tech & Digital Careers": [
+    "Software Engineering",
+    "Prompt Engineering",
+    "Tech Sales",
+    "IT",
+    "Web Development",
+    "UI/UX Design",
+    "Cloud Computing",
+    "AI Researcher",
+    "Blockchain Developer",
+    "Ethical Hacking",
+    "IT Support Specialist",
+    "Network Engineering",
+    "DevOps Engineering",
+    "Mobile App Development",
+  ],
+  "Content Creation": [
+    "Gamer",
+    "Youtuber",
+    "Book Readers",
+    "News",
+    "Journalism",
+  ],
+  "Business & Sales": [
+    "Business Consulting",
+    "Product Management",
+    "Venture Capitalist",
+    "Real Estate Agent",
+    "E-commerce Seller",
+    "Copywriting",
+    "Business Coaching",
+    "Affiliate Marketing",
+    "Customer Success Manager",
+    "Public Relations",
+  ],
+  "Creative Fields": [
+    "Video Editing",
+    "Animation",
+    "Acting",
+    "Voice Acting",
+    "Scriptwriting",
+    "Film Directing",
+    "Interior Design",
+    "3D Modeling",
+    "Fashion Design",
+    "Illustration",
+  ],
+  "Finance & Investing": [
+    "Accounting",
+    "Financial Planning",
+    "Forex Trading",
+    "Cryptocurrency Investing",
+    "Private Equity",
+    "Risk Management",
+    "Insurance Brokerage",
+    "Hedge Fund Management",
+    "Corporate Finance",
+    "Credit Analysis",
+  ],
+  "Health & Wellness": [
+    "Personal Training",
+    "Nutrition Coaching",
+    "Yoga Instruction",
+    "Physical Therapy",
+    "Mental Health Counseling",
+    "Medical Coding",
+    "Sports Coaching",
+    "Healthcare Administration",
+    "Alternative Medicine",
+    "Meditation Coaching",
+  ],
+  "Science & Engineering": [
+    "Aerospace Engineering",
+    "Biomedical Engineering",
+    "Robotics",
+    "Civil Engineering",
+    "Mechanical Engineering",
+    "Chemistry Research",
+    "Physics Research",
+    "Environmental Science",
+    "Biotechnology",
+    "Marine Biology",
+  ],
+  "Software Development": [
+    "Frontend Developer",
+    "Backend Developer",
+    "Full-Stack Developer",
+    "Game Developer",
+    "Embedded Systems Engineer",
+    "API Developer",
+    "Software Architect",
+    "Open Source Contributor",
+    "Test Automation Engineer",
+    "Low-Code/No-Code Developer",
+  ],
+  "AI & Machine Learning": [
+    "AI Engineer",
+    "Deep Learning Engineer",
+    "Computer Vision Engineer",
+    "NLP Engineer",
+    "AI Ethics Researcher",
+    "Reinforcement Learning Engineer",
+    "AI Chatbot Developer",
+    "Generative AI Specialist",
+    "Data Annotation Specialist",
+    "AI Product Manager",
+  ],
+  "Data Science": [
+    "Data Analyst",
+    "Data Engineer",
+    "MLOps Engineer",
+    "Business Intelligence Analyst",
+    "Data Visualization Specialist",
+    "Database Administrator",
+    "Big Data Engineer",
+    "ETL Developer",
+    "Predictive Analytics Expert",
+    "Data Governance Specialist",
+  ],
+  "Cybersecurity": [
+    "Penetration Tester",
+    "Security Analyst",
+    "Security Engineer",
+    "Cyber Threat Intelligence Analyst",
+    "Network Security Engineer",
+    "Cloud Security Engineer",
+    "Incident Response Analyst",
+    "SOC Analyst",
+    "Digital Forensics Analyst",
+    "Cryptography Engineer",
+  ],
+  "Cloud & DevOps": [
+    "Cloud Architect",
+    "Cloud Engineer",
+    "Site Reliability Engineer",
+    "DevOps Engineer",
+    "Kubernetes Specialist",
+    "Infrastructure as Code Engineer",
+    "Serverless Computing Engineer",
+    "Platform Engineer",
+    "Multi-Cloud Specialist",
+    "Edge Computing Engineer",
+  ],
+  "Blockchain & Web3": [
+    "Blockchain Developer",
+    "Smart Contract Developer",
+    "Web3 Developer",
+    "Crypto Analyst",
+    "DeFi Developer",
+    "NFT Developer",
+    "Consensus Algorithm Engineer",
+    "Layer 2 Scaling Engineer",
+    "DAO Specialist",
+    "Metaverse Developer",
+  ],
+  "Other": [
+    "Youth Adult",
+    "Other Interests",
+  ]
+};
 
 const FilterDialog = ({ selectedCategories, setSelectedCategories }: FilterDialogProps) => {
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+
   const toggleCategory = (category: string) => {
     if (selectedCategories.includes(category)) {
       setSelectedCategories(selectedCategories.filter(c => c !== category));
     } else {
       setSelectedCategories([...selectedCategories, category]);
     }
+  };
+
+  const toggleSection = (section: string) => {
+    setExpandedSections({
+      ...expandedSections,
+      [section]: !expandedSections[section]
+    });
   };
 
   return (
@@ -47,35 +205,55 @@ const FilterDialog = ({ selectedCategories, setSelectedCategories }: FilterDialo
           <SlidersHorizontal className="w-5 h-5" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-64 bg-black border border-neutral-800 text-white p-2">
+      <PopoverContent className="w-80 bg-black border border-neutral-800 text-white p-2">
         <div className="flex flex-col gap-1.5">
           <div className="text-sm text-neutral-400 pb-2 border-b border-neutral-800">
             Select categories to filter posts
           </div>
           
-          <div className="py-2 flex flex-col gap-2 max-h-60 overflow-y-auto">
-            {FILTER_CATEGORIES.map((category) => (
-              <div 
-                key={category}
-                onClick={() => toggleCategory(category)}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer hover:bg-neutral-800 transition-colors",
-                  selectedCategories.includes(category) && "bg-neutral-800"
-                )}
-              >
+          <div className="py-2 flex flex-col gap-2 max-h-[60vh] overflow-y-auto">
+            {Object.entries(FILTER_CATEGORIES).map(([section, categories]) => (
+              <div key={section} className="mb-2">
                 <div 
-                  className={cn(
-                    "w-4 h-4 rounded-sm border border-neutral-500",
-                    selectedCategories.includes(category) && "bg-blue-500 border-blue-500"
-                  )}
+                  className="flex justify-between items-center px-3 py-2 bg-neutral-900 rounded-md cursor-pointer"
+                  onClick={() => toggleSection(section)}
                 >
-                  {selectedCategories.includes(category) && (
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-white">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
+                  <span className="font-medium text-sm">{section}</span>
+                  {expandedSections[section] ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
                   )}
                 </div>
-                <span className="text-sm">{category}</span>
+                
+                {expandedSections[section] && (
+                  <div className="mt-1 ml-2 flex flex-col gap-1">
+                    {categories.map((category) => (
+                      <div 
+                        key={category}
+                        onClick={() => toggleCategory(category)}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer hover:bg-neutral-800 transition-colors",
+                          selectedCategories.includes(category) && "bg-neutral-800"
+                        )}
+                      >
+                        <div 
+                          className={cn(
+                            "w-4 h-4 rounded-sm border border-neutral-500",
+                            selectedCategories.includes(category) && "bg-blue-500 border-blue-500"
+                          )}
+                        >
+                          {selectedCategories.includes(category) && (
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-white">
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                          )}
+                        </div>
+                        <span className="text-sm">{category}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
