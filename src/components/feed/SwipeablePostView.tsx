@@ -4,6 +4,7 @@ import PostCard from './PostCard';
 import { Post } from '@/lib/data';
 import { ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTheme } from '@/components/theme/theme-provider';
 import { 
   Carousel,
   CarouselContent,
@@ -26,6 +27,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   const [api, setApi] = useState<CarouselApi | null>(null);
+  const { theme } = useTheme();
 
   useEffect(() => {
     if (!api) {
@@ -55,17 +57,24 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     };
   }, []);
 
+  // Determine colors based on theme
+  const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
+  const mutedTextColor = theme === 'dark' ? 'text-neutral-400' : 'text-gray-500';
+  const bgColor = theme === 'dark' ? 'bg-gray-200' : 'bg-gray-100';
+  const navBgColor = theme === 'dark' ? 'bg-black/40 hover:bg-black/60 text-white' : 'bg-gray-700/40 hover:bg-gray-700/60 text-white';
+  const counterBgColor = theme === 'dark' ? 'bg-black/60 text-white' : 'bg-gray-700/60 text-white';
+
   if (loading) {
     return (
       <div className="p-4 space-y-6">
         <div className="animate-pulse">
-          <div className="aspect-square w-full max-w-3xl mx-auto bg-gray-200 rounded-xl"></div>
+          <div className={`aspect-square w-full max-w-3xl mx-auto ${bgColor} rounded-xl`}></div>
           <div className="flex justify-between mt-4 mx-auto max-w-3xl">
-            <div className="h-8 bg-gray-200 rounded w-24"></div>
-            <div className="h-8 bg-gray-200 rounded w-24"></div>
-            <div className="h-8 bg-gray-200 rounded w-24"></div>
+            <div className={`h-8 ${bgColor} rounded w-24`}></div>
+            <div className={`h-8 ${bgColor} rounded w-24`}></div>
+            <div className={`h-8 ${bgColor} rounded w-24`}></div>
           </div>
-          <div className="h-12 bg-gray-200 rounded mt-4 mx-auto max-w-3xl"></div>
+          <div className={`h-12 ${bgColor} rounded mt-4 mx-auto max-w-3xl`}></div>
         </div>
       </div>
     );
@@ -74,11 +83,11 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   if (posts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-        <div className="w-16 h-16 mb-4 text-neutral-500">
+        <div className={`w-16 h-16 mb-4 ${mutedTextColor}`}>
           <Inbox className="w-full h-full" />
         </div>
-        <h3 className="text-2xl font-bold mb-2">No posts yet</h3>
-        <p className="text-neutral-500 mb-6 max-w-md">When posts are published, they'll show up here.</p>
+        <h3 className={`text-2xl font-bold mb-2 ${textColor}`}>No posts yet</h3>
+        <p className={`${mutedTextColor} mb-6 max-w-md`}>When posts are published, they'll show up here.</p>
       </div>
     );
   }
@@ -117,12 +126,12 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
         
         {!isMobile && (
           <>
-            <CarouselPrevious className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white border-none z-30" />
-            <CarouselNext className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white border-none z-30" />
+            <CarouselPrevious className={`absolute left-4 top-1/2 transform -translate-y-1/2 ${navBgColor} border-none z-30`} />
+            <CarouselNext className={`absolute right-4 top-1/2 transform -translate-y-1/2 ${navBgColor} border-none z-30`} />
           </>
         )}
 
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/60 text-white px-3 py-1 rounded-full text-sm z-30">
+        <div className={`absolute bottom-4 left-1/2 transform -translate-x-1/2 ${counterBgColor} px-3 py-1 rounded-full text-sm z-30`}>
           {currentIndex + 1} / {posts.length}
         </div>
       </Carousel>

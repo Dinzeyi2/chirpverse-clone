@@ -20,7 +20,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       {/* Sidebar Navigation */}
       <Sidebar />
       
-      {/* Main Content Area - Full width now that right sidebar is removed */}
+      {/* Main Content Area */}
       <div className="flex">
         <div 
           className={cn(

@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { useTheme } from '@/components/theme/theme-provider';
 
 type SortOption = 'latest' | 'popular' | 'commented';
 
@@ -27,6 +28,7 @@ const Index = () => {
   const [sortOption, setSortOption] = useState<SortOption>('latest');
   const { user, username } = useAuth();
   const [loading, setLoading] = useState(true);
+  const { theme } = useTheme();
   
   useEffect(() => {
     const fetchPosts = async () => {
@@ -250,9 +252,21 @@ const Index = () => {
     setSortOption(option);
   };
 
+  // Determine colors based on theme
+  const bgColor = theme === 'dark' ? 'bg-black' : 'bg-lightBeige';
+  const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
+  const borderColor = theme === 'dark' ? 'border-neutral-800' : 'border-gray-200';
+  const headerBg = theme === 'dark' ? 'bg-black backdrop-blur-md' : 'bg-lightBeige backdrop-blur-md';
+  const buttonBgActive = theme === 'dark' ? 'bg-neutral-800 text-white' : 'bg-gray-200 text-gray-900';
+  const buttonTextInactive = theme === 'dark' ? 'text-neutral-400' : 'text-gray-500';
+  const dropdownBg = theme === 'dark' ? 'bg-black border-neutral-800 text-white' : 'bg-white border-gray-200 text-gray-900';
+  const dropdownHover = theme === 'dark' ? 'hover:bg-neutral-800' : 'hover:bg-gray-100';
+  const dropdownActive = theme === 'dark' ? 'bg-neutral-800' : 'bg-gray-100';
+  const skeletonBg = theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200';
+
   return (
     <AppLayout>
-      <div className="sticky top-0 z-20 bg-black backdrop-blur-md border-b border-neutral-800">
+      <div className={`sticky top-0 z-20 ${headerBg} border-b ${borderColor}`}>
         <div className="flex justify-between items-center px-4 py-4">
           <div className="flex items-center gap-6">
             <FilterDialog 
@@ -262,26 +276,26 @@ const Index = () => {
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="text-white flex items-center gap-2 text-lg font-medium p-0 hover:bg-transparent">
+                <Button variant="ghost" className={`flex items-center gap-2 text-lg font-medium p-0 hover:bg-transparent ${textColor}`}>
                   Sort
                   <ChevronDown className="w-5 h-5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="bg-black border border-neutral-800 text-white">
+              <DropdownMenuContent align="start" className={dropdownBg}>
                 <DropdownMenuItem 
-                  className={cn("hover:bg-neutral-800", sortOption === 'latest' && "bg-neutral-800")}
+                  className={cn(dropdownHover, sortOption === 'latest' && dropdownActive)}
                   onClick={() => handleSortChange('latest')}
                 >
                   Latest
                 </DropdownMenuItem>
                 <DropdownMenuItem 
-                  className={cn("hover:bg-neutral-800", sortOption === 'popular' && "bg-neutral-800")}
+                  className={cn(dropdownHover, sortOption === 'popular' && dropdownActive)}
                   onClick={() => handleSortChange('popular')}
                 >
                   Most Popular
                 </DropdownMenuItem>
                 <DropdownMenuItem 
-                  className={cn("hover:bg-neutral-800", sortOption === 'commented' && "bg-neutral-800")}
+                  className={cn(dropdownHover, sortOption === 'commented' && dropdownActive)}
                   onClick={() => handleSortChange('commented')}
                 >
                   Most Commented
@@ -295,8 +309,8 @@ const Index = () => {
               className={cn(
                 "p-2 rounded-md transition-colors",
                 feedView === 'swipeable' 
-                  ? "bg-neutral-800 text-white" 
-                  : "text-neutral-400"
+                  ? buttonBgActive
+                  : buttonTextInactive
               )}
               onClick={() => setFeedView('swipeable')}
             >
@@ -307,8 +321,8 @@ const Index = () => {
               className={cn(
                 "p-2 rounded-md transition-colors",
                 feedView === 'list' 
-                  ? "bg-neutral-800 text-white" 
-                  : "text-neutral-400"
+                  ? buttonBgActive
+                  : buttonTextInactive
               )}
               onClick={() => setFeedView('list')}
             >
@@ -320,23 +334,23 @@ const Index = () => {
       </div>
       
       {loading && (
-        <div className="p-4 space-y-6 bg-black">
+        <div className={`p-4 space-y-6 ${bgColor}`}>
           {[1, 2, 3].map((item) => (
             <div key={item} className="animate-pulse">
               <div className="flex space-x-4">
-                <div className="rounded-full bg-gray-800 h-12 w-12"></div>
+                <div className={`rounded-full ${skeletonBg} h-12 w-12`}></div>
                 <div className="flex-1 space-y-4 py-1">
-                  <div className="h-4 bg-gray-800 rounded w-3/4"></div>
+                  <div className={`h-4 ${skeletonBg} rounded w-3/4`}></div>
                   <div className="space-y-2">
-                    <div className="h-4 bg-gray-800 rounded"></div>
-                    <div className="h-4 bg-gray-800 rounded w-5/6"></div>
+                    <div className={`h-4 ${skeletonBg} rounded`}></div>
+                    <div className={`h-4 ${skeletonBg} rounded w-5/6`}></div>
                   </div>
-                  <div className="h-40 bg-gray-800 rounded"></div>
+                  <div className={`h-40 ${skeletonBg} rounded`}></div>
                   <div className="flex justify-between">
-                    <div className="h-4 bg-gray-800 rounded w-1/5"></div>
-                    <div className="h-4 bg-gray-800 rounded w-1/5"></div>
-                    <div className="h-4 bg-gray-800 rounded w-1/5"></div>
-                    <div className="h-4 bg-gray-800 rounded w-1/5"></div>
+                    <div className={`h-4 ${skeletonBg} rounded w-1/5`}></div>
+                    <div className={`h-4 ${skeletonBg} rounded w-1/5`}></div>
+                    <div className={`h-4 ${skeletonBg} rounded w-1/5`}></div>
+                    <div className={`h-4 ${skeletonBg} rounded w-1/5`}></div>
                   </div>
                 </div>
               </div>
@@ -346,7 +360,7 @@ const Index = () => {
       )}
       
       {!loading && (
-        <div className="pt-0 bg-black">
+        <div className={`pt-0 ${bgColor}`}>
           {feedView === 'swipeable' ? (
             <SwipeablePostView posts={filteredPosts} />
           ) : (
