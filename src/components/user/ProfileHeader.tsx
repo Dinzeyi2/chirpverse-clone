@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Camera, MessageCircle, UserCircle, Grid } from 'lucide-react';
+import { ArrowLeft, Camera, MessageCircle, UserCircle, Grid, Heart, Star, ThumbsUp, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { User } from '@/lib/data';
 import { cn } from '@/lib/utils';
@@ -72,6 +72,13 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?q=80&w=2070',
   ];
   
+  const emojiReactions = [
+    { icon: Heart, count: 425 },
+    { icon: ThumbsUp, count: 362 },
+    { icon: Star, count: 218 },
+    { icon: Flame, count: 195 }
+  ];
+
   const handleFollow = async () => {
     if (!authUser) {
       toast.error('You need to be logged in to follow users');
@@ -277,15 +284,15 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   <span className="text-black dark:text-black text-sm">Followers</span>
                 </div>
                 <div className="flex flex-col items-center bg-white dark:bg-white rounded-xl p-4">
-                  <div className="flex -space-x-2">
-                    {[1, 2, 3, 4].map((i) => (
-                      <Avatar key={i} className="w-8 h-8 border-2 border-white dark:border-white">
-                        <AvatarImage src={`https://i.pravatar.cc/150?img=${i}`} alt="Friend" />
-                        <AvatarFallback>F{i}</AvatarFallback>
-                      </Avatar>
+                  <span className="text-2xl font-bold text-black dark:text-black">{stats.reactions || 1200}</span>
+                  <div className="flex -space-x-1 mt-1">
+                    {emojiReactions.map((reaction, index) => (
+                      <div key={index} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
+                        <reaction.icon size={16} className="text-black" />
+                      </div>
                     ))}
                   </div>
-                  <span className="text-black dark:text-black text-sm mt-1">Gallery</span>
+                  <span className="text-black dark:text-black text-sm mt-1">Reactions</span>
                 </div>
               </div>
               
