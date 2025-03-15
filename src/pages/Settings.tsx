@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, User, Lock, Bell, Monitor, Globe, Accessibility, AtSign, Users, MessageCircle, Brush, ChevronRight } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card } from '@/components/ui/card';
-import { Avatar } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -100,25 +99,6 @@ const Settings = () => {
             </div>
             <Separator className="bg-xBorder" />
           </header>
-
-          {/* User Info */}
-          {user && (
-            <div className="p-4">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10 rounded-full">
-                  <img 
-                    src={user.avatar_url || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'} 
-                    alt={user.username || 'User'} 
-                    className="h-full w-full object-cover" 
-                  />
-                </Avatar>
-                <div className="flex flex-col">
-                  <span className="font-bold text-white">{user.display_name || user.username}</span>
-                  <span className="text-xGray-dark">@{user.username}</span>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Settings Categories */}
           <Card className={cn(
