@@ -184,21 +184,28 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
   return (
     <div className="animate-fade-in">
-      {/* Blue gradient background with reduced height */}
+      {/* Cream/beige grid pattern background */}
       <div className="relative">
-        <div className="absolute top-0 left-0 right-0 h-48 bg-gradient-to-br from-blue-500 to-indigo-600 z-0"></div>
+        <div className="absolute top-0 left-0 right-0 h-48 bg-[#f0ece1] z-0" 
+             style={{
+               backgroundImage: `linear-gradient(rgba(240, 236, 225, 0.8) 1px, transparent 1px), 
+                                linear-gradient(90deg, rgba(240, 236, 225, 0.8) 1px, #f5f2e9 1px)`,
+               backgroundSize: '40px 40px',
+               backgroundPosition: '-1px -1px'
+             }}>
+        </div>
         
         {/* Header with back button and grid button */}
         <div className="relative z-10 flex justify-between items-center p-4">
           <button
             onClick={handleBackClick}
-            className="p-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors"
+            className="p-2 rounded-full bg-white/70 text-gray-800 hover:bg-white/90 transition-colors"
             aria-label="Go back"
           >
             <ArrowLeft size={20} />
           </button>
           <button 
-            className="p-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors"
+            className="p-2 rounded-full bg-white/70 text-gray-800 hover:bg-white/90 transition-colors"
             aria-label="View grid"
           >
             <Grid size={20} />
@@ -211,7 +218,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             className="relative cursor-pointer mt-4" 
             onClick={handleProfilePictureClick}
           >
-            <Avatar className="w-40 h-40 border-4 border-gray-950 dark:border-gray-950">
+            <Avatar className="w-40 h-40 border-4 border-white dark:border-white">
               <AvatarImage src={profileData.avatar} alt={profileData.name} className="object-cover" />
               <AvatarFallback>{profileData.name.charAt(0)}</AvatarFallback>
             </Avatar>
