@@ -284,6 +284,20 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   <span className="text-black dark:text-black text-sm">Followers</span>
                 </div>
                 <div className="flex flex-col items-center bg-white dark:bg-white rounded-xl p-4">
+                  <span className="text-2xl font-bold text-black dark:text-black">{stats.reactions || 0}</span>
+                  <div className="flex -space-x-1 mt-1">
+                    {emojiReactions.map((reaction, index) => (
+                      <div key={index} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
+                        <reaction.icon size={16} className="text-black" />
+                      </div>
+                    ))}
+                  </div>
+                  <span className="text-black dark:text-black text-sm mt-1">Reactions</span>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col items-center bg-white dark:bg-white rounded-xl p-4">
                   <span className="text-2xl font-bold text-black dark:text-black">{stats.replies || 0}</span>
                   <div className="flex justify-center mt-1">
                     <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
@@ -292,22 +306,16 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   </div>
                   <span className="text-black dark:text-black text-sm mt-1">Replies</span>
                 </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-2">
-                {galleryImages.map((image, index) => (
-                  <div 
-                    key={index} 
-                    className={`overflow-hidden rounded-xl ${index >= 4 ? 'hidden md:block' : ''}`}
-                    style={{aspectRatio: '1'}}
-                  >
-                    <img 
-                      src={image} 
-                      alt={`Gallery image ${index + 1}`} 
-                      className="w-full h-full object-cover"
-                    />
+                
+                <div className="flex flex-col items-center bg-white dark:bg-white rounded-xl p-4">
+                  <span className="text-2xl font-bold text-black dark:text-black">{stats.bluedify || 0}</span>
+                  <div className="flex justify-center mt-1">
+                    <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
+                      <Flame size={16} className="text-black" />
+                    </div>
                   </div>
-                ))}
+                  <span className="text-black dark:text-black text-sm mt-1">Bluedify</span>
+                </div>
               </div>
             </div>
           </div>
