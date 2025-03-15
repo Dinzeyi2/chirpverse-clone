@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -89,6 +90,8 @@ export default {
 				xSecondary: '#16181C',
 				xBorder: '#2F3336',
 				xSearchBg: '#202327',
+				// Light mode beige color from the image
+				lightBeige: '#f5f4f0'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

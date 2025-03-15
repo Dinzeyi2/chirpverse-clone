@@ -3,14 +3,20 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { cn } from '@/lib/utils';
+import { useTheme } from '@/components/theme/theme-provider';
 
 interface AppLayoutProps {
   children?: React.ReactNode;
 }
 
 const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
+  const { theme } = useTheme();
+  
   return (
-    <div className="min-h-screen bg-black dark">
+    <div className={cn(
+      "min-h-screen",
+      theme === "dark" ? "bg-black dark" : "bg-lightBeige light"
+    )}>
       {/* Sidebar Navigation */}
       <Sidebar />
       
@@ -18,7 +24,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       <div className="flex">
         <div 
           className={cn(
-            "flex-grow min-h-screen bg-black",
+            "flex-grow min-h-screen",
+            theme === "dark" ? "bg-black" : "bg-lightBeige",
             "ml-[275px] lg:ml-[275px]"
           )}
         >
