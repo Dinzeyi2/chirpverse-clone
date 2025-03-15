@@ -19,13 +19,9 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      {/* X Logo */}
+      {/* iblue Logo */}
       <div className="flex justify-center pt-8 pb-5">
-        <svg viewBox="0 0 24 24" aria-hidden="true" className="w-10 h-10 text-xBlue fill-current">
-          <g>
-            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path>
-          </g>
-        </svg>
+        <span className="text-xBlue font-bold text-3xl tracking-tight">iblue</span>
       </div>
 
       {/* Main Content */}
@@ -33,7 +29,7 @@ const Auth = () => {
         <div className="w-full max-w-md">
           <div className="text-center mb-10">
             <h1 className="text-3xl font-bold">
-              {activeTab === 'signin' ? 'Sign in to X' : 'Join X today'}
+              {activeTab === 'signin' ? 'Sign in to iblue' : 'Join iblue today'}
             </h1>
           </div>
 
@@ -73,7 +69,7 @@ const Auth = () => {
 
       {/* Footer */}
       <div className="py-4 text-center text-xs text-gray-500">
-        <p>© 2023 X Corp.</p>
+        <p>© 2023 iblue Corp.</p>
       </div>
     </div>
   );
