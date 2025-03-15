@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
@@ -70,16 +69,27 @@ const Profile = () => {
         .from('shoutouts')
         .select('id', { count: 'exact' })
         .eq('user_id', profileUserId);
-        
-      const { data: replies, error: repliesError } = await supabase
-        .from('comments')
-        .select('id', { count: 'exact' })
-        .eq('user_id', profileUserId);
-
+      
       const { data: userShoutouts, error: shoutoutsError } = await supabase
         .from('shoutouts')
         .select('id')
         .eq('user_id', profileUserId);
+        
+      let repliesCount = 0;
+      if (userShoutouts && userShoutouts.length > 0) {
+        const shoutoutIds = userShoutouts.map(shoutout => shoutout.id);
+        
+        const { count, error: repliesError } = await supabase
+          .from('comments')
+          .select('*', { count: 'exact', head: true })
+          .in('shoutout_id', shoutoutIds);
+          
+        if (count !== null) repliesCount = count;
+        
+        if (repliesError) {
+          console.error('Error counting replies:', repliesError);
+        }
+      }
 
       let reactionsCount = 0;
       let bluedifyCount = 0;
@@ -107,14 +117,14 @@ const Profile = () => {
         
       setUserStats({
         posts: posts?.length || 0,
-        replies: replies?.length || 0,
+        replies: repliesCount,
         reactions: reactionsCount,
         bluedify: bluedifyCount
       });
       
-      if (postsError || repliesError || shoutoutsError) {
+      if (postsError || shoutoutsError) {
         console.error('Error fetching user stats:', {
-          postsError, repliesError, shoutoutsError
+          postsError, shoutoutsError
         });
       }
     } catch (err) {
@@ -226,6 +236,7 @@ const Profile = () => {
     
     if (profileUserId) {
       fetchProfileData();
+      fetchUserStats();
     }
   }, [profileUserId, user, isCurrentUser, navigate, username]);
 

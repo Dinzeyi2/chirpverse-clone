@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, MessageCircle, UserCircle, Grid, Heart, Star, ThumbsUp, Flame } from 'lucide-react';
@@ -281,7 +280,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   <div className="w-5 h-5 rounded-full flex items-center justify-center">
                     <MessageCircle size={14} className="text-white" />
                   </div>
-                  <span className="text-sm font-medium">{stats.replies || 0} Replies</span>
+                  <span className="text-sm font-medium font-heading tracking-wide">{stats.replies || 0} Replies</span>
                 </div>
                 
                 <div className="bg-black backdrop-blur-sm border border-gray-800/50 rounded-full px-4 py-2 text-white flex items-center gap-2">
@@ -292,14 +291,14 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                       </div>
                     ))}
                   </div>
-                  <span className="text-sm font-medium">{stats.reactions || 0} Reactions</span>
+                  <span className="text-sm font-medium font-heading tracking-wide">{stats.reactions || 0} Reactions</span>
                 </div>
                 
                 <div className="bg-black backdrop-blur-sm border border-gray-800/50 rounded-full px-4 py-2 text-white flex items-center gap-2">
                   <div className="w-5 h-5 rounded-full flex items-center justify-center">
                     <Flame size={14} className="text-white" />
                   </div>
-                  <span className="text-sm font-medium">{stats.bluedify || 0} Bluedify</span>
+                  <span className="text-sm font-medium font-heading tracking-wide">{stats.bluedify || 0} Bluedify</span>
                 </div>
               </div>
             </div>
