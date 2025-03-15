@@ -5,7 +5,6 @@ import SwipeablePostView from '@/components/feed/SwipeablePostView';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -195,13 +194,6 @@ const Index = () => {
                 <line x1="3" y1="18" x2="21" y2="18" />
               </svg>
             </button>
-            
-            {user && (
-              <Avatar className="w-8 h-8 cursor-pointer" onClick={() => window.location.href = `/profile/${user?.id}`}>
-                <AvatarImage src="https://i.pravatar.cc/150?img=1" alt="Profile" />
-                <AvatarFallback>{user.user_metadata?.username?.[0] || user.email?.[0] || 'U'}</AvatarFallback>
-              </Avatar>
-            )}
           </div>
         </div>
       </div>
