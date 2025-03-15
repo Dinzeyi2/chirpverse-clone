@@ -270,8 +270,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </div>
             
             <div className="mt-10">
-              
-              
               <div className="flex justify-center gap-4 mb-4">
                 <div className="bg-black/80 backdrop-blur-sm border border-white/10 rounded-full px-4 py-2 text-white flex items-center gap-2">
                   <div className="w-5 h-5 rounded-full flex items-center justify-center">
@@ -292,6 +290,20 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     <Flame size={14} className="text-white" />
                   </div>
                   <span className="text-sm font-medium">{stats.bluedify || 0} Bluedify</span>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 gap-4 mb-6">
+                <div className="flex flex-col items-center bg-white dark:bg-white rounded-xl p-4">
+                  <span className="text-2xl font-bold text-black dark:text-black">{stats.reactions || 0}</span>
+                  <div className="flex -space-x-1 mt-1">
+                    {emojiReactions.map((reaction, index) => (
+                      <div key={index} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
+                        <reaction.icon size={16} className="text-black" />
+                      </div>
+                    ))}
+                  </div>
+                  <span className="text-black dark:text-black text-sm mt-1">Reactions</span>
                 </div>
               </div>
             </div>
