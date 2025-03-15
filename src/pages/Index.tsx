@@ -80,8 +80,8 @@ const Index = () => {
             avatar_url: 'https://i.pravatar.cc/150?img=1',
           };
           
-          // Create a default username using user_id if username is not available
-          const displayUsername = profile.username || post.user_id?.substring(0, 8) || 'user';
+          // Create a display username from the user_id since profile.username doesn't exist
+          const displayUsername = post.user_id?.substring(0, 8) || 'user';
           
           return {
             id: post.id,
@@ -141,8 +141,8 @@ const Index = () => {
               avatar_url: 'https://i.pravatar.cc/150?img=1',
             };
             
-            // Create a default username using user_id if username is not available
-            const displayUsername = profile.username || payload.new.user_id?.substring(0, 8) || 'user';
+            // Create a display username from the user_id since profile.username doesn't exist
+            const displayUsername = payload.new.user_id?.substring(0, 8) || 'user';
           
             const newPost = {
               id: payload.new.id,
