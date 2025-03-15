@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
@@ -21,7 +20,6 @@ const Profile = () => {
   
   const navigate = useNavigate();
   
-  // If userId is not provided, use the current user's id
   const profileUserId = userId || (user ? user.id : null);
   const isCurrentUser = user && profileUserId === user.id;
   
@@ -30,13 +28,11 @@ const Profile = () => {
     console.log("Profile component - Current user ID:", user?.id);
     console.log("Profile component - Using profile ID:", profileUserId);
     
-    // If no profile user ID is available and user is not logged in, redirect to auth
     if (!profileUserId && !user) {
       navigate('/auth');
       return;
     }
     
-    // If no profile user ID is available but user is logged in, redirect to their profile
     if (!profileUserId && user) {
       navigate(`/profile/${user.id}`);
       return;
@@ -133,7 +129,6 @@ const Profile = () => {
         if (error || !profile) {
           console.error("Error fetching profile or profile not found:", error);
           
-          // If this is the current user, create a default profile
           if (isCurrentUser && user) {
             const usernameToUse = username || 
               user.user_metadata?.username || 
@@ -142,7 +137,7 @@ const Profile = () => {
               
             setProfileData({
               id: user.id,
-              name: user.user_metadata?.full_name || 'User',
+              name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Anonymous',
               username: usernameToUse,
               bio: '',
               profession: '',
@@ -152,7 +147,6 @@ const Profile = () => {
               following: 0
             });
           } else {
-            // Check if user exists in auth system
             try {
               const { data, error: userError } = await supabase.auth.admin.getUserById(profileUserId);
               
@@ -162,10 +156,9 @@ const Profile = () => {
                 return;
               }
               
-              // User exists in auth but not in profiles, create minimal profile data
               setProfileData({
                 id: profileUserId,
-                name: 'User',
+                name: data.user?.email?.split('@')[0] || 'Anonymous',
                 username: profileUserId.substring(0, 8),
                 bio: '',
                 profession: '',
@@ -176,10 +169,9 @@ const Profile = () => {
               });
             } catch (authCheckError) {
               console.error("Error checking user in auth system:", authCheckError);
-              // Fallback - try to show some profile
               setProfileData({
                 id: profileUserId,
-                name: 'User',
+                name: 'Anonymous',
                 username: profileUserId.substring(0, 8),
                 bio: '',
                 profession: '',
@@ -191,14 +183,13 @@ const Profile = () => {
             }
           }
         } else {
-          // Got profile data from database
           const usernameToUse = isCurrentUser ? 
             (username || profile.user_id?.substring(0, 8) || 'user') : 
             profile.user_id?.substring(0, 8) || 'user';
             
           setProfileData({
             id: profile.id,
-            name: profile.full_name || 'User',
+            name: profile.full_name || profile.email?.split('@')[0] || 'Anonymous',
             username: usernameToUse,
             bio: profile.description || '',
             profession: profile.profession || '',
