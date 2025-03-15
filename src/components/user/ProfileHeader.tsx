@@ -231,9 +231,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             <div className="mt-6 flex justify-center">
               {isCurrentUser ? (
                 <Button
-                  variant="outline"
+                  variant="default"
                   onClick={handleEditProfile}
-                  className="rounded-full px-8 py-2 text-white bg-transparent border-gray-700 hover:bg-gray-800"
+                  className="rounded-full px-8 py-2 text-white bg-blue-500 hover:bg-blue-600 w-28"
                 >
                   Edit profile
                 </Button>
