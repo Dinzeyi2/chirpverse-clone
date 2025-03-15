@@ -17,5 +17,11 @@ export const enableRealtimeForTables = () => {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'post_reactions' }, () => {
       console.log('Reaction changes detected');
     })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'post_bludifies' }, () => {
+      console.log('Bludify changes detected');
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'post_bookmarks' }, () => {
+      console.log('Bookmark changes detected');
+    })
     .subscribe();
 };

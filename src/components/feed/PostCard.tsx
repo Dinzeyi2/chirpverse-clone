@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile, ThumbsUp, Flame } from 'lucide-react';
@@ -39,7 +40,8 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   useEffect(() => {
     const fetchPostReactions = async () => {
       try {
-        const { data: reactionData, error } = await supabase
+        // We need to cast here to work around TypeScript issues
+        const { data: reactionData, error } = await (supabase as any)
           .from('post_reactions')
           .select('emoji, user_id')
           .eq('post_id', getPostId(post.id));
@@ -50,7 +52,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           const reactionCounts: Record<string, { count: number, reacted: boolean }> = {};
           const user = (await supabase.auth.getUser()).data.user;
           
-          reactionData.forEach(reaction => {
+          reactionData.forEach((reaction: any) => {
             if (!reactionCounts[reaction.emoji]) {
               reactionCounts[reaction.emoji] = {
                 count: 0,
@@ -323,7 +325,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       const existingReaction = reactions.find(reaction => reaction.emoji === selectedEmoji && reaction.reacted);
       
       if (existingReaction) {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('post_reactions')
           .delete()
           .eq('post_id', getPostId(post.id))
@@ -334,7 +336,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         
         toast.success(`Removed ${selectedEmoji} reaction`);
       } else {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('post_reactions')
           .insert({
             post_id: getPostId(post.id),
@@ -369,7 +371,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       const existingReaction = reactions.find(r => r.emoji === emoji && r.reacted);
       
       if (existingReaction) {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('post_reactions')
           .delete()
           .eq('post_id', getPostId(post.id))
@@ -380,7 +382,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         
         toast.success(`Removed ${emoji} reaction`);
       } else {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('post_reactions')
           .insert({
             post_id: getPostId(post.id),
