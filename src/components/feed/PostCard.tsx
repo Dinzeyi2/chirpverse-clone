@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile, ThumbsUp, Flame } from 'lucide-react';
@@ -7,6 +8,7 @@ import { toast } from 'sonner';
 import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
+import { useTheme } from '@/components/theme/theme-provider';
 
 interface PostCardProps {
   post: Post;
@@ -20,6 +22,7 @@ interface EmojiReaction {
 
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [isLiked, setIsLiked] = useState(post.liked || false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likes);
@@ -31,6 +34,24 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [bludifyCount, setBludifyCount] = useState(0);
 
   const hasMedia = post.images && post.images.length > 0;
+  const isLightMode = theme === 'light';
+
+  // Define theme-based colors
+  const cardBg = isLightMode ? 'bg-white' : 'bg-gradient-to-b from-black/20 to-black/40';
+  const cardBorder = isLightMode ? 'border-gray-200' : 'border-neutral-800/50';
+  const textColor = isLightMode ? 'text-black' : 'text-white';
+  const textColorMuted = isLightMode ? 'text-gray-500' : 'text-neutral-400';
+  const mediaBg = isLightMode ? 'bg-gray-100' : 'bg-black';
+  const iconColor = isLightMode ? 'text-black' : 'text-white';
+  const actionBg = isLightMode ? 'bg-gray-100' : 'bg-black/40';
+  const actionBorder = isLightMode ? 'border-gray-200' : 'border-neutral-800/50';
+  const contentBg = isLightMode ? 'bg-white' : 'bg-black/90';
+  const hoverBg = isLightMode ? 'bg-gray-50' : 'bg-xBlue/10';
+  const reactionBg = isLightMode ? 'bg-gray-100' : 'bg-xSecondary';
+  const reactionBorder = isLightMode ? 'border-gray-300' : 'border-xBorder';
+  const reactionText = isLightMode ? 'text-gray-800' : 'text-gray-300';
+  const reactionActiveBg = isLightMode ? 'bg-blue-50' : 'bg-xBlue/10';
+  const reactionActiveBorder = isLightMode ? 'border-blue-200' : 'border-xBlue/20';
 
   const getPostId = (postId: string): string => {
     return String(postId);
@@ -403,14 +424,14 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       onClick={handlePostClick}
       className={cn(
         'cursor-pointer block animate-fade-in relative rounded-xl overflow-hidden border',
-        'bg-gradient-to-b from-black/20 to-black/40 backdrop-blur-sm',
+        cardBg, 'backdrop-blur-sm',
         'transition-all duration-300 hover:shadow-xl hover:scale-[1.01]',
-        'border-neutral-800/50',
+        cardBorder,
         !hasMedia && 'flex flex-col justify-center'
       )}
     >
       {hasMedia ? (
-        <div className="w-full aspect-[4/3] relative overflow-hidden bg-black">
+        <div className={`w-full aspect-[4/3] relative overflow-hidden ${mediaBg}`}>
           <img 
             src={post.images[0]} 
             alt="Post content" 
@@ -423,11 +444,11 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         </div>
       ) : (
         <div className="p-6 flex-1 flex items-center justify-center">
-          <p className="text-xl text-center text-white/90 font-medium">{post.content}</p>
+          <p className={`text-xl text-center ${textColor} font-medium`}>{post.content}</p>
         </div>
       )}
       
-      <div className="flex justify-between items-center p-2 border-t border-b border-neutral-800/50 bg-black/40">
+      <div className={`flex justify-between items-center p-2 border-t border-b ${actionBorder} ${actionBg}`}>
         <button 
           className={cn(
             "flex items-center group",
@@ -442,10 +463,10 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           )}>
             <div className="flex items-center">
               <Flame size={16} className={cn(
-                "text-white transition-colors",
+                iconColor, "transition-colors",
                 isBludified && "text-xBlue fill-xBlue"
               )} />
-              <span className="ml-1 text-xs group-hover:text-xBlue">
+              <span className={`ml-1 text-xs group-hover:text-xBlue ${isBludified ? '' : iconColor}`}>
                 {formatNumber(bludifyCount)}
               </span>
             </div>
@@ -459,7 +480,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               onClick={handleEmojiPickerOpen}
             >
               <div className="p-1 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors">
-                <Smile size={16} />
+                <Smile size={16} className={iconColor} />
               </div>
             </button>
           </PopoverTrigger>
@@ -473,7 +494,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               skinTonesDisabled
               width={280}
               height={350}
-              theme={"dark" as Theme}
+              theme={(theme === "dark" ? "dark" : "light") as Theme}
             />
           </PopoverContent>
         </Popover>
@@ -484,9 +505,9 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           aria-label={`${replyCount} replies`}
         >
           <div className="p-1 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors">
-            <MessageCircle size={16} className="text-white" />
+            <MessageCircle size={16} className={iconColor} />
           </div>
-          <span className="ml-1 text-xs group-hover:text-xBlue">
+          <span className={`ml-1 text-xs group-hover:text-xBlue ${iconColor}`}>
             {formatNumber(replyCount)}
           </span>
         </button>
@@ -502,53 +523,53 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             "p-1 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors",
             isBookmarked && "text-xBlue"
           )}>
-            <Bookmark size={16} className={cn("text-white", isBookmarked ? "fill-current" : "")} />
+            <Bookmark size={16} className={cn(iconColor, isBookmarked ? "fill-current" : "")} />
           </div>
         </button>
       </div>
       
       {hasMedia && (
-        <div className="p-3 bg-black/90">
-          <h2 className="text-base font-bold text-white leading-tight mb-1 line-clamp-2">
+        <div className={contentBg}>
+          <h2 className={`text-base font-bold ${textColor} leading-tight mb-1 line-clamp-2 p-3 pt-3`}>
             {post.content}
           </h2>
           
-          <div className="flex items-center mt-1">
+          <div className="flex items-center mt-1 px-3 pb-3">
             <img 
               src={post.user?.avatar} 
               alt={post.user?.name} 
               className="w-6 h-6 rounded-full object-cover mr-1.5"
             />
             <div className="flex items-center">
-              <span className="font-medium text-white/90 mr-1 text-sm">{post.user?.name}</span>
+              <span className={`font-medium ${textColor} mr-1 text-sm`}>{post.user?.name}</span>
               {post.user?.verified && (
                 <span className="text-xBlue">
                   <CheckCircle size={12} className="fill-xBlue text-black" />
                 </span>
               )}
             </div>
-            <span className="text-neutral-400 text-xs ml-auto">{formatDate(post.createdAt)}</span>
+            <span className={`${textColorMuted} text-xs ml-auto`}>{formatDate(post.createdAt)}</span>
           </div>
         </div>
       )}
       
       {!hasMedia && (
-        <div className="p-3 bg-black/90">
-          <div className="flex items-center">
+        <div className={contentBg}>
+          <div className="flex items-center p-3">
             <img 
               src={post.user?.avatar} 
               alt={post.user?.name} 
               className="w-6 h-6 rounded-full object-cover mr-1.5"
             />
             <div className="flex items-center">
-              <span className="font-medium text-white/90 mr-1 text-sm">{post.user?.name}</span>
+              <span className={`font-medium ${textColor} mr-1 text-sm`}>{post.user?.name}</span>
               {post.user?.verified && (
                 <span className="text-xBlue">
                   <CheckCircle size={12} className="fill-xBlue text-black" />
                 </span>
               )}
             </div>
-            <span className="text-neutral-400 text-xs ml-auto">{formatDate(post.createdAt)}</span>
+            <span className={`${textColorMuted} text-xs ml-auto`}>{formatDate(post.createdAt)}</span>
           </div>
         </div>
       )}
@@ -562,8 +583,8 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               className={cn(
                 "flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs border transition-colors",
                 reaction.reacted 
-                  ? "bg-xBlue/10 border-xBlue/20 text-xBlue" 
-                  : "bg-xSecondary border-xBorder text-gray-300 hover:bg-xSecondary/80"
+                  ? reactionActiveBg + " " + reactionActiveBorder + " text-xBlue" 
+                  : reactionBg + " " + reactionBorder + " " + reactionText + " hover:bg-xSecondary/80"
               )}
             >
               <span>{reaction.emoji}</span>
