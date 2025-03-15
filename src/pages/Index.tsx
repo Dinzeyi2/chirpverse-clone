@@ -55,15 +55,25 @@ const Index = () => {
               post.profiles.user_id?.substring(0, 8) || 
               'user';
             
+            // Safely extract count values with appropriate type checking
+            const likesCount = post.likes && Array.isArray(post.likes) && post.likes[0] ? 
+              Number(post.likes[0].count) || 0 : 0;
+              
+            const commentsCount = post.comments && Array.isArray(post.comments) && post.comments[0] ? 
+              Number(post.comments[0].count) || 0 : 0;
+              
+            const savesCount = post.saved_posts && Array.isArray(post.saved_posts) && post.saved_posts[0] ? 
+              Number(post.saved_posts[0].count) || 0 : 0;
+            
             return {
               id: post.id,
               content: post.content,
               createdAt: post.created_at,
-              likes: post.likes?.[0]?.count || 0,
-              comments: post.comments?.[0]?.count || 0,
-              saves: post.saved_posts?.[0]?.count || 0,
+              likes: likesCount,
+              comments: commentsCount,
+              saves: savesCount,
               reposts: 0,
-              replies: post.comments?.[0]?.count || 0,
+              replies: commentsCount,
               views: 0,
               userId: post.user_id,
               images: post.media,
