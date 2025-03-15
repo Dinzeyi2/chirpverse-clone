@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, MessageCircle, UserCircle, Grid } from 'lucide-react';
@@ -185,7 +186,14 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   return (
     <div className="animate-fade-in">
       <div className="relative">
-        <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-br from-blue-500 to-indigo-600 z-0"></div>
+        <div 
+          className="absolute top-0 left-0 right-0 h-64 z-0"
+          style={{
+            backgroundImage: "url('/lovable-uploads/30b5d36a-f40a-499d-85dd-d4beb780f8f8.png')",
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        ></div>
         
         <div className="relative z-10 flex justify-between items-center p-4">
           <button
