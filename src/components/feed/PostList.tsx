@@ -3,6 +3,7 @@ import React from 'react';
 import PostCard from './PostCard';
 import { Post } from '@/lib/data';
 import { Inbox } from 'lucide-react';
+import SwipeablePostView from './SwipeablePostView';
 
 interface PostListProps {
   posts: Post[];
@@ -34,15 +35,7 @@ const PostList: React.FC<PostListProps> = ({ posts, loading = false }) => {
     );
   }
 
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
-      {posts.map((post) => (
-        <div key={post.id} className="max-w-sm mx-auto w-full">
-          <PostCard post={post} />
-        </div>
-      ))}
-    </div>
-  );
+  return <SwipeablePostView posts={posts} />;
 };
 
 export default PostList;
