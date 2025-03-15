@@ -189,7 +189,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <div 
           className="absolute top-0 left-0 right-0 h-64 z-0"
           style={{
-            backgroundImage: "url('/lovable-uploads/30b5d36a-f40a-499d-85dd-d4beb780f8f8.png')",
+            backgroundImage: "url('/lovable-uploads/574535bb-701a-4bd6-9e65-e462c713c41d.png')",
             backgroundSize: 'cover',
             backgroundPosition: 'center'
           }}
