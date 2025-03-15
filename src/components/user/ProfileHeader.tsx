@@ -279,8 +279,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 </div>
                 
                 <div className="bg-black/80 backdrop-blur-sm border border-white/10 rounded-full px-4 py-2 text-white flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full flex items-center justify-center">
-                    <Heart size={14} className="text-white" />
+                  <div className="flex -space-x-1 mr-1">
+                    {emojiReactions.slice(0, 4).map((reaction, index) => (
+                      <div key={index} className="w-5 h-5 rounded-full bg-gray-700 flex items-center justify-center">
+                        <reaction.icon size={10} className="text-white" />
+                      </div>
+                    ))}
                   </div>
                   <span className="text-sm font-medium">{stats.reactions || 0} Reactions</span>
                 </div>
