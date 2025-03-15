@@ -393,6 +393,75 @@ const Profile = () => {
     }
   }, [profileUserId, repliesPage, activeTab]);
 
+  useEffect(() => {
+    if (!profileUserId) return;
+    
+    const fetchPostIds = async () => {
+      const { data: userShoutouts } = await supabase
+        .from('shoutouts')
+        .select('id')
+        .eq('user_id', profileUserId);
+        
+      if (!userShoutouts || userShoutouts.length === 0) return [];
+      return userShoutouts.map(post => post.id);
+    };
+    
+    fetchPostIds().then(postIds => {
+      if (postIds.length === 0) return;
+      
+      const likesChannel = supabase
+        .channel('profile-likes-changes')
+        .on('postgres_changes', 
+          {
+            event: '*', // Listen for all events (INSERT, UPDATE, DELETE)
+            schema: 'public',
+            table: 'likes',
+            filter: `shoutout_id=in.(${postIds.join(',')})`
+          },
+          () => {
+            fetchUserStats();
+          }
+        )
+        .subscribe();
+        
+      const repostsChannel = supabase
+        .channel('profile-reposts-changes')
+        .on('postgres_changes', 
+          {
+            event: '*', // Listen for all events
+            schema: 'public',
+            table: 'reposts',
+            filter: `shoutout_id=in.(${postIds.join(',')})`
+          },
+          () => {
+            fetchUserStats();
+          }
+        )
+        .subscribe();
+        
+      const commentsChannel = supabase
+        .channel('profile-comments-changes')
+        .on('postgres_changes', 
+          {
+            event: '*',
+            schema: 'public',
+            table: 'comments',
+            filter: `shoutout_id=in.(${postIds.join(',')})`
+          },
+          () => {
+            fetchUserStats();
+          }
+        )
+        .subscribe();
+      
+      return () => {
+        supabase.removeChannel(likesChannel);
+        supabase.removeChannel(repostsChannel);
+        supabase.removeChannel(commentsChannel);
+      };
+    });
+  }, [profileUserId]);
+
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     if (value === 'posts') {
