@@ -51,7 +51,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   
   const [formData, setFormData] = useState({
     name: user.name,
-    bio: user.bio || '',
     profession: user.profession || '',
   });
   
@@ -116,7 +115,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const handleEditProfile = () => {
     setFormData({
       name: profileData.name,
-      bio: profileData.bio || '',
       profession: profileData.profession || '',
     });
     setIsDialogOpen(true);
@@ -137,7 +135,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           .from('profiles')
           .update({
             full_name: formData.name,
-            description: formData.bio,
             profession: formData.profession,
           })
           .eq('id', authUser.id);
@@ -148,7 +145,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       setProfileData(prev => ({
         ...prev,
         name: formData.name,
-        bio: formData.bio,
         profession: formData.profession
       }));
       
@@ -368,17 +364,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   onChange={handleChange}
                   placeholder="Software Engineer, Designer, etc."
                   className="border-none bg-gray-100 dark:bg-gray-800 focus-visible:ring-blue-500"
-                />
-              </div>
-              
-              <div className="space-y-1 mb-6">
-                <Label htmlFor="bio" className="text-gray-500 text-sm">Bio</Label>
-                <Textarea 
-                  id="bio" 
-                  name="bio" 
-                  value={formData.bio} 
-                  onChange={handleChange}
-                  className="border-none bg-gray-100 dark:bg-gray-800 focus-visible:ring-blue-500 resize-none h-24"
                 />
               </div>
             </div>
