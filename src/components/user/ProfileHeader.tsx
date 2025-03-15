@@ -280,10 +280,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   <span className="text-black dark:text-black text-sm">Following</span>
                 </div>
                 <div className="flex flex-col items-center bg-white dark:bg-white rounded-xl p-4">
-                  <span className="text-2xl font-bold text-black dark:text-black">1.2K</span>
-                  <span className="text-black dark:text-black text-sm">Followers</span>
-                </div>
-                <div className="flex flex-col items-center bg-white dark:bg-white rounded-xl p-4">
                   <span className="text-2xl font-bold text-black dark:text-black">{stats.reactions || 0}</span>
                   <div className="flex -space-x-1 mt-1">
                     {emojiReactions.map((reaction, index) => (
