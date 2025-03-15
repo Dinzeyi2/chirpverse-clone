@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Monitor, Users, ChevronRight, Sun, Moon } from 'lucide-react';
+import { ArrowLeft, Users, ChevronRight, Sun, Moon } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -38,12 +38,6 @@ const Settings = () => {
   const { theme, setTheme } = useTheme();
 
   const settingsCategories = [
-    {
-      icon: Monitor,
-      title: 'Display',
-      description: 'Manage your font size, color, and background',
-      to: '/settings/display'
-    },
     {
       icon: Users,
       title: 'Privacy and safety',
