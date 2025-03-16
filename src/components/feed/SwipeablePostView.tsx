@@ -50,13 +50,13 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     // For mobile devices, make posts smaller to show more of adjacent posts
     if (width <= 480) {
       return {
-        basis: "85%",          // Takes 85% of the container width on very small devices
+        basis: "90%",          // Takes 90% of the container width on very small devices
         scale: "scale-95",     // Base scale for current post
         opacity: "opacity-100" // Full opacity for current post
       };
     } else if (width <= 768) {
       return {
-        basis: "80%",          // Takes 80% of the container width on mobile devices
+        basis: "85%",          // Takes 85% of the container width on mobile devices
         scale: "scale-95",     // Base scale for current post
         opacity: "opacity-100" // Full opacity for current post
       };
@@ -123,14 +123,14 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
           dragFree: isMobile, // Enable drag free scrolling on mobile for smoother experience
         }}
       >
-        <CarouselContent>
+        <CarouselContent className="mx-auto">
           {posts.map((post, index) => (
             <CarouselItem 
               key={post.id} 
               className={`basis-${basis} flex justify-center items-center pl-0`}
             >
               <div className={cn(
-                "relative w-full transition-all duration-300 max-w-[350px] sm:max-w-[400px]",
+                "relative w-full transition-all duration-300 max-w-[350px] sm:max-w-[400px] mx-auto",
                 currentIndex === index 
                   ? `${scale} ${opacity} z-20` 
                   : "scale-90 opacity-70 z-10"
