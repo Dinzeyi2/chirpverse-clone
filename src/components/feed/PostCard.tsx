@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
 import { useTheme } from '@/components/theme/theme-provider';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PostCardProps {
   post: Post;
@@ -23,6 +24,7 @@ interface EmojiReaction {
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const { displayName } = useAuth();
   const [isLiked, setIsLiked] = useState(post.liked || false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likes);
@@ -35,6 +37,16 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
   const hasMedia = post.images && post.images.length > 0;
   const isLightMode = theme === 'light';
+
+  // Get privacy name for the post author
+  const getPrivacyName = (userId: string) => {
+    if (!userId || userId.length < 4) return "blue";
+    const first2 = userId.substring(0, 2);
+    const last2 = userId.substring(userId.length - 2);
+    return `blue${first2}${last2}`;
+  };
+  
+  const postAuthorName = getPrivacyName(post.userId);
 
   // Define theme-based colors
   const cardBg = isLightMode ? 'bg-white' : 'bg-gradient-to-b from-black/20 to-black/40';
@@ -537,11 +549,13 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           <div className="flex items-center mt-1 px-3 pb-3">
             <img 
               src={post.user?.avatar} 
-              alt={post.user?.name} 
+              alt={postAuthorName} 
               className="w-6 h-6 rounded-full object-cover mr-1.5"
             />
             <div className="flex items-center">
-              <span className={`font-medium ${textColor} mr-1 text-sm`}>{post.user?.name}</span>
+              <span className="font-medium text-[#4285F4] mr-1 text-sm font-heading tracking-wide">
+                {post.userId === (supabase.auth.getUser()?.data?.user?.id || '') ? displayName : postAuthorName}
+              </span>
               {post.user?.verified && (
                 <span className="text-xBlue">
                   <CheckCircle size={12} className="fill-xBlue text-black" />
@@ -558,11 +572,13 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           <div className="flex items-center p-3">
             <img 
               src={post.user?.avatar} 
-              alt={post.user?.name} 
+              alt={postAuthorName} 
               className="w-6 h-6 rounded-full object-cover mr-1.5"
             />
             <div className="flex items-center">
-              <span className={`font-medium ${textColor} mr-1 text-sm`}>{post.user?.name}</span>
+              <span className="font-medium text-[#4285F4] mr-1 text-sm font-heading tracking-wide">
+                {post.userId === (supabase.auth.getUser()?.data?.user?.id || '') ? displayName : postAuthorName}
+              </span>
               {post.user?.verified && (
                 <span className="text-xBlue">
                   <CheckCircle size={12} className="fill-xBlue text-black" />

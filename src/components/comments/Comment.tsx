@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bookmark, MoreHorizontal, CheckCircle, Smile, Flame } from 'lucide-react';
@@ -226,7 +227,7 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
         <div className="flex-1 min-w-0">
           <div className="flex items-center mb-1">
             <div 
-              className="font-bold hover:underline mr-1 truncate cursor-pointer"
+              className="font-bold hover:underline mr-1 truncate cursor-pointer text-[#4285F4] font-heading tracking-wide"
               onClick={() => navigate(`/profile/${comment.userId}`)}
             >
               {comment.userId === user?.id ? currentUserDisplayName : commentAuthorName}
