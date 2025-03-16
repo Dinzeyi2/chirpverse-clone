@@ -48,7 +48,7 @@ export const Sidebar = () => {
     navigate('/auth');
   };
 
-  const handlePostCreated = (content: string) => {
+  const handlePostCreated = () => {
     setIsPostDialogOpen(false);
   };
 
