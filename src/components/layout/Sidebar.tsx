@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -74,8 +73,7 @@ export const Sidebar = () => {
         ? "fixed inset-0 w-full h-screen" 
         : "fixed bottom-0 left-0 right-0 h-16 border-t border-b-0"
     ) : (
-      "fixed left-0 top-0 h-screen",
-      isCollapsed ? "w-20" : "w-[275px]"
+      isCollapsed ? "fixed left-0 top-0 h-screen w-20" : "fixed left-0 top-0 h-screen w-[275px]"
     )
   );
 
