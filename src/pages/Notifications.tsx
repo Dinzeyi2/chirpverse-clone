@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import { Bell, AtSign, Heart, Repeat, MessageSquare, ChevronDown, Bookmark, Smile, Flame } from 'lucide-react';
+import { Bell, AtSign, Heart, Repeat, MessageSquare, ChevronDown, Bookmark, Smile, Flame, Building } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from '@/lib/utils';
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +23,7 @@ interface NotificationType {
   time: string;
   isRead: boolean;
   postId?: string;
+  metadata?: any;
 }
 
 const Notifications = () => {
@@ -61,6 +63,7 @@ const Notifications = () => {
           // Safe extraction of post_excerpt and post_id from metadata
           let postExcerpt: string | undefined = undefined;
           let postId: string | undefined = undefined;
+          let company: string | undefined = undefined;
           
           if (notification.metadata && typeof notification.metadata === 'object' && !Array.isArray(notification.metadata)) {
             const metadataObj = notification.metadata as Record<string, any>;
@@ -69,6 +72,9 @@ const Notifications = () => {
             }
             if (metadataObj.post_id) {
               postId = String(metadataObj.post_id);
+            }
+            if (metadataObj.company) {
+              company = String(metadataObj.company);
             }
           }
 
@@ -86,6 +92,9 @@ const Notifications = () => {
             postId: postId,
             time: formatTimeAgo(new Date(notification.created_at)),
             isRead: notification.is_read,
+            metadata: {
+              company
+            }
           };
         });
 
@@ -126,6 +135,7 @@ const Notifications = () => {
             // Safe extraction of post_excerpt and post_id from metadata
             let postExcerpt: string | undefined = undefined;
             let postId: string | undefined = undefined;
+            let company: string | undefined = undefined;
             
             if (newNotification.metadata && typeof newNotification.metadata === 'object' && !Array.isArray(newNotification.metadata)) {
               const metadataObj = newNotification.metadata as Record<string, any>;
@@ -134,6 +144,9 @@ const Notifications = () => {
               }
               if (metadataObj.post_id) {
                 postId = String(metadataObj.post_id);
+              }
+              if (metadataObj.company) {
+                company = String(metadataObj.company);
               }
             }
 
@@ -151,14 +164,26 @@ const Notifications = () => {
               postId: postId,
               time: formatTimeAgo(new Date(newNotification.created_at)),
               isRead: newNotification.is_read,
+              metadata: {
+                company
+              }
             };
             
             setNotifications(prev => [formattedNotification, ...prev]);
             
             // Show a toast notification for the new notification
+            let notificationTitle = getNotificationTitle(newNotification.type);
+            let notificationDesc = `${profile?.full_name || 'Someone'} ${newNotification.content}`;
+            
+            // Special notification for company mentions
+            if (newNotification.type === 'mention' && company) {
+              notificationTitle = `Company Mention: ${company}`;
+              notificationDesc = `${profile?.full_name || 'Someone'} mentioned ${company} in a post`;
+            }
+            
             toast({
-              title: getNotificationTitle(newNotification.type),
-              description: `${profile?.full_name || 'Someone'} ${newNotification.content}`,
+              title: notificationTitle,
+              description: notificationDesc,
               action: (
                 <a 
                   onClick={() => navigate(postId ? `/post/${postId}` : '/notifications')}
@@ -220,7 +245,12 @@ const Notifications = () => {
     return notifications.filter(notification => notification.type === type);
   };
 
-  const getNotificationIcon = (type: string) => {
+  const getNotificationIcon = (type: string, metadata?: any) => {
+    // Special case for company mentions
+    if (type === 'mention' && metadata?.company) {
+      return <Building size={16} className="text-blue-500" />;
+    }
+    
     switch (type) {
       case 'like':
         return <Heart size={16} className="text-red-500" />;
@@ -331,7 +361,7 @@ const Notifications = () => {
 
 interface NotificationsListProps {
   notifications: NotificationType[];
-  getIcon: (type: string) => JSX.Element;
+  getIcon: (type: string, metadata?: any) => JSX.Element;
   onNotificationClick: (notification: NotificationType) => void;
 }
 
@@ -352,7 +382,7 @@ const NotificationsList: React.FC<NotificationsListProps> = ({
           onClick={() => onNotificationClick(notification)}
         >
           <div className="mr-3 mt-1">
-            {getIcon(notification.type)}
+            {getIcon(notification.type, notification.metadata)}
           </div>
           <div className="flex-1">
             <div className="flex mb-1">
@@ -377,9 +407,18 @@ const NotificationsList: React.FC<NotificationsListProps> = ({
                   <span className="text-xGray mx-1">·</span>
                   <span className="text-xGray">{notification.time}</span>
                 </div>
-                <p className="text-sm">
-                  {notification.content}
-                </p>
+                
+                {/* Special formatting for company mentions */}
+                {notification.type === 'mention' && notification.metadata?.company ? (
+                  <p className="text-sm">
+                    mentioned <span className="font-semibold text-blue-500">@{notification.metadata.company}</span> in a post
+                  </p>
+                ) : (
+                  <p className="text-sm">
+                    {notification.content}
+                  </p>
+                )}
+                
                 {notification.post && (
                   <p className="mt-1 text-sm text-xGray">
                     {notification.post}

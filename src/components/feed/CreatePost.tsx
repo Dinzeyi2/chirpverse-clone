@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Image, Smile, MapPin, Calendar, BarChart, X, Video, Info } from 'lucide-react';
 import Button from '@/components/common/Button';
@@ -30,7 +29,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   
   const maxChars = 280;
   const maxImages = 2;
@@ -172,6 +171,71 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     setMediaFiles(prev => prev.filter((_, i) => i !== index));
   };
   
+  // Function to extract company mentions from post content
+  const extractCompanyMentions = (content: string): string[] => {
+    const mentionRegex = /@([a-zA-Z0-9_]+)/g;
+    const matches = content.match(mentionRegex);
+    if (!matches) return [];
+    
+    // Remove the @ symbol and return unique company names
+    return [...new Set(matches.map(match => match.substring(1).trim()))];
+  };
+  
+  // Function to send notifications to users from the same company
+  const sendCompanyNotifications = async (
+    postId: string, 
+    companies: string[], 
+    postExcerpt: string
+  ) => {
+    if (!user || companies.length === 0) return;
+    
+    try {
+      // For each company mentioned in the post
+      for (const company of companies) {
+        // Find users who have this company in their profile
+        const { data: users, error: usersError } = await supabase
+          .from('profiles')
+          .select('user_id, full_name')
+          .ilike('company', `%${company}%`)
+          .neq('user_id', user.id); // Don't notify the author
+        
+        if (usersError) {
+          console.error('Error fetching users by company:', usersError);
+          continue;
+        }
+        
+        if (!users || users.length === 0) continue;
+        
+        // Create notification for each user
+        const notifications = users.map(recipientUser => ({
+          type: 'mention',
+          sender_id: user.id,
+          recipient_id: recipientUser.user_id,
+          content: `mentioned ${company} in a post`,
+          metadata: {
+            post_id: postId,
+            company: company,
+            post_excerpt: postExcerpt.substring(0, 100) + (postExcerpt.length > 100 ? '...' : '')
+          },
+          is_read: false
+        }));
+        
+        // Insert notifications in batch
+        const { error: notificationError } = await supabase
+          .from('notifications')
+          .insert(notifications);
+        
+        if (notificationError) {
+          console.error('Error creating company mention notifications:', notificationError);
+        } else {
+          console.log(`Sent notifications to ${notifications.length} users from ${company}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error in sendCompanyNotifications:', error);
+    }
+  };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -211,6 +275,17 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         }
       }
       
+      // Extract company mentions
+      const companyMentions = extractCompanyMentions(postContent);
+      
+      // Generate a unique post ID - this would normally come from your database
+      const postId = crypto.randomUUID();
+      
+      // Send notifications for company mentions
+      if (companyMentions.length > 0) {
+        await sendCompanyNotifications(postId, companyMentions, postContent);
+      }
+      
       setTimeout(() => {
         if (onPostCreated) {
           onPostCreated(postContent, mediaUrls);
@@ -221,7 +296,12 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         setMediaFiles([]);
         setIsLoading(false);
         
-        toast.success('Your post was sent successfully!');
+        // Show appropriate toast message based on notifications sent
+        if (companyMentions.length > 0) {
+          toast.success(`Your post was sent successfully! Notifying users from ${companyMentions.join(', ')}`);
+        } else {
+          toast.success('Your post was sent successfully!');
+        }
         
         if (textareaRef.current) {
           textareaRef.current.style.height = 'auto';
@@ -258,7 +338,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       <div className="flex p-4">
         <div className="mr-3">
           <img 
-            src="https://i.pravatar.cc/150?img=1" 
+            src={profile?.avatar_url || "https://i.pravatar.cc/150?img=1"} 
             alt="Your avatar" 
             className="w-10 h-10 rounded-full object-cover"
           />
@@ -279,7 +359,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
               
               <div className="mb-4 text-sm text-gray-500 flex items-center">
                 <Info className="w-4 h-4 mr-1" />
-                <span>Tag companies using @ symbol (e.g., @Amazon) to reach people from those companies</span>
+                <span>Tag companies using @ symbol (e.g., @Amazon) to reach people from those companies and send them notifications</span>
               </div>
               
               {mediaFiles.length > 0 && (
