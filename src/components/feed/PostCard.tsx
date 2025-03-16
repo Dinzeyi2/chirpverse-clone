@@ -24,7 +24,7 @@ interface EmojiReaction {
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const navigate = useNavigate();
   const { theme } = useTheme();
-  const { displayName } = useAuth();
+  const { displayName, user } = useAuth();
   const [isLiked, setIsLiked] = useState(post.liked || false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likes);
@@ -34,6 +34,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const [isBludified, setIsBludified] = useState(false);
   const [bludifyCount, setBludifyCount] = useState(0);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const hasMedia = post.images && post.images.length > 0;
   const isLightMode = theme === 'light';
@@ -47,6 +48,16 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   };
   
   const postAuthorName = getPrivacyName(post.userId);
+
+  // Get current user ID
+  useEffect(() => {
+    const getCurrentUserId = async () => {
+      const { data } = await supabase.auth.getUser();
+      setCurrentUserId(data.user?.id || null);
+    };
+    
+    getCurrentUserId();
+  }, []);
 
   // Define theme-based colors
   const cardBg = isLightMode ? 'bg-white' : 'bg-gradient-to-b from-black/20 to-black/40';
@@ -554,7 +565,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             />
             <div className="flex items-center">
               <span className="font-medium text-[#4285F4] mr-1 text-sm font-heading tracking-wide">
-                {post.userId === (supabase.auth.getUser()?.data?.user?.id || '') ? displayName : postAuthorName}
+                {post.userId === currentUserId ? displayName : postAuthorName}
               </span>
               {post.user?.verified && (
                 <span className="text-xBlue">
@@ -577,7 +588,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             />
             <div className="flex items-center">
               <span className="font-medium text-[#4285F4] mr-1 text-sm font-heading tracking-wide">
-                {post.userId === (supabase.auth.getUser()?.data?.user?.id || '') ? displayName : postAuthorName}
+                {post.userId === currentUserId ? displayName : postAuthorName}
               </span>
               {post.user?.verified && (
                 <span className="text-xBlue">
