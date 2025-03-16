@@ -35,6 +35,12 @@ const Profile = () => {
   const [repliesPage, setRepliesPage] = useState(1);
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [loadingReplies, setLoadingReplies] = useState(false);
+  const [userStats, setUserStats] = useState({
+    posts: 0,
+    replies: 0,
+    reactions: 0,
+    bluedify: 0
+  });
   
   const postsPerPage = 10;
   
@@ -660,3 +666,4 @@ const Profile = () => {
 };
 
 export default Profile;
+
