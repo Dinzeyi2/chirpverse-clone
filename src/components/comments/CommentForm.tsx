@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface CommentFormProps {
-  onCommentAdded?: () => void;
+  onCommentAdded?: (content: string, media?: {type: string, url: string}[]) => void;
   postAuthorId?: string;
 }
 
@@ -76,9 +76,10 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId 
         description: "Comment added successfully",
       });
       
-      setComment('');
-      if (onCommentAdded) onCommentAdded();
+      // Call onCommentAdded with the comment content and no media
+      if (onCommentAdded) onCommentAdded(comment.trim(), []);
       
+      setComment('');
     } catch (error: any) {
       console.error('Error submitting comment:', error);
       toast({
