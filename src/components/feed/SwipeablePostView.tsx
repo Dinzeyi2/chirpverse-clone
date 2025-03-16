@@ -82,7 +82,6 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   const mutedTextColor = theme === 'dark' ? 'text-neutral-400' : 'text-gray-500';
   const bgColor = theme === 'dark' ? 'bg-gray-200' : 'bg-gray-100';
   const navBgColor = theme === 'dark' ? 'bg-black/40 hover:bg-black/60 text-white' : 'bg-gray-700/40 hover:bg-gray-700/60 text-white';
-  const counterBgColor = theme === 'dark' ? 'bg-black/60 text-white' : 'bg-gray-700/60 text-white';
 
   if (loading) {
     return (
@@ -151,8 +150,11 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
         <CarouselPrevious className={`absolute left-1 sm:left-4 top-1/2 transform -translate-y-1/2 ${navBgColor} border-none z-30 h-7 w-7 sm:h-8 sm:w-8`} />
         <CarouselNext className={`absolute right-1 sm:right-4 top-1/2 transform -translate-y-1/2 ${navBgColor} border-none z-30 h-7 w-7 sm:h-8 sm:w-8`} />
 
-        <div className={`absolute bottom-2 sm:bottom-4 left-1/2 transform -translate-x-1/2 ${counterBgColor} px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs z-30`}>
-          {currentIndex + 1} / {posts.length}
+        {/* Embedded counter inside the carousel area */}
+        <div className="absolute bottom-2 left-0 right-0 flex justify-center items-center gap-2 z-20 text-xs">
+          <span className={`${navBgColor} px-2 py-1 rounded-full`}>
+            {currentIndex + 1} / {posts.length}
+          </span>
         </div>
       </Carousel>
     </div>
