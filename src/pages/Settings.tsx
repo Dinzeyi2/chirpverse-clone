@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Shield, ChevronRight, Moon, Sun } from 'lucide-react';
+import { ArrowLeft, Shield, ChevronRight, Moon, Sun, Briefcase, Layers } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -16,6 +17,61 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useTheme } from '@/components/theme/theme-provider';
+import { supabase } from '@/integrations/supabase/client';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+// Fields for the tech industry
+const TECH_FIELDS = [
+  'Software Development',
+  'Web Development',
+  'Mobile Development',
+  'Data Science',
+  'Machine Learning',
+  'Artificial Intelligence',
+  'Cybersecurity',
+  'Cloud Computing',
+  'DevOps',
+  'UI/UX Design',
+  'Product Management',
+  'Quality Assurance',
+  'Database Administration',
+  'Network Engineering',
+  'Blockchain',
+  'IoT',
+  'Augmented Reality',
+  'Virtual Reality',
+  'Game Development',
+  'IT Support',
+  'Other'
+];
+
+// Popular tech companies
+const TECH_COMPANIES = [
+  'Google',
+  'Microsoft',
+  'Apple',
+  'Amazon',
+  'Meta',
+  'Netflix',
+  'Twitter',
+  'LinkedIn',
+  'Airbnb',
+  'Uber',
+  'Lyft',
+  'Spotify',
+  'Slack',
+  'Zoom',
+  'Salesforce',
+  'Oracle',
+  'IBM',
+  'Intel',
+  'NVIDIA',
+  'Adobe',
+  'Other'
+];
 
 const PrivacyPolicyContent = () => {
   const { theme } = useTheme();
@@ -139,10 +195,112 @@ const SettingsItem = ({ icon: Icon, title, description, onClick }: {
 const Settings = () => {
   const { user } = useAuth();
   const [openPrivacyDialog, setOpenPrivacyDialog] = useState(false);
+  const [openFieldDialog, setOpenFieldDialog] = useState(false);
+  const [openCompanyDialog, setOpenCompanyDialog] = useState(false);
   const { theme, setTheme } = useTheme();
+  const [userFields, setUserFields] = useState<string[]>([]);
+  const [userCompanies, setUserCompanies] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Fetch current user field and company
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('field, company')
+          .eq('user_id', user.id)
+          .single();
+          
+        if (error) {
+          console.error('Error fetching profile:', error);
+          return;
+        }
+        
+        if (data) {
+          // Handle single field/company or array
+          setUserFields(data.field ? 
+            (Array.isArray(data.field) ? data.field : [data.field]).filter(Boolean) : 
+            []);
+          
+          setUserCompanies(data.company ? 
+            (Array.isArray(data.company) ? data.company : [data.company]).filter(Boolean) : 
+            []);
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
+    
+    fetchUserProfile();
+  }, [user]);
   
   const handlePrivacyClick = () => {
     setOpenPrivacyDialog(true);
+  };
+  
+  const handleFieldClick = () => {
+    setOpenFieldDialog(true);
+  };
+  
+  const handleCompanyClick = () => {
+    setOpenCompanyDialog(true);
+  };
+  
+  const updateUserFields = async (fields: string[]) => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ field: fields })
+        .eq('user_id', user.id);
+        
+      if (error) {
+        toast.error('Failed to update fields');
+        console.error('Error updating fields:', error);
+        return;
+      }
+      
+      setUserFields(fields);
+      toast.success('Fields updated successfully');
+      setOpenFieldDialog(false);
+    } catch (error) {
+      console.error('Error updating user fields:', error);
+      toast.error('An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const updateUserCompanies = async (companies: string[]) => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ company: companies })
+        .eq('user_id', user.id);
+        
+      if (error) {
+        toast.error('Failed to update companies');
+        console.error('Error updating companies:', error);
+        return;
+      }
+      
+      setUserCompanies(companies);
+      toast.success('Companies updated successfully');
+      setOpenCompanyDialog(false);
+    } catch (error) {
+      console.error('Error updating user companies:', error);
+      toast.error('An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const textColor = theme === 'dark' ? 'text-white' : 'text-foreground';
@@ -180,6 +338,20 @@ const Settings = () => {
               onClick={handlePrivacyClick}
             />
             
+            <SettingsItem 
+              icon={Layers}
+              title="Career fields"
+              description="Update your professional fields (up to 3)"
+              onClick={handleFieldClick}
+            />
+            
+            <SettingsItem 
+              icon={Briefcase}
+              title="Companies"
+              description="Update your companies of interest (up to 3)"
+              onClick={handleCompanyClick}
+            />
+            
             <div className="p-4">
               <div className="flex items-start gap-3">
                 <div className="p-2">
@@ -209,6 +381,7 @@ const Settings = () => {
         </div>
       </div>
 
+      {/* Privacy Policy Dialog */}
       <Dialog open={openPrivacyDialog} onOpenChange={setOpenPrivacyDialog}>
         <DialogContent className={cn(dialogBg, dialogBorder, textColor, "max-w-4xl max-h-[90vh]")}>
           <DialogHeader>
@@ -218,6 +391,134 @@ const Settings = () => {
             </DialogDescription>
           </DialogHeader>
           <PrivacyPolicyContent />
+        </DialogContent>
+      </Dialog>
+      
+      {/* Field Selection Dialog */}
+      <Dialog open={openFieldDialog} onOpenChange={setOpenFieldDialog}>
+        <DialogContent className={cn(dialogBg, dialogBorder, textColor)}>
+          <DialogHeader>
+            <DialogTitle>Professional Fields</DialogTitle>
+            <DialogDescription className={mutedTextColor}>
+              Select up to 3 professional fields you're interested in
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="flex flex-wrap gap-2 mb-4">
+              {userFields.map((field, index) => (
+                <Badge key={index} variant="outline" className="px-3 py-1">
+                  {field}
+                  <button 
+                    className="ml-2 text-muted-foreground hover:text-destructive" 
+                    onClick={() => setUserFields(userFields.filter((_, i) => i !== index))}
+                  >
+                    ×
+                  </button>
+                </Badge>
+              ))}
+              {userFields.length === 0 && (
+                <span className={mutedTextColor}>No fields selected</span>
+              )}
+            </div>
+            
+            {userFields.length < 3 && (
+              <Select 
+                onValueChange={(value) => {
+                  if (!userFields.includes(value)) {
+                    setUserFields([...userFields, value]);
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Add a field" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TECH_FIELDS.filter(field => !userFields.includes(field)).map((field) => (
+                    <SelectItem key={field} value={field}>
+                      {field}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="outline" onClick={() => setOpenFieldDialog(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => updateUserFields(userFields)}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Company Selection Dialog */}
+      <Dialog open={openCompanyDialog} onOpenChange={setOpenCompanyDialog}>
+        <DialogContent className={cn(dialogBg, dialogBorder, textColor)}>
+          <DialogHeader>
+            <DialogTitle>Companies</DialogTitle>
+            <DialogDescription className={mutedTextColor}>
+              Select up to 3 companies you're interested in
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="flex flex-wrap gap-2 mb-4">
+              {userCompanies.map((company, index) => (
+                <Badge key={index} variant="outline" className="px-3 py-1">
+                  {company}
+                  <button 
+                    className="ml-2 text-muted-foreground hover:text-destructive" 
+                    onClick={() => setUserCompanies(userCompanies.filter((_, i) => i !== index))}
+                  >
+                    ×
+                  </button>
+                </Badge>
+              ))}
+              {userCompanies.length === 0 && (
+                <span className={mutedTextColor}>No companies selected</span>
+              )}
+            </div>
+            
+            {userCompanies.length < 3 && (
+              <Select 
+                onValueChange={(value) => {
+                  if (!userCompanies.includes(value)) {
+                    setUserCompanies([...userCompanies, value]);
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Add a company" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TECH_COMPANIES.filter(company => !userCompanies.includes(company)).map((company) => (
+                    <SelectItem key={company} value={company}>
+                      {company}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="outline" onClick={() => setOpenCompanyDialog(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => updateUserCompanies(userCompanies)}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </AppLayout>
