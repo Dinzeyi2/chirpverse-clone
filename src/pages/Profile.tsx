@@ -17,18 +17,16 @@ import {
 } from '@/components/ui/pagination';
 import PostActionMenu from '@/components/feed/PostActionMenu';
 import SwipeablePostView from '@/components/feed/SwipeablePostView';
+import { useTheme } from '@/components/theme/theme-provider';
+import { cn } from '@/lib/utils';
 
 const Profile = () => {
   const { userId } = useParams<{ userId?: string }>();
   const { user, username } = useAuth();
   const [profileData, setProfileData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [userStats, setUserStats] = useState({
-    posts: 0,
-    replies: 0,
-    reactions: 0,
-    bluedify: 0
-  });
+  const { theme } = useTheme();
+  const isLightMode = theme === 'light';
   
   const [activeTab, setActiveTab] = useState('posts');
   const [posts, setPosts] = useState<Post[]>([]);
@@ -542,7 +540,10 @@ const Profile = () => {
 
   return (
     <AppLayout>
-      <div className="bg-black dark:bg-black min-h-screen">
+      <div className={cn(
+        "min-h-screen",
+        isLightMode ? "bg-lightBeige" : "bg-black"
+      )}>
         <ProfileHeader 
           user={profileData} 
           isCurrentUser={isCurrentUser}
@@ -559,7 +560,9 @@ const Profile = () => {
                 </div>
               ) : posts.length === 0 ? (
                 <div className="text-center py-10">
-                  <p className="text-gray-500">No posts to display</p>
+                  <p className={cn(
+                    isLightMode ? "text-gray-600" : "text-gray-500"
+                  )}>No posts to display</p>
                 </div>
               ) : (
                 <SwipeablePostView 
@@ -608,7 +611,9 @@ const Profile = () => {
                 </div>
               ) : replies.length === 0 ? (
                 <div className="text-center py-10">
-                  <p className="text-gray-500">No replies to display</p>
+                  <p className={cn(
+                    isLightMode ? "text-gray-600" : "text-gray-500"
+                  )}>No replies to display</p>
                 </div>
               ) : (
                 <SwipeablePostView 

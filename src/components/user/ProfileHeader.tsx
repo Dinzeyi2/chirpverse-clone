@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/components/theme/theme-provider';
 import { 
   Dialog, 
   DialogContent, 
@@ -44,6 +45,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const { user: authUser } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false);
+  const { theme } = useTheme();
   const [profileData, setProfileData] = useState({
     ...user,
     profession: user.profession || ''
@@ -271,6 +273,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     }
   };
 
+  const isLightMode = theme === 'light';
+
   return (
     <div className="animate-fade-in">
       <div className="relative">
@@ -286,26 +290,42 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <div className="relative z-10 flex justify-between items-center p-4">
           <button
             onClick={handleBackClick}
-            className="p-2 rounded-full bg-black/60 text-white hover:bg-black/70 transition-colors"
+            className={cn(
+              "p-2 rounded-full transition-colors",
+              isLightMode 
+                ? "bg-black/60 text-white hover:bg-black/70" 
+                : "bg-black/60 text-white hover:bg-black/70"
+            )}
             aria-label="Go back"
           >
             <ArrowLeft size={20} />
           </button>
           <button 
-            className="p-2 rounded-full bg-black/60 text-white hover:bg-black/70 transition-colors"
+            className={cn(
+              "p-2 rounded-full transition-colors",
+              isLightMode 
+                ? "bg-black/60 text-white hover:bg-black/70" 
+                : "bg-black/60 text-white hover:bg-black/70"
+            )}
             aria-label="View grid"
           >
             <Grid size={20} />
           </button>
         </div>
         
-        <div className="relative z-10 mx-0 mt-16 pt-20 bg-black dark:bg-black rounded-t-3xl shadow-lg overflow-hidden">
+        <div className={cn(
+          "relative z-10 mx-0 mt-16 pt-20 rounded-t-3xl shadow-lg overflow-hidden",
+          isLightMode ? "bg-lightBeige text-black" : "bg-black text-white"
+        )}>
           <div className="flex flex-col items-center mt-[-80px] mb-4">
             <div 
               className="relative cursor-pointer" 
               onClick={handleProfilePictureClick}
             >
-              <Avatar className="w-40 h-40 border-4 border-black dark:border-black">
+              <Avatar className={cn(
+                "w-40 h-40 border-4",
+                isLightMode ? "border-lightBeige" : "border-black"
+              )}>
                 <AvatarImage src={profileData.avatar} alt={profileData.name} className="object-cover" />
                 <AvatarFallback>{profileData.name.charAt(0)}</AvatarFallback>
               </Avatar>
@@ -318,9 +338,15 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </div>
           
           <div className="px-6 pb-6 text-center">
-            <h1 className="text-xl font-bold mt-2 text-white">{profileData.name}</h1>
+            <h1 className={cn(
+              "text-xl font-bold mt-2",
+              isLightMode ? "text-black" : "text-white"
+            )}>{profileData.name}</h1>
             
-            <p className="text-gray-400 text-sm mt-2 px-6">
+            <p className={cn(
+              "text-sm mt-2 px-6",
+              isLightMode ? "text-gray-600" : "text-gray-400"
+            )}>
               
             </p>
             
@@ -329,7 +355,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 <Button
                   variant="default"
                   onClick={handleEditProfile}
-                  className="rounded-full px-8 py-2 text-black bg-white hover:bg-gray-100 w-28"
+                  className={cn(
+                    "rounded-full px-8 py-2 w-28",
+                    isLightMode 
+                      ? "text-white bg-blue-500 hover:bg-blue-600" 
+                      : "text-black bg-white hover:bg-gray-100"
+                  )}
                 >
                   Edit profile
                 </Button>
@@ -343,7 +374,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   </Button>
                   <Button
                     variant="outline"
-                    className="rounded-full p-2 aspect-square border-gray-300 dark:border-gray-700"
+                    className={cn(
+                      "rounded-full p-2 aspect-square",
+                      isLightMode ? "border-gray-300" : "border-gray-700"
+                    )}
                   >
                     <MessageCircle size={18} />
                   </Button>
@@ -353,14 +387,24 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             
             <div className="mt-10">
               <div className="flex justify-center gap-4 mb-4">
-                <div className="bg-black backdrop-blur-sm border border-gray-800/50 rounded-full px-4 py-2 text-white flex items-center gap-2">
+                <div className={cn(
+                  "backdrop-blur-sm rounded-full px-4 py-2 flex items-center gap-2 border",
+                  isLightMode 
+                    ? "bg-white/80 text-black border-gray-200/50" 
+                    : "bg-black border-gray-800/50 text-white"
+                )}>
                   <div className="w-5 h-5 rounded-full flex items-center justify-center">
-                    <MessageCircle size={14} className="text-white" />
+                    <MessageCircle size={14} className={isLightMode ? "text-black" : "text-white"} />
                   </div>
                   <span className="text-sm font-medium font-heading tracking-wide">{stats.replies || 0} Replies</span>
                 </div>
                 
-                <div className="bg-black backdrop-blur-sm border border-gray-800/50 rounded-full px-4 py-2 text-white flex items-center gap-2">
+                <div className={cn(
+                  "backdrop-blur-sm rounded-full px-4 py-2 flex items-center gap-2 border",
+                  isLightMode 
+                    ? "bg-white/80 text-black border-gray-200/50" 
+                    : "bg-black border-gray-800/50 text-white"
+                )}>
                   <div className="flex -space-x-1 mr-1">
                     {emojiReactions.slice(0, 4).map((reaction, index) => (
                       <div key={index} className="w-5 h-5 rounded-full bg-gray-800 flex items-center justify-center">
@@ -371,9 +415,14 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   <span className="text-sm font-medium font-heading tracking-wide">{userReactionsCount || 0} Reactions</span>
                 </div>
                 
-                <div className="bg-black backdrop-blur-sm border border-gray-800/50 rounded-full px-4 py-2 text-white flex items-center gap-2">
+                <div className={cn(
+                  "backdrop-blur-sm rounded-full px-4 py-2 flex items-center gap-2 border",
+                  isLightMode 
+                    ? "bg-white/80 text-black border-gray-200/50" 
+                    : "bg-black border-gray-800/50 text-white"
+                )}>
                   <div className="w-5 h-5 rounded-full flex items-center justify-center">
-                    <Flame size={14} className="text-white" />
+                    <Flame size={14} className={isLightMode ? "text-black" : "text-white"} />
                   </div>
                   <span className="text-sm font-medium font-heading tracking-wide">{userBludifyCount || 0} Bluedify</span>
                 </div>
@@ -381,18 +430,31 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </div>
           </div>
 
-          <div className="border-t border-gray-800">
+          <div className={cn(
+            "border-t",
+            isLightMode ? "border-gray-200" : "border-gray-800"
+          )}>
             <Tabs defaultValue="posts" onValueChange={handleTabChange} className="w-full">
               <TabsList className="w-full grid grid-cols-2 bg-transparent rounded-none h-14">
                 <TabsTrigger 
                   value="posts" 
-                  className="rounded-none h-full data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none text-gray-400 text-sm font-medium"
+                  className={cn(
+                    "rounded-none h-full data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none text-sm font-medium",
+                    isLightMode 
+                      ? "data-[state=active]:text-black text-gray-600" 
+                      : "data-[state=active]:text-white text-gray-400"
+                  )}
                 >
                   Posts
                 </TabsTrigger>
                 <TabsTrigger 
                   value="replies" 
-                  className="rounded-none h-full data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none text-gray-400 text-sm font-medium"
+                  className={cn(
+                    "rounded-none h-full data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none text-sm font-medium",
+                    isLightMode 
+                      ? "data-[state=active]:text-black text-gray-600" 
+                      : "data-[state=active]:text-white text-gray-400"
+                  )}
                 >
                   Replies
                 </TabsTrigger>
@@ -413,7 +475,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </div>
             <Button 
               onClick={handleSaveProfile}
-              className="rounded-full font-bold text-sm px-4 bg-black text-white dark:bg-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90"
+              className={cn(
+                "rounded-full font-bold text-sm px-4",
+                isLightMode 
+                  ? "bg-blue-500 text-white hover:bg-blue-600" 
+                  : "bg-black text-white dark:bg-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90"
+              )}
             >
               Save
             </Button>
