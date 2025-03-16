@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
@@ -25,7 +24,7 @@ const Index = () => {
   const [filteredPosts, setFilteredPosts] = useState<any[]>([]);
   const [feedView, setFeedView] = useState<'swipeable' | 'list'>('swipeable');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [sortOption, setSortOption] = useState<SortOption>('relevant');
+  const [sortOption, setSortOption] = useState<SortOption>('latest'); // Default to latest for non-logged in users
   const { user, username, profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const { theme } = useTheme();
@@ -45,77 +44,122 @@ const Index = () => {
           
         if (shoutoutError) {
           console.error('Error fetching shoutouts:', shoutoutError);
-          toast.error('Could not load posts');
+          // Don't show error toast for non-authenticated users, just log it
+          if (user) {
+            toast.error('Could not load posts');
+          }
           return;
         }
         
-        if (!shoutoutData) {
+        if (!shoutoutData || shoutoutData.length === 0) {
           setFeedPosts([]);
+          setFilteredPosts([]);
+          setLoading(false);
           return;
         }
         
         // For each shoutout, fetch the profile data separately
         const formattedPosts = await Promise.all(shoutoutData.map(async post => {
-          // Get profile data
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('user_id', post.user_id)
-            .single();
+          try {
+            // Get profile data
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('user_id', post.user_id)
+              .maybeSingle(); // Use maybeSingle instead of single to prevent errors
+              
+            // Get counts in separate queries
+            const { count: likesCount } = await supabase
+              .from('likes')
+              .select('*', { count: 'exact', head: true })
+              .eq('shoutout_id', post.id);
+              
+            const { count: commentsCount } = await supabase
+              .from('comments')
+              .select('*', { count: 'exact', head: true })
+              .eq('shoutout_id', post.id);
+              
+            const { count: savesCount } = await supabase
+              .from('saved_posts')
+              .select('*', { count: 'exact', head: true })
+              .eq('shoutout_id', post.id);
             
-          // Get counts in separate queries
-          const { count: likesCount } = await supabase
-            .from('likes')
-            .select('*', { count: 'exact', head: true })
-            .eq('shoutout_id', post.id);
+            const profile = profileData || {
+              full_name: 'User',
+              avatar_url: 'https://i.pravatar.cc/150?img=1',
+            };
             
-          const { count: commentsCount } = await supabase
-            .from('comments')
-            .select('*', { count: 'exact', head: true })
-            .eq('shoutout_id', post.id);
+            // Create a display username from the user_id since profile.username doesn't exist
+            const displayUsername = post.user_id?.substring(0, 8) || 'user';
             
-          const { count: savesCount } = await supabase
-            .from('saved_posts')
-            .select('*', { count: 'exact', head: true })
-            .eq('shoutout_id', post.id);
-          
-          const profile = profileData || {
-            full_name: 'User',
-            avatar_url: 'https://i.pravatar.cc/150?img=1',
-          };
-          
-          // Create a display username from the user_id since profile.username doesn't exist
-          const displayUsername = post.user_id?.substring(0, 8) || 'user';
-          
-          return {
-            id: post.id,
-            content: post.content,
-            createdAt: post.created_at,
-            likes: likesCount || 0,
-            comments: commentsCount || 0,
-            saves: savesCount || 0,
-            reposts: 0,
-            replies: commentsCount || 0,
-            views: 0,
-            userId: post.user_id,
-            images: post.media,
-            relevanceScore: calculateRelevanceScore(post.content),
-            user: {
-              id: post.user_id,
-              name: profile.full_name || 'User',
-              username: displayUsername,
-              avatar: profile.avatar_url || 'https://i.pravatar.cc/150?img=1',
-              verified: false,
-              followers: 0,
-              following: 0,
-            }
-          };
+            return {
+              id: post.id,
+              content: post.content,
+              createdAt: post.created_at,
+              likes: likesCount || 0,
+              comments: commentsCount || 0,
+              saves: savesCount || 0,
+              reposts: 0,
+              replies: commentsCount || 0,
+              views: 0,
+              userId: post.user_id,
+              images: post.media,
+              relevanceScore: user ? calculateRelevanceScore(post.content) : 0, // Only calculate relevance for logged-in users
+              user: {
+                id: post.user_id,
+                name: profile.full_name || 'User',
+                username: displayUsername,
+                avatar: profile.avatar_url || 'https://i.pravatar.cc/150?img=1',
+                verified: false,
+                followers: 0,
+                following: 0,
+              }
+            };
+          } catch (error) {
+            console.error(`Error processing post ${post.id}:`, error);
+            // Return a default post object if there's an error processing this post
+            return {
+              id: post.id,
+              content: post.content,
+              createdAt: post.created_at,
+              likes: 0,
+              comments: 0,
+              saves: 0,
+              reposts: 0,
+              replies: 0,
+              views: 0,
+              userId: post.user_id,
+              images: post.media,
+              relevanceScore: 0,
+              user: {
+                id: post.user_id,
+                name: 'User',
+                username: post.user_id?.substring(0, 8) || 'user',
+                avatar: 'https://i.pravatar.cc/150?img=1',
+                verified: false,
+                followers: 0,
+                following: 0,
+              }
+            };
+          }
         }));
         
-        setFeedPosts(formattedPosts);
+        // Filter out any null/undefined posts that might have occurred due to errors
+        const validPosts = formattedPosts.filter(post => post !== null && post !== undefined);
+        setFeedPosts(validPosts);
+        
+        // Set default sort option based on authentication
+        if (!user) {
+          setSortOption('latest'); // Default to latest for non-logged in users
+        } else if (user && userCompanies.length > 0) {
+          setSortOption('relevant'); // Use relevant only if user has companies
+        }
       } catch (error) {
         console.error('Error fetching posts:', error);
-        toast.error('Could not load posts');
+        // Don't show error toast for non-authenticated users
+        if (user) {
+          toast.error('Could not load posts');
+        }
       } finally {
         setLoading(false);
       }
@@ -139,7 +183,7 @@ const Index = () => {
               .from('profiles')
               .select('*')
               .eq('user_id', payload.new.user_id)
-              .single();
+              .maybeSingle();
               
             const profile = profileData || {
               full_name: 'User',
@@ -161,7 +205,7 @@ const Index = () => {
               views: 0,
               userId: payload.new.user_id,
               images: payload.new.media,
-              relevanceScore: calculateRelevanceScore(payload.new.content),
+              relevanceScore: user ? calculateRelevanceScore(payload.new.content) : 0,
               user: {
                 id: payload.new.user_id,
                 name: profile.full_name || 'User',
@@ -173,7 +217,9 @@ const Index = () => {
               }
             };
             
-            toast.success('New post added!');
+            if (user) {
+              toast.success('New post added!');
+            }
             setFeedPosts(prev => [newPost, ...prev]);
           } catch (error) {
             console.error('Error processing new post:', error);
@@ -185,11 +231,11 @@ const Index = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userCompanies, userFields]);
+  }, [user, userCompanies, userFields]);
   
   // Calculate how relevant a post is to the current user
   const calculateRelevanceScore = (content: string): number => {
-    if (!content) return 0;
+    if (!content || !user) return 0;
     
     let score = 0;
     const contentLower = content.toLowerCase();
@@ -253,14 +299,20 @@ const Index = () => {
         postsToDisplay.sort((a, b) => b.comments - a.comments);
         break;
       case 'relevant':
-        // Sort by relevance score first, then by recency
-        postsToDisplay.sort((a, b) => {
-          if (b.relevanceScore !== a.relevanceScore) {
-            return b.relevanceScore - a.relevanceScore;
-          }
-          // If relevance is the same, show newer posts first
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        });
+        // Only do relevance sorting if user is logged in
+        if (user) {
+          // Sort by relevance score first, then by recency
+          postsToDisplay.sort((a, b) => {
+            if (b.relevanceScore !== a.relevanceScore) {
+              return b.relevanceScore - a.relevanceScore;
+            }
+            // If relevance is the same, show newer posts first
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          });
+        } else {
+          // Default to latest if not logged in
+          postsToDisplay.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        }
         break;
       default:
         // Default to latest if sortOption is invalid
@@ -268,7 +320,7 @@ const Index = () => {
     }
     
     setFilteredPosts(postsToDisplay);
-  }, [feedPosts, selectedCategories, sortOption]);
+  }, [feedPosts, selectedCategories, sortOption, user]);
   
   const handlePostCreated = (content: string, media?: {type: string, url: string}[]) => {
     if (!user) return;
@@ -331,12 +383,14 @@ const Index = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className={dropdownBg}>
-                <DropdownMenuItem 
-                  className={cn(dropdownHover, sortOption === 'relevant' && dropdownActive)}
-                  onClick={() => handleSortChange('relevant')}
-                >
-                  Most Relevant
-                </DropdownMenuItem>
+                {user && userCompanies.length > 0 && (
+                  <DropdownMenuItem 
+                    className={cn(dropdownHover, sortOption === 'relevant' && dropdownActive)}
+                    onClick={() => handleSortChange('relevant')}
+                  >
+                    Most Relevant
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem 
                   className={cn(dropdownHover, sortOption === 'latest' && dropdownActive)}
                   onClick={() => handleSortChange('latest')}
