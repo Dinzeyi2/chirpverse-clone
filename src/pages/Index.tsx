@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
@@ -48,6 +49,7 @@ const Index = () => {
           if (user) {
             toast.error('Could not load posts');
           }
+          setLoading(false); // Make sure to set loading to false even if there's an error
           return;
         }
         
@@ -58,101 +60,108 @@ const Index = () => {
           return;
         }
         
-        // For each shoutout, fetch the profile data separately
-        const formattedPosts = await Promise.all(shoutoutData.map(async post => {
-          try {
-            // Get profile data
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('user_id', post.user_id)
-              .maybeSingle(); // Use maybeSingle instead of single to prevent errors
+        try {
+          // For each shoutout, fetch the profile data separately
+          const formattedPosts = await Promise.all(shoutoutData.map(async post => {
+            try {
+              // Get profile data
+              const { data: profileData } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('user_id', post.user_id)
+                .maybeSingle(); // Use maybeSingle instead of single to prevent errors
+                
+              // Get counts in separate queries
+              const { count: likesCount } = await supabase
+                .from('likes')
+                .select('*', { count: 'exact', head: true })
+                .eq('shoutout_id', post.id);
+                
+              const { count: commentsCount } = await supabase
+                .from('comments')
+                .select('*', { count: 'exact', head: true })
+                .eq('shoutout_id', post.id);
+                
+              const { count: savesCount } = await supabase
+                .from('saved_posts')
+                .select('*', { count: 'exact', head: true })
+                .eq('shoutout_id', post.id);
               
-            // Get counts in separate queries
-            const { count: likesCount } = await supabase
-              .from('likes')
-              .select('*', { count: 'exact', head: true })
-              .eq('shoutout_id', post.id);
+              const profile = profileData || {
+                full_name: 'User',
+                avatar_url: 'https://i.pravatar.cc/150?img=1',
+              };
               
-            const { count: commentsCount } = await supabase
-              .from('comments')
-              .select('*', { count: 'exact', head: true })
-              .eq('shoutout_id', post.id);
+              // Create a display username from the user_id since profile.username doesn't exist
+              const displayUsername = post.user_id?.substring(0, 8) || 'user';
               
-            const { count: savesCount } = await supabase
-              .from('saved_posts')
-              .select('*', { count: 'exact', head: true })
-              .eq('shoutout_id', post.id);
-            
-            const profile = profileData || {
-              full_name: 'User',
-              avatar_url: 'https://i.pravatar.cc/150?img=1',
-            };
-            
-            // Create a display username from the user_id since profile.username doesn't exist
-            const displayUsername = post.user_id?.substring(0, 8) || 'user';
-            
-            return {
-              id: post.id,
-              content: post.content,
-              createdAt: post.created_at,
-              likes: likesCount || 0,
-              comments: commentsCount || 0,
-              saves: savesCount || 0,
-              reposts: 0,
-              replies: commentsCount || 0,
-              views: 0,
-              userId: post.user_id,
-              images: post.media,
-              relevanceScore: user ? calculateRelevanceScore(post.content) : 0, // Only calculate relevance for logged-in users
-              user: {
-                id: post.user_id,
-                name: profile.full_name || 'User',
-                username: displayUsername,
-                avatar: profile.avatar_url || 'https://i.pravatar.cc/150?img=1',
-                verified: false,
-                followers: 0,
-                following: 0,
-              }
-            };
-          } catch (error) {
-            console.error(`Error processing post ${post.id}:`, error);
-            // Return a default post object if there's an error processing this post
-            return {
-              id: post.id,
-              content: post.content,
-              createdAt: post.created_at,
-              likes: 0,
-              comments: 0,
-              saves: 0,
-              reposts: 0,
-              replies: 0,
-              views: 0,
-              userId: post.user_id,
-              images: post.media,
-              relevanceScore: 0,
-              user: {
-                id: post.user_id,
-                name: 'User',
-                username: post.user_id?.substring(0, 8) || 'user',
-                avatar: 'https://i.pravatar.cc/150?img=1',
-                verified: false,
-                followers: 0,
-                following: 0,
-              }
-            };
+              return {
+                id: post.id,
+                content: post.content,
+                createdAt: post.created_at,
+                likes: likesCount || 0,
+                comments: commentsCount || 0,
+                saves: savesCount || 0,
+                reposts: 0,
+                replies: commentsCount || 0,
+                views: 0,
+                userId: post.user_id,
+                images: post.media,
+                relevanceScore: user ? calculateRelevanceScore(post.content) : 0, // Only calculate relevance for logged-in users
+                user: {
+                  id: post.user_id,
+                  name: profile.full_name || 'User',
+                  username: displayUsername,
+                  avatar: profile.avatar_url || 'https://i.pravatar.cc/150?img=1',
+                  verified: false,
+                  followers: 0,
+                  following: 0,
+                }
+              };
+            } catch (error) {
+              console.error(`Error processing post ${post.id}:`, error);
+              // Return a default post object if there's an error processing this post
+              return {
+                id: post.id,
+                content: post.content,
+                createdAt: post.created_at,
+                likes: 0,
+                comments: 0,
+                saves: 0,
+                reposts: 0,
+                replies: 0,
+                views: 0,
+                userId: post.user_id,
+                images: post.media,
+                relevanceScore: 0,
+                user: {
+                  id: post.user_id,
+                  name: 'User',
+                  username: post.user_id?.substring(0, 8) || 'user',
+                  avatar: 'https://i.pravatar.cc/150?img=1',
+                  verified: false,
+                  followers: 0,
+                  following: 0,
+                }
+              };
+            }
+          }));
+          
+          // Filter out any null/undefined posts that might have occurred due to errors
+          const validPosts = formattedPosts.filter(post => post !== null && post !== undefined);
+          setFeedPosts(validPosts);
+          
+          // Set default sort option based on authentication
+          if (!user) {
+            setSortOption('latest'); // Default to latest for non-logged in users
+          } else if (user && userCompanies.length > 0) {
+            setSortOption('relevant'); // Use relevant only if user has companies
           }
-        }));
-        
-        // Filter out any null/undefined posts that might have occurred due to errors
-        const validPosts = formattedPosts.filter(post => post !== null && post !== undefined);
-        setFeedPosts(validPosts);
-        
-        // Set default sort option based on authentication
-        if (!user) {
-          setSortOption('latest'); // Default to latest for non-logged in users
-        } else if (user && userCompanies.length > 0) {
-          setSortOption('relevant'); // Use relevant only if user has companies
+        } catch (error) {
+          console.error('Error processing posts:', error);
+          // Set empty arrays as fallback
+          setFeedPosts([]);
+          setFilteredPosts([]);
         }
       } catch (error) {
         console.error('Error fetching posts:', error);
@@ -160,7 +169,11 @@ const Index = () => {
         if (user) {
           toast.error('Could not load posts');
         }
+        // Set empty arrays as fallback
+        setFeedPosts([]);
+        setFilteredPosts([]);
       } finally {
+        // Always set loading to false when done, regardless of success or failure
         setLoading(false);
       }
     };
@@ -364,6 +377,10 @@ const Index = () => {
   const dropdownHover = theme === 'dark' ? 'hover:bg-neutral-800' : 'hover:bg-gray-100';
   const dropdownActive = theme === 'dark' ? 'bg-neutral-800' : 'bg-gray-100';
   const skeletonBg = theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200';
+
+  console.log('Index page: loading state =', loading);
+  console.log('Index page: feedPosts length =', feedPosts.length);
+  console.log('Index page: filteredPosts length =', filteredPosts.length);
 
   return (
     <AppLayout>
