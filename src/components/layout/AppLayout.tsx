@@ -4,6 +4,7 @@ import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/theme/theme-provider';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface AppLayoutProps {
   children?: React.ReactNode;
@@ -11,6 +12,7 @@ interface AppLayoutProps {
 
 const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const { theme } = useTheme();
+  const isMobile = useIsMobile();
   
   return (
     <div className={cn(
@@ -26,7 +28,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           className={cn(
             "flex-grow min-h-screen",
             theme === "dark" ? "bg-black" : "bg-lightBeige",
-            "ml-[275px] lg:ml-[275px]"
+            isMobile ? "mb-16" : "ml-[275px] lg:ml-[275px]"
           )}
         >
           {children || <Outlet />}
