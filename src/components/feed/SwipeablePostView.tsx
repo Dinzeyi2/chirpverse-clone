@@ -13,6 +13,7 @@ import {
   CarouselPrevious
 } from "@/components/ui/carousel";
 import type { CarouselApi } from "@/components/ui/carousel";
+import { useScreenSize } from '@/hooks/use-mobile';
 
 interface PostWithActions extends Post {
   actions?: React.ReactNode;
@@ -25,9 +26,9 @@ interface SwipeablePostViewProps {
 
 const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = false }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isMobile, setIsMobile] = useState(false);
   const [api, setApi] = useState<CarouselApi | null>(null);
   const { theme } = useTheme();
+  const { isMobile, width } = useScreenSize();
 
   useEffect(() => {
     if (!api) {
@@ -44,18 +45,37 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     };
   }, [api]);
 
-  useEffect(() => {
-    const checkIsMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    
-    checkIsMobile();
-    window.addEventListener('resize', checkIsMobile);
-    
-    return () => {
-      window.removeEventListener('resize', checkIsMobile);
-    };
-  }, []);
+  // Calculate post sizes based on screen width
+  const getPostSizing = () => {
+    // For mobile devices, make posts smaller to show more of adjacent posts
+    if (width <= 480) {
+      return {
+        basis: "85%",          // Takes 85% of the container width on very small devices
+        scale: "scale-95",     // Base scale for current post
+        opacity: "opacity-100" // Full opacity for current post
+      };
+    } else if (width <= 768) {
+      return {
+        basis: "80%",          // Takes 80% of the container width on mobile devices
+        scale: "scale-95",     // Base scale for current post
+        opacity: "opacity-100" // Full opacity for current post
+      };
+    } else if (width <= 1024) {
+      return {
+        basis: "1/2",          // Takes half the container width on tablets
+        scale: "scale-100",
+        opacity: "opacity-100"
+      };
+    } else {
+      return {
+        basis: "1/3",          // Takes a third of the container width on desktops
+        scale: "scale-100",
+        opacity: "opacity-100"
+      };
+    }
+  };
+
+  const { basis, scale, opacity } = getPostSizing();
 
   // Determine colors based on theme
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
@@ -93,23 +113,27 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   }
 
   return (
-    <div className="w-full overflow-hidden py-8">
+    <div className="w-full overflow-hidden py-4">
       <Carousel 
         className="w-full max-w-6xl mx-auto"
         setApi={setApi}
         opts={{
           loop: true,
-          align: "center"
+          align: "center",
+          dragFree: isMobile, // Enable drag free scrolling on mobile for smoother experience
         }}
       >
         <CarouselContent>
           {posts.map((post, index) => (
-            <CarouselItem key={post.id} className="md:basis-1/2 lg:basis-1/3 flex justify-center items-center pl-0">
+            <CarouselItem 
+              key={post.id} 
+              className={`basis-${basis} flex justify-center items-center pl-0`}
+            >
               <div className={cn(
-                "relative w-full transition-all duration-300 max-w-[400px] sm:max-w-[450px]",
+                "relative w-full transition-all duration-300 max-w-[350px] sm:max-w-[400px]",
                 currentIndex === index 
-                  ? "scale-100 opacity-100 z-20" 
-                  : "scale-90 opacity-50 z-10"
+                  ? `${scale} ${opacity} z-20` 
+                  : "scale-90 opacity-70 z-10"
               )}>
                 <div className="relative">
                   {post.actions && (
@@ -124,14 +148,10 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
           ))}
         </CarouselContent>
         
-        {!isMobile && (
-          <>
-            <CarouselPrevious className={`absolute left-4 top-1/2 transform -translate-y-1/2 ${navBgColor} border-none z-30`} />
-            <CarouselNext className={`absolute right-4 top-1/2 transform -translate-y-1/2 ${navBgColor} border-none z-30`} />
-          </>
-        )}
+        <CarouselPrevious className={`absolute left-1 sm:left-4 top-1/2 transform -translate-y-1/2 ${navBgColor} border-none z-30 h-7 w-7 sm:h-8 sm:w-8`} />
+        <CarouselNext className={`absolute right-1 sm:right-4 top-1/2 transform -translate-y-1/2 ${navBgColor} border-none z-30 h-7 w-7 sm:h-8 sm:w-8`} />
 
-        <div className={`absolute bottom-4 left-1/2 transform -translate-x-1/2 ${counterBgColor} px-3 py-1 rounded-full text-sm z-30`}>
+        <div className={`absolute bottom-2 sm:bottom-4 left-1/2 transform -translate-x-1/2 ${counterBgColor} px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs z-30`}>
           {currentIndex + 1} / {posts.length}
         </div>
       </Carousel>

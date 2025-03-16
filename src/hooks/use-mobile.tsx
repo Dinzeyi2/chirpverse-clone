@@ -2,6 +2,7 @@
 import * as React from "react"
 
 // Define various breakpoints for responsive design
+const SMALL_MOBILE_BREAKPOINT = 480
 const MOBILE_BREAKPOINT = 768
 const TABLET_BREAKPOINT = 1024
 const DESKTOP_BREAKPOINT = 1280
@@ -27,11 +28,33 @@ export function useIsMobile() {
   return !!isMobile
 }
 
+export function useIsSmallMobile() {
+  const [isSmallMobile, setIsSmallMobile] = React.useState<boolean | undefined>(undefined)
+
+  React.useEffect(() => {
+    const checkSmallMobile = () => {
+      setIsSmallMobile(window.innerWidth < SMALL_MOBILE_BREAKPOINT)
+    }
+    
+    // Initial check
+    checkSmallMobile()
+    
+    // Set up event listener for window resize
+    window.addEventListener("resize", checkSmallMobile)
+    
+    // Clean up
+    return () => window.removeEventListener("resize", checkSmallMobile)
+  }, [])
+
+  return !!isSmallMobile
+}
+
 export function useScreenSize() {
   const [screenSize, setScreenSize] = React.useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 0,
     height: typeof window !== 'undefined' ? window.innerHeight : 0,
     isMobile: false,
+    isSmallMobile: false,
     isTablet: false,
     isDesktop: false,
   })
@@ -44,6 +67,7 @@ export function useScreenSize() {
       setScreenSize({
         width,
         height,
+        isSmallMobile: width < SMALL_MOBILE_BREAKPOINT,
         isMobile: width < MOBILE_BREAKPOINT,
         isTablet: width >= MOBILE_BREAKPOINT && width < DESKTOP_BREAKPOINT,
         isDesktop: width >= DESKTOP_BREAKPOINT,

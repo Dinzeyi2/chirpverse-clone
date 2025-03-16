@@ -29,7 +29,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           "flex-grow min-h-screen w-full",
           theme === "dark" ? "bg-black" : "bg-lightBeige",
           isMobile 
-            ? "pb-20 px-2" // Add bottom padding for mobile navigation bar
+            ? "pb-20 px-1" // Reduced padding for better mobile view
             : "ml-[275px]" // Add margin for sidebar on desktop
         )}
         style={{ 
