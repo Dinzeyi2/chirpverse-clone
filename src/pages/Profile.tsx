@@ -7,6 +7,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import PostList from '@/components/feed/PostList';
 import { Post } from '@/lib/data';
+import PostActionMenu from '@/components/feed/PostActionMenu';
+import SwipeablePostView from '@/components/feed/SwipeablePostView';
+import { useTheme } from '@/components/theme/theme-provider';
+import { cn } from '@/lib/utils';
 import { 
   Pagination,
   PaginationContent,
@@ -15,10 +19,6 @@ import {
   PaginationNext,
   PaginationPrevious
 } from '@/components/ui/pagination';
-import PostActionMenu from '@/components/feed/PostActionMenu';
-import SwipeablePostView from '@/components/feed/SwipeablePostView';
-import { useTheme } from '@/components/theme/theme-provider';
-import { cn } from '@/lib/utils';
 
 const Profile = () => {
   const { userId } = useParams<{ userId?: string }>();
@@ -584,28 +584,6 @@ const Profile = () => {
                   }))} 
                 />
               )}
-              
-              {posts.length > 0 && (
-                <Pagination className="mt-6">
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious 
-                        onClick={() => setPostsPage(prev => Math.max(prev - 1, 1))}
-                        className={postsPage === 1 ? 'pointer-events-none opacity-50' : ''}
-                      />
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationLink isActive>{postsPage}</PaginationLink>
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationNext 
-                        onClick={() => setPostsPage(prev => prev + 1)}
-                        className={posts.length < postsPerPage ? 'pointer-events-none opacity-50' : ''}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              )}
             </>
           )}
           
@@ -635,28 +613,6 @@ const Profile = () => {
                   }))} 
                 />
               )}
-              
-              {replies.length > 0 && (
-                <Pagination className="mt-6">
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious 
-                        onClick={() => setRepliesPage(prev => Math.max(prev - 1, 1))}
-                        className={repliesPage === 1 ? 'pointer-events-none opacity-50' : ''}
-                      />
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationLink isActive>{repliesPage}</PaginationLink>
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationNext 
-                        onClick={() => setRepliesPage(prev => prev + 1)}
-                        className={replies.length < postsPerPage ? 'pointer-events-none opacity-50' : ''}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              )}
             </>
           )}
         </div>
@@ -666,4 +622,3 @@ const Profile = () => {
 };
 
 export default Profile;
-
