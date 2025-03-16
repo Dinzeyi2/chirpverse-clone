@@ -4,9 +4,21 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 
+// Define the profile type
+type Profile = {
+  id?: string;
+  user_id?: string;
+  full_name?: string;
+  avatar_url?: string;
+  field?: string;
+  company?: string;
+  // Add other profile fields as needed
+};
+
 type AuthContextType = {
   session: Session | null;
   user: any | null;
+  profile: Profile | null; // Add profile to the context type
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, name: string, username: string, field?: string, company?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -20,6 +32,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<any | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string | null>(null);
@@ -35,9 +48,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return `blue${first2}${last2}`;
   };
 
+  // Function to fetch user profile
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error in fetchUserProfile:', error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     // Check for active session on initial load
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -48,13 +82,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Generate privacy name based on user ID
         setDisplayName(generatePrivacyName(session.user.id));
+
+        // Fetch user profile
+        const profileData = await fetchUserProfile(session.user.id);
+        setProfile(profileData);
       }
       
       setLoading(false);
     });
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -65,9 +103,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Generate privacy name based on user ID
         setDisplayName(generatePrivacyName(session.user.id));
+
+        // Fetch user profile
+        const profileData = await fetchUserProfile(session.user.id);
+        setProfile(profileData);
       } else {
         setUsername(null);
         setDisplayName(null);
+        setProfile(null);
       }
       
       setLoading(false);
@@ -132,6 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider value={{ 
       session, 
       user, 
+      profile, // Add profile to the context value
       signIn, 
       signUp, 
       signOut, 
