@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/components/theme/theme-provider';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { 
   Dialog, 
   DialogContent, 
@@ -46,6 +47,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false);
   const { theme } = useTheme();
+  const isMobile = useIsMobile();
   
   const getPrivacyName = (userId: string) => {
     if (!userId || userId.length < 4) return "blue";
@@ -371,45 +373,72 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </div>
             
             <div className="mt-10">
-              <div className="flex justify-center gap-4 mb-4">
+              <div className={cn(
+                "flex justify-center gap-2 md:gap-4 mb-4",
+                isMobile ? "flex-wrap px-2" : ""
+              )}>
                 <div className={cn(
-                  "backdrop-blur-sm rounded-full px-4 py-2 flex items-center gap-2 border",
+                  "backdrop-blur-sm rounded-full flex items-center gap-1 md:gap-2 border",
+                  isMobile ? "px-2.5 py-1.5 text-xs" : "px-4 py-2",
                   isLightMode 
                     ? "bg-white/80 text-black border-gray-200/50" 
                     : "bg-black border-gray-800/50 text-white"
                 )}>
-                  <div className="w-5 h-5 rounded-full flex items-center justify-center">
-                    <MessageCircle size={14} className={isLightMode ? "text-black" : "text-white"} />
+                  <div className={cn(
+                    "rounded-full flex items-center justify-center",
+                    isMobile ? "w-4 h-4" : "w-5 h-5"
+                  )}>
+                    <MessageCircle size={isMobile ? 10 : 14} className={isLightMode ? "text-black" : "text-white"} />
                   </div>
-                  <span className="text-sm font-medium font-heading tracking-wide">{stats.replies || 0} Replies</span>
+                  <span className={cn(
+                    "font-medium font-heading tracking-wide",
+                    isMobile ? "text-xs" : "text-sm"
+                  )}>{stats.replies || 0} Replies</span>
                 </div>
                 
                 <div className={cn(
-                  "backdrop-blur-sm rounded-full px-4 py-2 flex items-center gap-2 border",
+                  "backdrop-blur-sm rounded-full flex items-center gap-1 md:gap-2 border",
+                  isMobile ? "px-2.5 py-1.5 text-xs" : "px-4 py-2",
                   isLightMode 
                     ? "bg-white/80 text-black border-gray-200/50" 
                     : "bg-black border-gray-800/50 text-white"
                 )}>
-                  <div className="flex -space-x-1 mr-1">
-                    {emojiReactions.slice(0, 4).map((reaction, index) => (
-                      <div key={index} className="w-5 h-5 rounded-full bg-gray-800 flex items-center justify-center">
-                        <reaction.icon size={10} className="text-white" />
+                  <div className={cn(
+                    "flex -space-x-1 mr-1",
+                    isMobile ? "-space-x-0.5" : "-space-x-1"
+                  )}>
+                    {emojiReactions.slice(0, isMobile ? 2 : 4).map((reaction, index) => (
+                      <div key={index} className={cn(
+                        "rounded-full bg-gray-800 flex items-center justify-center",
+                        isMobile ? "w-4 h-4" : "w-5 h-5"
+                      )}>
+                        <reaction.icon size={isMobile ? 8 : 10} className="text-white" />
                       </div>
                     ))}
                   </div>
-                  <span className="text-sm font-medium font-heading tracking-wide">{userReactionsCount || 0} Reactions</span>
+                  <span className={cn(
+                    "font-medium font-heading tracking-wide",
+                    isMobile ? "text-xs" : "text-sm"
+                  )}>{userReactionsCount || 0} Reactions</span>
                 </div>
                 
                 <div className={cn(
-                  "backdrop-blur-sm rounded-full px-4 py-2 flex items-center gap-2 border",
+                  "backdrop-blur-sm rounded-full flex items-center gap-1 md:gap-2 border",
+                  isMobile ? "px-2.5 py-1.5 text-xs" : "px-4 py-2",
                   isLightMode 
                     ? "bg-white/80 text-black border-gray-200/50" 
                     : "bg-black border-gray-800/50 text-white"
                 )}>
-                  <div className="w-5 h-5 rounded-full flex items-center justify-center">
-                    <Flame size={14} className={isLightMode ? "text-black" : "text-white"} />
+                  <div className={cn(
+                    "rounded-full flex items-center justify-center",
+                    isMobile ? "w-4 h-4" : "w-5 h-5"
+                  )}>
+                    <Flame size={isMobile ? 10 : 14} className={isLightMode ? "text-black" : "text-white"} />
                   </div>
-                  <span className="text-sm font-medium font-heading tracking-wide">{userBludifyCount || 0} Bluedify</span>
+                  <span className={cn(
+                    "font-medium font-heading tracking-wide",
+                    isMobile ? "text-xs" : "text-sm"
+                  )}>{userBludifyCount || 0} Bluedify</span>
                 </div>
               </div>
             </div>
