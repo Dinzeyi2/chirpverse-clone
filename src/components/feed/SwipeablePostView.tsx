@@ -16,6 +16,7 @@ import type { CarouselApi } from "@/components/ui/carousel";
 import { useScreenSize } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { parseProfileField } from '@/integrations/supabase/client';
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface PostWithActions extends Post {
   actions?: React.ReactNode;
@@ -114,7 +115,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     );
   }
 
-  if (posts.length === 0) {
+  if (!posts || posts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
         <div className={`w-16 h-16 mb-4 ${mutedTextColor}`}>
