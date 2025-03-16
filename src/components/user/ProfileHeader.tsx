@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, MessageCircle, UserCircle, Heart, Star, ThumbsUp, Flame } from 'lucide-react';
@@ -42,10 +43,21 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 }) => {
   const navigate = useNavigate();
   const [isFollowing, setIsFollowing] = useState(false);
-  const { user: authUser } = useAuth();
+  const { user: authUser, displayName: authDisplayName } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false);
   const { theme } = useTheme();
+  
+  // Generate privacy-focused display name for the profile user
+  const getPrivacyName = (userId: string) => {
+    if (!userId || userId.length < 4) return "blue";
+    const first2 = userId.substring(0, 2);
+    const last2 = userId.substring(userId.length - 2);
+    return `blue${first2}${last2}`;
+  };
+  
+  const profileDisplayName = getPrivacyName(user.id);
+  
   const [profileData, setProfileData] = useState({
     ...user,
     profession: user.profession || ''
@@ -170,7 +182,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     
     if (!isFollowing) {
       try {
-        toast.success(`You are now following @${user.username}`);
+        toast.success(`You are now following @${profileDisplayName}`);
       } catch (error: any) {
         console.error('Error following user:', error);
         setIsFollowing(false);
@@ -178,7 +190,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       }
     } else {
       try {
-        toast.info(`You have unfollowed @${user.username}`);
+        toast.info(`You have unfollowed @${profileDisplayName}`);
       } catch (error: any) {
         console.error('Error unfollowing user:', error);
         setIsFollowing(true);
@@ -315,8 +327,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 "w-40 h-40 border-4",
                 isLightMode ? "border-lightBeige" : "border-black"
               )}>
-                <AvatarImage src={profileData.avatar} alt={profileData.name} className="object-cover" />
-                <AvatarFallback>{profileData.name.charAt(0)}</AvatarFallback>
+                <AvatarImage src={profileData.avatar} alt={profileDisplayName} className="object-cover" />
+                <AvatarFallback>{profileDisplayName.charAt(0)}</AvatarFallback>
               </Avatar>
               {isCurrentUser && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full opacity-0 hover:opacity-100 transition-opacity">
@@ -330,13 +342,13 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             <h1 className={cn(
               "text-xl font-bold mt-2",
               isLightMode ? "text-black" : "text-white"
-            )}>{profileData.name}</h1>
+            )}>{profileDisplayName}</h1>
             
             <p className={cn(
               "text-sm mt-2 px-6",
               isLightMode ? "text-gray-600" : "text-gray-400"
             )}>
-              
+              {profileData.profession || ""}
             </p>
             
             <div className="mt-6 flex justify-center">

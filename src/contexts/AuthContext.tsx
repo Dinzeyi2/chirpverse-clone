@@ -12,6 +12,7 @@ type AuthContextType = {
   signOut: () => Promise<void>;
   loading: boolean;
   username: string | null;
+  displayName: string | null;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,6 +22,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string | null>(null);
+
+  // Function to generate privacy-focused display name
+  const generatePrivacyName = (userId: string) => {
+    if (!userId || userId.length < 4) return "blue";
+    
+    // Extract first 2 and last 2 characters from the user ID
+    const first2 = userId.substring(0, 2);
+    const last2 = userId.substring(userId.length - 2);
+    
+    return `blue${first2}${last2}`;
+  };
 
   useEffect(() => {
     // Check for active session on initial load
@@ -32,6 +45,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (session?.user) {
         const userMeta = session.user.user_metadata;
         setUsername(userMeta?.username || userMeta?.preferred_username || null);
+        
+        // Generate privacy name based on user ID
+        setDisplayName(generatePrivacyName(session.user.id));
       }
       
       setLoading(false);
@@ -46,8 +62,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (session?.user) {
         const userMeta = session.user.user_metadata;
         setUsername(userMeta?.username || userMeta?.preferred_username || null);
+        
+        // Generate privacy name based on user ID
+        setDisplayName(generatePrivacyName(session.user.id));
       } else {
         setUsername(null);
+        setDisplayName(null);
       }
       
       setLoading(false);
@@ -107,7 +127,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, signIn, signUp, signOut, loading, username }}>
+    <AuthContext.Provider value={{ 
+      session, 
+      user, 
+      signIn, 
+      signUp, 
+      signOut, 
+      loading, 
+      username,
+      displayName 
+    }}>
       {children}
     </AuthContext.Provider>
   );

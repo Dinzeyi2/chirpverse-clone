@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bookmark, MoreHorizontal, CheckCircle, Smile, Flame } from 'lucide-react';
@@ -22,15 +21,23 @@ interface EmojiReaction {
 
 const Comment: React.FC<CommentProps> = ({ comment }) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, displayName } = useAuth();
   const [savedToBookmarks, setSavedToBookmarks] = useState(false);
   const [reactions, setReactions] = useState<EmojiReaction[]>([]);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const [isBludified, setIsBludified] = useState(false);
   const [bludifyCount, setBludifyCount] = useState(0);
 
+  const getPrivacyName = (userId: string) => {
+    if (!userId || userId.length < 4) return "blue";
+    const first2 = userId.substring(0, 2);
+    const last2 = userId.substring(userId.length - 2);
+    return `blue${first2}${last2}`;
+  };
+  
+  const commentAuthorName = getPrivacyName(comment.userId);
+
   useEffect(() => {
-    // Check if the user has bludified this comment
     const checkBludifyStatus = async () => {
       try {
         if (!user) return;
@@ -59,7 +66,6 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
     
     checkBludifyStatus();
 
-    // Set up realtime subscription for bludifies
     const bludifyChannel = supabase
       .channel(`comment-bludifies-${comment.id}`)
       .on('postgres_changes', {
@@ -199,9 +205,7 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
     return num.toString();
   };
 
-  // Use current user's name for new comments
-  const displayName = user?.user_metadata?.full_name || 'You';
-  const displayUsername = user?.user_metadata?.username || 'user';
+  const currentUserDisplayName = displayName || 'blue';
 
   return (
     <div className="p-4 border-b border-xExtraLightGray hover:bg-black/[0.02] transition-colors">
@@ -213,7 +217,7 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
           >
             <img 
               src={comment.user?.avatar} 
-              alt={comment.user?.name} 
+              alt={commentAuthorName} 
               className="w-10 h-10 rounded-full object-cover"
             />
           </div>
@@ -225,7 +229,7 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
               className="font-bold hover:underline mr-1 truncate cursor-pointer"
               onClick={() => navigate(`/profile/${comment.userId}`)}
             >
-              {comment.userId === user?.id ? displayName : comment.user?.name}
+              {comment.userId === user?.id ? currentUserDisplayName : commentAuthorName}
             </div>
             
             {comment.user?.verified && (
@@ -234,7 +238,7 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
               </span>
             )}
             
-            <span className="text-xGray truncate">@{comment.userId === user?.id ? displayUsername : comment.user?.username}</span>
+            <span className="text-xGray truncate">@{comment.userId === user?.id ? currentUserDisplayName : commentAuthorName}</span>
             <span className="text-xGray mx-1">·</span>
             <span className="text-xGray">{formatDate(comment.createdAt)}</span>
             
