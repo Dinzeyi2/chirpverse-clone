@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,6 +27,7 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId,
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +47,7 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId,
         description: "You must be logged in to comment",
         variant: "destructive",
       });
+      navigate('/auth');
       return;
     }
     
@@ -101,6 +103,25 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId,
       setIsSubmitting(false);
     }
   };
+  
+  // If user is not logged in, show login prompt
+  if (!user) {
+    return (
+      <div className="p-4 border-t border-xExtraLightGray">
+        <div className="flex flex-col items-center justify-center gap-3 py-4">
+          <p className="text-center text-gray-600 dark:text-gray-400">
+            You need to be logged in to comment on this post
+          </p>
+          <Button 
+            onClick={() => navigate('/auth')}
+            className="bg-xBlue hover:bg-blue-600"
+          >
+            Sign in to comment
+          </Button>
+        </div>
+      </div>
+    );
+  }
   
   // Use either the passed currentUser or the user from auth context
   const displayUser = currentUser || (user && {

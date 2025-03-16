@@ -1,12 +1,14 @@
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import SignInForm from '@/components/auth/SignInForm';
 import SignUpForm from '@/components/auth/SignUpForm';
 
 const Auth = () => {
-  const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin');
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') === 'signup' ? 'signup' : 'signin';
+  const [activeTab, setActiveTab] = useState<'signin' | 'signup'>(initialTab);
   const { user } = useAuth();
   const navigate = useNavigate();
 
