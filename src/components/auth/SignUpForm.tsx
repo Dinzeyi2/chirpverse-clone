@@ -120,7 +120,7 @@ const SignUpForm = () => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        {step === 1 ? (
+        {step === 1 && (
           <>
             <div>
               <Input
@@ -176,7 +176,9 @@ const SignUpForm = () => {
               </div>
             </div>
           </>
-        ) : step === 2 ? (
+        )}
+        
+        {step === 2 && (
           <>
             <div>
               <Input
@@ -213,7 +215,9 @@ const SignUpForm = () => {
               <p>By signing up, you agree to the <a href="#" className="text-xBlue">Terms of Service</a> and <a href="#" className="text-xBlue">Privacy Policy</a>, including <a href="#" className="text-xBlue">Cookie Use</a>.</p>
             </div>
           </>
-        ) : (
+        )}
+        
+        {step === 3 && (
           <>
             <div className="space-y-4">
               <h3 className="font-bold text-lg text-white">Select your field</h3>
