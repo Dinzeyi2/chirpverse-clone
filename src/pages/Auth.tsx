@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import SignInForm from '@/components/auth/SignInForm';
@@ -10,12 +10,20 @@ const Auth = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect if user is already logged in
-  useEffect(() => {
-    if (user) {
-      navigate('/');
-    }
-  }, [user, navigate]);
+  // If user is already logged in, show a button to go back to home
+  if (user) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center">
+        <h1 className="text-2xl font-bold mb-4">You're already signed in</h1>
+        <button 
+          className="bg-xBlue text-white font-bold py-2 px-4 rounded hover:bg-blue-600"
+          onClick={() => navigate('/')}
+        >
+          Return to Home
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white flex flex-col">

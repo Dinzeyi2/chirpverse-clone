@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -30,27 +29,13 @@ const AppContent = () => {
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
+      
+      {/* Public routes (accessible without login) */}
       <Route 
         path="/" 
         element={
           <ProtectedRoute>
             <Index />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/profile/:userId?" 
-        element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/profile" 
-        element={
-          <ProtectedRoute>
-            <Profile />
           </ProtectedRoute>
         } 
       />
@@ -63,22 +48,6 @@ const AppContent = () => {
         } 
       />
       <Route 
-        path="/notifications" 
-        element={
-          <ProtectedRoute>
-            <Notifications />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/bookmarks" 
-        element={
-          <ProtectedRoute>
-            <Bookmarks />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
         path="/post/:postId" 
         element={
           <ProtectedRoute>
@@ -86,10 +55,44 @@ const AppContent = () => {
           </ProtectedRoute>
         } 
       />
+      
+      {/* Protected routes (require login) */}
+      <Route 
+        path="/profile/:userId?" 
+        element={
+          <ProtectedRoute requireAuth={true}>
+            <Profile />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/profile" 
+        element={
+          <ProtectedRoute requireAuth={true}>
+            <Profile />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/notifications" 
+        element={
+          <ProtectedRoute requireAuth={true}>
+            <Notifications />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/bookmarks" 
+        element={
+          <ProtectedRoute requireAuth={true}>
+            <Bookmarks />
+          </ProtectedRoute>
+        } 
+      />
       <Route 
         path="/settings" 
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requireAuth={true}>
             <Settings />
           </ProtectedRoute>
         } 
