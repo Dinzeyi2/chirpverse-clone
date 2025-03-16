@@ -9,9 +9,19 @@ import { useAuth } from '@/contexts/AuthContext';
 interface CommentFormProps {
   onCommentAdded?: (content: string, media?: {type: string, url: string}[]) => void;
   postAuthorId?: string;
+  // We don't need postId since we're using useParams to get it
+  currentUser?: {
+    id: string;
+    name: string;
+    username: string;
+    avatar: string;
+    followers: number;
+    following: number;
+    verified: boolean;
+  };
 }
 
-const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId }) => {
+const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId, currentUser }) => {
   const { postId } = useParams();
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -92,13 +102,24 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId 
     }
   };
   
+  // Use either the passed currentUser or the user from auth context
+  const displayUser = currentUser || (user && {
+    id: user.id,
+    name: user.user_metadata?.full_name || 'User',
+    username: user.user_metadata?.username || user.id.substring(0, 8),
+    avatar: user.user_metadata?.avatar_url || 'https://i.pravatar.cc/150?img=2',
+    followers: 0,
+    following: 0,
+    verified: false,
+  });
+  
   return (
     <form onSubmit={handleSubmit} className="p-4 border-t border-xExtraLightGray">
       <div className="flex items-start gap-3">
         <div className="flex-shrink-0">
-          {user && (
+          {displayUser && (
             <img 
-              src={user.user_metadata?.avatar_url || 'https://i.pravatar.cc/150?img=2'} 
+              src={displayUser.avatar} 
               alt="Your avatar" 
               className="w-10 h-10 rounded-full object-cover"
             />
