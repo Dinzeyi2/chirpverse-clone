@@ -84,6 +84,12 @@ export default {
 					DEFAULT: '#1DA1F2',
 					dark: '#1A91DA'
 				},
+				// Google Gemini-like blue gradient colors
+				geminiBlue: {
+					light: '#8AB4F8',
+					DEFAULT: '#4285F4',
+					dark: '#1A73E8'
+				},
 				xWhite: '#FFFFFF',
 				// Twitter (X) specific UI colors
 				xBackground: '#000000',

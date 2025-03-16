@@ -21,7 +21,7 @@ const Auth = () => {
     <div className="min-h-screen bg-white flex flex-col">
       {/* iblue Logo */}
       <div className="flex justify-center pt-8 pb-5">
-        <span className="text-xBlue font-bold text-3xl tracking-tight">iblue</span>
+        <span className="font-bold text-3xl tracking-tight bg-gradient-to-r from-[#4285F4] to-[#8AB4F8] bg-clip-text text-transparent">iblue</span>
       </div>
 
       {/* Main Content */}
@@ -44,7 +44,7 @@ const Auth = () => {
               >
                 Sign in
                 {activeTab === 'signin' && (
-                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1/2 h-1 bg-xBlue rounded-full" />
+                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1/2 h-1 bg-gradient-to-r from-[#4285F4] to-[#8AB4F8] rounded-full" />
                 )}
               </button>
               <button
@@ -55,7 +55,7 @@ const Auth = () => {
               >
                 Sign up
                 {activeTab === 'signup' && (
-                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1/2 h-1 bg-xBlue rounded-full" />
+                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1/2 h-1 bg-gradient-to-r from-[#4285F4] to-[#8AB4F8] rounded-full" />
                 )}
               </button>
             </div>

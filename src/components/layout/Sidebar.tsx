@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -59,8 +58,8 @@ export const Sidebar = () => {
     >
       <div className="flex flex-col h-full px-3 py-5">
         <div className="mb-6 flex justify-center lg:justify-start">
-          <Link to="/" className="text-xBlue p-2 rounded-full hover:bg-xBlue/10 transition-colors">
-            <span className="text-white font-bold text-2xl tracking-tight">iblue</span>
+          <Link to="/" className="p-2 rounded-full hover:bg-blue-500/10 transition-colors">
+            <span className="font-bold text-2xl tracking-tight bg-gradient-to-r from-[#4285F4] to-[#8AB4F8] bg-clip-text text-transparent">iblue</span>
             <span className="sr-only">Home</span>
           </Link>
         </div>
