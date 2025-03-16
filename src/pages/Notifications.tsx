@@ -1,11 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import { Bell, AtSign, Heart, Repeat, MessageSquare, ChevronDown, Bookmark, Smile } from 'lucide-react';
+import { Bell, AtSign, Heart, Repeat, MessageSquare, ChevronDown, Bookmark, Smile, Flame } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from '@/lib/utils';
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface NotificationType {
   id: string;
@@ -20,27 +21,24 @@ interface NotificationType {
   post?: string;
   time: string;
   isRead: boolean;
+  postId?: string;
 }
 
 const Notifications = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [notifications, setNotifications] = useState<NotificationType[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const navigate = useNavigate();
   
   useEffect(() => {
+    if (!user) return;
+    
     // Fetch notifications from Supabase
     const fetchNotifications = async () => {
       setLoading(true);
       try {
-        // Get current user
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          setLoading(false);
-          return;
-        }
-
         // Fetch notifications from the database
-        // We need to explicitly specify the column names to avoid ambiguity
         const { data, error } = await supabase
           .from('notifications')
           .select(`
@@ -60,12 +58,17 @@ const Notifications = () => {
 
         // Transform the data
         const formattedNotifications = data.map(notification => {
-          // Safe extraction of post_excerpt from metadata
+          // Safe extraction of post_excerpt and post_id from metadata
           let postExcerpt: string | undefined = undefined;
+          let postId: string | undefined = undefined;
+          
           if (notification.metadata && typeof notification.metadata === 'object' && !Array.isArray(notification.metadata)) {
             const metadataObj = notification.metadata as Record<string, any>;
             if (metadataObj.post_excerpt) {
               postExcerpt = String(metadataObj.post_excerpt);
+            }
+            if (metadataObj.post_id) {
+              postId = String(metadataObj.post_id);
             }
           }
 
@@ -80,6 +83,7 @@ const Notifications = () => {
             },
             content: notification.content,
             post: postExcerpt,
+            postId: postId,
             time: formatTimeAgo(new Date(notification.created_at)),
             isRead: notification.is_read,
           };
@@ -88,7 +92,11 @@ const Notifications = () => {
         setNotifications(formattedNotifications);
       } catch (error) {
         console.error('Error fetching notifications:', error);
-        toast.error('Failed to load notifications');
+        toast({
+          title: "Error",
+          description: "Failed to load notifications",
+          variant: "destructive"
+        });
       } finally {
         setLoading(false);
       }
@@ -96,13 +104,14 @@ const Notifications = () => {
 
     fetchNotifications();
 
-    // Set up real-time subscription
+    // Set up real-time subscription for new notifications
     const notificationsChannel = supabase
       .channel('notification-changes')
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
         table: 'notifications',
+        filter: `recipient_id=eq.${user.id}`,
       }, (payload) => {
         // Handle new notification
         const newNotification = payload.new;
@@ -114,12 +123,17 @@ const Notifications = () => {
           .eq('user_id', newNotification.sender_id)
           .single()
           .then(({ data: profile }) => {
-            // Safe extraction of post_excerpt from metadata
+            // Safe extraction of post_excerpt and post_id from metadata
             let postExcerpt: string | undefined = undefined;
+            let postId: string | undefined = undefined;
+            
             if (newNotification.metadata && typeof newNotification.metadata === 'object' && !Array.isArray(newNotification.metadata)) {
               const metadataObj = newNotification.metadata as Record<string, any>;
               if (metadataObj.post_excerpt) {
                 postExcerpt = String(metadataObj.post_excerpt);
+              }
+              if (metadataObj.post_id) {
+                postId = String(metadataObj.post_id);
               }
             }
 
@@ -134,12 +148,26 @@ const Notifications = () => {
               },
               content: newNotification.content,
               post: postExcerpt,
+              postId: postId,
               time: formatTimeAgo(new Date(newNotification.created_at)),
               isRead: newNotification.is_read,
             };
             
             setNotifications(prev => [formattedNotification, ...prev]);
-            toast(`New notification: ${newNotification.content}`);
+            
+            // Show a toast notification for the new notification
+            toast({
+              title: getNotificationTitle(newNotification.type),
+              description: `${profile?.full_name || 'Someone'} ${newNotification.content}`,
+              action: (
+                <a 
+                  onClick={() => navigate(postId ? `/post/${postId}` : '/notifications')}
+                  className="cursor-pointer bg-blue-500 text-white px-2 py-1 rounded text-xs"
+                >
+                  View
+                </a>
+              )
+            });
           });
       })
       .subscribe();
@@ -148,7 +176,26 @@ const Notifications = () => {
     return () => {
       supabase.removeChannel(notificationsChannel);
     };
-  }, []);
+  }, [user, navigate]);
+
+  const getNotificationTitle = (type: string): string => {
+    switch (type) {
+      case 'like':
+        return 'New Like';
+      case 'reply':
+        return 'New Reply';
+      case 'mention':
+        return 'New Mention';
+      case 'retweet':
+        return 'New Retweet';
+      case 'bookmark':
+        return 'New Bookmark';
+      case 'reaction':
+        return 'New Reaction';
+      default:
+        return 'New Notification';
+    }
+  };
 
   const formatTimeAgo = (date: Date): string => {
     const now = new Date();
@@ -170,7 +217,7 @@ const Notifications = () => {
 
   const filterNotifications = (type: string) => {
     if (type === 'all') return notifications;
-    return [];
+    return notifications.filter(notification => notification.type === type);
   };
 
   const getNotificationIcon = (type: string) => {
@@ -220,9 +267,15 @@ const Notifications = () => {
       markAsRead(notification.id);
     }
     
-    // Navigate to the post or relevant content
-    // This would be implemented based on your app's routing
-    toast.info('Viewing notification content');
+    // Navigate to the post if postId is available
+    if (notification.postId) {
+      navigate(`/post/${notification.postId}`);
+    } else {
+      toast({
+        title: "Notification",
+        description: "Viewing notification content"
+      });
+    }
   };
 
   return (

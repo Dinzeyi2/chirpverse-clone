@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bookmark, MoreHorizontal, CheckCircle, Smile, Flame } from 'lucide-react';
@@ -84,12 +83,41 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
     };
   }, [comment.id, user]);
 
-  const handleSave = (e: React.MouseEvent) => {
+  const handleSave = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    setSavedToBookmarks(!savedToBookmarks);
-    toast.success(savedToBookmarks ? 'Removed from bookmarks' : 'Saved to bookmarks');
+    try {
+      if (!user) {
+        toast.error('Please sign in to bookmark comments');
+        return;
+      }
+      
+      if (savedToBookmarks) {
+        setSavedToBookmarks(false);
+        toast.success('Removed from bookmarks');
+      } else {
+        setSavedToBookmarks(true);
+        
+        if (comment.userId !== user.id) {
+          await supabase.from('notifications').insert({
+            type: 'bookmark',
+            content: 'bookmarked your comment',
+            recipient_id: comment.userId,
+            sender_id: user.id,
+            metadata: {
+              post_id: comment.id,
+              post_excerpt: comment.content.substring(0, 50) + (comment.content.length > 50 ? '...' : '')
+            }
+          });
+        }
+        
+        toast.success('Saved to bookmarks');
+      }
+    } catch (error) {
+      console.error('Error handling bookmark:', error);
+      toast.error('Failed to update bookmark status');
+    }
   };
 
   const handleBludify = async (e: React.MouseEvent) => {
@@ -124,6 +152,20 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
         if (error) throw error;
         setIsBludified(true);
         setBludifyCount(prev => prev + 1);
+        
+        if (comment.userId !== user.id) {
+          await supabase.from('notifications').insert({
+            type: 'reaction',
+            content: 'bludified your comment',
+            recipient_id: comment.userId,
+            sender_id: user.id,
+            metadata: {
+              post_id: comment.id, 
+              post_excerpt: comment.content.substring(0, 50) + (comment.content.length > 50 ? '...' : '')
+            }
+          });
+        }
+        
         toast.success('Comment bludified! This was useful');
       }
     } catch (error) {
@@ -138,40 +180,78 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
     setEmojiPickerOpen(!emojiPickerOpen);
   };
 
-  const handleEmojiSelect = (emojiData: EmojiClickData, e: React.MouseEvent) => {
+  const handleEmojiSelect = async (emojiData: EmojiClickData, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
     const selectedEmoji = emojiData.emoji;
     
-    const existingReaction = reactions.find(reaction => reaction.emoji === selectedEmoji);
-    
-    if (existingReaction) {
-      if (existingReaction.reacted) {
-        setReactions(prev => 
-          prev.map(r => 
-            r.emoji === selectedEmoji 
-              ? { ...r, count: r.count - 1, reacted: false } 
-              : r
-          ).filter(r => r.count > 0)
-        );
-        toast.success(`Removed ${selectedEmoji} reaction`);
+    try {
+      if (!user) {
+        toast.error('Please sign in to react to comments');
+        return;
+      }
+      
+      const existingReaction = reactions.find(reaction => reaction.emoji === selectedEmoji);
+      
+      if (existingReaction) {
+        if (existingReaction.reacted) {
+          setReactions(prev => 
+            prev.map(r => 
+              r.emoji === selectedEmoji 
+                ? { ...r, count: r.count - 1, reacted: false } 
+                : r
+            ).filter(r => r.count > 0)
+          );
+          toast.success(`Removed ${selectedEmoji} reaction`);
+        } else {
+          setReactions(prev => 
+            prev.map(r => 
+              r.emoji === selectedEmoji 
+                ? { ...r, count: r.count + 1, reacted: true } 
+                : r
+            )
+          );
+          
+          if (comment.userId !== user.id) {
+            await supabase.from('notifications').insert({
+              type: 'reaction',
+              content: `reacted with ${selectedEmoji} to your comment`,
+              recipient_id: comment.userId,
+              sender_id: user.id,
+              metadata: {
+                post_id: comment.id,
+                post_excerpt: comment.content.substring(0, 50) + (comment.content.length > 50 ? '...' : '')
+              }
+            });
+          }
+          
+          toast.success(`Added ${selectedEmoji} reaction`);
+        }
       } else {
-        setReactions(prev => 
-          prev.map(r => 
-            r.emoji === selectedEmoji 
-              ? { ...r, count: r.count + 1, reacted: true } 
-              : r
-          )
-        );
+        setReactions(prev => [...prev, { emoji: selectedEmoji, count: 1, reacted: true }]);
+        
+        if (comment.userId !== user.id) {
+          await supabase.from('notifications').insert({
+            type: 'reaction',
+            content: `reacted with ${selectedEmoji} to your comment`,
+            recipient_id: comment.userId,
+            sender_id: user.id,
+            metadata: {
+              post_id: comment.id,
+              post_excerpt: comment.content.substring(0, 50) + (comment.content.length > 50 ? '...' : '')
+            }
+          });
+        }
+        
         toast.success(`Added ${selectedEmoji} reaction`);
       }
-    } else {
-      setReactions(prev => [...prev, { emoji: selectedEmoji, count: 1, reacted: true }]);
-      toast.success(`Added ${selectedEmoji} reaction`);
+      
+      setEmojiPickerOpen(false);
+    } catch (error) {
+      console.error('Error handling emoji reaction:', error);
+      toast.error('Failed to update reaction');
     }
-    
-    setEmojiPickerOpen(false);
   };
 
   const handleReactionClick = (emoji: string, e: React.MouseEvent) => {

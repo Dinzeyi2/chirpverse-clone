@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile, ThumbsUp, Flame } from 'lucide-react';
@@ -39,7 +38,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const hasMedia = post.images && post.images.length > 0;
   const isLightMode = theme === 'light';
 
-  // Get privacy name for the post author
   const getPrivacyName = (userId: string) => {
     if (!userId || userId.length < 4) return "blue";
     const first2 = userId.substring(0, 2);
@@ -49,7 +47,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   
   const postAuthorName = getPrivacyName(post.userId);
 
-  // Get current user ID
   useEffect(() => {
     const getCurrentUserId = async () => {
       const { data } = await supabase.auth.getUser();
@@ -59,7 +56,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     getCurrentUserId();
   }, []);
 
-  // Define theme-based colors
   const cardBg = isLightMode ? 'bg-white' : 'bg-gradient-to-b from-black/20 to-black/40';
   const cardBorder = isLightMode ? 'border-gray-200' : 'border-neutral-800/50';
   const textColor = isLightMode ? 'text-black' : 'text-white';
@@ -236,17 +232,42 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     navigate(`/post/${post.id}`);
   };
 
-  const handleLike = (e: React.MouseEvent) => {
+  const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    if (isLiked) {
-      setLikeCount(prev => prev - 1);
-    } else {
-      setLikeCount(prev => prev + 1);
-      toast.success('You liked a post');
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      if (!user) {
+        toast.error('Please sign in to like this post');
+        return;
+      }
+      
+      if (isLiked) {
+        setLikeCount(prev => prev - 1);
+      } else {
+        setLikeCount(prev => prev + 1);
+        
+        if (post.userId !== user.id) {
+          await supabase.from('notifications').insert({
+            type: 'like',
+            content: 'liked your post',
+            recipient_id: post.userId,
+            sender_id: user.id,
+            metadata: {
+              post_id: post.id,
+              post_excerpt: post.content.substring(0, 50) + (post.content.length > 50 ? '...' : '')
+            }
+          });
+        }
+        
+        toast.success('You liked a post');
+      }
+      setIsLiked(!isLiked);
+    } catch (error) {
+      console.error('Error handling like:', error);
+      toast.error('Failed to update like status');
     }
-    setIsLiked(!isLiked);
   };
 
   const handleBludify = async (e: React.MouseEvent) => {
@@ -282,6 +303,20 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         if (error) throw error;
         setIsBludified(true);
         setBludifyCount(prev => prev + 1);
+        
+        if (post.userId !== user.id) {
+          await supabase.from('notifications').insert({
+            type: 'reaction',
+            content: 'bludified your post',
+            recipient_id: post.userId,
+            sender_id: user.id,
+            metadata: {
+              post_id: post.id,
+              post_excerpt: post.content.substring(0, 50) + (post.content.length > 50 ? '...' : '')
+            }
+          });
+        }
+        
         toast.success('Post bludified! This was useful');
       }
     } catch (error) {
@@ -295,6 +330,12 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     e.stopPropagation();
     
     try {
+      const user = (await supabase.auth.getUser()).data.user;
+      if (!user) {
+        toast.error('Please sign in to bookmark posts');
+        return;
+      }
+      
       if (isBookmarked) {
         const { error } = await supabase
           .from('post_bookmarks')
@@ -309,11 +350,25 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           .from('post_bookmarks')
           .insert({
             post_id: getPostId(post.id),
-            user_id: (await supabase.auth.getUser()).data.user?.id
+            user_id: user.id
           });
         
         if (error) throw error;
         setIsBookmarked(true);
+        
+        if (post.userId !== user.id) {
+          await supabase.from('notifications').insert({
+            type: 'bookmark',
+            content: 'bookmarked your post',
+            recipient_id: post.userId,
+            sender_id: user.id,
+            metadata: {
+              post_id: post.id,
+              post_excerpt: post.content.substring(0, 50) + (post.content.length > 50 ? '...' : '')
+            }
+          });
+        }
+        
         toast.success('Post bookmarked');
       }
     } catch (error) {
@@ -387,6 +442,19 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           });
           
         if (error) throw error;
+        
+        if (post.userId !== user.id) {
+          await supabase.from('notifications').insert({
+            type: 'reaction',
+            content: `reacted with ${selectedEmoji} to your post`,
+            recipient_id: post.userId,
+            sender_id: user.id,
+            metadata: {
+              post_id: post.id,
+              post_excerpt: post.content.substring(0, 50) + (post.content.length > 50 ? '...' : '')
+            }
+          });
+        }
         
         toast.success(`Added ${selectedEmoji} reaction`);
       }

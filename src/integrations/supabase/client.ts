@@ -23,5 +23,8 @@ export const enableRealtimeForTables = () => {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'post_bookmarks' }, (payload) => {
       console.log('Bookmark changes detected', payload);
     })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, (payload) => {
+      console.log('Notification changes detected', payload);
+    })
     .subscribe();
 };

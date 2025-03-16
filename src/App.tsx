@@ -16,8 +16,88 @@ import Auth from "./pages/Auth";
 import Settings from "./pages/Settings";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import { useEffect } from "react";
+import { enableRealtimeForTables } from "./integrations/supabase/client";
 
 const queryClient = new QueryClient();
+
+const AppContent = () => {
+  useEffect(() => {
+    // Enable realtime updates when the app loads
+    enableRealtimeForTables();
+  }, []);
+
+  return (
+    <Routes>
+      <Route path="/auth" element={<Auth />} />
+      <Route 
+        path="/" 
+        element={
+          <ProtectedRoute>
+            <Index />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/profile/:userId?" 
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/profile" 
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/explore" 
+        element={
+          <ProtectedRoute>
+            <Explore />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/notifications" 
+        element={
+          <ProtectedRoute>
+            <Notifications />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/bookmarks" 
+        element={
+          <ProtectedRoute>
+            <Bookmarks />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/post/:postId" 
+        element={
+          <ProtectedRoute>
+            <PostPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/settings" 
+        element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        } 
+      />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -27,74 +107,7 @@ const App = () => (
           <Toaster />
           <Sonner position="top-center" theme="dark" />
           <BrowserRouter>
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route 
-                path="/" 
-                element={
-                  <ProtectedRoute>
-                    <Index />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/profile/:userId?" 
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/profile" 
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/explore" 
-                element={
-                  <ProtectedRoute>
-                    <Explore />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/notifications" 
-                element={
-                  <ProtectedRoute>
-                    <Notifications />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/bookmarks" 
-                element={
-                  <ProtectedRoute>
-                    <Bookmarks />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/post/:postId" 
-                element={
-                  <ProtectedRoute>
-                    <PostPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/settings" 
-                element={
-                  <ProtectedRoute>
-                    <Settings />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <AppContent />
           </BrowserRouter>
         </TooltipProvider>
       </ThemeProvider>
