@@ -337,10 +337,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </div>
           
           <div className="px-6 pb-6 text-center">
-            <h1 className={cn(
-              "text-xl font-bold mt-2",
-              isLightMode ? "text-black" : "text-white"
-            )}>{profileDisplayName}</h1>
+            <h1 className="text-xl font-bold mt-2 text-[#4285F4] font-heading tracking-wide">{profileDisplayName}</h1>
             
             <p className={cn(
               "text-sm mt-2 px-6",
