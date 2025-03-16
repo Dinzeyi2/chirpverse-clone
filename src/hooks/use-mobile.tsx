@@ -5,6 +5,7 @@ import * as React from "react"
 const MOBILE_BREAKPOINT = 768
 const TABLET_BREAKPOINT = 1024
 const DESKTOP_BREAKPOINT = 1280
+const SMALL_MOBILE_BREAKPOINT = 480 // Adding extra breakpoint for very small devices
 
 export function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
@@ -34,6 +35,7 @@ export function useScreenSize() {
     isMobile: false,
     isTablet: false,
     isDesktop: false,
+    isSmallMobile: false,
   })
 
   React.useEffect(() => {
@@ -47,6 +49,7 @@ export function useScreenSize() {
         isMobile: width < MOBILE_BREAKPOINT,
         isTablet: width >= MOBILE_BREAKPOINT && width < DESKTOP_BREAKPOINT,
         isDesktop: width >= DESKTOP_BREAKPOINT,
+        isSmallMobile: width < SMALL_MOBILE_BREAKPOINT,
       })
     }
     

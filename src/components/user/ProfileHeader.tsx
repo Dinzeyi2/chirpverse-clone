@@ -21,6 +21,7 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { useScreenSize } from '@/lib/hooks/use-screen-size';
 
 interface ProfileHeaderProps {
   user: User;
@@ -46,7 +47,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false);
   const { theme } = useTheme();
-  
+  const { width } = useScreenSize();
+  const isSmallScreen = width < 480;
+
   const getPrivacyName = (userId: string) => {
     if (!userId || userId.length < 4) return "blue";
     const first2 = userId.substring(0, 2);
@@ -322,7 +325,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               onClick={handleProfilePictureClick}
             >
               <Avatar className={cn(
-                "w-40 h-40 border-4",
+                isSmallScreen ? "w-32 h-32" : "w-40 h-40",
+                "border-4",
                 isLightMode ? "border-lightBeige" : "border-black"
               )}>
                 <AvatarImage src={profileData.avatar} alt={profileDisplayName} className="object-cover" />
@@ -371,45 +375,66 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </div>
             
             <div className="mt-10">
-              <div className="flex justify-center gap-4 mb-4">
+              <div className={cn(
+                "flex justify-center gap-2 mb-4",
+                isSmallScreen ? "flex-wrap px-1" : "gap-4"
+              )}>
                 <div className={cn(
-                  "backdrop-blur-sm rounded-full px-4 py-2 flex items-center gap-2 border",
+                  "backdrop-blur-sm rounded-full px-3 py-2 flex items-center gap-1 border",
+                  isSmallScreen ? "text-xs" : "text-sm",
                   isLightMode 
                     ? "bg-white/80 text-black border-gray-200/50" 
                     : "bg-black border-gray-800/50 text-white"
                 )}>
-                  <div className="w-5 h-5 rounded-full flex items-center justify-center">
-                    <MessageCircle size={14} className={isLightMode ? "text-black" : "text-white"} />
+                  <div className="w-4 h-4 rounded-full flex items-center justify-center">
+                    <MessageCircle size={isSmallScreen ? 10 : 14} className={isLightMode ? "text-black" : "text-white"} />
                   </div>
-                  <span className="text-sm font-medium font-heading tracking-wide">{stats.replies || 0} Replies</span>
+                  <span className={cn(
+                    "font-medium font-heading tracking-wide",
+                    isSmallScreen ? "text-xs" : "text-sm"
+                  )}>{stats.replies || 0} Replies</span>
                 </div>
                 
                 <div className={cn(
-                  "backdrop-blur-sm rounded-full px-4 py-2 flex items-center gap-2 border",
+                  "backdrop-blur-sm rounded-full px-3 py-2 flex items-center gap-1 border",
+                  isSmallScreen ? "text-xs" : "text-sm",
                   isLightMode 
                     ? "bg-white/80 text-black border-gray-200/50" 
                     : "bg-black border-gray-800/50 text-white"
                 )}>
                   <div className="flex -space-x-1 mr-1">
-                    {emojiReactions.slice(0, 4).map((reaction, index) => (
-                      <div key={index} className="w-5 h-5 rounded-full bg-gray-800 flex items-center justify-center">
-                        <reaction.icon size={10} className="text-white" />
+                    {emojiReactions.slice(0, isSmallScreen ? 2 : 4).map((reaction, index) => (
+                      <div key={index} className={cn(
+                        "rounded-full bg-gray-800 flex items-center justify-center",
+                        isSmallScreen ? "w-4 h-4" : "w-5 h-5"
+                      )}>
+                        <reaction.icon size={isSmallScreen ? 8 : 10} className="text-white" />
                       </div>
                     ))}
                   </div>
-                  <span className="text-sm font-medium font-heading tracking-wide">{userReactionsCount || 0} Reactions</span>
+                  <span className={cn(
+                    "font-medium font-heading tracking-wide",
+                    isSmallScreen ? "text-xs" : "text-sm"
+                  )}>{userReactionsCount || 0}</span>
                 </div>
                 
                 <div className={cn(
-                  "backdrop-blur-sm rounded-full px-4 py-2 flex items-center gap-2 border",
+                  "backdrop-blur-sm rounded-full px-3 py-2 flex items-center gap-1 border",
+                  isSmallScreen ? "text-xs" : "text-sm",
                   isLightMode 
                     ? "bg-white/80 text-black border-gray-200/50" 
                     : "bg-black border-gray-800/50 text-white"
                 )}>
-                  <div className="w-5 h-5 rounded-full flex items-center justify-center">
-                    <Flame size={14} className={isLightMode ? "text-black" : "text-white"} />
+                  <div className={cn(
+                    "rounded-full flex items-center justify-center",
+                    isSmallScreen ? "w-4 h-4" : "w-5 h-5"
+                  )}>
+                    <Flame size={isSmallScreen ? 10 : 14} className={isLightMode ? "text-black" : "text-white"} />
                   </div>
-                  <span className="text-sm font-medium font-heading tracking-wide">{userBludifyCount || 0} Bluedify</span>
+                  <span className={cn(
+                    "font-medium font-heading tracking-wide",
+                    isSmallScreen ? "text-xs" : "text-sm"
+                  )}>{userBludifyCount || 0}</span>
                 </div>
               </div>
             </div>
