@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import PostCard from './PostCard';
 import { Post } from '@/lib/data';
@@ -119,7 +118,9 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
         opts={{
           loop: true,
           align: "center",
-          dragFree: isMobile, // Enable drag free scrolling on mobile for smoother experience
+          skipSnaps: false,
+          dragFree: false,
+          containScroll: "trimSnaps"
         }}
       >
         <CarouselContent className="mx-auto">
@@ -147,7 +148,6 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
           ))}
         </CarouselContent>
         
-        {/* Navigation arrows integrated directly on the sides of the post area */}
         <button 
           onClick={() => api?.scrollPrev()} 
           className={`absolute left-1 sm:left-4 top-1/2 transform -translate-y-1/2 ${navBgColor} z-30 h-10 w-10 rounded-full flex items-center justify-center`}
