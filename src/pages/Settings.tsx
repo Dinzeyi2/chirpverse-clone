@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Shield, ChevronRight, Moon, Sun, Briefcase, Layers } from 'lucide-react';
@@ -202,7 +201,6 @@ const Settings = () => {
   const [userCompanies, setUserCompanies] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
-  // Fetch current user field and company
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!user) return;
@@ -220,7 +218,6 @@ const Settings = () => {
         }
         
         if (data) {
-          // Handle single field/company or array
           setUserFields(data.field ? 
             (Array.isArray(data.field) ? data.field : [data.field]).filter(Boolean) : 
             []);
@@ -256,7 +253,7 @@ const Settings = () => {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ field: fields })
+        .update({ field: fields.length > 0 ? fields : null })
         .eq('user_id', user.id);
         
       if (error) {
@@ -283,7 +280,7 @@ const Settings = () => {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ company: companies })
+        .update({ company: companies.length > 0 ? companies : null })
         .eq('user_id', user.id);
         
       if (error) {
@@ -381,7 +378,6 @@ const Settings = () => {
         </div>
       </div>
 
-      {/* Privacy Policy Dialog */}
       <Dialog open={openPrivacyDialog} onOpenChange={setOpenPrivacyDialog}>
         <DialogContent className={cn(dialogBg, dialogBorder, textColor, "max-w-4xl max-h-[90vh]")}>
           <DialogHeader>
@@ -394,7 +390,6 @@ const Settings = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Field Selection Dialog */}
       <Dialog open={openFieldDialog} onOpenChange={setOpenFieldDialog}>
         <DialogContent className={cn(dialogBg, dialogBorder, textColor)}>
           <DialogHeader>
@@ -458,7 +453,6 @@ const Settings = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Company Selection Dialog */}
       <Dialog open={openCompanyDialog} onOpenChange={setOpenCompanyDialog}>
         <DialogContent className={cn(dialogBg, dialogBorder, textColor)}>
           <DialogHeader>
@@ -526,3 +520,4 @@ const Settings = () => {
 };
 
 export default Settings;
+
