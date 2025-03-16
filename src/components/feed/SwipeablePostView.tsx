@@ -51,7 +51,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
 
   // Check if a post contains company tags matching user's companies
   const isPostFromUserCompany = (postContent: string) => {
-    if (!user || !userCompanies.length) return false;
+    if (!userCompanies.length) return false;
     
     // Look for @company tags in the post content
     return userCompanies.some(company => {
@@ -141,7 +141,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
       >
         <CarouselContent className="mx-auto">
           {posts.map((post, index) => {
-            const isFromUserCompany = user ? isPostFromUserCompany(post.content) : false;
+            const isFromUserCompany = isPostFromUserCompany(post.content);
             
             return (
               <CarouselItem 
@@ -160,7 +160,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
                         {post.actions}
                       </div>
                     )}
-                    {user && isFromUserCompany && (
+                    {isFromUserCompany && (
                       <div className="absolute top-1 left-1 z-30 bg-blue-500/80 text-white text-xs px-2 py-0.5 rounded-full">
                         Your Company
                       </div>

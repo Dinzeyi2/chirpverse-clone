@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
@@ -16,7 +17,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useTheme } from '@/components/theme/theme-provider';
-import { Skeleton } from '@/components/ui/skeleton';
 
 type SortOption = 'latest' | 'popular' | 'commented' | 'relevant';
 
@@ -25,10 +25,9 @@ const Index = () => {
   const [filteredPosts, setFilteredPosts] = useState<any[]>([]);
   const [feedView, setFeedView] = useState<'swipeable' | 'list'>('swipeable');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [sortOption, setSortOption] = useState<SortOption>('latest'); // Default to latest for non-logged in users
+  const [sortOption, setSortOption] = useState<SortOption>('relevant');
   const { user, username, profile } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { theme } = useTheme();
   const userCompanies = profile?.company ? parseProfileField(profile.company) : [];
   const userFields = profile?.field ? parseProfileField(profile.field) : [];
@@ -37,9 +36,6 @@ const Index = () => {
     const fetchPosts = async () => {
       try {
         setLoading(true);
-        setError(null);
-        
-        console.log('Fetching posts...');
         
         // Fixed the query to correctly fetch posts with their related data
         const { data: shoutoutData, error: shoutoutError } = await supabase
@@ -49,138 +45,78 @@ const Index = () => {
           
         if (shoutoutError) {
           console.error('Error fetching shoutouts:', shoutoutError);
-          setError('Could not load posts');
-          setLoading(false); // Make sure to set loading to false even if there's an error
-          setFeedPosts([]);
-          setFilteredPosts([]);
+          toast.error('Could not load posts');
           return;
         }
         
-        if (!shoutoutData || shoutoutData.length === 0) {
-          console.log('No posts found');
+        if (!shoutoutData) {
           setFeedPosts([]);
-          setFilteredPosts([]);
-          setLoading(false);
           return;
         }
         
-        console.log(`Found ${shoutoutData.length} posts`);
-        
-        try {
-          // For each shoutout, fetch the profile data separately
-          const formattedPosts = await Promise.all(shoutoutData.map(async post => {
-            try {
-              // Get profile data
-              const { data: profileData } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('user_id', post.user_id)
-                .maybeSingle(); // Use maybeSingle instead of single to prevent errors
-                
-              // Get counts in separate queries
-              const { count: likesCount } = await supabase
-                .from('likes')
-                .select('*', { count: 'exact', head: true })
-                .eq('shoutout_id', post.id);
-                
-              const { count: commentsCount } = await supabase
-                .from('comments')
-                .select('*', { count: 'exact', head: true })
-                .eq('shoutout_id', post.id);
-                
-              const { count: savesCount } = await supabase
-                .from('saved_posts')
-                .select('*', { count: 'exact', head: true })
-                .eq('shoutout_id', post.id);
-              
-              const profile = profileData || {
-                full_name: 'User',
-                avatar_url: 'https://i.pravatar.cc/150?img=1',
-              };
-              
-              // Create a display username from the user_id since profile.username doesn't exist
-              const displayUsername = post.user_id?.substring(0, 8) || 'user';
-              
-              return {
-                id: post.id,
-                content: post.content,
-                createdAt: post.created_at,
-                likes: likesCount || 0,
-                comments: commentsCount || 0,
-                saves: savesCount || 0,
-                reposts: 0,
-                replies: commentsCount || 0,
-                views: 0,
-                userId: post.user_id,
-                images: post.media,
-                relevanceScore: user ? calculateRelevanceScore(post.content) : 0, // Only calculate relevance for logged-in users
-                user: {
-                  id: post.user_id,
-                  name: profile.full_name || 'User',
-                  username: displayUsername,
-                  avatar: profile.avatar_url || 'https://i.pravatar.cc/150?img=1',
-                  verified: false,
-                  followers: 0,
-                  following: 0,
-                }
-              };
-            } catch (error) {
-              console.error(`Error processing post ${post.id}:`, error);
-              // Return a default post object if there's an error processing this post
-              return {
-                id: post.id,
-                content: post.content,
-                createdAt: post.created_at,
-                likes: 0,
-                comments: 0,
-                saves: 0,
-                reposts: 0,
-                replies: 0,
-                views: 0,
-                userId: post.user_id,
-                images: post.media,
-                relevanceScore: 0,
-                user: {
-                  id: post.user_id,
-                  name: 'User',
-                  username: post.user_id?.substring(0, 8) || 'user',
-                  avatar: 'https://i.pravatar.cc/150?img=1',
-                  verified: false,
-                  followers: 0,
-                  following: 0,
-                }
-              };
+        // For each shoutout, fetch the profile data separately
+        const formattedPosts = await Promise.all(shoutoutData.map(async post => {
+          // Get profile data
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', post.user_id)
+            .single();
+            
+          // Get counts in separate queries
+          const { count: likesCount } = await supabase
+            .from('likes')
+            .select('*', { count: 'exact', head: true })
+            .eq('shoutout_id', post.id);
+            
+          const { count: commentsCount } = await supabase
+            .from('comments')
+            .select('*', { count: 'exact', head: true })
+            .eq('shoutout_id', post.id);
+            
+          const { count: savesCount } = await supabase
+            .from('saved_posts')
+            .select('*', { count: 'exact', head: true })
+            .eq('shoutout_id', post.id);
+          
+          const profile = profileData || {
+            full_name: 'User',
+            avatar_url: 'https://i.pravatar.cc/150?img=1',
+          };
+          
+          // Create a display username from the user_id since profile.username doesn't exist
+          const displayUsername = post.user_id?.substring(0, 8) || 'user';
+          
+          return {
+            id: post.id,
+            content: post.content,
+            createdAt: post.created_at,
+            likes: likesCount || 0,
+            comments: commentsCount || 0,
+            saves: savesCount || 0,
+            reposts: 0,
+            replies: commentsCount || 0,
+            views: 0,
+            userId: post.user_id,
+            images: post.media,
+            relevanceScore: calculateRelevanceScore(post.content),
+            user: {
+              id: post.user_id,
+              name: profile.full_name || 'User',
+              username: displayUsername,
+              avatar: profile.avatar_url || 'https://i.pravatar.cc/150?img=1',
+              verified: false,
+              followers: 0,
+              following: 0,
             }
-          }));
-          
-          console.log(`Processed ${formattedPosts.length} posts`);
-          
-          // Filter out any null/undefined posts that might have occurred due to errors
-          const validPosts = formattedPosts.filter(post => post !== null && post !== undefined);
-          setFeedPosts(validPosts);
-          
-          // Set default sort option based on authentication
-          if (!user) {
-            setSortOption('latest'); // Default to latest for non-logged in users
-          } else if (user && userCompanies.length > 0) {
-            setSortOption('relevant'); // Use relevant only if user has companies
-          }
-        } catch (error) {
-          console.error('Error processing posts:', error);
-          // Set empty arrays as fallback
-          setFeedPosts([]);
-          setFilteredPosts([]);
-          setError('Error processing posts');
-        }
+          };
+        }));
+        
+        setFeedPosts(formattedPosts);
       } catch (error) {
         console.error('Error fetching posts:', error);
-        setError('Error fetching posts');
-        // Set empty arrays as fallback
-        setFeedPosts([]);
-        setFilteredPosts([]);
+        toast.error('Could not load posts');
       } finally {
-        // Always set loading to false when done, regardless of success or failure
-        console.log('Setting loading to false');
         setLoading(false);
       }
     };
@@ -203,7 +139,7 @@ const Index = () => {
               .from('profiles')
               .select('*')
               .eq('user_id', payload.new.user_id)
-              .maybeSingle();
+              .single();
               
             const profile = profileData || {
               full_name: 'User',
@@ -225,7 +161,7 @@ const Index = () => {
               views: 0,
               userId: payload.new.user_id,
               images: payload.new.media,
-              relevanceScore: user ? calculateRelevanceScore(payload.new.content) : 0,
+              relevanceScore: calculateRelevanceScore(payload.new.content),
               user: {
                 id: payload.new.user_id,
                 name: profile.full_name || 'User',
@@ -237,9 +173,7 @@ const Index = () => {
               }
             };
             
-            if (user) {
-              toast.success('New post added!');
-            }
+            toast.success('New post added!');
             setFeedPosts(prev => [newPost, ...prev]);
           } catch (error) {
             console.error('Error processing new post:', error);
@@ -251,11 +185,11 @@ const Index = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, userCompanies, userFields]);
+  }, [userCompanies, userFields]);
   
   // Calculate how relevant a post is to the current user
   const calculateRelevanceScore = (content: string): number => {
-    if (!content || !user) return 0;
+    if (!content) return 0;
     
     let score = 0;
     const contentLower = content.toLowerCase();
@@ -319,20 +253,14 @@ const Index = () => {
         postsToDisplay.sort((a, b) => b.comments - a.comments);
         break;
       case 'relevant':
-        // Only do relevance sorting if user is logged in
-        if (user) {
-          // Sort by relevance score first, then by recency
-          postsToDisplay.sort((a, b) => {
-            if (b.relevanceScore !== a.relevanceScore) {
-              return b.relevanceScore - a.relevanceScore;
-            }
-            // If relevance is the same, show newer posts first
-            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-          });
-        } else {
-          // Default to latest if not logged in
-          postsToDisplay.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        }
+        // Sort by relevance score first, then by recency
+        postsToDisplay.sort((a, b) => {
+          if (b.relevanceScore !== a.relevanceScore) {
+            return b.relevanceScore - a.relevanceScore;
+          }
+          // If relevance is the same, show newer posts first
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
         break;
       default:
         // Default to latest if sortOption is invalid
@@ -340,7 +268,7 @@ const Index = () => {
     }
     
     setFilteredPosts(postsToDisplay);
-  }, [feedPosts, selectedCategories, sortOption, user]);
+  }, [feedPosts, selectedCategories, sortOption]);
   
   const handlePostCreated = (content: string, media?: {type: string, url: string}[]) => {
     if (!user) return;
@@ -385,11 +313,6 @@ const Index = () => {
   const dropdownActive = theme === 'dark' ? 'bg-neutral-800' : 'bg-gray-100';
   const skeletonBg = theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200';
 
-  console.log('Index page: loading state =', loading);
-  console.log('Index page: feedPosts length =', feedPosts.length);
-  console.log('Index page: filteredPosts length =', filteredPosts.length);
-  console.log('Index page: error =', error);
-
   return (
     <AppLayout>
       <div className={`sticky top-0 z-20 ${headerBg} border-b ${borderColor}`}>
@@ -408,14 +331,12 @@ const Index = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className={dropdownBg}>
-                {user && userCompanies.length > 0 && (
-                  <DropdownMenuItem 
-                    className={cn(dropdownHover, sortOption === 'relevant' && dropdownActive)}
-                    onClick={() => handleSortChange('relevant')}
-                  >
-                    Most Relevant
-                  </DropdownMenuItem>
-                )}
+                <DropdownMenuItem 
+                  className={cn(dropdownHover, sortOption === 'relevant' && dropdownActive)}
+                  onClick={() => handleSortChange('relevant')}
+                >
+                  Most Relevant
+                </DropdownMenuItem>
                 <DropdownMenuItem 
                   className={cn(dropdownHover, sortOption === 'latest' && dropdownActive)}
                   onClick={() => handleSortChange('latest')}
@@ -469,19 +390,22 @@ const Index = () => {
       
       {loading && (
         <div className={`p-4 space-y-6 ${bgColor}`}>
-          {Array.from({ length: 3 }).map((_, index) => (
-            <div key={index} className="bg-neutral-900 rounded-lg p-4 mb-4">
-              <div className="flex items-start space-x-4">
-                <Skeleton className={`h-12 w-12 rounded-full ${skeletonBg}`} />
-                <div className="space-y-2 flex-1">
-                  <Skeleton className={`h-4 w-1/4 ${skeletonBg}`} />
-                  <Skeleton className={`h-4 w-3/4 ${skeletonBg}`} />
-                  <Skeleton className={`h-24 w-full ${skeletonBg}`} />
-                  <div className="flex justify-between pt-2">
-                    <Skeleton className={`h-6 w-6 ${skeletonBg}`} />
-                    <Skeleton className={`h-6 w-6 ${skeletonBg}`} />
-                    <Skeleton className={`h-6 w-6 ${skeletonBg}`} />
-                    <Skeleton className={`h-6 w-6 ${skeletonBg}`} />
+          {[1, 2, 3].map((item) => (
+            <div key={item} className="animate-pulse">
+              <div className="flex space-x-4">
+                <div className={`rounded-full ${skeletonBg} h-12 w-12`}></div>
+                <div className="flex-1 space-y-4 py-1">
+                  <div className={`h-4 ${skeletonBg} rounded w-3/4`}></div>
+                  <div className="space-y-2">
+                    <div className={`h-4 ${skeletonBg} rounded`}></div>
+                    <div className={`h-4 ${skeletonBg} rounded w-5/6`}></div>
+                  </div>
+                  <div className={`h-40 ${skeletonBg} rounded`}></div>
+                  <div className="flex justify-between">
+                    <div className={`h-4 ${skeletonBg} rounded w-1/5`}></div>
+                    <div className={`h-4 ${skeletonBg} rounded w-1/5`}></div>
+                    <div className={`h-4 ${skeletonBg} rounded w-1/5`}></div>
+                    <div className={`h-4 ${skeletonBg} rounded w-1/5`}></div>
                   </div>
                 </div>
               </div>
@@ -490,21 +414,7 @@ const Index = () => {
         </div>
       )}
       
-      {!loading && error && (
-        <div className={`p-8 text-center ${bgColor}`}>
-          <p className={`text-lg ${textColor}`}>
-            {error}. Please try again later.
-          </p>
-          <Button 
-            className="mt-4" 
-            onClick={() => window.location.reload()}
-          >
-            Refresh
-          </Button>
-        </div>
-      )}
-      
-      {!loading && !error && (
+      {!loading && (
         <div className={`pt-0 ${bgColor}`}>
           {feedView === 'swipeable' ? (
             <SwipeablePostView posts={filteredPosts} />
