@@ -112,7 +112,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   }
 
   return (
-    <div className="w-full overflow-hidden py-4">
+    <div className="w-full overflow-hidden py-4 relative">
       <Carousel 
         className="w-full max-w-6xl mx-auto"
         setApi={setApi}
@@ -147,15 +147,22 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
           ))}
         </CarouselContent>
         
-        <CarouselPrevious className={`absolute left-1 sm:left-4 top-1/2 transform -translate-y-1/2 ${navBgColor} border-none z-30 h-7 w-7 sm:h-8 sm:w-8`} />
-        <CarouselNext className={`absolute right-1 sm:right-4 top-1/2 transform -translate-y-1/2 ${navBgColor} border-none z-30 h-7 w-7 sm:h-8 sm:w-8`} />
-
-        {/* Embedded counter inside the carousel area */}
-        <div className="absolute bottom-2 left-0 right-0 flex justify-center items-center gap-2 z-20 text-xs">
-          <span className={`${navBgColor} px-2 py-1 rounded-full`}>
-            {currentIndex + 1} / {posts.length}
-          </span>
-        </div>
+        {/* Navigation arrows integrated directly on the sides of the post area */}
+        <button 
+          onClick={() => api?.scrollPrev()} 
+          className={`absolute left-1 sm:left-4 top-1/2 transform -translate-y-1/2 ${navBgColor} z-30 h-10 w-10 rounded-full flex items-center justify-center`}
+          aria-label="Previous post"
+        >
+          <ChevronLeft className="h-6 w-6" />
+        </button>
+        
+        <button 
+          onClick={() => api?.scrollNext()} 
+          className={`absolute right-1 sm:right-4 top-1/2 transform -translate-y-1/2 ${navBgColor} z-30 h-10 w-10 rounded-full flex items-center justify-center`}
+          aria-label="Next post"
+        >
+          <ChevronRight className="h-6 w-6" />
+        </button>
       </Carousel>
     </div>
   );
