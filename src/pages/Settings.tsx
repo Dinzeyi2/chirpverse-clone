@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Shield, ChevronRight, Moon, Sun, Laptop } from 'lucide-react';
+import { ArrowLeft, Shield, ChevronRight, Moon, Sun } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -146,7 +145,6 @@ const Settings = () => {
     setOpenPrivacyDialog(true);
   };
 
-  // Determine text colors based on theme
   const textColor = theme === 'dark' ? 'text-white' : 'text-foreground';
   const mutedTextColor = theme === 'dark' ? 'text-xGray-dark' : 'text-muted-foreground';
   const headerBg = theme === 'dark' ? 'bg-black/80' : 'bg-lightBeige/80';
@@ -191,7 +189,7 @@ const Settings = () => {
                   <span className={cn("font-medium text-lg", textColor)}>Theme</span>
                   <span className={mutedTextColor}>Manage your display preferences</span>
                   <div className="mt-3">
-                    <ToggleGroup type="single" value={theme} onValueChange={(value) => value && setTheme(value as "light" | "dark" | "system")}>
+                    <ToggleGroup type="single" value={theme} onValueChange={(value) => value && setTheme(value as "light" | "dark")}>
                       <ToggleGroupItem value="light" aria-label="Light mode" className={theme === 'light' ? 'bg-primary text-white' : ''}>
                         <Sun className="h-4 w-4" />
                         <span className="ml-2">Light</span>
@@ -199,10 +197,6 @@ const Settings = () => {
                       <ToggleGroupItem value="dark" aria-label="Dark mode" className={theme === 'dark' ? 'bg-primary text-white' : ''}>
                         <Moon className="h-4 w-4" />
                         <span className="ml-2">Dark</span>
-                      </ToggleGroupItem>
-                      <ToggleGroupItem value="system" aria-label="System mode" className={theme === 'system' ? 'bg-primary text-white' : ''}>
-                        <Laptop className="h-4 w-4" />
-                        <span className="ml-2">System</span>
                       </ToggleGroupItem>
                     </ToggleGroup>
                   </div>
