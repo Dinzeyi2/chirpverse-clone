@@ -1,14 +1,68 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Eye, EyeOff, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+// Fields for the tech industry
+const TECH_FIELDS = [
+  'Software Development',
+  'Web Development',
+  'Mobile Development',
+  'Data Science',
+  'Machine Learning',
+  'Artificial Intelligence',
+  'Cybersecurity',
+  'Cloud Computing',
+  'DevOps',
+  'UI/UX Design',
+  'Product Management',
+  'Quality Assurance',
+  'Database Administration',
+  'Network Engineering',
+  'Blockchain',
+  'IoT',
+  'Augmented Reality',
+  'Virtual Reality',
+  'Game Development',
+  'IT Support',
+  'Other'
+];
+
+// Popular tech companies
+const TECH_COMPANIES = [
+  'Google',
+  'Microsoft',
+  'Apple',
+  'Amazon',
+  'Meta',
+  'Netflix',
+  'Twitter',
+  'LinkedIn',
+  'Airbnb',
+  'Uber',
+  'Lyft',
+  'Spotify',
+  'Slack',
+  'Zoom',
+  'Salesforce',
+  'Oracle',
+  'IBM',
+  'Intel',
+  'NVIDIA',
+  'Adobe',
+  'Other'
+];
 
 const SignUpForm = () => {
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [field, setField] = useState('');
+  const [company, setCompany] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -27,12 +81,21 @@ const SignUpForm = () => {
       setStep(2);
       return;
     }
+
+    if (step === 2) {
+      if (!username || !password) {
+        setError('Please fill all required fields');
+        return;
+      }
+      setStep(3);
+      return;
+    }
     
     setError('');
     setIsLoading(true);
 
     try {
-      const { error } = await signUp(email, password, name, username);
+      const { error } = await signUp(email, password, name, username, field, company);
       if (error) {
         setError(error.message);
       } else {
@@ -113,7 +176,7 @@ const SignUpForm = () => {
               </div>
             </div>
           </>
-        ) : (
+        ) : step === 2 ? (
           <>
             <div>
               <Input
@@ -150,6 +213,54 @@ const SignUpForm = () => {
               <p>By signing up, you agree to the <a href="#" className="text-xBlue">Terms of Service</a> and <a href="#" className="text-xBlue">Privacy Policy</a>, including <a href="#" className="text-xBlue">Cookie Use</a>.</p>
             </div>
           </>
+        ) : (
+          <>
+            <div className="space-y-4">
+              <h3 className="font-bold text-lg text-white">Select your field</h3>
+              <p className="text-gray-400 text-sm mb-3">
+                This helps us show you relevant content from people in your industry.
+              </p>
+              
+              <Select value={field} onValueChange={setField}>
+                <SelectTrigger className="w-full px-3 py-5 border border-gray-700 bg-black text-white rounded-md focus:outline-none focus:ring-2 focus:ring-xBlue focus:border-transparent">
+                  <SelectValue placeholder="Select your field" />
+                </SelectTrigger>
+                <SelectContent className="bg-black border border-gray-700">
+                  {TECH_FIELDS.map((techField) => (
+                    <SelectItem key={techField} value={techField} className="text-white hover:bg-gray-800">
+                      {techField}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="none" className="text-white hover:bg-gray-800">
+                    Don't have any yet
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="font-bold text-lg text-white">Select your company</h3>
+              <p className="text-gray-400 text-sm mb-3">
+                We'll boost content from your company to make it more visible to you.
+              </p>
+              
+              <Select value={company} onValueChange={setCompany}>
+                <SelectTrigger className="w-full px-3 py-5 border border-gray-700 bg-black text-white rounded-md focus:outline-none focus:ring-2 focus:ring-xBlue focus:border-transparent">
+                  <SelectValue placeholder="Select your company" />
+                </SelectTrigger>
+                <SelectContent className="bg-black border border-gray-700">
+                  {TECH_COMPANIES.map((techCompany) => (
+                    <SelectItem key={techCompany} value={techCompany} className="text-white hover:bg-gray-800">
+                      {techCompany}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="none" className="text-white hover:bg-gray-800">
+                    Don't have any yet
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </>
         )}
 
         <button
@@ -163,17 +274,17 @@ const SignUpForm = () => {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              {step === 1 ? "Next" : "Sign up"}
+              {step === 1 ? "Next" : step === 2 ? "Next" : "Sign up"}
             </span>
           ) : (
-            step === 1 ? "Next" : "Sign up"
+            step === 1 ? "Next" : step === 2 ? "Next" : "Sign up"
           )}
         </button>
 
-        {step === 2 && (
+        {step > 1 && (
           <button
             type="button"
-            onClick={() => setStep(1)}
+            onClick={() => setStep(step - 1)}
             className="w-full mt-2 border border-gray-700 text-white font-bold py-3 px-4 rounded-full hover:bg-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-xBlue focus:ring-offset-2 focus:ring-offset-black"
           >
             Back
