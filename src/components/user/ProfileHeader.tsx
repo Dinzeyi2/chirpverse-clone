@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, MessageCircle, UserCircle, Heart, Star, ThumbsUp, Flame } from 'lucide-react';
@@ -48,7 +47,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false);
   const { theme } = useTheme();
   
-  // Generate privacy-focused display name for the profile user
   const getPrivacyName = (userId: string) => {
     if (!userId || userId.length < 4) return "blue";
     const first2 = userId.substring(0, 2);
@@ -353,18 +351,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             
             <div className="mt-6 flex justify-center">
               {isCurrentUser ? (
-                <Button
-                  variant="default"
-                  onClick={handleEditProfile}
-                  className={cn(
-                    "rounded-full px-8 py-2 w-28",
-                    isLightMode 
-                      ? "text-white bg-blue-500 hover:bg-blue-600" 
-                      : "text-black bg-white hover:bg-gray-100"
-                  )}
-                >
-                  Edit profile
-                </Button>
+                <></>
               ) : (
                 <>
                   <Button
