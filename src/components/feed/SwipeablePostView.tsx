@@ -149,6 +149,13 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
         
         <CarouselPrevious className={`absolute left-1 sm:left-4 top-1/2 transform -translate-y-1/2 ${navBgColor} border-none z-30 h-7 w-7 sm:h-8 sm:w-8`} />
         <CarouselNext className={`absolute right-1 sm:right-4 top-1/2 transform -translate-y-1/2 ${navBgColor} border-none z-30 h-7 w-7 sm:h-8 sm:w-8`} />
+
+        {/* Embedded counter inside the carousel area */}
+        <div className="absolute bottom-2 left-0 right-0 flex justify-center items-center gap-2 z-20 text-xs">
+          <span className={`${navBgColor} px-2 py-1 rounded-full`}>
+            {currentIndex + 1} / {posts.length}
+          </span>
+        </div>
       </Carousel>
     </div>
   );
