@@ -258,7 +258,6 @@ const PostPage: React.FC = () => {
       <div className="comment-container">
         {user && (
           <CommentForm 
-            postId={post.id} 
             currentUser={{
               id: user.id,
               name: user.user_metadata?.full_name || 'User',
@@ -268,6 +267,7 @@ const PostPage: React.FC = () => {
               following: 0,
               verified: false,
             }}
+            postAuthorId={post.userId}
             onCommentAdded={handleCommentAdded}
           />
         )}
