@@ -15,10 +15,10 @@ const Auth = () => {
   // If user is already logged in, show a button to go back to home
   if (user) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white">
         <h1 className="text-2xl font-bold mb-4">You're already signed in</h1>
         <button 
-          className="bg-xBlue text-white font-bold py-2 px-4 rounded hover:bg-blue-600"
+          className="bg-xBlue text-white font-bold py-2 px-4 rounded-full hover:bg-blue-600 transition-colors"
           onClick={() => navigate('/')}
         >
           Return to Home
@@ -28,7 +28,7 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-black flex flex-col text-white">
       {/* iblue Logo */}
       <div className="flex justify-center pt-8 pb-5">
         <span className="font-bold text-3xl tracking-tight bg-gradient-to-r from-[#4285F4] to-[#8AB4F8] bg-clip-text text-transparent">iblue</span>
@@ -38,17 +38,17 @@ const Auth = () => {
       <div className="flex-1 flex justify-center px-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-md">
           <div className="text-center mb-10">
-            <h1 className="text-3xl font-bold">
+            <h1 className="text-3xl font-bold text-white">
               {activeTab === 'signin' ? 'Sign in to iblue' : 'Join iblue today'}
             </h1>
           </div>
 
           {/* Auth Tabs */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="flex border-b border-gray-200">
+          <div className="bg-xBlack rounded-lg shadow-md border border-gray-800">
+            <div className="flex border-b border-gray-800">
               <button
                 className={`w-1/2 py-4 text-center font-medium relative ${
-                  activeTab === 'signin' ? 'text-black' : 'text-gray-500'
+                  activeTab === 'signin' ? 'text-white' : 'text-gray-500'
                 }`}
                 onClick={() => setActiveTab('signin')}
               >
@@ -59,7 +59,7 @@ const Auth = () => {
               </button>
               <button
                 className={`w-1/2 py-4 text-center font-medium relative ${
-                  activeTab === 'signup' ? 'text-black' : 'text-gray-500'
+                  activeTab === 'signup' ? 'text-white' : 'text-gray-500'
                 }`}
                 onClick={() => setActiveTab('signup')}
               >
