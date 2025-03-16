@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
@@ -17,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useTheme } from '@/components/theme/theme-provider';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type SortOption = 'latest' | 'popular' | 'commented' | 'relevant';
 
@@ -28,6 +28,7 @@ const Index = () => {
   const [sortOption, setSortOption] = useState<SortOption>('latest'); // Default to latest for non-logged in users
   const { user, username, profile } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { theme } = useTheme();
   const userCompanies = profile?.company ? parseProfileField(profile.company) : [];
   const userFields = profile?.field ? parseProfileField(profile.field) : [];
@@ -36,6 +37,9 @@ const Index = () => {
     const fetchPosts = async () => {
       try {
         setLoading(true);
+        setError(null);
+        
+        console.log('Fetching posts...');
         
         // Fixed the query to correctly fetch posts with their related data
         const { data: shoutoutData, error: shoutoutError } = await supabase
@@ -45,20 +49,22 @@ const Index = () => {
           
         if (shoutoutError) {
           console.error('Error fetching shoutouts:', shoutoutError);
-          // Don't show error toast for non-authenticated users, just log it
-          if (user) {
-            toast.error('Could not load posts');
-          }
+          setError('Could not load posts');
           setLoading(false); // Make sure to set loading to false even if there's an error
+          setFeedPosts([]);
+          setFilteredPosts([]);
           return;
         }
         
         if (!shoutoutData || shoutoutData.length === 0) {
+          console.log('No posts found');
           setFeedPosts([]);
           setFilteredPosts([]);
           setLoading(false);
           return;
         }
+        
+        console.log(`Found ${shoutoutData.length} posts`);
         
         try {
           // For each shoutout, fetch the profile data separately
@@ -147,6 +153,8 @@ const Index = () => {
             }
           }));
           
+          console.log(`Processed ${formattedPosts.length} posts`);
+          
           // Filter out any null/undefined posts that might have occurred due to errors
           const validPosts = formattedPosts.filter(post => post !== null && post !== undefined);
           setFeedPosts(validPosts);
@@ -162,18 +170,17 @@ const Index = () => {
           // Set empty arrays as fallback
           setFeedPosts([]);
           setFilteredPosts([]);
+          setError('Error processing posts');
         }
       } catch (error) {
         console.error('Error fetching posts:', error);
-        // Don't show error toast for non-authenticated users
-        if (user) {
-          toast.error('Could not load posts');
-        }
+        setError('Error fetching posts');
         // Set empty arrays as fallback
         setFeedPosts([]);
         setFilteredPosts([]);
       } finally {
         // Always set loading to false when done, regardless of success or failure
+        console.log('Setting loading to false');
         setLoading(false);
       }
     };
@@ -381,6 +388,7 @@ const Index = () => {
   console.log('Index page: loading state =', loading);
   console.log('Index page: feedPosts length =', feedPosts.length);
   console.log('Index page: filteredPosts length =', filteredPosts.length);
+  console.log('Index page: error =', error);
 
   return (
     <AppLayout>
@@ -461,22 +469,19 @@ const Index = () => {
       
       {loading && (
         <div className={`p-4 space-y-6 ${bgColor}`}>
-          {[1, 2, 3].map((item) => (
-            <div key={item} className="animate-pulse">
-              <div className="flex space-x-4">
-                <div className={`rounded-full ${skeletonBg} h-12 w-12`}></div>
-                <div className="flex-1 space-y-4 py-1">
-                  <div className={`h-4 ${skeletonBg} rounded w-3/4`}></div>
-                  <div className="space-y-2">
-                    <div className={`h-4 ${skeletonBg} rounded`}></div>
-                    <div className={`h-4 ${skeletonBg} rounded w-5/6`}></div>
-                  </div>
-                  <div className={`h-40 ${skeletonBg} rounded`}></div>
-                  <div className="flex justify-between">
-                    <div className={`h-4 ${skeletonBg} rounded w-1/5`}></div>
-                    <div className={`h-4 ${skeletonBg} rounded w-1/5`}></div>
-                    <div className={`h-4 ${skeletonBg} rounded w-1/5`}></div>
-                    <div className={`h-4 ${skeletonBg} rounded w-1/5`}></div>
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div key={index} className="bg-neutral-900 rounded-lg p-4 mb-4">
+              <div className="flex items-start space-x-4">
+                <Skeleton className={`h-12 w-12 rounded-full ${skeletonBg}`} />
+                <div className="space-y-2 flex-1">
+                  <Skeleton className={`h-4 w-1/4 ${skeletonBg}`} />
+                  <Skeleton className={`h-4 w-3/4 ${skeletonBg}`} />
+                  <Skeleton className={`h-24 w-full ${skeletonBg}`} />
+                  <div className="flex justify-between pt-2">
+                    <Skeleton className={`h-6 w-6 ${skeletonBg}`} />
+                    <Skeleton className={`h-6 w-6 ${skeletonBg}`} />
+                    <Skeleton className={`h-6 w-6 ${skeletonBg}`} />
+                    <Skeleton className={`h-6 w-6 ${skeletonBg}`} />
                   </div>
                 </div>
               </div>
@@ -485,7 +490,21 @@ const Index = () => {
         </div>
       )}
       
-      {!loading && (
+      {!loading && error && (
+        <div className={`p-8 text-center ${bgColor}`}>
+          <p className={`text-lg ${textColor}`}>
+            {error}. Please try again later.
+          </p>
+          <Button 
+            className="mt-4" 
+            onClick={() => window.location.reload()}
+          >
+            Refresh
+          </Button>
+        </div>
+      )}
+      
+      {!loading && !error && (
         <div className={`pt-0 ${bgColor}`}>
           {feedView === 'swipeable' ? (
             <SwipeablePostView posts={filteredPosts} />
