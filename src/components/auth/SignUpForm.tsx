@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Eye, EyeOff, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 
 // Fields for the tech industry
 const TECH_FIELDS = [
@@ -91,20 +92,22 @@ const SignUpForm = () => {
       return;
     }
     
-    setError('');
-    setIsLoading(true);
+    if (step === 3) {
+      setError('');
+      setIsLoading(true);
 
-    try {
-      const { error } = await signUp(email, password, name, username, field, company);
-      if (error) {
-        setError(error.message);
-      } else {
-        navigate('/');
+      try {
+        const { error } = await signUp(email, password, name, username, field, company);
+        if (error) {
+          setError(error.message);
+          setIsLoading(false);
+        } else {
+          navigate('/');
+        }
+      } catch (err: any) {
+        setError(err.message || 'Failed to sign up');
+        setIsLoading(false);
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign up');
-    } finally {
-      setIsLoading(false);
     }
   };
 
