@@ -1,5 +1,6 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { Image, Smile, MapPin, Calendar, BarChart, X, Video } from 'lucide-react';
+import { Image, Smile, MapPin, Calendar, BarChart, X, Video, Info } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { toast } from 'sonner';
 import { DialogClose } from '@/components/ui/dialog';
@@ -7,6 +8,13 @@ import { supabase } from "@/integrations/supabase/client";
 import EmojiPicker from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CreatePostProps {
   onPostCreated?: (content: string, media?: {type: string, url: string}[]) => void;
@@ -22,6 +30,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const { profile } = useAuth();
   
   const maxChars = 280;
   const maxImages = 2;
@@ -267,6 +276,11 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                 rows={3}
                 disabled={isLoading}
               />
+              
+              <div className="mb-4 text-sm text-gray-500 flex items-center">
+                <Info className="w-4 h-4 mr-1" />
+                <span>Tag companies using @ symbol (e.g., @Amazon) to reach people from those companies</span>
+              </div>
               
               {mediaFiles.length > 0 && (
                 <div className="mt-2 mb-4 relative">

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import PostCard from './PostCard';
 import { Post } from '@/lib/data';
@@ -13,6 +14,8 @@ import {
 } from "@/components/ui/carousel";
 import type { CarouselApi } from "@/components/ui/carousel";
 import { useScreenSize } from '@/hooks/use-mobile';
+import { useAuth } from '@/contexts/AuthContext';
+import { parseProfileField } from '@/integrations/supabase/client';
 
 interface PostWithActions extends Post {
   actions?: React.ReactNode;
@@ -28,6 +31,8 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   const [api, setApi] = useState<CarouselApi | null>(null);
   const { theme } = useTheme();
   const { isMobile, width } = useScreenSize();
+  const { user, profile } = useAuth();
+  const userCompanies = profile?.company ? parseProfileField(profile.company) : [];
 
   useEffect(() => {
     if (!api) {
@@ -43,6 +48,17 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
       api.off("select", onSelect);
     };
   }, [api]);
+
+  // Check if a post contains company tags matching user's companies
+  const isPostFromUserCompany = (postContent: string) => {
+    if (!userCompanies.length) return false;
+    
+    // Look for @company tags in the post content
+    return userCompanies.some(company => {
+      const tagPattern = new RegExp(`@${company.trim()}\\b`, 'i');
+      return tagPattern.test(postContent);
+    });
+  };
 
   // Calculate post sizes based on screen width
   const getPostSizing = () => {
@@ -124,28 +140,37 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
         }}
       >
         <CarouselContent className="mx-auto">
-          {posts.map((post, index) => (
-            <CarouselItem 
-              key={post.id} 
-              className={`basis-${basis} flex justify-center items-center pl-0`}
-            >
-              <div className={cn(
-                "relative w-full transition-all duration-300 max-w-[350px] sm:max-w-[400px] mx-auto",
-                currentIndex === index 
-                  ? `${scale} ${opacity} z-20` 
-                  : "scale-90 opacity-70 z-10"
-              )}>
-                <div className="relative">
-                  {post.actions && (
-                    <div className="absolute top-3 right-3 z-30">
-                      {post.actions}
-                    </div>
-                  )}
-                  <PostCard post={post} />
+          {posts.map((post, index) => {
+            const isFromUserCompany = isPostFromUserCompany(post.content);
+            
+            return (
+              <CarouselItem 
+                key={post.id} 
+                className={`basis-${basis} flex justify-center items-center pl-0`}
+              >
+                <div className={cn(
+                  "relative w-full transition-all duration-300 max-w-[350px] sm:max-w-[400px] mx-auto",
+                  currentIndex === index 
+                    ? `${scale} ${opacity} z-20` 
+                    : "scale-90 opacity-70 z-10"
+                )}>
+                  <div className="relative">
+                    {post.actions && (
+                      <div className="absolute top-3 right-3 z-30">
+                        {post.actions}
+                      </div>
+                    )}
+                    {isFromUserCompany && (
+                      <div className="absolute top-1 left-1 z-30 bg-blue-500/80 text-white text-xs px-2 py-0.5 rounded-full">
+                        Your Company
+                      </div>
+                    )}
+                    <PostCard post={post} />
+                  </div>
                 </div>
-              </div>
-            </CarouselItem>
-          ))}
+              </CarouselItem>
+            );
+          })}
         </CarouselContent>
         
         <button 

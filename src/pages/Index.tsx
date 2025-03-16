@@ -5,7 +5,7 @@ import PostList from '@/components/feed/PostList';
 import SwipeablePostView from '@/components/feed/SwipeablePostView';
 import FilterDialog from '@/components/feed/FilterDialog';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, parseProfileField } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { ChevronDown, Grid, List } from 'lucide-react';
 import { 
@@ -18,17 +18,19 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useTheme } from '@/components/theme/theme-provider';
 
-type SortOption = 'latest' | 'popular' | 'commented';
+type SortOption = 'latest' | 'popular' | 'commented' | 'relevant';
 
 const Index = () => {
   const [feedPosts, setFeedPosts] = useState<any[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<any[]>([]);
   const [feedView, setFeedView] = useState<'swipeable' | 'list'>('swipeable');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [sortOption, setSortOption] = useState<SortOption>('latest');
-  const { user, username } = useAuth();
+  const [sortOption, setSortOption] = useState<SortOption>('relevant');
+  const { user, username, profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const { theme } = useTheme();
+  const userCompanies = profile?.company ? parseProfileField(profile.company) : [];
+  const userFields = profile?.field ? parseProfileField(profile.field) : [];
   
   useEffect(() => {
     const fetchPosts = async () => {
@@ -97,6 +99,7 @@ const Index = () => {
             views: 0,
             userId: post.user_id,
             images: post.media,
+            relevanceScore: calculateRelevanceScore(post.content),
             user: {
               id: post.user_id,
               name: profile.full_name || 'User',
@@ -158,6 +161,7 @@ const Index = () => {
               views: 0,
               userId: payload.new.user_id,
               images: payload.new.media,
+              relevanceScore: calculateRelevanceScore(payload.new.content),
               user: {
                 id: payload.new.user_id,
                 name: profile.full_name || 'User',
@@ -181,7 +185,42 @@ const Index = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [userCompanies, userFields]);
+  
+  // Calculate how relevant a post is to the current user
+  const calculateRelevanceScore = (content: string): number => {
+    if (!content) return 0;
+    
+    let score = 0;
+    const contentLower = content.toLowerCase();
+    
+    // Check for company mentions
+    if (userCompanies.length > 0) {
+      userCompanies.forEach(company => {
+        if (company) {
+          const companyPattern = new RegExp(`@${company.trim()}\\b`, 'i');
+          if (companyPattern.test(contentLower)) {
+            // Higher weight for exact company match with @ symbol
+            score += 10;
+          } else if (contentLower.includes(company.toLowerCase())) {
+            // Lower weight for company name mention without @ symbol
+            score += 5;
+          }
+        }
+      });
+    }
+    
+    // Check for field mentions (gives some weight but less than company)
+    if (userFields.length > 0) {
+      userFields.forEach(field => {
+        if (field && contentLower.includes(field.toLowerCase())) {
+          score += 3;
+        }
+      });
+    }
+    
+    return score;
+  };
   
   // Apply both filtering and sorting to posts
   useEffect(() => {
@@ -212,6 +251,16 @@ const Index = () => {
         break;
       case 'commented':
         postsToDisplay.sort((a, b) => b.comments - a.comments);
+        break;
+      case 'relevant':
+        // Sort by relevance score first, then by recency
+        postsToDisplay.sort((a, b) => {
+          if (b.relevanceScore !== a.relevanceScore) {
+            return b.relevanceScore - a.relevanceScore;
+          }
+          // If relevance is the same, show newer posts first
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
         break;
       default:
         // Default to latest if sortOption is invalid
@@ -282,6 +331,12 @@ const Index = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className={dropdownBg}>
+                <DropdownMenuItem 
+                  className={cn(dropdownHover, sortOption === 'relevant' && dropdownActive)}
+                  onClick={() => handleSortChange('relevant')}
+                >
+                  Most Relevant
+                </DropdownMenuItem>
                 <DropdownMenuItem 
                   className={cn(dropdownHover, sortOption === 'latest' && dropdownActive)}
                   onClick={() => handleSortChange('latest')}
