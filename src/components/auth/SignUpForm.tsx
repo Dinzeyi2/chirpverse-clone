@@ -57,9 +57,13 @@ const TECH_COMPANIES = [
   'Other'
 ];
 
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June', 
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
 const SignUpForm = () => {
   const [name, setName] = useState('');
-  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [field, setField] = useState('');
@@ -68,6 +72,9 @@ const SignUpForm = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(1);
+  const [birthMonth, setBirthMonth] = useState('');
+  const [birthDay, setBirthDay] = useState('');
+  const [birthYear, setBirthYear] = useState('');
   const { signUp } = useAuth();
   const navigate = useNavigate();
 
@@ -75,29 +82,24 @@ const SignUpForm = () => {
     e.preventDefault();
     
     if (step === 1) {
-      if (!name || !email) {
+      if (!name || !email || !password || !birthMonth || !birthDay || !birthYear) {
         setError('Please fill all required fields');
         return;
       }
       setStep(2);
       return;
     }
-
-    if (step === 2) {
-      if (!username || !password) {
-        setError('Please fill all required fields');
-        return;
-      }
-      setStep(3);
-      return;
-    }
     
-    if (step === 3) {
+    if (step === 2) {
       setError('');
       setIsLoading(true);
 
       try {
-        const { error } = await signUp(email, password, name, username, field, company);
+        // Generate a random username since we're not asking for one
+        const randomString = Math.random().toString(36).substring(2, 8);
+        const temporaryUsername = `user_${randomString}`;
+        
+        const { error } = await signUp(email, password, name, temporaryUsername, field, company);
         if (error) {
           setError(error.message);
           setIsLoading(false);
@@ -149,52 +151,6 @@ const SignUpForm = () => {
               />
             </div>
 
-            <div className="pt-4">
-              <h3 className="font-bold text-lg text-white">Date of birth</h3>
-              <p className="text-gray-400 text-sm mb-3">
-                This will not be shown publicly. Confirm your own age, even if this account is for a business, a pet, or something else.
-              </p>
-              
-              <div className="flex gap-2">
-                <select className="w-full px-3 py-3 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-xBlue focus:border-transparent bg-black text-white placeholder-gray-500">
-                  <option value="">Month</option>
-                  <option value="1">January</option>
-                  <option value="2">February</option>
-                  {/* Other months */}
-                </select>
-                
-                <select className="w-full px-3 py-3 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-xBlue focus:border-transparent bg-black text-white placeholder-gray-500">
-                  <option value="">Day</option>
-                  {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
-                    <option key={day} value={day}>{day}</option>
-                  ))}
-                </select>
-                
-                <select className="w-full px-3 py-3 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-xBlue focus:border-transparent bg-black text-white placeholder-gray-500">
-                  <option value="">Year</option>
-                  {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                    <option key={year} value={year}>{year}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </>
-        )}
-        
-        {step === 2 && (
-          <>
-            <div>
-              <Input
-                id="username"
-                type="text"
-                placeholder="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                className="w-full px-3 py-3 border border-gray-700 bg-black text-white rounded-md focus:outline-none focus:ring-2 focus:ring-xBlue focus:border-transparent placeholder-gray-500"
-              />
-            </div>
-
             <div className="relative">
               <Input
                 id="password"
@@ -214,13 +170,58 @@ const SignUpForm = () => {
               </button>
             </div>
 
-            <div className="text-sm text-gray-400">
+            <div className="pt-4">
+              <h3 className="font-bold text-lg text-white">Date of birth</h3>
+              <p className="text-gray-400 text-sm mb-3">
+                This will not be shown publicly. Confirm your own age, even if this account is for a business, a pet, or something else.
+              </p>
+              
+              <div className="flex gap-2">
+                <select 
+                  className="w-full px-3 py-3 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-xBlue focus:border-transparent bg-black text-white placeholder-gray-500"
+                  value={birthMonth}
+                  onChange={(e) => setBirthMonth(e.target.value)}
+                  required
+                >
+                  <option value="">Month</option>
+                  {MONTHS.map((month, index) => (
+                    <option key={month} value={index + 1}>{month}</option>
+                  ))}
+                </select>
+                
+                <select 
+                  className="w-full px-3 py-3 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-xBlue focus:border-transparent bg-black text-white placeholder-gray-500"
+                  value={birthDay}
+                  onChange={(e) => setBirthDay(e.target.value)}
+                  required
+                >
+                  <option value="">Day</option>
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                    <option key={day} value={day}>{day}</option>
+                  ))}
+                </select>
+                
+                <select 
+                  className="w-full px-3 py-3 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-xBlue focus:border-transparent bg-black text-white placeholder-gray-500"
+                  value={birthYear}
+                  onChange={(e) => setBirthYear(e.target.value)}
+                  required
+                >
+                  <option value="">Year</option>
+                  {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="text-sm text-gray-400 mt-4">
               <p>By signing up, you agree to the <a href="#" className="text-xBlue">Terms of Service</a> and <a href="#" className="text-xBlue">Privacy Policy</a>, including <a href="#" className="text-xBlue">Cookie Use</a>.</p>
             </div>
           </>
         )}
         
-        {step === 3 && (
+        {step === 2 && (
           <>
             <div className="space-y-4">
               <h3 className="font-bold text-lg text-white">Select your field</h3>
@@ -281,10 +282,10 @@ const SignUpForm = () => {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              {step === 1 ? "Next" : step === 2 ? "Next" : "Sign up"}
+              {step === 1 ? "Next" : "Sign up"}
             </span>
           ) : (
-            step === 1 ? "Next" : step === 2 ? "Next" : "Sign up"
+            step === 1 ? "Next" : "Sign up"
           )}
         </button>
 
