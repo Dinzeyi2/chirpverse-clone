@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Camera, MessageCircle, UserCircle, Grid, Heart, Star, ThumbsUp, Flame } from 'lucide-react';
+import { ArrowLeft, Camera, MessageCircle, UserCircle, Heart, Star, ThumbsUp, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { User } from '@/lib/data';
 import { cn } from '@/lib/utils';
@@ -299,17 +299,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             aria-label="Go back"
           >
             <ArrowLeft size={20} />
-          </button>
-          <button 
-            className={cn(
-              "p-2 rounded-full transition-colors",
-              isLightMode 
-                ? "bg-black/60 text-white hover:bg-black/70" 
-                : "bg-black/60 text-white hover:bg-black/70"
-            )}
-            aria-label="View grid"
-          >
-            <Grid size={20} />
           </button>
         </div>
         
