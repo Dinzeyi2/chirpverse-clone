@@ -31,3 +31,38 @@ export const enableRealtimeForTables = () => {
     })
     .subscribe();
 };
+
+// Helper function to handle arrays or strings for profile fields
+export const updateProfileField = async (userId: string, fieldName: 'field' | 'company', values: string[]) => {
+  try {
+    // Convert array to JSON string when saving to database
+    const valueToSave = values.length > 0 ? JSON.stringify(values) : null;
+    
+    const { error } = await supabase
+      .from('profiles')
+      .update({ [fieldName]: valueToSave })
+      .eq('user_id', userId);
+      
+    return { error };
+  } catch (error) {
+    console.error(`Error updating ${fieldName}:`, error);
+    return { error };
+  }
+};
+
+// Helper function to parse stored fields that might be JSON strings or simple strings
+export const parseProfileField = (value: any): string[] => {
+  if (!value) return [];
+  
+  // If it's already an array, return it
+  if (Array.isArray(value)) return value;
+  
+  // Try to parse as JSON string
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [value];
+  } catch (e) {
+    // If not valid JSON, treat as a single string value
+    return [value];
+  }
+};

@@ -16,7 +16,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useTheme } from '@/components/theme/theme-provider';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, updateProfileField, parseProfileField } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -218,13 +218,8 @@ const Settings = () => {
         }
         
         if (data) {
-          setUserFields(data.field ? 
-            (Array.isArray(data.field) ? data.field : [data.field]).filter(Boolean) : 
-            []);
-          
-          setUserCompanies(data.company ? 
-            (Array.isArray(data.company) ? data.company : [data.company]).filter(Boolean) : 
-            []);
+          setUserFields(parseProfileField(data.field));
+          setUserCompanies(parseProfileField(data.company));
         }
       } catch (error) {
         console.error('Error fetching user profile:', error);
@@ -251,10 +246,7 @@ const Settings = () => {
     
     setIsLoading(true);
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ field: fields.length > 0 ? fields : null })
-        .eq('user_id', user.id);
+      const { error } = await updateProfileField(user.id, 'field', fields);
         
       if (error) {
         toast.error('Failed to update fields');
@@ -278,10 +270,7 @@ const Settings = () => {
     
     setIsLoading(true);
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ company: companies.length > 0 ? companies : null })
-        .eq('user_id', user.id);
+      const { error } = await updateProfileField(user.id, 'company', companies);
         
       if (error) {
         toast.error('Failed to update companies');
@@ -520,4 +509,3 @@ const Settings = () => {
 };
 
 export default Settings;
-
