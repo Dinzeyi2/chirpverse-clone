@@ -16,7 +16,6 @@ import type { CarouselApi } from "@/components/ui/carousel";
 import { useScreenSize } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { parseProfileField } from '@/integrations/supabase/client';
-import { Skeleton } from "@/components/ui/skeleton";
 
 interface PostWithActions extends Post {
   actions?: React.ReactNode;
@@ -52,7 +51,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
 
   // Check if a post contains company tags matching user's companies
   const isPostFromUserCompany = (postContent: string) => {
-    if (!user || !userCompanies.length) return false;
+    if (!userCompanies.length) return false;
     
     // Look for @company tags in the post content
     return userCompanies.some(company => {
@@ -115,7 +114,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     );
   }
 
-  if (!posts || posts.length === 0) {
+  if (posts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
         <div className={`w-16 h-16 mb-4 ${mutedTextColor}`}>
@@ -142,7 +141,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
       >
         <CarouselContent className="mx-auto">
           {posts.map((post, index) => {
-            const isFromUserCompany = user ? isPostFromUserCompany(post.content) : false;
+            const isFromUserCompany = isPostFromUserCompany(post.content);
             
             return (
               <CarouselItem 
@@ -161,7 +160,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
                         {post.actions}
                       </div>
                     )}
-                    {user && isFromUserCompany && (
+                    {isFromUserCompany && (
                       <div className="absolute top-1 left-1 z-30 bg-blue-500/80 text-white text-xs px-2 py-0.5 rounded-full">
                         Your Company
                       </div>
