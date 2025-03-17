@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
@@ -11,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import FILTER_CATEGORIES from '../../lib/fieldCategories';
 
 const SignUpForm = () => {
@@ -54,7 +54,7 @@ const SignUpForm = () => {
     e.preventDefault();
     
     if (step === 1) {
-      if (!name || !email) {
+      if (!name || !email || !field) {
         setError('Please fill all required fields');
         return;
       }
@@ -66,6 +66,12 @@ const SignUpForm = () => {
     setIsLoading(true);
 
     try {
+      if (!username || !password) {
+        setError('Please fill all required fields');
+        setIsLoading(false);
+        return;
+      }
+      
       const { error } = await signUp(email, password, name, username, field, company);
       if (error) {
         setError(error.message);
@@ -79,6 +85,11 @@ const SignUpForm = () => {
     }
   };
 
+  // Helper function to render required field indicator
+  const RequiredIndicator = () => (
+    <span className="text-red-500 ml-1">*</span>
+  );
+
   return (
     <div className="space-y-6">
       {error && (
@@ -90,10 +101,19 @@ const SignUpForm = () => {
         </div>
       )}
 
+      <div className="mb-4">
+        <p className="text-sm text-gray-400">
+          Fields marked with <span className="text-red-500">*</span> are required
+        </p>
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-5">
         {step === 1 ? (
           <>
             <div>
+              <Label htmlFor="name" className="text-white mb-2 block">
+                Name <RequiredIndicator />
+              </Label>
               <Input
                 id="name"
                 type="text"
@@ -106,6 +126,9 @@ const SignUpForm = () => {
             </div>
 
             <div>
+              <Label htmlFor="email" className="text-white mb-2 block">
+                Email <RequiredIndicator />
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -118,27 +141,27 @@ const SignUpForm = () => {
             </div>
 
             <div className="pt-4">
-              <h3 className="font-bold text-lg text-white">Date of birth</h3>
+              <h3 className="font-bold text-lg text-white">Date of birth <RequiredIndicator /></h3>
               <p className="text-gray-400 text-sm mb-3">
                 This will not be shown publicly. Confirm your own age, even if this account is for a business, a pet, or something else.
               </p>
               
               <div className="flex gap-2">
-                <select className="w-full px-3 py-3 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-xBlue focus:border-transparent bg-black text-white placeholder-gray-500">
+                <select className="w-full px-3 py-3 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-xBlue focus:border-transparent bg-black text-white placeholder-gray-500" required>
                   <option value="">Month</option>
                   <option value="1">January</option>
                   <option value="2">February</option>
                   {/* Other months */}
                 </select>
                 
-                <select className="w-full px-3 py-3 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-xBlue focus:border-transparent bg-black text-white placeholder-gray-500">
+                <select className="w-full px-3 py-3 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-xBlue focus:border-transparent bg-black text-white placeholder-gray-500" required>
                   <option value="">Day</option>
                   {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
                     <option key={day} value={day}>{day}</option>
                   ))}
                 </select>
                 
-                <select className="w-full px-3 py-3 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-xBlue focus:border-transparent bg-black text-white placeholder-gray-500">
+                <select className="w-full px-3 py-3 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-xBlue focus:border-transparent bg-black text-white placeholder-gray-500" required>
                   <option value="">Year</option>
                   {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map(year => (
                     <option key={year} value={year}>{year}</option>
@@ -148,12 +171,12 @@ const SignUpForm = () => {
             </div>
 
             <div className="pt-4">
-              <h3 className="font-bold text-lg text-white">Your Field</h3>
+              <h3 className="font-bold text-lg text-white">Your Field <RequiredIndicator /></h3>
               <p className="text-gray-400 text-sm mb-3">
                 Select your professional field. This helps us show you relevant content.
               </p>
               
-              <Select value={field} onValueChange={setField}>
+              <Select value={field} onValueChange={setField} required>
                 <SelectTrigger className="w-full px-3 py-6 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-xBlue focus:border-transparent bg-black text-white placeholder-gray-500">
                   <SelectValue placeholder="Select your field" />
                 </SelectTrigger>
@@ -169,14 +192,14 @@ const SignUpForm = () => {
             </div>
 
             <div className="pt-4">
-              <h3 className="font-bold text-lg text-white">Your Company</h3>
+              <h3 className="font-bold text-lg text-white">Your Company <span className="text-gray-400 text-sm font-normal">(optional)</span></h3>
               <p className="text-gray-400 text-sm mb-3">
                 Select the company you work for. We'll show you content related to your company.
               </p>
               
               <Select value={company} onValueChange={setCompany}>
                 <SelectTrigger className="w-full px-3 py-6 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-xBlue focus:border-transparent bg-black text-white placeholder-gray-500">
-                  <SelectValue placeholder="Select your company" />
+                  <SelectValue placeholder="Select your company (optional)" />
                 </SelectTrigger>
                 <SelectContent className="bg-black border-gray-700 text-white max-h-80">
                   {popularCompanies.map((companyOption) => (
@@ -191,6 +214,9 @@ const SignUpForm = () => {
         ) : (
           <>
             <div>
+              <Label htmlFor="username" className="text-white mb-2 block">
+                Username <RequiredIndicator />
+              </Label>
               <Input
                 id="username"
                 type="text"
@@ -203,6 +229,9 @@ const SignUpForm = () => {
             </div>
 
             <div className="relative">
+              <Label htmlFor="password" className="text-white mb-2 block">
+                Password <RequiredIndicator />
+              </Label>
               <Input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
@@ -215,7 +244,7 @@ const SignUpForm = () => {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                className="absolute right-3 top-11 transform -translate-y-1/2 text-gray-500"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
