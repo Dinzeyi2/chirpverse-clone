@@ -56,6 +56,10 @@ const Notifications = () => {
 
         if (error) throw error;
 
+        // Record the current time as the last time notifications were viewed
+        const now = new Date();
+        localStorage.setItem(`notifications_last_visited_${user.id}`, now.toISOString());
+
         // Mark all notifications as read when user visits the page
         const unreadNotifications = data.filter(notification => !notification.is_read);
         if (unreadNotifications.length > 0) {

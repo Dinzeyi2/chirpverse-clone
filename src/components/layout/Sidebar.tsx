@@ -19,6 +19,7 @@ export const Sidebar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [lastVisitedNotifications, setLastVisitedNotifications] = useState<Date | null>(null);
   
   const profilePath = '/profile';
   
@@ -31,21 +32,39 @@ export const Sidebar = () => {
   }, [isMobile]);
 
   useEffect(() => {
+    if (location.pathname === '/notifications' && user) {
+      const now = new Date();
+      setLastVisitedNotifications(now);
+      setUnreadNotifications(0);
+      localStorage.setItem(`notifications_last_visited_${user.id}`, now.toISOString());
+    }
+  }, [location.pathname, user]);
+
+  useEffect(() => {
     if (!user) return;
     
-    // Clear badge when notifications page is opened
-    if (location.pathname === '/notifications') {
-      setUnreadNotifications(0);
-      return;
+    const storedLastVisited = localStorage.getItem(`notifications_last_visited_${user.id}`);
+    if (storedLastVisited) {
+      setLastVisitedNotifications(new Date(storedLastVisited));
     }
     
-    // Fetch unread notification count
     const fetchUnreadCount = async () => {
-      const { count, error } = await supabase
+      if (location.pathname === '/notifications') {
+        setUnreadNotifications(0);
+        return;
+      }
+      
+      let query = supabase
         .from('notifications')
         .select('*', { count: 'exact', head: true })
         .eq('recipient_id', user.id)
         .eq('is_read', false);
+      
+      if (lastVisitedNotifications) {
+        query = query.gt('created_at', lastVisitedNotifications.toISOString());
+      }
+        
+      const { count, error } = await query;
         
       if (error) {
         console.error('Error fetching notification count:', error);
@@ -57,7 +76,6 @@ export const Sidebar = () => {
     
     fetchUnreadCount();
     
-    // Subscribe to new notifications
     const notificationsChannel = supabase
       .channel('notifications-count')
       .on('postgres_changes', {
@@ -81,7 +99,7 @@ export const Sidebar = () => {
     return () => {
       supabase.removeChannel(notificationsChannel);
     };
-  }, [user, location.pathname]);
+  }, [user, location.pathname, lastVisitedNotifications]);
   
   const navigation = [
     { name: 'Home', icon: Home, href: '/' },
