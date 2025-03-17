@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -33,6 +32,12 @@ export const Sidebar = () => {
 
   useEffect(() => {
     if (!user) return;
+    
+    // Clear badge when notifications page is opened
+    if (location.pathname === '/notifications') {
+      setUnreadNotifications(0);
+      return;
+    }
     
     // Fetch unread notification count
     const fetchUnreadCount = async () => {
@@ -73,11 +78,6 @@ export const Sidebar = () => {
       })
       .subscribe();
       
-    // Clear badge when notifications page is opened
-    if (location.pathname === '/notifications') {
-      setUnreadNotifications(0);
-    }
-    
     return () => {
       supabase.removeChannel(notificationsChannel);
     };
