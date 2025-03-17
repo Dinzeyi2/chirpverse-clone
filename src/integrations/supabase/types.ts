@@ -670,7 +670,6 @@ export type Database = {
           available_for_hire: boolean | null
           avatar_url: string | null
           billing_status: string | null
-          company: string | null
           created_at: string | null
           description: string | null
           education: Json | null
@@ -678,7 +677,6 @@ export type Database = {
           experience: string | null
           experiences: Json | null
           featured_projects: string[] | null
-          field: string | null
           full_name: string
           id: string
           linkedin_id: string | null
@@ -701,7 +699,6 @@ export type Database = {
           available_for_hire?: boolean | null
           avatar_url?: string | null
           billing_status?: string | null
-          company?: string | null
           created_at?: string | null
           description?: string | null
           education?: Json | null
@@ -709,7 +706,6 @@ export type Database = {
           experience?: string | null
           experiences?: Json | null
           featured_projects?: string[] | null
-          field?: string | null
           full_name: string
           id?: string
           linkedin_id?: string | null
@@ -732,7 +728,6 @@ export type Database = {
           available_for_hire?: boolean | null
           avatar_url?: string | null
           billing_status?: string | null
-          company?: string | null
           created_at?: string | null
           description?: string | null
           education?: Json | null
@@ -740,7 +735,6 @@ export type Database = {
           experience?: string | null
           experiences?: Json | null
           featured_projects?: string[] | null
-          field?: string | null
           full_name?: string
           id?: string
           linkedin_id?: string | null
