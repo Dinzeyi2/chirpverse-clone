@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Shield, ChevronRight, Moon, Sun, Briefcase, Tag, X } from 'lucide-react';
+import { ArrowLeft, Shield, ChevronRight, Moon, Sun } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -11,25 +11,11 @@ import {
   DialogContent, 
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-  DialogFooter
+  DialogDescription
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useTheme } from '@/components/theme/theme-provider';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
-import FILTER_CATEGORIES from '@/lib/fieldCategories';
-import { supabase } from '@/integrations/supabase/client';
 
 const PrivacyPolicyContent = () => {
   const { theme } = useTheme();
@@ -42,7 +28,7 @@ const PrivacyPolicyContent = () => {
         <h1 className="text-2xl font-bold mb-4">iBlue Privacy and Safety Policy</h1>
         <p className={cn("italic", mutedTextColor)}>Last Updated: [Insert Date]</p>
         
-        <p>This Privacy and Safety Policy ("Policy") explains how iBlue protects your privacy and ensures a safe environment on our social media platform. iBlue is designed to help workers from various companies and roles find solutions to their challenges by allowing users to post issues anonymously and receive expert advice. By using iBlue, you agree to the practices outlined in this Policy.</p>
+        <p>This Privacy and Safety Policy ("Policy") explains how iBlue ("we," "us," or "our") protects your privacy and ensures a safe environment on our social media platform. iBlue is designed to help workers from various companies and roles find solutions to their challenges by allowing users to post issues anonymously and receive expert advice. By using iBlue, you agree to the practices outlined in this Policy.</p>
         
         <h2 className="text-xl font-semibold mt-6 mb-2">1. Overview</h2>
         <p>iBlue is committed to protecting your personal information and preserving your anonymity while promoting a collaborative problem-solving community. This Policy describes:</p>
@@ -135,8 +121,10 @@ const SettingsItem = ({ icon: Icon, title, description, onClick }: {
     <div onClick={onClick} className="w-full cursor-pointer">
       <div className={cn("flex items-center justify-between p-4", hoverBg, "transition-colors")}>
         <div className="flex items-start gap-3">
-          <Icon className={cn("h-6 w-6", iconColor)} />
           <div className="p-2">
+            <Icon className={cn("h-6 w-6", iconColor)} />
+          </div>
+          <div className="flex flex-col text-left">
             <span className={cn("font-medium text-lg", textColor)}>{title}</span>
             <span className={mutedTextColor}>{description}</span>
           </div>
@@ -151,161 +139,10 @@ const SettingsItem = ({ icon: Icon, title, description, onClick }: {
 const Settings = () => {
   const { user } = useAuth();
   const [openPrivacyDialog, setOpenPrivacyDialog] = useState(false);
-  const [openFieldsDialog, setOpenFieldsDialog] = useState(false);
-  const [openCompaniesDialog, setOpenCompaniesDialog] = useState(false);
   const { theme, setTheme } = useTheme();
   
-  const [fields, setFields] = useState<string[]>([]);
-  const [companies, setCompanies] = useState<string[]>([]);
-  const [selectedField, setSelectedField] = useState<string>('');
-  const [selectedCompany, setSelectedCompany] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const allFields = Object.values(FILTER_CATEGORIES).flat();
-  
-  const popularCompanies = [
-    "Google", "Microsoft", "Apple", "Amazon", "Meta", "IBM", "Intel", "Oracle", 
-    "Cisco", "Adobe", "Salesforce", "Twitter", "Netflix", "Shopify", "Uber", 
-    "Airbnb", "Tesla", "SpaceX", "PayPal", "LinkedIn", "Dropbox", "Slack", 
-    "Zoom", "Stripe", "Square", "Samsung", "Sony", "Nintendo", "Nvidia", "AMD",
-    "Dell", "HP", "Lenovo", "Asus", "LG", "Huawei", "Xiaomi", "Tencent",
-    "Alibaba", "Baidu", "ByteDance", "TikTok", "Spotify", "Twitch", "Reddit",
-    "Pinterest", "Snapchat", "Instagram", "WhatsApp", "Telegram", "Signal",
-    "Discord", "Robinhood", "Coinbase", "Binance", "JPMorgan Chase", "Goldman Sachs",
-    "Morgan Stanley", "Bank of America", "Wells Fargo", "Citigroup", "Deloitte",
-    "PwC", "EY", "KPMG", "McKinsey", "Boston Consulting Group", "Bain & Company",
-    "Accenture", "Capgemini", "Infosys", "Wipro", "TCS", "Cognizant", "HCL",
-    "Palantir", "Snowflake", "MongoDB", "Cloudflare", "Datadog", "Splunk",
-    "Atlassian", "Zendesk", "ServiceNow", "Workday", "SAP", "Siemens", "GE",
-    "Boeing", "Lockheed Martin", "Northrop Grumman", "Raytheon", "Ford", "GM",
-    "Toyota", "Volkswagen", "BMW", "Mercedes-Benz", "Disney", "Warner Bros",
-    "Universal", "Pixar", "DreamWorks", "Other", "None (Not working yet)"
-  ];
-
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      if (user?.id) {
-        try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('field, company')
-            .eq('user_id', user.id)
-            .single();
-          
-          if (error) throw error;
-          
-          if (data) {
-            if (data.field) {
-              if (Array.isArray(data.field)) {
-                setFields(data.field.slice(0, 3));
-              } else if (typeof data.field === 'string') {
-                setFields([data.field]);
-              }
-            }
-            
-            if (data.company) {
-              if (Array.isArray(data.company)) {
-                setCompanies(data.company.slice(0, 3));
-              } else if (typeof data.company === 'string') {
-                setCompanies([data.company]);
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching user profile:', error);
-        }
-      }
-    };
-    
-    fetchUserProfile();
-  }, [user]);
-
   const handlePrivacyClick = () => {
     setOpenPrivacyDialog(true);
-  };
-
-  const handleFieldsClick = () => {
-    setOpenFieldsDialog(true);
-  };
-
-  const handleCompaniesClick = () => {
-    setOpenCompaniesDialog(true);
-  };
-
-  const handleAddField = () => {
-    if (!selectedField || fields.length >= 3 || fields.includes(selectedField)) {
-      return;
-    }
-    
-    const newFields = [...fields, selectedField];
-    setFields(newFields);
-    setSelectedField('');
-  };
-
-  const handleRemoveField = (field: string) => {
-    setFields(fields.filter(f => f !== field));
-  };
-
-  const handleAddCompany = () => {
-    if (!selectedCompany || companies.length >= 3 || companies.includes(selectedCompany)) {
-      return;
-    }
-    
-    const newCompanies = [...companies, selectedCompany];
-    setCompanies(newCompanies);
-    setSelectedCompany('');
-  };
-
-  const handleRemoveCompany = (company: string) => {
-    setCompanies(companies.filter(c => c !== company));
-  };
-
-  const saveFieldsToProfile = async () => {
-    if (!user?.id) return;
-    setIsLoading(true);
-    
-    try {
-      const fieldValue: string | string[] = fields.length === 1 ? fields[0] : fields;
-      
-      const { error } = await supabase
-        .from('profiles')
-        .update({ field: fieldValue })
-        .eq('user_id', user.id);
-      
-      if (error) throw error;
-      
-      toast.success('Fields updated successfully');
-      setOpenFieldsDialog(false);
-    } catch (error) {
-      console.error('Error updating fields:', error);
-      toast.error('Failed to update fields');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const saveCompaniesToProfile = async () => {
-    if (!user?.id) return;
-    setIsLoading(true);
-    
-    try {
-      const companyValue: string | string[] = companies.length === 1 ? companies[0] : companies;
-      
-      const { error } = await supabase
-        .from('profiles')
-        .update({ company: companyValue })
-        .eq('user_id', user.id);
-      
-      if (error) throw error;
-      
-      toast.success('Companies updated successfully');
-      setOpenCompaniesDialog(false);
-    } catch (error) {
-      console.error('Error updating companies:', error);
-      toast.error('Failed to update companies');
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const textColor = theme === 'dark' ? 'text-white' : 'text-foreground';
@@ -317,7 +154,6 @@ const Settings = () => {
   const inputBg = theme === 'dark' ? 'bg-gray-100' : 'bg-white';
   const dialogBg = theme === 'dark' ? 'bg-black' : 'bg-background';
   const dialogBorder = theme === 'dark' ? 'border-xBorder' : 'border-border';
-  const pillBg = theme === 'dark' ? 'bg-xSecondary' : 'bg-secondary';
 
   return (
     <AppLayout>
@@ -342,20 +178,6 @@ const Settings = () => {
               title="Privacy and safety"
               description="Manage what information you see and share on iblue"
               onClick={handlePrivacyClick}
-            />
-            
-            <SettingsItem 
-              icon={Tag}
-              title="Fields of Interest"
-              description="Manage fields you're interested in (up to 3)"
-              onClick={handleFieldsClick}
-            />
-            
-            <SettingsItem 
-              icon={Briefcase}
-              title="Companies"
-              description="Manage companies you're interested in (up to 3)"
-              onClick={handleCompaniesClick}
             />
             
             <div className="p-4">
@@ -396,148 +218,6 @@ const Settings = () => {
             </DialogDescription>
           </DialogHeader>
           <PrivacyPolicyContent />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={openFieldsDialog} onOpenChange={setOpenFieldsDialog}>
-        <DialogContent className={cn(dialogBg, dialogBorder, textColor, "max-w-md")}>
-          <DialogHeader>
-            <DialogTitle>Fields of Interest</DialogTitle>
-            <DialogDescription className={mutedTextColor}>
-              Select up to 3 fields that interest you. You'll see more content from these areas.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="flex flex-wrap gap-2 mb-4">
-              {fields.map((field) => (
-                <div 
-                  key={field} 
-                  className={cn(pillBg, "flex items-center gap-2 px-3 py-1 rounded-full")}
-                >
-                  <span>{field}</span>
-                  <button 
-                    onClick={() => handleRemoveField(field)}
-                    className="text-gray-400 hover:text-gray-200 transition-colors"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ))}
-            </div>
-            
-            {fields.length < 3 && (
-              <div className="flex items-end gap-2">
-                <div className="flex-1">
-                  <Label htmlFor="field-select" className="mb-2 block">
-                    Add a field
-                  </Label>
-                  <Select value={selectedField} onValueChange={setSelectedField}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select a field" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {allFields.map((field) => (
-                        <SelectItem 
-                          key={field} 
-                          value={field}
-                          disabled={fields.includes(field)}
-                        >
-                          {field}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button 
-                  onClick={handleAddField} 
-                  disabled={!selectedField || fields.includes(selectedField)}
-                >
-                  Add
-                </Button>
-              </div>
-            )}
-          </div>
-          
-          <DialogFooter>
-            <Button onClick={() => setOpenFieldsDialog(false)} variant="outline">
-              Cancel
-            </Button>
-            <Button onClick={saveFieldsToProfile} disabled={isLoading}>
-              {isLoading ? "Saving..." : "Save Changes"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={openCompaniesDialog} onOpenChange={setOpenCompaniesDialog}>
-        <DialogContent className={cn(dialogBg, dialogBorder, textColor, "max-w-md")}>
-          <DialogHeader>
-            <DialogTitle>Companies</DialogTitle>
-            <DialogDescription className={mutedTextColor}>
-              Select up to 3 companies you're interested in. This is optional.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="flex flex-wrap gap-2 mb-4">
-              {companies.map((company) => (
-                <div 
-                  key={company} 
-                  className={cn(pillBg, "flex items-center gap-2 px-3 py-1 rounded-full")}
-                >
-                  <span>{company}</span>
-                  <button 
-                    onClick={() => handleRemoveCompany(company)}
-                    className="text-gray-400 hover:text-gray-200 transition-colors"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ))}
-            </div>
-            
-            {companies.length < 3 && (
-              <div className="flex items-end gap-2">
-                <div className="flex-1">
-                  <Label htmlFor="company-select" className="mb-2 block">
-                    Add a company
-                  </Label>
-                  <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select a company" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {popularCompanies.map((company) => (
-                        <SelectItem 
-                          key={company} 
-                          value={company}
-                          disabled={companies.includes(company)}
-                        >
-                          {company}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button 
-                  onClick={handleAddCompany} 
-                  disabled={!selectedCompany || companies.includes(selectedCompany)}
-                >
-                  Add
-                </Button>
-              </div>
-            )}
-          </div>
-          
-          <DialogFooter>
-            <Button onClick={() => setOpenCompaniesDialog(false)} variant="outline">
-              Cancel
-            </Button>
-            <Button onClick={saveCompaniesToProfile} disabled={isLoading}>
-              {isLoading ? "Saving..." : "Save Changes"}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </AppLayout>
