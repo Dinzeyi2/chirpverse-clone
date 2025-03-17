@@ -7,7 +7,7 @@ import FilterDialog from '@/components/feed/FilterDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
-import { ChevronDown, Grid, List } from 'lucide-react';
+import { ChevronDown, Grid, List, RefreshCw } from 'lucide-react';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -28,55 +28,83 @@ const Index = () => {
   const [sortOption, setSortOption] = useState<SortOption>('latest');
   const { user, username } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { theme } = useTheme();
   
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        setLoading(true);
+  const fetchPosts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fixed the query to correctly fetch posts with their related data
+      const { data: shoutoutData, error: shoutoutError } = await supabase
+        .from('shoutouts')
+        .select('*')
+        .order('created_at', { ascending: false });
         
-        // Fixed the query to correctly fetch posts with their related data
-        const { data: shoutoutData, error: shoutoutError } = await supabase
-          .from('shoutouts')
-          .select('*')
-          .order('created_at', { ascending: false });
+      if (shoutoutError) {
+        console.error('Error fetching shoutouts:', shoutoutError);
+        setError('Could not load posts');
+        toast.error('Could not load posts');
+        return;
+      }
+      
+      if (!shoutoutData || shoutoutData.length === 0) {
+        setFeedPosts([]);
+        setLoading(false);
+        return;
+      }
+      
+      // For each shoutout, fetch the profile data separately
+      const formattedPosts = await Promise.all(shoutoutData.map(async post => {
+        try {
+          // Get profile data - use try/catch to handle any potential issues
+          let profileData = null;
+          try {
+            const { data } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('user_id', post.user_id)
+              .single();
+            profileData = data;
+          } catch (profileError) {
+            console.error('Error fetching profile:', profileError);
+          }
           
-        if (shoutoutError) {
-          console.error('Error fetching shoutouts:', shoutoutError);
-          toast.error('Could not load posts');
-          return;
-        }
-        
-        if (!shoutoutData) {
-          setFeedPosts([]);
-          return;
-        }
-        
-        // For each shoutout, fetch the profile data separately
-        const formattedPosts = await Promise.all(shoutoutData.map(async post => {
-          // Get profile data
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('user_id', post.user_id)
-            .single();
-            
-          // Get counts in separate queries
-          const { count: likesCount } = await supabase
-            .from('likes')
-            .select('*', { count: 'exact', head: true })
-            .eq('shoutout_id', post.id);
-            
-          const { count: commentsCount } = await supabase
-            .from('comments')
-            .select('*', { count: 'exact', head: true })
-            .eq('shoutout_id', post.id);
-            
-          const { count: savesCount } = await supabase
-            .from('saved_posts')
-            .select('*', { count: 'exact', head: true })
-            .eq('shoutout_id', post.id);
+          // Get counts in separate queries with error handling
+          let likesCount = 0;
+          try {
+            const { count } = await supabase
+              .from('likes')
+              .select('*', { count: 'exact', head: true })
+              .eq('shoutout_id', post.id);
+            likesCount = count || 0;
+          } catch (likesError) {
+            console.error('Error fetching likes count:', likesError);
+          }
           
+          let commentsCount = 0;
+          try {
+            const { count } = await supabase
+              .from('comments')
+              .select('*', { count: 'exact', head: true })
+              .eq('shoutout_id', post.id);
+            commentsCount = count || 0;
+          } catch (commentsError) {
+            console.error('Error fetching comments count:', commentsError);
+          }
+          
+          let savesCount = 0;
+          try {
+            const { count } = await supabase
+              .from('saved_posts')
+              .select('*', { count: 'exact', head: true })
+              .eq('shoutout_id', post.id);
+            savesCount = count || 0;
+          } catch (savesError) {
+            console.error('Error fetching saves count:', savesError);
+          }
+        
           const profile = profileData || {
             full_name: 'User',
             avatar_url: 'https://i.pravatar.cc/150?img=1',
@@ -107,17 +135,45 @@ const Index = () => {
               following: 0,
             }
           };
-        }));
-        
-        setFeedPosts(formattedPosts);
-      } catch (error) {
-        console.error('Error fetching posts:', error);
-        toast.error('Could not load posts');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
+        } catch (postError) {
+          console.error('Error processing post:', postError);
+          // Return a placeholder post if there was an error
+          return {
+            id: post.id,
+            content: post.content,
+            createdAt: post.created_at,
+            likes: 0,
+            comments: 0,
+            saves: 0,
+            reposts: 0,
+            replies: 0,
+            views: 0,
+            userId: post.user_id,
+            images: post.media,
+            user: {
+              id: post.user_id,
+              name: 'User',
+              username: 'user',
+              avatar: 'https://i.pravatar.cc/150?img=1',
+              verified: false,
+              followers: 0,
+              following: 0,
+            }
+          };
+        }
+      }));
+      
+      setFeedPosts(formattedPosts);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      setError('Could not load posts');
+      toast.error('Could not load posts');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
     fetchPosts();
     
     // Set up realtime subscription to listen for new posts
@@ -252,6 +308,11 @@ const Index = () => {
     setSortOption(option);
   };
 
+  const handleRefresh = () => {
+    fetchPosts();
+    toast.info('Refreshing posts...');
+  };
+
   // Determine colors based on theme
   const bgColor = theme === 'dark' ? 'bg-black' : 'bg-lightBeige';
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
@@ -263,6 +324,9 @@ const Index = () => {
   const dropdownHover = theme === 'dark' ? 'hover:bg-neutral-800' : 'hover:bg-gray-100';
   const dropdownActive = theme === 'dark' ? 'bg-neutral-800' : 'bg-gray-100';
   const skeletonBg = theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200';
+  const errorBg = theme === 'dark' ? 'bg-red-900/10' : 'bg-red-50';
+  const errorBorder = theme === 'dark' ? 'border-red-900/20' : 'border-red-100';
+  const errorText = theme === 'dark' ? 'text-red-400' : 'text-red-500';
 
   return (
     <AppLayout>
@@ -305,6 +369,13 @@ const Index = () => {
           </div>
           
           <div className="flex items-center gap-4">
+            <button
+              className="p-2 rounded-md transition-colors hover:bg-gray-200/10"
+              onClick={handleRefresh}
+              aria-label="Refresh posts"
+            >
+              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''} ${textColor}`} />
+            </button>
             <button 
               className={cn(
                 "p-2 rounded-md transition-colors",
@@ -359,7 +430,21 @@ const Index = () => {
         </div>
       )}
       
-      {!loading && (
+      {error && !loading && (
+        <div className={`p-6 ${errorBg} ${errorText} border ${errorBorder} rounded-md mx-4 my-6`}>
+          <p className="mb-4">There was a problem loading posts. Please try again.</p>
+          <Button 
+            onClick={handleRefresh} 
+            variant="outline" 
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Retry
+          </Button>
+        </div>
+      )}
+      
+      {!loading && !error && (
         <div className={`pt-0 ${bgColor}`}>
           {feedView === 'swipeable' ? (
             <SwipeablePostView posts={filteredPosts} />

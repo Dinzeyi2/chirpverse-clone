@@ -37,21 +37,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     // Check for active session on initial load
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      // Extract username from user metadata
-      if (session?.user) {
-        const userMeta = session.user.user_metadata;
-        setUsername(userMeta?.username || userMeta?.preferred_username || null);
+    const checkSession = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        setSession(data.session);
+        setUser(data.session?.user ?? null);
         
-        // Generate privacy name based on user ID
-        setDisplayName(generatePrivacyName(session.user.id));
+        // Extract username from user metadata
+        if (data.session?.user) {
+          const userMeta = data.session.user.user_metadata;
+          setUsername(userMeta?.username || userMeta?.preferred_username || null);
+          
+          // Generate privacy name based on user ID
+          setDisplayName(generatePrivacyName(data.session.user.id));
+        }
+      } catch (error) {
+        console.error('Error checking session:', error);
+      } finally {
+        // Always set loading to false, even if there's no session
+        setLoading(false);
       }
-      
-      setLoading(false);
-    });
+    };
+
+    checkSession();
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -70,6 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setDisplayName(null);
       }
       
+      // Always set loading to false after auth state changes
       setLoading(false);
     });
 
