@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import { Bell, AtSign, Heart, Repeat, MessageSquare, ChevronDown, Bookmark, Smile, Flame } from 'lucide-react';
+import { Bell, ChevronDown } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from '@/lib/utils';
 import { supabase } from "@/integrations/supabase/client";
@@ -221,25 +220,6 @@ const Notifications = () => {
     return notifications.filter(notification => notification.type === type);
   };
 
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'like':
-        return <Heart size={16} className="text-red-500" />;
-      case 'reply':
-        return <MessageSquare size={16} className="text-blue-500" />;
-      case 'mention':
-        return <AtSign size={16} className="text-blue-500" />;
-      case 'retweet':
-        return <Repeat size={16} className="text-green-500" />;
-      case 'bookmark':
-        return <Bookmark size={16} className="text-purple-500" />;
-      case 'reaction':
-        return <Smile size={16} className="text-yellow-500" />;
-      default:
-        return <Bell size={16} className="text-gray-500" />;
-    }
-  };
-
   const markAsRead = async (notificationId: string) => {
     try {
       const { error } = await supabase
@@ -320,7 +300,6 @@ const Notifications = () => {
               ) : (
                 <NotificationsList 
                   notifications={filterNotifications('all')} 
-                  getIcon={getNotificationIcon} 
                   onNotificationClick={handleNotificationClick}
                 />
               )}
@@ -334,13 +313,11 @@ const Notifications = () => {
 
 interface NotificationsListProps {
   notifications: NotificationType[];
-  getIcon: (type: string) => JSX.Element;
   onNotificationClick: (notification: NotificationType) => void;
 }
 
 const NotificationsList: React.FC<NotificationsListProps> = ({ 
   notifications, 
-  getIcon, 
   onNotificationClick 
 }) => {
   return (
@@ -356,9 +333,6 @@ const NotificationsList: React.FC<NotificationsListProps> = ({
           role="button"
           aria-label={`View notification about ${notification.content}`}
         >
-          <div className="mr-3 mt-1">
-            {getIcon(notification.type)}
-          </div>
           <div className="flex-1">
             <div className="flex mb-1">
               <img 
