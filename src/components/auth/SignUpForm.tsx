@@ -1,20 +1,42 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Eye, EyeOff, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import FILTER_CATEGORIES from '../../lib/fieldCategories';
 
 const SignUpForm = () => {
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [field, setField] = useState('');
+  const [company, setCompany] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(1);
   const { signUp } = useAuth();
   const navigate = useNavigate();
+
+  // Flatten all field categories for selection
+  const allFields = Object.values(FILTER_CATEGORIES).flat();
+  
+  // Popular companies list
+  const popularCompanies = [
+    "Google", "Microsoft", "Apple", "Amazon", "Meta", "IBM", "Intel", "Oracle", 
+    "Cisco", "Adobe", "Salesforce", "Twitter", "Netflix", "Shopify", "Uber", 
+    "Airbnb", "Tesla", "SpaceX", "PayPal", "LinkedIn", "Dropbox", "Slack", 
+    "Zoom", "Stripe", "Square", "Other", "None (Not working yet)"
+  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +54,7 @@ const SignUpForm = () => {
     setIsLoading(true);
 
     try {
-      const { error } = await signUp(email, password, name, username);
+      const { error } = await signUp(email, password, name, username, field, company);
       if (error) {
         setError(error.message);
       } else {
@@ -111,6 +133,47 @@ const SignUpForm = () => {
                   ))}
                 </select>
               </div>
+            </div>
+
+            <div className="pt-4">
+              <h3 className="font-bold text-lg text-white">Your Field</h3>
+              <p className="text-gray-400 text-sm mb-3">
+                Select your professional field. This helps us show you relevant content.
+              </p>
+              
+              <Select value={field} onValueChange={setField}>
+                <SelectTrigger className="w-full px-3 py-6 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-xBlue focus:border-transparent bg-black text-white placeholder-gray-500">
+                  <SelectValue placeholder="Select your field" />
+                </SelectTrigger>
+                <SelectContent className="bg-black border-gray-700 text-white">
+                  {allFields.map((fieldOption) => (
+                    <SelectItem key={fieldOption} value={fieldOption}>
+                      {fieldOption}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="None">None (Don't have any yet)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="pt-4">
+              <h3 className="font-bold text-lg text-white">Your Company</h3>
+              <p className="text-gray-400 text-sm mb-3">
+                Select the company you work for. We'll show you content related to your company.
+              </p>
+              
+              <Select value={company} onValueChange={setCompany}>
+                <SelectTrigger className="w-full px-3 py-6 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-xBlue focus:border-transparent bg-black text-white placeholder-gray-500">
+                  <SelectValue placeholder="Select your company" />
+                </SelectTrigger>
+                <SelectContent className="bg-black border-gray-700 text-white max-h-80">
+                  {popularCompanies.map((companyOption) => (
+                    <SelectItem key={companyOption} value={companyOption}>
+                      {companyOption}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </>
         ) : (
