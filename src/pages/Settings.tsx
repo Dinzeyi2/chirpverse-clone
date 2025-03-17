@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Shield, ChevronRight, Moon, Sun, Briefcase, Tag, X } from 'lucide-react';
@@ -198,26 +197,20 @@ const Settings = () => {
           if (error) throw error;
           
           if (data) {
-            // Properly handle field data which could be string, string[], or null
             if (data.field) {
-              // Convert to array if it's a string, or use as-is if already an array
-              const fieldArray = Array.isArray(data.field) 
-                ? data.field.slice(0, 3) 
-                : typeof data.field === 'string' 
-                  ? [data.field] 
-                  : [];
-              setFields(fieldArray);
+              if (Array.isArray(data.field)) {
+                setFields(data.field.slice(0, 3));
+              } else if (typeof data.field === 'string') {
+                setFields([data.field]);
+              }
             }
             
-            // Properly handle company data which could be string, string[], or null
             if (data.company) {
-              // Convert to array if it's a string, or use as-is if already an array
-              const companyArray = Array.isArray(data.company) 
-                ? data.company.slice(0, 3) 
-                : typeof data.company === 'string'
-                  ? [data.company] 
-                  : [];
-              setCompanies(companyArray);
+              if (Array.isArray(data.company)) {
+                setCompanies(data.company.slice(0, 3));
+              } else if (typeof data.company === 'string') {
+                setCompanies([data.company]);
+              }
             }
           }
         } catch (error) {
@@ -274,9 +267,11 @@ const Settings = () => {
     setIsLoading(true);
     
     try {
+      const fieldValue = fields.length === 1 ? fields[0] : fields;
+      
       const { error } = await supabase
         .from('profiles')
-        .update({ field: fields })
+        .update({ field: fieldValue })
         .eq('user_id', user.id);
       
       if (error) throw error;
@@ -296,9 +291,11 @@ const Settings = () => {
     setIsLoading(true);
     
     try {
+      const companyValue = companies.length === 1 ? companies[0] : companies;
+      
       const { error } = await supabase
         .from('profiles')
-        .update({ company: companies })
+        .update({ company: companyValue })
         .eq('user_id', user.id);
       
       if (error) throw error;
