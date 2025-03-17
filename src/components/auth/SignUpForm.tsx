@@ -30,12 +30,24 @@ const SignUpForm = () => {
   // Flatten all field categories for selection
   const allFields = Object.values(FILTER_CATEGORIES).flat();
   
-  // Popular companies list
+  // Expanded list of popular companies
   const popularCompanies = [
     "Google", "Microsoft", "Apple", "Amazon", "Meta", "IBM", "Intel", "Oracle", 
     "Cisco", "Adobe", "Salesforce", "Twitter", "Netflix", "Shopify", "Uber", 
     "Airbnb", "Tesla", "SpaceX", "PayPal", "LinkedIn", "Dropbox", "Slack", 
-    "Zoom", "Stripe", "Square", "Other", "None (Not working yet)"
+    "Zoom", "Stripe", "Square", "Samsung", "Sony", "Nintendo", "Nvidia", "AMD",
+    "Dell", "HP", "Lenovo", "Asus", "LG", "Huawei", "Xiaomi", "Tencent",
+    "Alibaba", "Baidu", "ByteDance", "TikTok", "Spotify", "Twitch", "Reddit",
+    "Pinterest", "Snapchat", "Instagram", "WhatsApp", "Telegram", "Signal",
+    "Discord", "Robinhood", "Coinbase", "Binance", "JPMorgan Chase", "Goldman Sachs",
+    "Morgan Stanley", "Bank of America", "Wells Fargo", "Citigroup", "Deloitte",
+    "PwC", "EY", "KPMG", "McKinsey", "Boston Consulting Group", "Bain & Company",
+    "Accenture", "Capgemini", "Infosys", "Wipro", "TCS", "Cognizant", "HCL",
+    "Palantir", "Snowflake", "MongoDB", "Cloudflare", "Datadog", "Splunk",
+    "Atlassian", "Zendesk", "ServiceNow", "Workday", "SAP", "Siemens", "GE",
+    "Boeing", "Lockheed Martin", "Northrop Grumman", "Raytheon", "Ford", "GM",
+    "Toyota", "Volkswagen", "BMW", "Mercedes-Benz", "Disney", "Warner Bros",
+    "Universal", "Pixar", "DreamWorks", "Other", "None (Not working yet)"
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
