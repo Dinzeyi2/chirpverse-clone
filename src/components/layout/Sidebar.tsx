@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -17,8 +18,10 @@ export const Sidebar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
   
+  // Make sure we're using a proper path for the profile
   const profilePath = '/profile';
   
+  // Collapse sidebar automatically on mobile
   useEffect(() => {
     if (isMobile) {
       setIsCollapsed(true);
@@ -49,6 +52,7 @@ export const Sidebar = () => {
     setIsPostDialogOpen(false);
   };
 
+  // Handle profile navigation separately to ensure proper user check
   const handleProfileClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (!user) {
       e.preventDefault();
@@ -62,6 +66,7 @@ export const Sidebar = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
+  // Different sidebar styles for mobile vs desktop
   const sidebarClasses = cn(
     "bg-background border-r border-border transition-all duration-300 ease-in-out z-40",
     isMobile ? (
@@ -73,6 +78,7 @@ export const Sidebar = () => {
     )
   );
 
+  // Mobile bottom navigation bar
   if (isMobile && !isMobileMenuOpen) {
     return (
       <div className={sidebarClasses}>
@@ -106,6 +112,7 @@ export const Sidebar = () => {
     );
   }
 
+  // Mobile menu expanded view
   if (isMobile && isMobileMenuOpen) {
     return (
       <div className={sidebarClasses}>
@@ -127,6 +134,7 @@ export const Sidebar = () => {
               const isActive = location.pathname === item.href || 
                 (item.href !== '/' && location.pathname.startsWith(item.href));
                 
+              // Special handling for profile link
               if (item.name === 'Profile') {
                 return (
                   <a
@@ -197,6 +205,7 @@ export const Sidebar = () => {
     );
   }
 
+  // Desktop sidebar view
   return (
     <div 
       className={cn(
@@ -217,6 +226,7 @@ export const Sidebar = () => {
             const isActive = location.pathname === item.href || 
               (item.href !== '/' && location.pathname.startsWith(item.href));
               
+            // Special handling for profile link
             if (item.name === 'Profile') {
               return (
                 <a
@@ -310,7 +320,7 @@ export const Sidebar = () => {
                   )}
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[600px] max-w-full w-full h-[100dvh] md:h-auto p-0 rounded-none sm:rounded-2xl bg-background border-border">
+              <DialogContent className="sm:max-w-[600px] p-0 rounded-2xl bg-background border-border">
                 <CreatePost onPostCreated={handlePostCreated} inDialog={true} />
               </DialogContent>
             </Dialog>
