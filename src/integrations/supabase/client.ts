@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
 const SUPABASE_URL = "https://vcywiyvbfrylffwfzsny.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjeXdpeXZiZnJ5bGZmd2Z6c255Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc0ODA3MDIsImV4cCI6MjA1MzA1NjcwMn0.rZUZjLf4j6h0lhl53PhKJ0eARsBXdmlPOtIAHTJQxNE";
+const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjeXdpeXZiZnJ5bGZmd2Z6c255Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc0ODA3MDMsImV4cCI6MjA1MzA1NjcwM30.rZUZjLf4j6h0lhl53PhKJ0eARsBXdmlPOtIAHTJQxNE";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
@@ -26,5 +26,12 @@ export const enableRealtimeForTables = () => {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, (payload) => {
       console.log('Notification changes detected', payload);
     })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'shoutouts', filter: `field=eq.$field` }, (payload) => {
+      console.log('Field post changes detected', payload);
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'shoutouts', filter: `company=eq.$company` }, (payload) => {
+      console.log('Company post changes detected', payload);
+    })
     .subscribe();
 };
+
