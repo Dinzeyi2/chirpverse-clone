@@ -61,10 +61,14 @@ const Notifications = () => {
         const unreadNotifications = data.filter(notification => !notification.is_read);
         if (unreadNotifications.length > 0) {
           const unreadIds = unreadNotifications.map(notification => notification.id);
+          
+          // Update notifications to mark them as read
           await supabase
             .from('notifications')
             .update({ is_read: true })
             .in('id', unreadIds);
+            
+          console.log(`Marked ${unreadIds.length} notifications as read`);
         }
 
         // Transform the data
