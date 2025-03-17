@@ -104,7 +104,7 @@ export const Sidebar = () => {
   const navigation = [
     { name: 'Home', icon: Home, href: '/' },
     { name: 'Explore', icon: Search, href: '/explore' },
-    { name: 'Notifications', icon: Bell, href: '/notifications', badge: unreadNotifications },
+    { name: 'Notifications', icon: Bell, href: '/notifications', badge: unreadNotifications > 0 ? unreadNotifications : null },
     { name: 'Bookmarks', icon: Bookmark, href: '/bookmarks' },
     { name: 'Profile', icon: User, href: profilePath },
     { name: 'Settings', icon: Settings, href: '/settings' },
@@ -236,16 +236,19 @@ export const Sidebar = () => {
                   )}
                 >
                   <item.icon size={24} className={isActive ? "text-primary" : "text-muted-foreground"} />
-                  <span className="ml-4 font-heading tracking-wide text-lg uppercase">{item.name}</span>
                   
-                  {item.badge && item.badge > 0 && (
+                  {item.badge && (
                     <Badge 
                       variant="default" 
-                      className="ml-auto bg-blue-500 text-white p-1 min-w-[20px] h-[20px] flex items-center justify-center text-xs rounded-full"
+                      className={cn(
+                        "ml-auto bg-blue-500 text-white p-1 min-w-[20px] h-[20px] flex items-center justify-center text-xs rounded-full"
+                      )}
                     >
                       {item.badge > 99 ? '99+' : item.badge}
                     </Badge>
                   )}
+                  
+                  <span className="ml-4 font-heading tracking-wide text-lg uppercase">{item.name}</span>
                 </Link>
               );
             })}
@@ -345,7 +348,7 @@ export const Sidebar = () => {
               >
                 <item.icon size={24} className={isActive ? "text-foreground" : "text-muted-foreground"} />
                 
-                {item.badge && item.badge > 0 && (
+                {item.badge && (
                   <Badge 
                     variant="default" 
                     className={cn(
@@ -430,3 +433,4 @@ export const Sidebar = () => {
 };
 
 export default Sidebar;
+
