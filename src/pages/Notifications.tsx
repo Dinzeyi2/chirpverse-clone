@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Bell, ChevronDown } from 'lucide-react';
@@ -56,6 +57,16 @@ const Notifications = () => {
 
         if (error) throw error;
 
+        // Mark all notifications as read when user visits the page
+        const unreadNotifications = data.filter(notification => !notification.is_read);
+        if (unreadNotifications.length > 0) {
+          const unreadIds = unreadNotifications.map(notification => notification.id);
+          await supabase
+            .from('notifications')
+            .update({ is_read: true })
+            .in('id', unreadIds);
+        }
+
         // Transform the data
         const formattedNotifications = data.map(notification => {
           // Safe extraction of post_excerpt and post_id from metadata
@@ -85,7 +96,7 @@ const Notifications = () => {
             post: postExcerpt,
             postId: postId,
             time: formatTimeAgo(new Date(notification.created_at)),
-            isRead: notification.is_read,
+            isRead: true, // Mark all as read when viewed
           };
         });
 
@@ -150,7 +161,7 @@ const Notifications = () => {
               post: postExcerpt,
               postId: postId,
               time: formatTimeAgo(new Date(newNotification.created_at)),
-              isRead: newNotification.is_read,
+              isRead: false,
             };
             
             setNotifications(prev => [formattedNotification, ...prev]);
