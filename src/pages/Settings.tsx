@@ -16,10 +16,9 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useTheme } from '@/components/theme/theme-provider';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, prepareArrayField, parseArrayField } from '@/integrations/supabase/client';
 import FILTER_CATEGORIES from '@/lib/fieldCategories';
 
 const PrivacyPolicyContent = () => {
@@ -318,19 +317,11 @@ const Settings = () => {
         
         if (data) {
           if (data.field) {
-            if (Array.isArray(data.field)) {
-              setSelectedFields(data.field);
-            } else {
-              setSelectedFields([data.field]);
-            }
+            setSelectedFields(parseArrayField(data.field));
           }
           
           if (data.company) {
-            if (Array.isArray(data.company)) {
-              setCompanies(data.company);
-            } else {
-              setCompanies([data.company]);
-            }
+            setCompanies(parseArrayField(data.company));
           }
         }
       };
@@ -357,7 +348,7 @@ const Settings = () => {
     setIsSaving(true);
     
     try {
-      const fieldValue = selectedFields.length === 1 ? selectedFields[0] : selectedFields;
+      const fieldValue = prepareArrayField(selectedFields);
       
       const { error } = await supabase
         .from('profiles')
@@ -382,7 +373,7 @@ const Settings = () => {
     setIsSaving(true);
     
     try {
-      const companyValue = companies.length === 1 ? companies[0] : companies;
+      const companyValue = prepareArrayField(companies);
       
       const { error } = await supabase
         .from('profiles')

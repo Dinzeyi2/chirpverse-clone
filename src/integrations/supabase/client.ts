@@ -28,3 +28,21 @@ export const enableRealtimeForTables = () => {
     })
     .subscribe();
 };
+
+// Helper function to convert arrays to JSON strings for Supabase storage
+export const prepareArrayField = (field: string[]): string => {
+  return JSON.stringify(field);
+};
+
+// Helper function to parse JSON strings from Supabase to arrays
+export const parseArrayField = (field: string | null): string[] => {
+  if (!field) return [];
+  try {
+    // Try to parse as JSON array
+    const parsed = JSON.parse(field);
+    return Array.isArray(parsed) ? parsed : [field];
+  } catch (error) {
+    // If it's not valid JSON, return it as a single item array
+    return [field];
+  }
+};
