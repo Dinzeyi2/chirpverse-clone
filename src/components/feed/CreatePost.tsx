@@ -1,9 +1,11 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Image, Smile, MapPin, Calendar, BarChart, X, Video } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { toast } from 'sonner';
 import { DialogClose } from '@/components/ui/dialog';
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, extractCompanyMentions, notifyCompanyMembers } from "@/integrations/supabase/client";
+import { useAuth } from '@/contexts/AuthContext';
 import EmojiPicker from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -22,6 +24,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuth();
   
   const maxChars = 280;
   const maxImages = 2;
@@ -171,6 +174,11 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       return;
     }
     
+    if (!user) {
+      toast.error('You must be logged in to create a post');
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
@@ -202,26 +210,56 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         }
       }
       
-      setTimeout(() => {
-        if (onPostCreated) {
-          onPostCreated(postContent, mediaUrls);
+      // Insert post into database
+      const { data: newPost, error: postError } = await supabase
+        .from('shoutouts')
+        .insert({
+          content: postContent,
+          user_id: user.id,
+          media: mediaUrls.length > 0 ? mediaUrls : null
+        })
+        .select('id')
+        .single();
+      
+      if (postError) {
+        throw new Error(`Failed to create post: ${postError.message}`);
+      }
+      
+      // Extract company mentions from post content
+      const companyMentions = extractCompanyMentions(postContent);
+      console.log('Detected company mentions:', companyMentions);
+      
+      // Send notifications for each company mention
+      if (companyMentions.length > 0 && newPost) {
+        for (const company of companyMentions) {
+          await notifyCompanyMembers(
+            user.id,
+            company,
+            postContent,
+            newPost.id
+          );
         }
-        
-        setPostContent('');
-        setCharCount(0);
-        setMediaFiles([]);
-        setIsLoading(false);
-        
-        toast.success('Your post was sent successfully!');
-        
-        if (textareaRef.current) {
-          textareaRef.current.style.height = 'auto';
-        }
-      }, 1000);
+        toast.success(`Notified users from ${companyMentions.join(', ')} about your post`);
+      }
+      
+      if (onPostCreated) {
+        onPostCreated(postContent, mediaUrls);
+      }
+      
+      setPostContent('');
+      setCharCount(0);
+      setMediaFiles([]);
+      
+      toast.success('Your post was sent successfully!');
+      
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
     } catch (error) {
-      setIsLoading(false);
+      console.error('Error creating post:', error);
       toast.error('Error creating post. Please try again.');
-      console.error(error);
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -234,6 +272,25 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     if (remaining <= 20) return 'text-red-500';
     if (remaining <= 40) return 'text-yellow-500';
     return 'text-xGray';
+  };
+
+  // Highlight company mentions in the textarea
+  const renderHighlightedContent = () => {
+    if (!postContent) return null;
+    
+    // Split content by @company mentions
+    const parts = postContent.split(/(@\w+)/g);
+    
+    return (
+      <div className="absolute top-0 left-0 w-full pointer-events-none text-xl p-4">
+        {parts.map((part, index) => {
+          if (part.match(/^@\w+/)) {
+            return <span key={index} className="text-blue-500">{part}</span>;
+          }
+          return <span key={index}>{part}</span>;
+        })}
+      </div>
+    );
   };
 
   return (
@@ -257,11 +314,11 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         
         <div className="flex-1">
           <form onSubmit={handleSubmit}>
-            <div className="mb-4">
+            <div className="mb-4 relative">
               <textarea
                 ref={textareaRef}
                 className="w-full border-none text-xl focus:ring-0 resize-none placeholder:text-xGray/70 min-h-[120px] bg-transparent outline-none"
-                placeholder="What's happening?"
+                placeholder="What's happening? Use @company to tag a company"
                 value={postContent}
                 onChange={handleTextChange}
                 rows={3}

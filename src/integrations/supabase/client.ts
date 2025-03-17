@@ -46,3 +46,75 @@ export const parseArrayField = (field: string | null): string[] => {
     return [field];
   }
 };
+
+// Function to find and extract company mentions from post content
+export const extractCompanyMentions = (content: string): string[] => {
+  // Regular expression to detect @company pattern
+  const mentionRegex = /@(\w+)/g;
+  
+  // Find all matches
+  const matches = [...content.matchAll(mentionRegex)];
+  
+  // Extract company names from matches
+  return matches.map(match => match[1].toLowerCase().trim());
+};
+
+// Function to create a notification for company members
+export const notifyCompanyMembers = async (
+  senderId: string, 
+  companyName: string, 
+  postContent: string, 
+  postId: string
+): Promise<void> => {
+  try {
+    // Find all users who have this company in their profile
+    const { data: profilesWithCompany, error: profilesError } = await supabase
+      .from('profiles')
+      .select('user_id, company')
+      .not('user_id', 'eq', senderId); // Exclude the sender
+    
+    if (profilesError) {
+      console.error('Error fetching profiles:', profilesError);
+      return;
+    }
+    
+    // Filter users who have the tagged company in their company list
+    const usersToNotify = profilesWithCompany.filter(profile => {
+      const companies = parseArrayField(profile.company);
+      return companies.some(company => 
+        company.toLowerCase() === companyName.toLowerCase()
+      );
+    });
+    
+    console.log(`Found ${usersToNotify.length} users to notify for company: ${companyName}`);
+    
+    // Prepare notification data
+    const notifications = usersToNotify.map(profile => ({
+      type: 'company_mention',
+      recipient_id: profile.user_id,
+      sender_id: senderId,
+      content: `mentioned ${companyName} in a post`,
+      metadata: {
+        company: companyName,
+        post_id: postId,
+        post_excerpt: postContent.substring(0, 100) + (postContent.length > 100 ? '...' : '')
+      },
+      is_read: false
+    }));
+    
+    // Insert notifications
+    if (notifications.length > 0) {
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert(notifications);
+      
+      if (notificationError) {
+        console.error('Error creating notifications:', notificationError);
+      } else {
+        console.log(`Created ${notifications.length} notifications for company: ${companyName}`);
+      }
+    }
+  } catch (error) {
+    console.error('Error in notifyCompanyMembers:', error);
+  }
+};
