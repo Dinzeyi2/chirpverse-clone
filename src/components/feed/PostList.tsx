@@ -2,7 +2,8 @@
 import React from 'react';
 import { Post } from '@/lib/data';
 import { Inbox } from 'lucide-react';
-import SwipeablePostView from './SwipeablePostView';
+import PostCard from './PostCard';
+import PostSkeleton from './PostSkeleton';
 
 interface PostWithActions extends Post {
   actions?: React.ReactNode;
@@ -17,11 +18,7 @@ const PostList: React.FC<PostListProps> = ({ posts, loading = false }) => {
   if (loading) {
     return (
       <div className="p-4 space-y-6">
-        {[1, 2, 3].map((item) => (
-          <div key={item} className="animate-pulse">
-            <div className="aspect-square max-w-md mx-auto bg-neutral-800 rounded-xl"></div>
-          </div>
-        ))}
+        <PostSkeleton count={3} />
       </div>
     );
   }
@@ -38,7 +35,15 @@ const PostList: React.FC<PostListProps> = ({ posts, loading = false }) => {
     );
   }
 
-  return <SwipeablePostView posts={posts} />;
+  return (
+    <div className="space-y-4 p-4">
+      {posts.map(post => (
+        <div key={post.id} className="max-w-xl mx-auto">
+          <PostCard post={post} />
+        </div>
+      ))}
+    </div>
+  );
 };
 
 export default PostList;

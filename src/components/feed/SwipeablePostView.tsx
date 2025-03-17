@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import PostCard from './PostCard';
 import { Post } from '@/lib/data';
 import { ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/carousel";
 import type { CarouselApi } from "@/components/ui/carousel";
 import { useScreenSize } from '@/hooks/use-mobile';
+import PostSkeleton from './PostSkeleton';
 
 interface PostWithActions extends Post {
   actions?: React.ReactNode;
@@ -29,6 +30,16 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   const [api, setApi] = useState<CarouselApi | null>(null);
   const { theme } = useTheme();
   const { isMobile, width } = useScreenSize();
+  const [isInitialRender, setIsInitialRender] = useState(true);
+
+  useEffect(() => {
+    // Mark that we've completed initial render after a short timeout
+    const timer = setTimeout(() => {
+      setIsInitialRender(false);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (!api) {
@@ -80,26 +91,18 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   // Determine colors based on theme
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const mutedTextColor = theme === 'dark' ? 'text-neutral-400' : 'text-gray-500';
-  const bgColor = theme === 'dark' ? 'bg-gray-200' : 'bg-gray-100';
+  const bgColor = theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100';
   const navBgColor = theme === 'dark' ? 'bg-black/40 hover:bg-black/60 text-white' : 'bg-gray-700/40 hover:bg-gray-700/60 text-white';
 
-  if (loading) {
+  if (loading && isInitialRender) {
     return (
       <div className="p-4 space-y-6">
-        <div className="animate-pulse">
-          <div className={`aspect-square w-full max-w-3xl mx-auto ${bgColor} rounded-xl`}></div>
-          <div className="flex justify-between mt-4 mx-auto max-w-3xl">
-            <div className={`h-8 ${bgColor} rounded w-24`}></div>
-            <div className={`h-8 ${bgColor} rounded w-24`}></div>
-            <div className={`h-8 ${bgColor} rounded w-24`}></div>
-          </div>
-          <div className={`h-12 ${bgColor} rounded mt-4 mx-auto max-w-3xl`}></div>
-        </div>
+        <PostSkeleton count={1} />
       </div>
     );
   }
 
-  if (posts.length === 0) {
+  if (posts.length === 0 && !loading) {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
         <div className={`w-16 h-16 mb-4 ${mutedTextColor}`}>
@@ -149,21 +152,25 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
           ))}
         </CarouselContent>
         
-        <button 
-          onClick={() => api?.scrollPrev()} 
-          className={`absolute left-1 sm:left-4 top-1/2 transform -translate-y-1/2 ${navBgColor} z-30 h-10 w-10 rounded-full flex items-center justify-center`}
-          aria-label="Previous post"
-        >
-          <ChevronLeft className="h-6 w-6" />
-        </button>
-        
-        <button 
-          onClick={() => api?.scrollNext()} 
-          className={`absolute right-1 sm:right-4 top-1/2 transform -translate-y-1/2 ${navBgColor} z-30 h-10 w-10 rounded-full flex items-center justify-center`}
-          aria-label="Next post"
-        >
-          <ChevronRight className="h-6 w-6" />
-        </button>
+        {posts.length > 1 && (
+          <>
+            <button 
+              onClick={() => api?.scrollPrev()} 
+              className={`absolute left-1 sm:left-4 top-1/2 transform -translate-y-1/2 ${navBgColor} z-30 h-10 w-10 rounded-full flex items-center justify-center`}
+              aria-label="Previous post"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+            
+            <button 
+              onClick={() => api?.scrollNext()} 
+              className={`absolute right-1 sm:right-4 top-1/2 transform -translate-y-1/2 ${navBgColor} z-30 h-10 w-10 rounded-full flex items-center justify-center`}
+              aria-label="Next post"
+            >
+              <ChevronRight className="h-6 w-6" />
+            </button>
+          </>
+        )}
       </Carousel>
     </div>
   );
