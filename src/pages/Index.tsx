@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
@@ -36,7 +35,6 @@ const Index = () => {
       setLoading(true);
       setError(null);
       
-      // Fixed the query to correctly fetch posts with their related data
       const { data: shoutoutData, error: shoutoutError } = await supabase
         .from('shoutouts')
         .select('*')
@@ -55,10 +53,8 @@ const Index = () => {
         return;
       }
       
-      // For each shoutout, fetch the profile data separately
       const formattedPosts = await Promise.all(shoutoutData.map(async post => {
         try {
-          // Get profile data - use try/catch to handle any potential issues
           let profileData = null;
           try {
             const { data } = await supabase
@@ -71,7 +67,6 @@ const Index = () => {
             console.error('Error fetching profile:', profileError);
           }
           
-          // Get counts in separate queries with error handling
           let likesCount = 0;
           try {
             const { count } = await supabase
@@ -110,7 +105,6 @@ const Index = () => {
             avatar_url: 'https://i.pravatar.cc/150?img=1',
           };
           
-          // Create a display username from the user_id since profile.username doesn't exist
           const displayUsername = post.user_id?.substring(0, 8) || 'user';
           
           return {
@@ -137,7 +131,6 @@ const Index = () => {
           };
         } catch (postError) {
           console.error('Error processing post:', postError);
-          // Return a placeholder post if there was an error
           return {
             id: post.id,
             content: post.content,
@@ -176,7 +169,6 @@ const Index = () => {
   useEffect(() => {
     fetchPosts();
     
-    // Set up realtime subscription to listen for new posts
     const channel = supabase
       .channel('public:shoutouts')
       .on('postgres_changes', 
@@ -187,7 +179,6 @@ const Index = () => {
         }, 
         async (payload) => {
           try {
-            // Get the profile data for the new post
             const { data: profileData } = await supabase
               .from('profiles')
               .select('*')
@@ -199,7 +190,6 @@ const Index = () => {
               avatar_url: 'https://i.pravatar.cc/150?img=1',
             };
             
-            // Create a display username from the user_id since profile.username doesn't exist
             const displayUsername = payload.new.user_id?.substring(0, 8) || 'user';
           
             const newPost = {
@@ -239,9 +229,7 @@ const Index = () => {
     };
   }, []);
   
-  // Apply both filtering and sorting to posts
   useEffect(() => {
-    // Step 1: Filter posts by categories if any are selected
     let postsToDisplay = [...feedPosts];
     
     if (selectedCategories.length > 0) {
@@ -253,14 +241,12 @@ const Index = () => {
       });
     }
     
-    // Step 2: Sort the filtered posts according to selected sort option
     switch (sortOption) {
       case 'latest':
         postsToDisplay.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         break;
       case 'popular':
         postsToDisplay.sort((a, b) => {
-          // Calculate popularity score (likes + comments + saves)
           const scoreA = a.likes + a.comments + a.saves;
           const scoreB = b.likes + b.comments + b.saves;
           return scoreB - scoreA;
@@ -270,7 +256,6 @@ const Index = () => {
         postsToDisplay.sort((a, b) => b.comments - a.comments);
         break;
       default:
-        // Default to latest if sortOption is invalid
         postsToDisplay.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
     
@@ -313,7 +298,6 @@ const Index = () => {
     toast.info('Refreshing posts...');
   };
 
-  // Determine colors based on theme
   const bgColor = theme === 'dark' ? 'bg-black' : 'bg-lightBeige';
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const borderColor = theme === 'dark' ? 'border-neutral-800' : 'border-gray-200';

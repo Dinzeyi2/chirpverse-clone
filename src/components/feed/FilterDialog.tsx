@@ -43,9 +43,8 @@ const FilterDialog = ({ selectedCategories, setSelectedCategories }: FilterDialo
       <PopoverTrigger asChild>
         <Button 
           variant="ghost" 
-          className={`${textColor} flex items-center gap-2 text-lg font-medium p-0 hover:bg-transparent`}
+          className={`${textColor} flex items-center p-0 hover:bg-transparent`}
         >
-          <span className="text-lg font-medium">Filter</span>
           <SlidersHorizontal className="w-5 h-5" />
         </Button>
       </PopoverTrigger>
