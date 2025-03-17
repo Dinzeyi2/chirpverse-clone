@@ -135,10 +135,8 @@ const SettingsItem = ({ icon: Icon, title, description, onClick }: {
     <div onClick={onClick} className="w-full cursor-pointer">
       <div className={cn("flex items-center justify-between p-4", hoverBg, "transition-colors")}>
         <div className="flex items-start gap-3">
+          <Icon className={cn("h-6 w-6", iconColor)} />
           <div className="p-2">
-            <Icon className={cn("h-6 w-6", iconColor)} />
-          </div>
-          <div className="flex flex-col text-left">
             <span className={cn("font-medium text-lg", textColor)}>{title}</span>
             <span className={mutedTextColor}>{description}</span>
           </div>
@@ -267,7 +265,7 @@ const Settings = () => {
     setIsLoading(true);
     
     try {
-      const fieldValue = fields.length === 1 ? fields[0] : fields;
+      const fieldValue: string | string[] = fields.length === 1 ? fields[0] : fields;
       
       const { error } = await supabase
         .from('profiles')
@@ -291,7 +289,7 @@ const Settings = () => {
     setIsLoading(true);
     
     try {
-      const companyValue = companies.length === 1 ? companies[0] : companies;
+      const companyValue: string | string[] = companies.length === 1 ? companies[0] : companies;
       
       const { error } = await supabase
         .from('profiles')
