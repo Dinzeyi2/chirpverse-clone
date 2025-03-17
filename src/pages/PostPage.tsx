@@ -25,6 +25,7 @@ const PostPage: React.FC = () => {
       try {
         setLoading(true);
         
+        // Fetch the post immediately to show something to the user
         const { data: postData, error: postError } = await supabase
           .from('shoutouts')
           .select(`
@@ -61,60 +62,63 @@ const PostPage: React.FC = () => {
             }
           };
           
+          // Set post immediately to show something as fast as possible
           setPost(formattedPost);
           
-          const [likesResponse, commentsCountResponse] = await Promise.all([
+          // Fetch additional data in parallel
+          Promise.all([
             supabase.from('likes').select('*', { count: 'exact' }).eq('shoutout_id', postId),
-            supabase.from('comments').select('*', { count: 'exact' }).eq('shoutout_id', postId)
-          ]);
-          
-          const likesCount = likesResponse.count || 0;
-          const commentsCount = commentsCountResponse.count || 0;
-          
-          setPost(prev => ({
-            ...prev,
-            likes: likesCount,
-            replies: commentsCount
-          }));
-          
-          const { data: commentsData, error: commentsError } = await supabase
-            .from('comments')
-            .select(`
-              *,
-              profiles:user_id (*)
-            `)
-            .eq('shoutout_id', postId)
-            .order('created_at', { ascending: false });
+            supabase.from('comments').select('*', { count: 'exact' }).eq('shoutout_id', postId),
+            supabase.from('comments')
+              .select(`
+                *,
+                profiles:user_id (*)
+              `)
+              .eq('shoutout_id', postId)
+              .order('created_at', { ascending: false })
+          ]).then(([likesResponse, commentsCountResponse, commentsResponse]) => {
+            const likesCount = likesResponse.count || 0;
+            const commentsCount = commentsCountResponse.count || 0;
             
-          if (commentsError) {
-            console.error('Error fetching comments:', commentsError);
-          } else if (commentsData) {
-            const formattedComments = commentsData.map(comment => ({
-              id: comment.id,
-              content: comment.content,
-              createdAt: comment.created_at,
-              userId: comment.user_id,
-              postId: comment.shoutout_id,
-              likes: 0,
-              media: comment.media || [],
-              user: {
-                id: comment.profiles.id,
-                name: comment.profiles.full_name || 'User',
-                username: comment.profiles.user_id?.substring(0, 8) || 'user',
-                avatar: comment.profiles.avatar_url || 'https://i.pravatar.cc/150?img=1',
-                verified: false,
-                followers: 0,
-                following: 0,
-              }
+            // Update post with counts
+            setPost(prev => ({
+              ...prev,
+              likes: likesCount,
+              replies: commentsCount
             }));
             
-            setComments(formattedComments);
-          }
+            // Process comments if available
+            if (!commentsResponse.error && commentsResponse.data) {
+              const formattedComments = commentsResponse.data.map(comment => ({
+                id: comment.id,
+                content: comment.content,
+                createdAt: comment.created_at,
+                userId: comment.user_id,
+                postId: comment.shoutout_id,
+                likes: 0,
+                media: comment.media || [],
+                user: {
+                  id: comment.profiles.id,
+                  name: comment.profiles.full_name || 'User',
+                  username: comment.profiles.user_id?.substring(0, 8) || 'user',
+                  avatar: comment.profiles.avatar_url || 'https://i.pravatar.cc/150?img=1',
+                  verified: false,
+                  followers: 0,
+                  following: 0,
+                }
+              }));
+              
+              setComments(formattedComments);
+            }
+          }).catch((error) => {
+            console.error('Error fetching additional data:', error);
+          }).finally(() => {
+            setLoading(false);
+          });
         }
       } catch (error) {
         console.error('Error in fetchPostAndComments:', error);
         toast.error('Failed to load post');
-      } finally {
         setLoading(false);
       }
     };

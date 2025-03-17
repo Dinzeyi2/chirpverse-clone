@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Bell, AtSign, Heart, Repeat, MessageSquare, ChevronDown, Bookmark, Smile, Flame } from 'lucide-react';
@@ -269,11 +270,13 @@ const Notifications = () => {
     
     // Navigate to the post if postId is available
     if (notification.postId) {
+      // Immediately navigate to the post page
       navigate(`/post/${notification.postId}`);
     } else {
+      // If there's no postId, show a toast
       toast({
         title: "Notification",
-        description: "Viewing notification content"
+        description: "This notification doesn't link to a specific post"
       });
     }
   };
@@ -350,6 +353,8 @@ const NotificationsList: React.FC<NotificationsListProps> = ({
             !notification.isRead && "bg-xBlue/5"
           )}
           onClick={() => onNotificationClick(notification)}
+          role="button"
+          aria-label={`View notification about ${notification.content}`}
         >
           <div className="mr-3 mt-1">
             {getIcon(notification.type)}
@@ -386,7 +391,11 @@ const NotificationsList: React.FC<NotificationsListProps> = ({
                   </p>
                 )}
               </div>
-              <button className="text-xGray hover:text-xDark transition-colors">
+              <button 
+                className="text-xGray hover:text-xDark transition-colors"
+                onClick={(e) => e.stopPropagation()} // Prevent triggering the parent onClick
+                aria-label="More options"
+              >
                 <ChevronDown size={16} />
               </button>
             </div>
