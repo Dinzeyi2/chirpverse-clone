@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
@@ -15,7 +16,6 @@ import FILTER_CATEGORIES from '../../lib/fieldCategories';
 
 const SignUpForm = () => {
   const [name, setName] = useState('');
-  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [field, setField] = useState('');
@@ -50,6 +50,22 @@ const SignUpForm = () => {
     "Universal", "Pixar", "DreamWorks", "Other", "None (Not working yet)"
   ];
 
+  // All months for the date of birth dropdown
+  const months = [
+    { value: "1", label: "January" },
+    { value: "2", label: "February" },
+    { value: "3", label: "March" },
+    { value: "4", label: "April" },
+    { value: "5", label: "May" },
+    { value: "6", label: "June" },
+    { value: "7", label: "July" },
+    { value: "8", label: "August" },
+    { value: "9", label: "September" },
+    { value: "10", label: "October" },
+    { value: "11", label: "November" },
+    { value: "12", label: "December" }
+  ];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -66,13 +82,16 @@ const SignUpForm = () => {
     setIsLoading(true);
 
     try {
-      if (!username || !password) {
+      if (!password) {
         setError('Please fill all required fields');
         setIsLoading(false);
         return;
       }
       
-      const { error } = await signUp(email, password, name, username, field, company);
+      // Generate a random username to ensure uniqueness and security
+      const randomUsername = `user${Math.random().toString(36).substring(2, 10)}`;
+      
+      const { error } = await signUp(email, password, name, randomUsername, field, company);
       if (error) {
         setError(error.message);
       } else {
@@ -149,9 +168,9 @@ const SignUpForm = () => {
               <div className="flex gap-2">
                 <select className="w-full px-3 py-3 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-xBlue focus:border-transparent bg-black text-white placeholder-gray-500" required>
                   <option value="">Month</option>
-                  <option value="1">January</option>
-                  <option value="2">February</option>
-                  {/* Other months */}
+                  {months.map(month => (
+                    <option key={month.value} value={month.value}>{month.label}</option>
+                  ))}
                 </select>
                 
                 <select className="w-full px-3 py-3 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-xBlue focus:border-transparent bg-black text-white placeholder-gray-500" required>
@@ -213,21 +232,6 @@ const SignUpForm = () => {
           </>
         ) : (
           <>
-            <div>
-              <Label htmlFor="username" className="text-white mb-2 block">
-                Username <RequiredIndicator />
-              </Label>
-              <Input
-                id="username"
-                type="text"
-                placeholder="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                className="w-full px-3 py-3 border border-gray-700 bg-black text-white rounded-md focus:outline-none focus:ring-2 focus:ring-xBlue focus:border-transparent placeholder-gray-500"
-              />
-            </div>
-
             <div className="relative">
               <Label htmlFor="password" className="text-white mb-2 block">
                 Password <RequiredIndicator />
