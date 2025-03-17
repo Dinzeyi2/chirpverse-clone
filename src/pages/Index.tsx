@@ -1,8 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
 import SwipeablePostView from '@/components/feed/SwipeablePostView';
-import FilterDialog from '@/components/feed/FilterDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -23,7 +23,6 @@ const Index = () => {
   const [feedPosts, setFeedPosts] = useState<any[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<any[]>([]);
   const [feedView, setFeedView] = useState<'swipeable' | 'list'>('swipeable');
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [sortOption, setSortOption] = useState<SortOption>('latest');
   const { user, username } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -232,15 +231,6 @@ const Index = () => {
   useEffect(() => {
     let postsToDisplay = [...feedPosts];
     
-    if (selectedCategories.length > 0) {
-      postsToDisplay = feedPosts.filter(post => {
-        const content = post.content.toLowerCase();
-        return selectedCategories.some(category => 
-          content.includes(category.toLowerCase())
-        );
-      });
-    }
-    
     switch (sortOption) {
       case 'latest':
         postsToDisplay.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -260,7 +250,7 @@ const Index = () => {
     }
     
     setFilteredPosts(postsToDisplay);
-  }, [feedPosts, selectedCategories, sortOption]);
+  }, [feedPosts, sortOption]);
   
   const handlePostCreated = (content: string, media?: {type: string, url: string}[]) => {
     if (!user) return;
@@ -317,11 +307,6 @@ const Index = () => {
       <div className={`sticky top-0 z-20 ${headerBg} border-b ${borderColor}`}>
         <div className="flex justify-between items-center px-4 py-4">
           <div className="flex items-center gap-6">
-            <FilterDialog 
-              selectedCategories={selectedCategories}
-              setSelectedCategories={setSelectedCategories}
-            />
-            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className={`flex items-center gap-2 text-lg font-medium p-0 hover:bg-transparent ${textColor}`}>
