@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Shield, ChevronRight, Moon, Sun, Briefcase, Tag } from 'lucide-react';
+import { ArrowLeft, Shield, ChevronRight, Moon, Sun, Briefcase, Tag, X } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -43,7 +42,7 @@ const PrivacyPolicyContent = () => {
         <h1 className="text-2xl font-bold mb-4">iBlue Privacy and Safety Policy</h1>
         <p className={cn("italic", mutedTextColor)}>Last Updated: [Insert Date]</p>
         
-        <p>This Privacy and Safety Policy ("Policy") explains how iBlue ("we," "us," or "our") protects your privacy and ensures a safe environment on our social media platform. iBlue is designed to help workers from various companies and roles find solutions to their challenges by allowing users to post issues anonymously and receive expert advice. By using iBlue, you agree to the practices outlined in this Policy.</p>
+        <p>This Privacy and Safety Policy ("Policy") explains how iBlue protects your privacy and ensures a safe environment on our social media platform. iBlue is designed to help workers from various companies and roles find solutions to their challenges by allowing users to post issues anonymously and receive expert advice. By using iBlue, you agree to the practices outlined in this Policy.</p>
         
         <h2 className="text-xl font-semibold mt-6 mb-2">1. Overview</h2>
         <p>iBlue is committed to protecting your personal information and preserving your anonymity while promoting a collaborative problem-solving community. This Policy describes:</p>
@@ -158,17 +157,14 @@ const Settings = () => {
   const [openCompaniesDialog, setOpenCompaniesDialog] = useState(false);
   const { theme, setTheme } = useTheme();
   
-  // Field and company state
   const [fields, setFields] = useState<string[]>([]);
   const [companies, setCompanies] = useState<string[]>([]);
   const [selectedField, setSelectedField] = useState<string>('');
   const [selectedCompany, setSelectedCompany] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   
-  // Flatten all field categories for selection
   const allFields = Object.values(FILTER_CATEGORIES).flat();
   
-  // Expanded list of popular companies
   const popularCompanies = [
     "Google", "Microsoft", "Apple", "Amazon", "Meta", "IBM", "Intel", "Oracle", 
     "Cisco", "Adobe", "Salesforce", "Twitter", "Netflix", "Shopify", "Uber", 
@@ -188,7 +184,6 @@ const Settings = () => {
     "Universal", "Pixar", "DreamWorks", "Other", "None (Not working yet)"
   ];
 
-  // Load user's fields and companies
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (user?.id) {
@@ -202,19 +197,21 @@ const Settings = () => {
           if (error) throw error;
           
           if (data) {
-            // Handle field data
             if (data.field) {
               const fieldArray = Array.isArray(data.field) 
                 ? data.field.slice(0, 3) 
-                : [data.field];
+                : typeof data.field === 'string' 
+                  ? [data.field] 
+                  : [];
               setFields(fieldArray);
             }
             
-            // Handle company data
             if (data.company) {
               const companyArray = Array.isArray(data.company) 
                 ? data.company.slice(0, 3) 
-                : [data.company];
+                : typeof data.company === 'string'
+                  ? [data.company] 
+                  : [];
               setCompanies(companyArray);
             }
           }
@@ -390,7 +387,6 @@ const Settings = () => {
         </div>
       </div>
 
-      {/* Privacy Dialog */}
       <Dialog open={openPrivacyDialog} onOpenChange={setOpenPrivacyDialog}>
         <DialogContent className={cn(dialogBg, dialogBorder, textColor, "max-w-4xl max-h-[90vh]")}>
           <DialogHeader>
@@ -403,7 +399,6 @@ const Settings = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Fields Dialog */}
       <Dialog open={openFieldsDialog} onOpenChange={setOpenFieldsDialog}>
         <DialogContent className={cn(dialogBg, dialogBorder, textColor, "max-w-md")}>
           <DialogHeader>
@@ -414,7 +409,6 @@ const Settings = () => {
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            {/* Selected fields */}
             <div className="flex flex-wrap gap-2 mb-4">
               {fields.map((field) => (
                 <div 
@@ -476,7 +470,6 @@ const Settings = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Companies Dialog */}
       <Dialog open={openCompaniesDialog} onOpenChange={setOpenCompaniesDialog}>
         <DialogContent className={cn(dialogBg, dialogBorder, textColor, "max-w-md")}>
           <DialogHeader>
@@ -487,7 +480,6 @@ const Settings = () => {
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            {/* Selected companies */}
             <div className="flex flex-wrap gap-2 mb-4">
               {companies.map((company) => (
                 <div 
