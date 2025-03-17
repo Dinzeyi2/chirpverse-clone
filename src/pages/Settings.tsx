@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Shield, ChevronRight, Moon, Sun, Briefcase, Tag, X } from 'lucide-react';
@@ -197,7 +198,9 @@ const Settings = () => {
           if (error) throw error;
           
           if (data) {
+            // Properly handle field data which could be string, string[], or null
             if (data.field) {
+              // Convert to array if it's a string, or use as-is if already an array
               const fieldArray = Array.isArray(data.field) 
                 ? data.field.slice(0, 3) 
                 : typeof data.field === 'string' 
@@ -206,7 +209,9 @@ const Settings = () => {
               setFields(fieldArray);
             }
             
+            // Properly handle company data which could be string, string[], or null
             if (data.company) {
+              // Convert to array if it's a string, or use as-is if already an array
               const companyArray = Array.isArray(data.company) 
                 ? data.company.slice(0, 3) 
                 : typeof data.company === 'string'
