@@ -11,9 +11,10 @@ interface PostWithActions extends Post {
 interface PostListProps {
   posts: PostWithActions[];
   loading?: boolean;
+  onRefresh?: () => void;
 }
 
-const PostList: React.FC<PostListProps> = ({ posts, loading = false }) => {
+const PostList: React.FC<PostListProps> = ({ posts, loading = false, onRefresh }) => {
   if (loading) {
     return (
       <div className="p-4 space-y-6">
@@ -38,7 +39,7 @@ const PostList: React.FC<PostListProps> = ({ posts, loading = false }) => {
     );
   }
 
-  return <SwipeablePostView posts={posts} />;
+  return <SwipeablePostView posts={posts} onRefresh={onRefresh} />;
 };
 
 export default PostList;

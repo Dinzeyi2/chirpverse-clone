@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import PostCard from './PostCard';
 import { Post } from '@/lib/data';
-import { ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Inbox, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/theme/theme-provider';
 import { 
@@ -16,6 +16,8 @@ import type { CarouselApi } from "@/components/ui/carousel";
 import { useScreenSize } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { parseProfileField } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 interface PostWithActions extends Post {
   actions?: React.ReactNode;
@@ -24,14 +26,16 @@ interface PostWithActions extends Post {
 interface SwipeablePostViewProps {
   posts: PostWithActions[];
   loading?: boolean;
+  onRefresh?: () => void;
 }
 
-const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = false }) => {
+const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = false, onRefresh }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [api, setApi] = useState<CarouselApi | null>(null);
   const { theme } = useTheme();
   const { isMobile, width } = useScreenSize();
   const { user, profile } = useAuth();
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const userCompanies = profile?.company ? parseProfileField(profile.company) : [];
 
   useEffect(() => {
@@ -58,6 +62,22 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
       const tagPattern = new RegExp(`@${company.trim()}\\b`, 'i');
       return tagPattern.test(postContent);
     });
+  };
+
+  // Handle manual refresh
+  const handleRefresh = async () => {
+    if (onRefresh && !isRefreshing) {
+      setIsRefreshing(true);
+      try {
+        await onRefresh();
+        toast.success("Content refreshed!");
+      } catch (error) {
+        console.error("Error refreshing content:", error);
+        toast.error("Failed to refresh content. Please try again.");
+      } finally {
+        setIsRefreshing(false);
+      }
+    }
   };
 
   // Calculate post sizes based on screen width
@@ -95,7 +115,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   // Determine colors based on theme
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const mutedTextColor = theme === 'dark' ? 'text-neutral-400' : 'text-gray-500';
-  const bgColor = theme === 'dark' ? 'bg-gray-200' : 'bg-gray-100';
+  const bgColor = theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200';
   const navBgColor = theme === 'dark' ? 'bg-black/40 hover:bg-black/60 text-white' : 'bg-gray-700/40 hover:bg-gray-700/60 text-white';
 
   if (loading) {
@@ -122,12 +142,42 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
         </div>
         <h3 className={`text-2xl font-bold mb-2 ${textColor}`}>No posts yet</h3>
         <p className={`${mutedTextColor} mb-6 max-w-md`}>When posts are published, they'll show up here.</p>
+        {onRefresh && (
+          <Button onClick={handleRefresh} disabled={isRefreshing} variant="outline" className="mt-4">
+            {isRefreshing ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                Refreshing...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Refresh
+              </>
+            )}
+          </Button>
+        )}
       </div>
     );
   }
 
   return (
     <div className="w-full overflow-hidden py-4 relative">
+      {onRefresh && (
+        <div className="absolute top-0 right-4 z-30">
+          <Button 
+            onClick={handleRefresh} 
+            disabled={isRefreshing} 
+            variant="ghost" 
+            size="sm" 
+            className="flex items-center"
+          >
+            <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </Button>
+        </div>
+      )}
+
       <Carousel 
         className="w-full max-w-6xl mx-auto"
         setApi={setApi}

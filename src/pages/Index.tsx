@@ -6,7 +6,7 @@ import FilterDialog from '@/components/feed/FilterDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, parseProfileField } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
-import { ChevronDown, Grid, List } from 'lucide-react';
+import { ChevronDown, Grid, List, RefreshCw } from 'lucide-react';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -27,144 +27,169 @@ const Index = () => {
   const [sortOption, setSortOption] = useState<SortOption>('latest'); // Default to latest for non-logged in users
   const { user, username, profile } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const { theme } = useTheme();
   const userCompanies = profile?.company ? parseProfileField(profile.company) : [];
   const userFields = profile?.field ? parseProfileField(profile.field) : [];
   
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        setLoading(true);
+  const fetchPosts = async () => {
+    setError(null);
+    try {
+      setLoading(true);
+      
+      console.log("Fetching posts...");
+      const { data: shoutoutData, error: shoutoutError } = await supabase
+        .from('shoutouts')
+        .select('*')
+        .order('created_at', { ascending: false });
         
-        // Fixed the query to correctly fetch posts with their related data
-        const { data: shoutoutData, error: shoutoutError } = await supabase
-          .from('shoutouts')
-          .select('*')
-          .order('created_at', { ascending: false });
+      if (shoutoutError) {
+        console.error('Error fetching shoutouts:', shoutoutError);
+        throw new Error(`Could not load posts: ${shoutoutError.message}`);
+      }
+      
+      if (!shoutoutData || shoutoutData.length === 0) {
+        console.log("No posts found");
+        setFeedPosts([]);
+        setFilteredPosts([]);
+        return;
+      }
+      
+      console.log(`Found ${shoutoutData.length} posts, processing...`);
+      
+      // For each shoutout, fetch the profile data separately
+      const formattedPosts = await Promise.all(shoutoutData.map(async post => {
+        try {
+          // Get profile data
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', post.user_id)
+            .maybeSingle(); // Use maybeSingle instead of single to prevent errors
+            
+          // Get counts in separate queries
+          let likesCount = 0;
+          let commentsCount = 0;
+          let savesCount = 0;
           
-        if (shoutoutError) {
-          console.error('Error fetching shoutouts:', shoutoutError);
-          // Don't show error toast for non-authenticated users, just log it
-          if (user) {
-            toast.error('Could not load posts');
-          }
-          return;
-        }
-        
-        if (!shoutoutData || shoutoutData.length === 0) {
-          setFeedPosts([]);
-          setFilteredPosts([]);
-          setLoading(false);
-          return;
-        }
-        
-        // For each shoutout, fetch the profile data separately
-        const formattedPosts = await Promise.all(shoutoutData.map(async post => {
           try {
-            // Get profile data
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('user_id', post.user_id)
-              .maybeSingle(); // Use maybeSingle instead of single to prevent errors
-              
-            // Get counts in separate queries
-            const { count: likesCount } = await supabase
+            const { count } = await supabase
               .from('likes')
               .select('*', { count: 'exact', head: true })
               .eq('shoutout_id', post.id);
               
-            const { count: commentsCount } = await supabase
+            likesCount = count || 0;
+          } catch (error) {
+            console.error(`Error fetching likes for post ${post.id}:`, error);
+          }
+            
+          try {
+            const { count } = await supabase
               .from('comments')
               .select('*', { count: 'exact', head: true })
               .eq('shoutout_id', post.id);
               
-            const { count: savesCount } = await supabase
+            commentsCount = count || 0;
+          } catch (error) {
+            console.error(`Error fetching comments for post ${post.id}:`, error);
+          }
+            
+          try {
+            const { count } = await supabase
               .from('saved_posts')
               .select('*', { count: 'exact', head: true })
               .eq('shoutout_id', post.id);
-            
-            const profile = profileData || {
-              full_name: 'User',
-              avatar_url: 'https://i.pravatar.cc/150?img=1',
-            };
-            
-            // Create a display username from the user_id since profile.username doesn't exist
-            const displayUsername = post.user_id?.substring(0, 8) || 'user';
-            
-            return {
-              id: post.id,
-              content: post.content,
-              createdAt: post.created_at,
-              likes: likesCount || 0,
-              comments: commentsCount || 0,
-              saves: savesCount || 0,
-              reposts: 0,
-              replies: commentsCount || 0,
-              views: 0,
-              userId: post.user_id,
-              images: post.media,
-              relevanceScore: user ? calculateRelevanceScore(post.content) : 0, // Only calculate relevance for logged-in users
-              user: {
-                id: post.user_id,
-                name: profile.full_name || 'User',
-                username: displayUsername,
-                avatar: profile.avatar_url || 'https://i.pravatar.cc/150?img=1',
-                verified: false,
-                followers: 0,
-                following: 0,
-              }
-            };
+              
+            savesCount = count || 0;
           } catch (error) {
-            console.error(`Error processing post ${post.id}:`, error);
-            // Return a default post object if there's an error processing this post
-            return {
-              id: post.id,
-              content: post.content,
-              createdAt: post.created_at,
-              likes: 0,
-              comments: 0,
-              saves: 0,
-              reposts: 0,
-              replies: 0,
-              views: 0,
-              userId: post.user_id,
-              images: post.media,
-              relevanceScore: 0,
-              user: {
-                id: post.user_id,
-                name: 'User',
-                username: post.user_id?.substring(0, 8) || 'user',
-                avatar: 'https://i.pravatar.cc/150?img=1',
-                verified: false,
-                followers: 0,
-                following: 0,
-              }
-            };
+            console.error(`Error fetching saves for post ${post.id}:`, error);
           }
-        }));
-        
-        // Filter out any null/undefined posts that might have occurred due to errors
-        const validPosts = formattedPosts.filter(post => post !== null && post !== undefined);
-        setFeedPosts(validPosts);
-        
-        // Set default sort option based on authentication
-        if (!user) {
-          setSortOption('latest'); // Default to latest for non-logged in users
-        } else if (user && userCompanies.length > 0) {
-          setSortOption('relevant'); // Use relevant only if user has companies
+          
+          const profile = profileData || {
+            full_name: 'User',
+            avatar_url: 'https://i.pravatar.cc/150?img=1',
+          };
+          
+          // Create a display username from the user_id since profile.username doesn't exist
+          const displayUsername = post.user_id?.substring(0, 8) || 'user';
+          
+          return {
+            id: post.id,
+            content: post.content,
+            createdAt: post.created_at,
+            likes: likesCount || 0,
+            comments: commentsCount || 0,
+            saves: savesCount || 0,
+            reposts: 0,
+            replies: commentsCount || 0,
+            views: 0,
+            userId: post.user_id,
+            images: post.media,
+            relevanceScore: user ? calculateRelevanceScore(post.content) : 0, // Only calculate relevance for logged-in users
+            user: {
+              id: post.user_id,
+              name: profile.full_name || 'User',
+              username: displayUsername,
+              avatar: profile.avatar_url || 'https://i.pravatar.cc/150?img=1',
+              verified: false,
+              followers: 0,
+              following: 0,
+            }
+          };
+        } catch (error) {
+          console.error(`Error processing post ${post.id}:`, error);
+          // Return a default post object if there's an error processing this post
+          return {
+            id: post.id,
+            content: post.content,
+            createdAt: post.created_at,
+            likes: 0,
+            comments: 0,
+            saves: 0,
+            reposts: 0,
+            replies: 0,
+            views: 0,
+            userId: post.user_id,
+            images: post.media,
+            relevanceScore: 0,
+            user: {
+              id: post.user_id,
+              name: 'User',
+              username: post.user_id?.substring(0, 8) || 'user',
+              avatar: 'https://i.pravatar.cc/150?img=1',
+              verified: false,
+              followers: 0,
+              following: 0,
+            }
+          };
         }
-      } catch (error) {
-        console.error('Error fetching posts:', error);
-        // Don't show error toast for non-authenticated users
-        if (user) {
-          toast.error('Could not load posts');
-        }
-      } finally {
-        setLoading(false);
+      }));
+      
+      // Filter out any null/undefined posts that might have occurred due to errors
+      const validPosts = formattedPosts.filter(post => post !== null && post !== undefined);
+      console.log(`Successfully processed ${validPosts.length} valid posts`);
+      setFeedPosts(validPosts);
+      
+      // Set default sort option based on authentication
+      if (!user) {
+        setSortOption('latest'); // Default to latest for non-logged in users
+      } else if (user && userCompanies.length > 0) {
+        setSortOption('relevant'); // Use relevant only if user has companies
       }
-    };
-    
+    } catch (error: any) {
+      console.error('Error fetching posts:', error);
+      setError(error.message || "Failed to load posts");
+      // Keep existing posts if we have them
+      if (feedPosts.length === 0) {
+        setFilteredPosts([]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
     fetchPosts();
     
     // Set up realtime subscription to listen for new posts
@@ -231,7 +256,7 @@ const Index = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, userCompanies, userFields]);
+  }, [user, userCompanies, userFields, retryCount]);
   
   // Calculate how relevant a post is to the current user
   const calculateRelevanceScore = (content: string): number => {
@@ -353,6 +378,11 @@ const Index = () => {
     setSortOption(option);
   };
 
+  const handleRefresh = () => {
+    setRetryCount(prev => prev + 1);
+    fetchPosts();
+  };
+
   // Determine colors based on theme
   const bgColor = theme === 'dark' ? 'bg-black' : 'bg-lightBeige';
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
@@ -364,6 +394,8 @@ const Index = () => {
   const dropdownHover = theme === 'dark' ? 'hover:bg-neutral-800' : 'hover:bg-gray-100';
   const dropdownActive = theme === 'dark' ? 'bg-neutral-800' : 'bg-gray-100';
   const skeletonBg = theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200';
+  const errorBg = theme === 'dark' ? 'bg-red-900/20' : 'bg-red-100';
+  const errorText = theme === 'dark' ? 'text-red-400' : 'text-red-600';
 
   return (
     <AppLayout>
@@ -414,6 +446,16 @@ const Index = () => {
           </div>
           
           <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleRefresh}
+              className="mr-2"
+              disabled={loading}
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <span className="sr-only">Refresh</span>
+            </Button>
             <button 
               className={cn(
                 "p-2 rounded-md transition-colors",
@@ -441,6 +483,22 @@ const Index = () => {
           </div>
         </div>
       </div>
+      
+      {error && (
+        <div className={`${errorBg} p-4 mx-4 my-2 rounded-md ${errorText}`}>
+          <p className="flex items-center gap-2">
+            <span>Error: {error}</span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRefresh}
+              className="ml-2"
+            >
+              <RefreshCw className="h-3 w-3 mr-1" /> Retry
+            </Button>
+          </p>
+        </div>
+      )}
       
       {loading && (
         <div className={`p-4 space-y-6 ${bgColor}`}>
@@ -471,7 +529,7 @@ const Index = () => {
       {!loading && (
         <div className={`pt-0 ${bgColor}`}>
           {feedView === 'swipeable' ? (
-            <SwipeablePostView posts={filteredPosts} />
+            <SwipeablePostView posts={filteredPosts} onRefresh={handleRefresh} />
           ) : (
             <PostList posts={filteredPosts} />
           )}
@@ -482,3 +540,4 @@ const Index = () => {
 };
 
 export default Index;
+
