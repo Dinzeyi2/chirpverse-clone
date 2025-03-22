@@ -228,7 +228,11 @@ const SignUpForm = () => {
                       key={language}
                       type="button"
                       variant={selectedLanguages.includes(language) ? "default" : "outline"}
-                      className={`mb-2 ${selectedLanguages.includes(language) ? "bg-xBlue text-white" : "border-gray-700 text-gray-300"}`}
+                      className={`mb-2 ${
+                        selectedLanguages.includes(language) 
+                          ? "bg-xBlue text-white" 
+                          : "border-gray-700 text-gray-800 bg-gray-100 hover:bg-gray-200 hover:text-black font-medium"
+                      }`}
                       onClick={() => handleLanguageSelect(language)}
                       disabled={selectedLanguages.length >= 5 && !selectedLanguages.includes(language)}
                     >
