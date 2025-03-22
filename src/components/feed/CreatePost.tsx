@@ -1,10 +1,9 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Image, Smile, MapPin, Calendar, BarChart, X, Video } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { toast } from 'sonner';
 import { DialogClose } from '@/components/ui/dialog';
-import { supabase, extractCompanyMentions, notifyCompanyMembers } from "@/integrations/supabase/client";
+import { supabase, extractLanguageMentions, notifyLanguageUsers } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
 import EmojiPicker from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -225,21 +224,21 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         throw new Error(`Failed to create post: ${postError.message}`);
       }
       
-      // Extract company mentions from post content
-      const companyMentions = extractCompanyMentions(postContent);
-      console.log('Detected company mentions:', companyMentions);
+      // Extract programming language mentions from post content
+      const languageMentions = extractLanguageMentions(postContent);
+      console.log('Detected language mentions:', languageMentions);
       
-      // Send notifications for each company mention
-      if (companyMentions.length > 0 && newPost) {
-        for (const company of companyMentions) {
-          await notifyCompanyMembers(
+      // Send notifications for each programming language mention
+      if (languageMentions.length > 0 && newPost) {
+        for (const language of languageMentions) {
+          await notifyLanguageUsers(
             user.id,
-            company,
+            language,
             postContent,
             newPost.id
           );
         }
-        toast.success(`Notified users from ${companyMentions.join(', ')} about your post`);
+        toast.success(`Notified users who know ${languageMentions.join(', ')} about your post`);
       }
       
       if (onPostCreated) {
@@ -274,11 +273,10 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     return 'text-xGray';
   };
 
-  // Highlight company mentions in the textarea
   const renderHighlightedContent = () => {
     if (!postContent) return null;
     
-    // Split content by @company mentions
+    // Split content by @language mentions
     const parts = postContent.split(/(@\w+)/g);
     
     return (
@@ -318,7 +316,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
               <textarea
                 ref={textareaRef}
                 className="w-full border-none text-xl focus:ring-0 resize-none placeholder:text-xGray/70 min-h-[120px] bg-transparent outline-none"
-                placeholder="What's happening? Use @company to tag a company"
+                placeholder="What's happening? Use @language to tag a programming language"
                 value={postContent}
                 onChange={handleTextChange}
                 rows={3}

@@ -47,30 +47,30 @@ export const parseArrayField = (field: string | null): string[] => {
   }
 };
 
-// Function to find and extract company mentions from post content
-export const extractCompanyMentions = (content: string): string[] => {
-  // Regular expression to detect @company pattern
+// Function to find and extract programming language mentions from post content
+export const extractLanguageMentions = (content: string): string[] => {
+  // Regular expression to detect @language pattern
   const mentionRegex = /@(\w+)/g;
   
   // Find all matches
   const matches = [...content.matchAll(mentionRegex)];
   
-  // Extract company names from matches
+  // Extract language names from matches
   return matches.map(match => match[1].toLowerCase().trim());
 };
 
-// Function to create a notification for company members
-export const notifyCompanyMembers = async (
+// Function to create a notification for users who have selected a specific programming language
+export const notifyLanguageUsers = async (
   senderId: string, 
-  companyName: string, 
+  language: string, 
   postContent: string, 
   postId: string
 ): Promise<void> => {
   try {
-    // Find all users who have this company in their profile
-    const { data: profilesWithCompany, error: profilesError } = await supabase
+    // Find all users who have this programming language in their profile
+    const { data: profilesWithLanguage, error: profilesError } = await supabase
       .from('profiles')
-      .select('user_id, company')
+      .select('user_id, programming_languages')
       .not('user_id', 'eq', senderId); // Exclude the sender
     
     if (profilesError) {
@@ -78,24 +78,27 @@ export const notifyCompanyMembers = async (
       return;
     }
     
-    // Filter users who have the tagged company in their company list
-    const usersToNotify = profilesWithCompany.filter(profile => {
-      const companies = parseArrayField(profile.company);
-      return companies.some(company => 
-        company.toLowerCase() === companyName.toLowerCase()
+    // Filter users who have the tagged language in their programming languages list
+    const usersToNotify = profilesWithLanguage.filter(profile => {
+      const languages = Array.isArray(profile.programming_languages) 
+        ? profile.programming_languages 
+        : parseArrayField(profile.programming_languages as any);
+      
+      return languages.some(lang => 
+        lang.toLowerCase() === language.toLowerCase()
       );
     });
     
-    console.log(`Found ${usersToNotify.length} users to notify for company: ${companyName}`);
+    console.log(`Found ${usersToNotify.length} users to notify for language: ${language}`);
     
     // Prepare notification data
     const notifications = usersToNotify.map(profile => ({
-      type: 'company_mention',
+      type: 'language_mention',
       recipient_id: profile.user_id,
       sender_id: senderId,
-      content: `mentioned ${companyName} in a post`,
+      content: `mentioned ${language} in a post`,
       metadata: {
-        company: companyName,
+        language: language,
         post_id: postId,
         post_excerpt: postContent.substring(0, 100) + (postContent.length > 100 ? '...' : '')
       },
@@ -111,10 +114,10 @@ export const notifyCompanyMembers = async (
       if (notificationError) {
         console.error('Error creating notifications:', notificationError);
       } else {
-        console.log(`Created ${notifications.length} notifications for company: ${companyName}`);
+        console.log(`Created ${notifications.length} notifications for language: ${language}`);
       }
     }
   } catch (error) {
-    console.error('Error in notifyCompanyMembers:', error);
+    console.error('Error in notifyLanguageUsers:', error);
   }
 };

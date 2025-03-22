@@ -34,11 +34,9 @@ const Notifications = () => {
   useEffect(() => {
     if (!user) return;
     
-    // Fetch notifications from Supabase
     const fetchNotifications = async () => {
       setLoading(true);
       try {
-        // Fetch notifications from the database
         const { data, error } = await supabase
           .from('notifications')
           .select(`
@@ -56,16 +54,13 @@ const Notifications = () => {
 
         if (error) throw error;
 
-        // Record the current time as the last time notifications were viewed
         const now = new Date();
         localStorage.setItem(`notifications_last_visited_${user.id}`, now.toISOString());
 
-        // Mark all notifications as read when user visits the page
         const unreadNotifications = data.filter(notification => !notification.is_read);
         if (unreadNotifications.length > 0) {
           const unreadIds = unreadNotifications.map(notification => notification.id);
           
-          // Update notifications to mark them as read
           await supabase
             .from('notifications')
             .update({ is_read: true })
@@ -74,9 +69,7 @@ const Notifications = () => {
           console.log(`Marked ${unreadIds.length} notifications as read`);
         }
 
-        // Transform the data
         const formattedNotifications = data.map(notification => {
-          // Safe extraction of post_excerpt and post_id from metadata
           let postExcerpt: string | undefined = undefined;
           let postId: string | undefined = undefined;
           
@@ -97,13 +90,13 @@ const Notifications = () => {
               name: notification.sender?.full_name || 'Anonymous User',
               username: notification.sender?.user_id?.substring(0, 8) || 'user',
               avatar: notification.sender?.avatar_url || 'https://i.pravatar.cc/150?img=3',
-              verified: Math.random() > 0.7, // Random verification for demo
+              verified: Math.random() > 0.7,
             },
             content: notification.content,
             post: postExcerpt,
             postId: postId,
             time: formatTimeAgo(new Date(notification.created_at)),
-            isRead: true, // Mark all as read when viewed
+            isRead: true,
           };
         });
 
@@ -122,7 +115,6 @@ const Notifications = () => {
 
     fetchNotifications();
 
-    // Set up real-time subscription for new notifications
     const notificationsChannel = supabase
       .channel('notification-changes')
       .on('postgres_changes', {
@@ -131,17 +123,14 @@ const Notifications = () => {
         table: 'notifications',
         filter: `recipient_id=eq.${user.id}`,
       }, (payload) => {
-        // Handle new notification
         const newNotification = payload.new;
         
-        // Fetch user data for the new notification
         supabase
           .from('profiles')
           .select('full_name, user_id, avatar_url')
           .eq('user_id', newNotification.sender_id)
           .single()
           .then(({ data: profile }) => {
-            // Safe extraction of post_excerpt and post_id from metadata
             let postExcerpt: string | undefined = undefined;
             let postId: string | undefined = undefined;
             
@@ -162,7 +151,7 @@ const Notifications = () => {
                 name: profile?.full_name || 'Anonymous User',
                 username: profile?.user_id?.substring(0, 8) || 'user',
                 avatar: profile?.avatar_url || 'https://i.pravatar.cc/150?img=3',
-                verified: Math.random() > 0.7, // Random verification for demo
+                verified: Math.random() > 0.7,
               },
               content: newNotification.content,
               post: postExcerpt,
@@ -173,7 +162,6 @@ const Notifications = () => {
             
             setNotifications(prev => [formattedNotification, ...prev]);
             
-            // Show a toast notification for the new notification
             toast({
               title: getNotificationTitle(newNotification.type),
               description: `${profile?.full_name || 'Someone'} ${newNotification.content}`,
@@ -190,7 +178,6 @@ const Notifications = () => {
       })
       .subscribe();
 
-    // Clean up subscription on component unmount
     return () => {
       supabase.removeChannel(notificationsChannel);
     };
@@ -210,6 +197,10 @@ const Notifications = () => {
         return 'New Bookmark';
       case 'reaction':
         return 'New Reaction';
+      case 'language_mention':
+        return 'Language Mention';
+      case 'company_mention':
+        return 'Company Mention';
       default:
         return 'New Notification';
     }
@@ -247,7 +238,6 @@ const Notifications = () => {
       
       if (error) throw error;
       
-      // Update local state
       setNotifications(prev => 
         prev.map(notification => 
           notification.id === notificationId 
@@ -261,17 +251,13 @@ const Notifications = () => {
   };
 
   const handleNotificationClick = (notification: NotificationType) => {
-    // Mark as read
     if (!notification.isRead) {
       markAsRead(notification.id);
     }
     
-    // Navigate to the post if postId is available
     if (notification.postId) {
-      // Immediately navigate to the post page
       navigate(`/post/${notification.postId}`);
     } else {
-      // If there's no postId, show a toast
       toast({
         title: "Notification",
         description: "This notification doesn't link to a specific post"
@@ -281,12 +267,10 @@ const Notifications = () => {
 
   return (
     <AppLayout>
-      {/* Header - sticky */}
       <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-md">
         <div className="px-4 py-3 border-b border-xExtraLightGray">
           <h1 className="text-xl font-bold">Notifications</h1>
           
-          {/* Tabs - removed Verified and Mentions, keeping only All */}
           <Tabs defaultValue="all" className="mt-2" onValueChange={setActiveTab}>
             <TabsList className="w-full bg-transparent border-b border-xExtraLightGray">
               <TabsTrigger 
@@ -385,7 +369,7 @@ const NotificationsList: React.FC<NotificationsListProps> = ({
               </div>
               <button 
                 className="text-xGray hover:text-xDark transition-colors"
-                onClick={(e) => e.stopPropagation()} // Prevent triggering the parent onClick
+                onClick={(e) => e.stopPropagation()}
                 aria-label="More options"
               >
                 <ChevronDown size={16} />
