@@ -221,14 +221,19 @@ const SignUpForm = () => {
                 ))}
               </div>
               
-              <div className="h-60 overflow-y-auto border border-gray-700 rounded-md p-3 bg-black">
-                <div className="flex flex-wrap gap-2">
+              <div className="h-72 overflow-y-auto border border-gray-700 rounded-md p-3 bg-black">
+                <div className="grid grid-cols-3 gap-2">
                   {programmingLanguages.map(language => (
                     <Button
                       key={language}
                       type="button"
                       variant={selectedLanguages.includes(language) ? "default" : "outline"}
-                      className={`mb-2 ${selectedLanguages.includes(language) ? "bg-xBlue text-white" : "border-gray-700 text-gray-300"}`}
+                      className={`
+                        w-full h-10 text-sm font-normal 
+                        ${selectedLanguages.includes(language) 
+                          ? "bg-xBlue text-white hover:bg-xBlue/90" 
+                          : "border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"}
+                      `}
                       onClick={() => handleLanguageSelect(language)}
                       disabled={selectedLanguages.length >= 5 && !selectedLanguages.includes(language)}
                     >
@@ -306,3 +311,4 @@ const SignUpForm = () => {
 };
 
 export default SignUpForm;
+
