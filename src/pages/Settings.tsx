@@ -21,9 +21,20 @@ import { toast } from 'sonner';
 import { supabase, prepareArrayField, parseArrayField } from '@/integrations/supabase/client';
 
 const PROGRAMMING_LANGUAGES = [
-  "JavaScript", "TypeScript", "Python", "Java", "C#", "C++", "PHP", "Ruby", 
-  "Swift", "Kotlin", "Go", "Rust", "Dart", "HTML/CSS", "SQL", "Shell", 
-  "R", "Scala", "Perl", "Haskell"
+  "JavaScript", "TypeScript", "Python", "Java", "C#", "C++", "C", "PHP", "Go",
+  "Ruby", "Swift", "Kotlin", "Rust", "Dart", "Scala", "R", "MATLAB", "Perl",
+  "Haskell", "Elixir", "Clojure", "Groovy", "Lua", "Objective-C", "Shell",
+  "SQL", "PL/SQL", "Assembly", "Julia", "F#", "COBOL", "Fortran", "Ada",
+  "Lisp", "Prolog", "Erlang", "Scheme", "Apex", "SAS", "Crystal", "Hack", 
+  "ABAP", "Solidity", "Visual Basic", "Delphi", "Bash", "PowerShell", "VBA",
+  "Elm", "OCaml", "Racket", "CoffeeScript", "Tcl", "Verilog", "VHDL", "HTML", 
+  "CSS", "SCSS", "Less", "Stylus", "XML", "JSON", "YAML", "Markdown", "LaTeX",
+  "ReasonML", "PureScript", "Zig", "WebAssembly", "Ballerina", "Nix", "Raku",
+  "Nim", "Io", "Factor", "Q", "APL", "J", "K", "Pony", "Ur", "BlitzBasic",
+  "ActionScript", "CFML", "D", "Elm", "Forth", "Haxe", "Idris", "Inform",
+  "Rexx", "Xojo", "Logo", "ML", "Smalltalk", "Standard ML", "Vala",
+  "Agda", "T-SQL", "Pascal", "Embedded SQL", "MongoDB Query Language", 
+  "GraphQL", "React", "Angular", "Vue.js", "Next.js", "Svelte", "jQuery"
 ];
 
 const PrivacyPolicyContent = () => {
@@ -378,4 +389,3 @@ const Settings = () => {
 };
 
 export default Settings;
-
