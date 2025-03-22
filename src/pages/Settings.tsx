@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Shield, ChevronRight, Moon, Sun, Briefcase, Bookmark } from 'lucide-react';
+import { ArrowLeft, Shield, ChevronRight, Moon, Sun, Bookmark } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -204,101 +204,12 @@ const FieldSelector = ({
   );
 };
 
-const CompanySelector = ({ 
-  companies, 
-  setCompanies, 
-  maxCompanies = 3 
-}: { 
-  companies: string[];
-  setCompanies: React.Dispatch<React.SetStateAction<string[]>>;
-  maxCompanies?: number;
-}) => {
-  const { theme } = useTheme();
-  const [companyInput, setCompanyInput] = useState('');
-  const textColor = theme === 'dark' ? 'text-white' : 'text-foreground';
-  const mutedTextColor = theme === 'dark' ? 'text-xGray-dark' : 'text-muted-foreground';
-  const inputBg = theme === 'dark' ? 'bg-gray-800' : 'bg-white';
-  
-  const addCompany = () => {
-    if (!companyInput.trim()) return;
-    
-    setCompanies(current => {
-      if (current.includes(companyInput.trim())) {
-        toast.error("This company is already added");
-        return current;
-      }
-      
-      if (current.length >= maxCompanies) {
-        toast.info(`Maximum ${maxCompanies} companies allowed. Removed the oldest entry.`);
-        return [...current.slice(1), companyInput.trim()];
-      }
-      
-      return [...current, companyInput.trim()];
-    });
-    
-    setCompanyInput('');
-  };
-  
-  const removeCompany = (company: string) => {
-    setCompanies(current => current.filter(c => c !== company));
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-col space-y-2">
-        <span className={cn("text-sm font-medium", textColor)}>
-          Add up to {maxCompanies} companies (currently added: {companies.length}/{maxCompanies})
-        </span>
-        <span className={mutedTextColor}>
-          You will see posts related to these companies
-        </span>
-      </div>
-      
-      <div className="flex items-center space-x-2">
-        <input
-          type="text"
-          value={companyInput}
-          onChange={(e) => setCompanyInput(e.target.value)}
-          placeholder="Enter company name"
-          className={cn("px-3 py-2 rounded border flex-grow", inputBg)}
-          onKeyDown={(e) => e.key === 'Enter' && addCompany()}
-        />
-        <Button 
-          onClick={addCompany}
-          disabled={!companyInput.trim() || companies.length >= maxCompanies}
-        >
-          Add
-        </Button>
-      </div>
-      
-      <div className="flex flex-wrap gap-2">
-        {companies.map(company => (
-          <div 
-            key={company} 
-            className={cn("px-3 py-1 rounded-full flex items-center gap-2 bg-primary/10", textColor)}
-          >
-            <span>{company}</span>
-            <button 
-              onClick={() => removeCompany(company)}
-              className="text-sm hover:text-red-500"
-            >
-              ×
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 const Settings = () => {
   const { user } = useAuth();
   const [openPrivacyDialog, setOpenPrivacyDialog] = useState(false);
   const { theme, setTheme } = useTheme();
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
-  const [companies, setCompanies] = useState<string[]>([]);
   const [openFieldsDialog, setOpenFieldsDialog] = useState(false);
-  const [openCompaniesDialog, setOpenCompaniesDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
   useEffect(() => {
@@ -306,7 +217,7 @@ const Settings = () => {
       const fetchUserProfile = async () => {
         const { data, error } = await supabase
           .from('profiles')
-          .select('field, company')
+          .select('field')
           .eq('user_id', user.id)
           .single();
         
@@ -315,14 +226,8 @@ const Settings = () => {
           return;
         }
         
-        if (data) {
-          if (data.field) {
-            setSelectedFields(parseArrayField(data.field));
-          }
-          
-          if (data.company) {
-            setCompanies(parseArrayField(data.company));
-          }
+        if (data && data.field) {
+          setSelectedFields(parseArrayField(data.field));
         }
       };
       
@@ -336,10 +241,6 @@ const Settings = () => {
 
   const handleFieldsClick = () => {
     setOpenFieldsDialog(true);
-  };
-
-  const handleCompaniesClick = () => {
-    setOpenCompaniesDialog(true);
   };
   
   const saveFieldsToProfile = async () => {
@@ -366,31 +267,6 @@ const Settings = () => {
       setIsSaving(false);
     }
   };
-  
-  const saveCompaniesToProfile = async () => {
-    if (!user) return;
-    
-    setIsSaving(true);
-    
-    try {
-      const companyValue = prepareArrayField(companies);
-      
-      const { error } = await supabase
-        .from('profiles')
-        .update({ company: companyValue })
-        .eq('user_id', user.id);
-      
-      if (error) throw error;
-      
-      toast.success('Companies updated successfully');
-      setOpenCompaniesDialog(false);
-    } catch (error) {
-      console.error('Error updating companies:', error);
-      toast.error('Failed to update companies');
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   const textColor = theme === 'dark' ? 'text-white' : 'text-foreground';
   const mutedTextColor = theme === 'dark' ? 'text-xGray-dark' : 'text-muted-foreground';
@@ -398,7 +274,6 @@ const Settings = () => {
   const borderColor = theme === 'dark' ? 'bg-xBorder' : 'bg-border';
   const iconColor = theme === 'dark' ? 'text-white' : 'text-primary';
   const bgColor = theme === 'dark' ? 'bg-black' : 'bg-lightBeige';
-  const inputBg = theme === 'dark' ? 'bg-gray-100' : 'bg-white';
   const dialogBg = theme === 'dark' ? 'bg-black' : 'bg-background';
   const dialogBorder = theme === 'dark' ? 'border-xBorder' : 'border-border';
 
@@ -432,13 +307,6 @@ const Settings = () => {
               title="Fields of interest"
               description="Select up to 3 fields that interest you"
               onClick={handleFieldsClick}
-            />
-            
-            <SettingsItem 
-              icon={Briefcase}
-              title="Companies"
-              description="Add up to 3 companies you're interested in"
-              onClick={handleCompaniesClick}
             />
             
             <div className="p-4">
@@ -502,30 +370,6 @@ const Settings = () => {
               Cancel
             </Button>
             <Button onClick={saveFieldsToProfile} disabled={isSaving}>
-              {isSaving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog open={openCompaniesDialog} onOpenChange={setOpenCompaniesDialog}>
-        <DialogContent className={cn(dialogBg, dialogBorder, textColor, "max-w-4xl max-h-[90vh]")}>
-          <DialogHeader>
-            <DialogTitle>Companies</DialogTitle>
-            <DialogDescription className={mutedTextColor}>
-              Add up to 3 companies you're interested in
-            </DialogDescription>
-          </DialogHeader>
-          <CompanySelector 
-            companies={companies}
-            setCompanies={setCompanies}
-            maxCompanies={3}
-          />
-          <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" onClick={() => setOpenCompaniesDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={saveCompaniesToProfile} disabled={isSaving}>
               {isSaving ? 'Saving...' : 'Save Changes'}
             </Button>
           </div>
