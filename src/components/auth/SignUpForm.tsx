@@ -12,13 +12,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import FILTER_CATEGORIES from '../../lib/fieldCategories';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 const SignUpForm = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [company, setCompany] = useState('');
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -26,24 +27,22 @@ const SignUpForm = () => {
   const { signUp } = useAuth();
   const navigate = useNavigate();
   
-  // Expanded list of popular companies
-  const popularCompanies = [
-    "Google", "Microsoft", "Apple", "Amazon", "Meta", "IBM", "Intel", "Oracle", 
-    "Cisco", "Adobe", "Salesforce", "Twitter", "Netflix", "Shopify", "Uber", 
-    "Airbnb", "Tesla", "SpaceX", "PayPal", "LinkedIn", "Dropbox", "Slack", 
-    "Zoom", "Stripe", "Square", "Samsung", "Sony", "Nintendo", "Nvidia", "AMD",
-    "Dell", "HP", "Lenovo", "Asus", "LG", "Huawei", "Xiaomi", "Tencent",
-    "Alibaba", "Baidu", "ByteDance", "TikTok", "Spotify", "Twitch", "Reddit",
-    "Pinterest", "Snapchat", "Instagram", "WhatsApp", "Telegram", "Signal",
-    "Discord", "Robinhood", "Coinbase", "Binance", "JPMorgan Chase", "Goldman Sachs",
-    "Morgan Stanley", "Bank of America", "Wells Fargo", "Citigroup", "Deloitte",
-    "PwC", "EY", "KPMG", "McKinsey", "Boston Consulting Group", "Bain & Company",
-    "Accenture", "Capgemini", "Infosys", "Wipro", "TCS", "Cognizant", "HCL",
-    "Palantir", "Snowflake", "MongoDB", "Cloudflare", "Datadog", "Splunk",
-    "Atlassian", "Zendesk", "ServiceNow", "Workday", "SAP", "Siemens", "GE",
-    "Boeing", "Lockheed Martin", "Northrop Grumman", "Raytheon", "Ford", "GM",
-    "Toyota", "Volkswagen", "BMW", "Mercedes-Benz", "Disney", "Warner Bros",
-    "Universal", "Pixar", "DreamWorks", "Other", "None (Not working yet)"
+  // Programming languages list
+  const programmingLanguages = [
+    "JavaScript", "TypeScript", "Python", "Java", "C#", "C++", "C", "PHP", "Go",
+    "Ruby", "Swift", "Kotlin", "Rust", "Dart", "Scala", "R", "MATLAB", "Perl",
+    "Haskell", "Elixir", "Clojure", "Groovy", "Lua", "Objective-C", "Shell",
+    "SQL", "PL/SQL", "Assembly", "Julia", "F#", "COBOL", "Fortran", "Ada",
+    "Lisp", "Prolog", "Erlang", "Scheme", "Apex", "SAS", "Crystal", "Hack", 
+    "ABAP", "Solidity", "Visual Basic", "Delphi", "Bash", "PowerShell", "VBA",
+    "Elm", "OCaml", "Racket", "CoffeeScript", "Tcl", "Verilog", "VHDL", "HTML", 
+    "CSS", "SCSS", "Less", "Stylus", "XML", "JSON", "YAML", "Markdown", "LaTeX",
+    "ReasonML", "PureScript", "Zig", "WebAssembly", "Ballerina", "Nix", "Raku",
+    "Nim", "Io", "Factor", "Q", "APL", "J", "K", "Pony", "Ur", "BlitzBasic",
+    "ActionScript", "CFML", "D", "Elm", "Forth", "Haxe", "Idris", "Inform",
+    "Rexx", "Xojo", "Logo", "ML", "Smalltalk", "Standard ML", "Vala",
+    "Agda", "T-SQL", "Pascal", "Embedded SQL", "MongoDB Query Language", 
+    "GraphQL", "React", "Angular", "Vue.js", "Next.js", "Svelte", "jQuery"
   ];
 
   // All months for the date of birth dropdown
@@ -66,10 +65,16 @@ const SignUpForm = () => {
     e.preventDefault();
     
     if (step === 1) {
-      if (!name || !email) {
+      if (!name || !email || selectedLanguages.length === 0) {
         setError('Please fill all required fields');
         return;
       }
+      
+      if (selectedLanguages.length > 5) {
+        setError('Please select maximum 5 programming languages');
+        return;
+      }
+      
       setStep(2);
       return;
     }
@@ -87,7 +92,7 @@ const SignUpForm = () => {
       // Generate a random username to ensure uniqueness and security
       const randomUsername = `user${Math.random().toString(36).substring(2, 10)}`;
       
-      const { error } = await signUp(email, password, name, randomUsername, undefined, company);
+      const { error } = await signUp(email, password, name, randomUsername, undefined, undefined, selectedLanguages);
       if (error) {
         setError(error.message);
       } else {
@@ -97,6 +102,16 @@ const SignUpForm = () => {
       setError(err.message || 'Failed to sign up');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleLanguageSelect = (language: string) => {
+    if (selectedLanguages.includes(language)) {
+      setSelectedLanguages(selectedLanguages.filter(lang => lang !== language));
+    } else {
+      if (selectedLanguages.length < 5) {
+        setSelectedLanguages([...selectedLanguages, language]);
+      }
     }
   };
 
@@ -186,23 +201,46 @@ const SignUpForm = () => {
             </div>
 
             <div className="pt-4">
-              <h3 className="font-bold text-lg text-white">Your Company <span className="text-gray-400 text-sm font-normal">(optional)</span></h3>
+              <h3 className="font-bold text-lg text-white">Programming Languages <RequiredIndicator /></h3>
               <p className="text-gray-400 text-sm mb-3">
-                Select the company you work for. We'll show you content related to your company.
+                Select up to 5 programming languages you know or want to learn. This helps us show you relevant content.
               </p>
               
-              <Select value={company} onValueChange={setCompany}>
-                <SelectTrigger className="w-full px-3 py-6 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-xBlue focus:border-transparent bg-black text-white placeholder-gray-500">
-                  <SelectValue placeholder="Select your company (optional)" />
-                </SelectTrigger>
-                <SelectContent className="bg-black border-gray-700 text-white max-h-80">
-                  {popularCompanies.map((companyOption) => (
-                    <SelectItem key={companyOption} value={companyOption}>
-                      {companyOption}
-                    </SelectItem>
+              <div className="mb-3 flex flex-wrap gap-2">
+                {selectedLanguages.map(language => (
+                  <Badge key={language} variant="secondary" className="px-3 py-1.5">
+                    {language}
+                    <button 
+                      type="button" 
+                      className="ml-2 text-gray-400 hover:text-white"
+                      onClick={() => handleLanguageSelect(language)}
+                    >
+                      <X size={14} />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+              
+              <div className="h-60 overflow-y-auto border border-gray-700 rounded-md p-3 bg-black">
+                <div className="flex flex-wrap gap-2">
+                  {programmingLanguages.map(language => (
+                    <Button
+                      key={language}
+                      type="button"
+                      variant={selectedLanguages.includes(language) ? "default" : "outline"}
+                      className={`mb-2 ${selectedLanguages.includes(language) ? "bg-xBlue text-white" : "border-gray-700 text-gray-300"}`}
+                      onClick={() => handleLanguageSelect(language)}
+                      disabled={selectedLanguages.length >= 5 && !selectedLanguages.includes(language)}
+                    >
+                      {language}
+                    </Button>
                   ))}
-                </SelectContent>
-              </Select>
+                </div>
+              </div>
+              
+              <p className="text-gray-400 text-sm mt-2">
+                Selected: {selectedLanguages.length}/5
+              </p>
             </div>
           </>
         ) : (

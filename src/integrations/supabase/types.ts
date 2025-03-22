@@ -688,6 +688,7 @@ export type Database = {
           phone: string | null
           portfolio_theme: string | null
           profession: string | null
+          programming_languages: string[] | null
           projects: Json | null
           role: string | null
           skills: string[] | null
@@ -719,6 +720,7 @@ export type Database = {
           phone?: string | null
           portfolio_theme?: string | null
           profession?: string | null
+          programming_languages?: string[] | null
           projects?: Json | null
           role?: string | null
           skills?: string[] | null
@@ -750,6 +752,7 @@ export type Database = {
           phone?: string | null
           portfolio_theme?: string | null
           profession?: string | null
+          programming_languages?: string[] | null
           projects?: Json | null
           role?: string | null
           skills?: string[] | null
