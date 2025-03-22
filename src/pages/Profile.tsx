@@ -369,70 +369,6 @@ const Profile = () => {
   }, [profileUserId, postsPage, isCurrentUser]);
 
   useEffect(() => {
-    const fetchReplies = async () => {
-      if (!profileUserId) return;
-      
-      try {
-        setLoadingReplies(true);
-        
-        const { data, error } = await supabase
-          .from('comments')
-          .select(`
-            id,
-            content,
-            created_at,
-            media,
-            user_id,
-            shoutout_id,
-            profiles:user_id (full_name, avatar_url)
-          `)
-          .eq('user_id', profileUserId)
-          .order('created_at', { ascending: false })
-          .range((repliesPage - 1) * postsPerPage, repliesPage * postsPerPage - 1);
-          
-        if (error) {
-          console.error('Error fetching replies:', error);
-          return;
-        }
-        
-        const formattedReplies: Post[] = data.map((reply: any) => ({
-          id: reply.id,
-          content: reply.content,
-          images: reply.media?.url ? [reply.media.url] : undefined,
-          createdAt: reply.created_at,
-          likes: 0,
-          reposts: 0,
-          replies: 0,
-          views: 0,
-          userId: reply.user_id,
-          user: {
-            id: reply.user_id,
-            name: reply.profiles?.full_name || 'Unknown User',
-            username: reply.user_id.substring(0, 8),
-            avatar: reply.profiles?.avatar_url || 'https://i.pravatar.cc/150?img=1',
-            following: 0,
-            followers: 0,
-            verified: false
-          },
-          isReply: true,
-          parentId: reply.shoutout_id
-        }));
-        
-        setReplies(formattedReplies);
-      } catch (err) {
-        console.error('Error in fetchReplies:', err);
-        toast.error('Failed to load replies');
-      } finally {
-        setLoadingReplies(false);
-      }
-    };
-    
-    if (profileUserId && activeTab === 'replies') {
-      fetchReplies();
-    }
-  }, [profileUserId, repliesPage, activeTab]);
-
-  useEffect(() => {
     if (!profileUserId) return;
     
     const fetchPostIds = async () => {
@@ -579,4 +515,3 @@ const Profile = () => {
 };
 
 export default Profile;
-
