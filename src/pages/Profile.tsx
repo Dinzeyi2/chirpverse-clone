@@ -30,11 +30,8 @@ const Profile = () => {
   
   const [activeTab, setActiveTab] = useState('posts');
   const [posts, setPosts] = useState<Post[]>([]);
-  const [replies, setReplies] = useState<Post[]>([]);
   const [postsPage, setPostsPage] = useState(1);
-  const [repliesPage, setRepliesPage] = useState(1);
   const [loadingPosts, setLoadingPosts] = useState(false);
-  const [loadingReplies, setLoadingReplies] = useState(false);
   const [userStats, setUserStats] = useState({
     posts: 0,
     replies: 0,
@@ -366,10 +363,10 @@ const Profile = () => {
       }
     };
     
-    if (profileUserId && activeTab === 'posts') {
+    if (profileUserId) {
       fetchPosts();
     }
-  }, [profileUserId, postsPage, activeTab, isCurrentUser]);
+  }, [profileUserId, postsPage, isCurrentUser]);
 
   useEffect(() => {
     const fetchReplies = async () => {
@@ -508,19 +505,12 @@ const Profile = () => {
     setActiveTab(value);
     if (value === 'posts') {
       setPostsPage(1);
-    } else if (value === 'replies') {
-      setRepliesPage(1);
     }
   };
 
   const handlePostDeleted = async () => {
-    if (activeTab === 'posts') {
-      setPostsPage(1);
-      await fetchUserStats();
-    } else if (activeTab === 'replies') {
-      setRepliesPage(1);
-      await fetchUserStats();
-    }
+    setPostsPage(1);
+    await fetchUserStats();
   };
 
   if (loading) {
@@ -558,62 +548,29 @@ const Profile = () => {
         />
         
         <div className="px-4 py-6">
-          {activeTab === 'posts' && (
-            <>
-              {loadingPosts ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-                </div>
-              ) : posts.length === 0 ? (
-                <div className="text-center py-10">
-                  <p className={cn(
-                    isLightMode ? "text-gray-600" : "text-gray-500"
-                  )}>No posts to display</p>
-                </div>
-              ) : (
-                <SwipeablePostView 
-                  posts={posts.map(post => ({
-                    ...post,
-                    actions: (
-                      <PostActionMenu
-                        postId={post.id}
-                        isOwner={post.userId === user?.id}
-                        onPostDeleted={handlePostDeleted}
-                      />
-                    )
-                  }))} 
-                />
-              )}
-            </>
-          )}
-          
-          {activeTab === 'replies' && (
-            <>
-              {loadingReplies ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-                </div>
-              ) : replies.length === 0 ? (
-                <div className="text-center py-10">
-                  <p className={cn(
-                    isLightMode ? "text-gray-600" : "text-gray-500"
-                  )}>No replies to display</p>
-                </div>
-              ) : (
-                <SwipeablePostView 
-                  posts={replies.map(reply => ({
-                    ...reply,
-                    actions: (
-                      <PostActionMenu
-                        postId={reply.id}
-                        isOwner={reply.userId === user?.id}
-                        onPostDeleted={handlePostDeleted}
-                      />
-                    )
-                  }))} 
-                />
-              )}
-            </>
+          {loadingPosts ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+          ) : posts.length === 0 ? (
+            <div className="text-center py-10">
+              <p className={cn(
+                isLightMode ? "text-gray-600" : "text-gray-500"
+              )}>No posts to display</p>
+            </div>
+          ) : (
+            <SwipeablePostView 
+              posts={posts.map(post => ({
+                ...post,
+                actions: (
+                  <PostActionMenu
+                    postId={post.id}
+                    isOwner={post.userId === user?.id}
+                    onPostDeleted={handlePostDeleted}
+                  />
+                )
+              }))} 
+            />
           )}
         </div>
       </div>
@@ -622,3 +579,4 @@ const Profile = () => {
 };
 
 export default Profile;
+

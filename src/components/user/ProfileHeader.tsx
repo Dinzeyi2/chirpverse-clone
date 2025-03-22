@@ -449,28 +449,17 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             isLightMode ? "border-gray-200" : "border-gray-800"
           )}>
             <Tabs defaultValue="posts" onValueChange={handleTabChange} className="w-full">
-              <TabsList className="w-full grid grid-cols-2 bg-transparent rounded-none h-14">
+              <TabsList className="w-full bg-transparent rounded-none h-14">
                 <TabsTrigger 
                   value="posts" 
                   className={cn(
-                    "rounded-none h-full data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none text-sm font-medium",
+                    "rounded-none h-full data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none text-sm font-medium w-full",
                     isLightMode 
                       ? "data-[state=active]:text-black text-gray-600" 
                       : "data-[state=active]:text-white text-gray-400"
                   )}
                 >
                   Posts
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="replies" 
-                  className={cn(
-                    "rounded-none h-full data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none text-sm font-medium",
-                    isLightMode 
-                      ? "data-[state=active]:text-black text-gray-600" 
-                      : "data-[state=active]:text-white text-gray-400"
-                  )}
-                >
-                  Replies
                 </TabsTrigger>
               </TabsList>
             </Tabs>
