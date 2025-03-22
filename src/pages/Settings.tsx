@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Shield, ChevronRight, Moon, Sun, Bookmark } from 'lucide-react';
+import { ArrowLeft, Shield, ChevronRight, Moon, Sun, Code } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -19,7 +19,12 @@ import { useTheme } from '@/components/theme/theme-provider';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { supabase, prepareArrayField, parseArrayField } from '@/integrations/supabase/client';
-import FILTER_CATEGORIES from '@/lib/fieldCategories';
+
+const PROGRAMMING_LANGUAGES = [
+  "JavaScript", "TypeScript", "Python", "Java", "C#", "C++", "PHP", "Ruby", 
+  "Swift", "Kotlin", "Go", "Rust", "Dart", "HTML/CSS", "SQL", "Shell", 
+  "R", "Scala", "Perl", "Haskell"
+];
 
 const PrivacyPolicyContent = () => {
   const { theme } = useTheme();
@@ -141,31 +146,31 @@ const SettingsItem = ({ icon: Icon, title, description, onClick }: {
   );
 };
 
-const FieldSelector = ({ 
-  selectedFields, 
-  setSelectedFields, 
-  maxSelections = 3 
+const ProgrammingLanguageSelector = ({ 
+  selectedLanguages, 
+  setSelectedLanguages,
+  maxSelections = 5 
 }: { 
-  selectedFields: string[];
-  setSelectedFields: React.Dispatch<React.SetStateAction<string[]>>;
+  selectedLanguages: string[];
+  setSelectedLanguages: React.Dispatch<React.SetStateAction<string[]>>;
   maxSelections?: number;
 }) => {
   const { theme } = useTheme();
   const textColor = theme === 'dark' ? 'text-white' : 'text-foreground';
   const mutedTextColor = theme === 'dark' ? 'text-xGray-dark' : 'text-muted-foreground';
-  const bgColor = theme === 'dark' ? 'bg-black' : 'bg-lightBeige';
   
-  const handleFieldChange = (fieldValue: string) => {
-    setSelectedFields(current => {
-      if (current.includes(fieldValue)) {
-        return current.filter(field => field !== fieldValue);
+  const handleLanguageChange = (language: string) => {
+    setSelectedLanguages(current => {
+      if (current.includes(language)) {
+        return current.filter(lang => lang !== language);
       }
       
       if (current.length >= maxSelections) {
-        return [...current.slice(1), fieldValue];
+        toast.warning(`You can select up to ${maxSelections} languages. Please remove one first.`);
+        return current;
       }
       
-      return [...current, fieldValue];
+      return [...current, language];
     });
   };
 
@@ -173,32 +178,27 @@ const FieldSelector = ({
     <div className="space-y-4">
       <div className="flex flex-col space-y-2">
         <span className={cn("text-sm font-medium", textColor)}>
-          Select up to {maxSelections} fields (currently selected: {selectedFields.length}/{maxSelections})
+          Select up to {maxSelections} programming languages (currently selected: {selectedLanguages.length}/{maxSelections})
         </span>
         <span className={mutedTextColor}>
-          You will see posts related to these fields
+          These are the programming languages you're proficient in
         </span>
       </div>
       
       <div className="space-y-4">
-        {Object.entries(FILTER_CATEGORIES).map(([category, fields]) => (
-          <div key={category} className="space-y-2">
-            <h3 className={cn("text-md font-semibold", textColor)}>{category}</h3>
-            <div className="flex flex-wrap gap-2">
-              {fields.map(field => (
-                <Button
-                  key={field}
-                  variant={selectedFields.includes(field) ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => handleFieldChange(field)}
-                  className={selectedFields.includes(field) ? "bg-primary text-white" : ""}
-                >
-                  {field}
-                </Button>
-              ))}
-            </div>
-          </div>
-        ))}
+        <div className="flex flex-wrap gap-2">
+          {PROGRAMMING_LANGUAGES.map(language => (
+            <Button
+              key={language}
+              variant={selectedLanguages.includes(language) ? "default" : "outline"}
+              size="sm"
+              onClick={() => handleLanguageChange(language)}
+              className={selectedLanguages.includes(language) ? "bg-primary text-white" : ""}
+            >
+              {language}
+            </Button>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -208,8 +208,8 @@ const Settings = () => {
   const { user } = useAuth();
   const [openPrivacyDialog, setOpenPrivacyDialog] = useState(false);
   const { theme, setTheme } = useTheme();
-  const [selectedFields, setSelectedFields] = useState<string[]>([]);
-  const [openFieldsDialog, setOpenFieldsDialog] = useState(false);
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
+  const [openLanguagesDialog, setOpenLanguagesDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
   useEffect(() => {
@@ -217,7 +217,7 @@ const Settings = () => {
       const fetchUserProfile = async () => {
         const { data, error } = await supabase
           .from('profiles')
-          .select('field')
+          .select('programming_languages')
           .eq('user_id', user.id)
           .single();
         
@@ -226,8 +226,8 @@ const Settings = () => {
           return;
         }
         
-        if (data && data.field) {
-          setSelectedFields(parseArrayField(data.field));
+        if (data && data.programming_languages) {
+          setSelectedLanguages(Array.isArray(data.programming_languages) ? data.programming_languages : []);
         }
       };
       
@@ -239,30 +239,28 @@ const Settings = () => {
     setOpenPrivacyDialog(true);
   };
 
-  const handleFieldsClick = () => {
-    setOpenFieldsDialog(true);
+  const handleLanguagesClick = () => {
+    setOpenLanguagesDialog(true);
   };
   
-  const saveFieldsToProfile = async () => {
+  const saveLanguagesToProfile = async () => {
     if (!user) return;
     
     setIsSaving(true);
     
     try {
-      const fieldValue = prepareArrayField(selectedFields);
-      
       const { error } = await supabase
         .from('profiles')
-        .update({ field: fieldValue })
+        .update({ programming_languages: selectedLanguages })
         .eq('user_id', user.id);
       
       if (error) throw error;
       
-      toast.success('Fields updated successfully');
-      setOpenFieldsDialog(false);
+      toast.success('Programming languages updated successfully');
+      setOpenLanguagesDialog(false);
     } catch (error) {
-      console.error('Error updating fields:', error);
-      toast.error('Failed to update fields');
+      console.error('Error updating programming languages:', error);
+      toast.error('Failed to update programming languages');
     } finally {
       setIsSaving(false);
     }
@@ -303,10 +301,10 @@ const Settings = () => {
             />
             
             <SettingsItem 
-              icon={Bookmark}
-              title="Fields of interest"
-              description="Select up to 3 fields that interest you"
-              onClick={handleFieldsClick}
+              icon={Code}
+              title="Programming Languages"
+              description="Select programming languages you're proficient in"
+              onClick={handleLanguagesClick}
             />
             
             <div className="p-4">
@@ -350,26 +348,26 @@ const Settings = () => {
         </DialogContent>
       </Dialog>
       
-      <Dialog open={openFieldsDialog} onOpenChange={setOpenFieldsDialog}>
+      <Dialog open={openLanguagesDialog} onOpenChange={setOpenLanguagesDialog}>
         <DialogContent className={cn(dialogBg, dialogBorder, textColor, "max-w-4xl max-h-[90vh]")}>
           <DialogHeader>
-            <DialogTitle>Fields of Interest</DialogTitle>
+            <DialogTitle>Programming Languages</DialogTitle>
             <DialogDescription className={mutedTextColor}>
-              Select up to 3 fields that interest you
+              Select programming languages you're proficient in
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="h-[60vh] pr-4">
-            <FieldSelector 
-              selectedFields={selectedFields}
-              setSelectedFields={setSelectedFields}
-              maxSelections={3}
+            <ProgrammingLanguageSelector 
+              selectedLanguages={selectedLanguages}
+              setSelectedLanguages={setSelectedLanguages}
+              maxSelections={5}
             />
           </ScrollArea>
           <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" onClick={() => setOpenFieldsDialog(false)}>
+            <Button variant="outline" onClick={() => setOpenLanguagesDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={saveFieldsToProfile} disabled={isSaving}>
+            <Button onClick={saveLanguagesToProfile} disabled={isSaving}>
               {isSaving ? 'Saving...' : 'Save Changes'}
             </Button>
           </div>
@@ -380,3 +378,4 @@ const Settings = () => {
 };
 
 export default Settings;
+
