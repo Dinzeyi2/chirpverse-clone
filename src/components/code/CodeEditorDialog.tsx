@@ -4,6 +4,8 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } f
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Copy, FileCode } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface CodeEditorDialogProps {
   open: boolean;
@@ -41,58 +43,158 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
   onSave
 }) => {
   const [code, setCode] = useState('');
-  const [language, setLanguage] = useState('javascript');
+  const [language, setLanguage] = useState('typescript');
+  const [fileName, setFileName] = useState('');
 
   const handleSave = () => {
     onSave(code, language);
     onClose();
   };
 
+  const getFileExtension = (lang: string): string => {
+    switch (lang.toLowerCase()) {
+      case 'javascript': return 'js';
+      case 'typescript': return 'ts';
+      case 'jsx': return 'jsx';
+      case 'tsx': return 'tsx';
+      case 'html': return 'html';
+      case 'css': return 'css';
+      case 'python': return 'py';
+      case 'ruby': return 'rb';
+      case 'go': return 'go';
+      case 'rust': return 'rs';
+      case 'java': return 'java';
+      case 'c': return 'c';
+      case 'cpp': return 'cpp';
+      case 'csharp': return 'cs';
+      case 'php': return 'php';
+      case 'swift': return 'swift';
+      case 'kotlin': return 'kt';
+      case 'json': return 'json';
+      case 'yaml': return 'yaml';
+      case 'markdown': return 'md';
+      default: return language;
+    }
+  };
+
+  const handleLanguageChange = (lang: string) => {
+    setLanguage(lang);
+    const defaultFileName = `file.${getFileExtension(lang)}`;
+    if (!fileName) {
+      setFileName(defaultFileName);
+    } else {
+      // Update extension if the filename already has one
+      const nameWithoutExt = fileName.split('.')[0];
+      setFileName(`${nameWithoutExt}.${getFileExtension(lang)}`);
+    }
+  };
+
+  // Set a default filename on component mount if not set
+  React.useEffect(() => {
+    if (!fileName) {
+      setFileName(`file.${getFileExtension(language)}`);
+    }
+  }, [fileName, language]);
+
+  const getColorForToken = (token: string, lang: string): string => {
+    // Simple syntax highlighting based on token patterns
+    const patterns = {
+      keyword: /^(const|let|var|function|class|if|else|return|import|export|from|for|while|switch|case|break|continue|try|catch|throw|new|this|super|extends|implements|interface|type|enum|public|private|protected|static|async|await|yield|delete|typeof|instanceof|of|in|do|with)$/,
+      string: /^(['"`]).*\1$/,
+      number: /^\d+(\.\d+)?$/,
+      boolean: /^(true|false)$/,
+      comment: /^(\/\/|\/\*|\*\/).*$/,
+      punctuation: /[{}[\]().,;:]/,
+      operator: /[+\-*/%=&|^~<>!?]/,
+      variable: /^[a-zA-Z_$][a-zA-Z0-9_$]*$/,
+    };
+
+    if (token.trim().startsWith('import') || token.trim().startsWith('export') || token.trim().startsWith('from')) {
+      return 'text-pink-500'; // import/export statements
+    } else if (patterns.keyword.test(token)) {
+      return 'text-purple-600'; // keywords
+    } else if (patterns.string.test(token) || token.startsWith('"') || token.startsWith("'") || token.startsWith('`')) {
+      return 'text-green-600'; // strings
+    } else if (patterns.number.test(token)) {
+      return 'text-blue-600'; // numbers
+    } else if (patterns.boolean.test(token)) {
+      return 'text-blue-600'; // booleans
+    } else if (patterns.comment.test(token) || token.startsWith('//') || token.startsWith('/*') || token.startsWith('*')) {
+      return 'text-gray-500'; // comments
+    } else if (patterns.punctuation.test(token)) {
+      return 'text-gray-600'; // punctuation
+    } else if (patterns.operator.test(token)) {
+      return 'text-red-500'; // operators
+    } else if (token === 'DEFAULT' || token === 'config') {
+      return 'text-blue-500'; // special variables
+    } else if (token.startsWith('hsl')) {
+      return 'text-green-500'; // hsl values
+    } else {
+      return ''; // default color
+    }
+  };
+
+  const lineNumbers = code.split('\n').map((_, i) => i + 1);
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
-        <DialogTitle>Code Editor</DialogTitle>
-        <DialogDescription>
-          Add your code snippet below. Select the language for syntax highlighting.
-        </DialogDescription>
-        
-        <div className="flex flex-col space-y-4 h-full">
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden bg-[#1e1e1e] text-white border-gray-800">
+        <div className="flex items-center justify-between px-4 py-2 bg-[#252526] border-b border-gray-800">
+          <div className="flex items-center text-sm text-gray-300">
+            <FileCode size={16} className="mr-2 text-gray-400" />
+            <input
+              type="text"
+              value={fileName}
+              onChange={(e) => setFileName(e.target.value)}
+              className="font-medium bg-transparent border-none outline-none"
+              placeholder="Untitled.ts"
+            />
+          </div>
           <div className="flex items-center space-x-2">
-            <label htmlFor="language" className="text-sm font-medium">Language:</label>
             <Select
               value={language}
-              onValueChange={setLanguage}
+              onValueChange={handleLanguageChange}
             >
-              <SelectTrigger id="language" className="w-[180px]">
+              <SelectTrigger id="language" className="w-[140px] h-8 text-xs bg-[#3c3c3c] border-gray-700">
                 <SelectValue placeholder="Select language" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-[#252526] border-gray-700 text-gray-300">
                 {LANGUAGE_OPTIONS.map(option => (
-                  <SelectItem key={option.value} value={option.value}>
+                  <SelectItem key={option.value} value={option.value} className="text-xs hover:bg-[#2a2d2e]">
                     {option.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+        </div>
+        
+        <div className="flex flex-1 overflow-hidden">
+          <div className="w-[50px] py-2 bg-[#1e1e1e] text-right text-xs text-gray-500 select-none border-r border-gray-800 overflow-y-auto">
+            {lineNumbers.map(num => (
+              <div key={num} className="pr-3 leading-6">{num}</div>
+            ))}
+          </div>
           
-          <ScrollArea className="border rounded-md flex-1 min-h-[300px]">
-            <div className="p-0">
-              <textarea
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                className="w-full h-[300px] font-mono text-sm p-4 bg-black/5 dark:bg-white/5 resize-none outline-none border-none"
-                placeholder="// Write your code here..."
-                spellCheck="false"
-              />
-            </div>
-          </ScrollArea>
+          <div className="flex-1 overflow-auto">
+            <textarea
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              className="w-full h-full min-h-[400px] font-mono text-sm p-2 bg-[#1e1e1e] resize-none outline-none border-none text-gray-300"
+              placeholder="// Write your code here..."
+              spellCheck="false"
+            />
+          </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSave}>Insert Code</Button>
-        </DialogFooter>
+        <div className="flex items-center justify-end px-4 py-2 bg-[#252526] border-t border-gray-800 gap-2">
+          <Button variant="outline" onClick={onClose} className="h-8 text-xs bg-[#3c3c3c] border-gray-700 text-gray-300 hover:bg-[#4c4c4c]">
+            Cancel
+          </Button>
+          <Button onClick={handleSave} className="h-8 text-xs bg-[#007acc] hover:bg-[#0069ac] text-white border-none">
+            Insert Code
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

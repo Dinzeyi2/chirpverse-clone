@@ -67,29 +67,31 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className }) => {
       variable: /^[a-zA-Z_$][a-zA-Z0-9_$]*$/,
     };
 
-    // CSS language-specific colors
-    if (token.trim().startsWith('import') || token.trim().startsWith('export') || token.trim().startsWith('from')) {
-      return 'text-pink-500 dark:text-pink-400'; // import/export statements
+    // VSCode-like syntax highlighting colors
+    if (token.trim() === 'import' || token.trim() === 'export' || token.trim() === 'from' || token.trim() === 'type' || token.trim() === 'const') {
+      return 'text-[#C586C0]'; // purple for keywords like import/export/from/type
     } else if (patterns.keyword.test(token)) {
-      return 'text-purple-600 dark:text-purple-400'; // keywords
+      return 'text-[#569CD6]'; // blue for keywords
     } else if (patterns.string.test(token) || token.startsWith('"') || token.startsWith("'") || token.startsWith('`')) {
-      return 'text-green-600 dark:text-green-400'; // strings
+      return 'text-[#CE9178]'; // brown-orange for strings
     } else if (patterns.number.test(token)) {
-      return 'text-blue-600 dark:text-blue-400'; // numbers
+      return 'text-[#B5CEA8]'; // light green for numbers
     } else if (patterns.boolean.test(token)) {
-      return 'text-blue-600 dark:text-blue-400'; // booleans
+      return 'text-[#569CD6]'; // blue for booleans
     } else if (patterns.comment.test(token) || token.startsWith('//') || token.startsWith('/*') || token.startsWith('*')) {
-      return 'text-gray-500 dark:text-gray-400'; // comments
+      return 'text-[#6A9955]'; // green for comments
     } else if (patterns.punctuation.test(token)) {
-      return 'text-gray-600 dark:text-gray-300'; // punctuation
+      return 'text-[#D4D4D4]'; // light gray for punctuation
     } else if (patterns.operator.test(token)) {
-      return 'text-red-500 dark:text-red-400'; // operators
-    } else if (token === 'DEFAULT' || token === 'config') {
-      return 'text-blue-500 dark:text-blue-400'; // special variables
+      return 'text-[#D4D4D4]'; // light gray for operators
+    } else if (token === 'config' || token === 'Config') {
+      return 'text-[#4EC9B0]'; // teal for types/interfaces
+    } else if (token === 'DEFAULT') {
+      return 'text-[#9CDCFE]'; // light blue for variables
     } else if (token.startsWith('hsl')) {
-      return 'text-green-500 dark:text-green-400'; // hsl values
+      return 'text-[#DCDCAA]'; // yellow for functions
     } else {
-      return ''; // default color
+      return 'text-[#9CDCFE]'; // light blue default for variables
     }
   }
 
@@ -166,20 +168,20 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className }) => {
 
   return (
     <div className={cn(
-      "my-4 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900",
+      "my-4 rounded-lg overflow-hidden border border-gray-700 bg-[#1e1e1e]",
       "shadow-sm",
       className
     )}>
-      <div className="flex items-center justify-between px-4 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-          <FileCode size={16} className="mr-2" />
+      <div className="flex items-center justify-between px-4 py-2 bg-[#252526] border-b border-gray-700">
+        <div className="flex items-center text-sm text-gray-300">
+          <FileCode size={16} className="mr-2 text-gray-400" />
           <span className="font-medium">{fileName}</span>
         </div>
         <div className="flex items-center space-x-2">
           {hasLongCode && (
             <button 
               onClick={() => setExpanded(!expanded)} 
-              className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              className="p-1 text-gray-400 hover:text-gray-200"
               aria-label={expanded ? "Collapse code" : "Expand code"}
             >
               {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -187,7 +189,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className }) => {
           )}
           <button 
             onClick={copyToClipboard} 
-            className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            className="p-1 text-gray-400 hover:text-gray-200"
             aria-label="Copy code"
           >
             {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
@@ -196,15 +198,15 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className }) => {
       </div>
       <div className="relative overflow-x-auto">
         <div className="flex text-sm font-mono">
-          <div className="py-4 pl-4 pr-3 text-right select-none bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 min-w-[2.5rem]">
+          <div className="py-4 pl-4 pr-3 text-right select-none bg-[#1e1e1e] text-gray-500 border-r border-gray-700 min-w-[2.5rem]">
             {codeLines.map((_, i) => (
               <div key={i} className="leading-6">
                 {i + 1}
               </div>
             ))}
           </div>
-          <pre className="overflow-x-auto py-4 pl-4 pr-4 flex-grow">
-            <code className="font-mono whitespace-pre text-sm">
+          <pre className="overflow-x-auto py-4 pl-4 pr-4 flex-grow bg-[#1e1e1e]">
+            <code className="font-mono whitespace-pre text-sm text-[#D4D4D4]">
               {codeLines.map((line, i) => (
                 <div key={i} className="leading-6">
                   {tokenizeLine(line, language)}
