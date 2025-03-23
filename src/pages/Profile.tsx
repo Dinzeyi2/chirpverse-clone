@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
@@ -344,12 +345,13 @@ const Profile = () => {
           userId: post.user_id,
           user: {
             id: post.user_id,
-            name: post.profiles?.full_name || 'Unknown User',
             username: post.user_id.substring(0, 8),
+            email: 'user@example.com', // Added required email field
             avatar: post.profiles?.avatar_url || 'https://i.pravatar.cc/150?img=1',
+            verified: false,
+            name: post.profiles?.full_name || 'Unknown User',
             following: 0,
-            followers: 0,
-            verified: false
+            followers: 0
           },
           isOwner: isCurrentUser
         }));

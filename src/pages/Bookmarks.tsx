@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Bookmark, Search, MoreHorizontal, Trash2, BookmarkX } from 'lucide-react';
@@ -49,22 +50,23 @@ const Bookmarks = () => {
         return {
           id: id,
           content: `Bookmarked post #${index + 1}`,
-          user: {
-            id: `user-${index}`, // Added required id property
-            name: 'User Name',
-            username: 'username',
-            avatar: `https://i.pravatar.cc/150?img=${(index % 10) + 1}`,
-            verified: index % 3 === 0,
-            following: Math.floor(Math.random() * 500), // Added required following property
-            followers: Math.floor(Math.random() * 1000) // Added required followers property
-          },
+          userId: userData.user.id,
           createdAt: new Date().toISOString(),
           likes: Math.floor(Math.random() * 100),
           replies: Math.floor(Math.random() * 50),
           reposts: Math.floor(Math.random() * 30),
           views: Math.floor(Math.random() * 500),
-          userId: userData.user.id,
           bookmarked: true,
+          user: {
+            id: `user-${index}`,
+            username: 'username',
+            email: 'user@example.com',
+            avatar: `https://i.pravatar.cc/150?img=${(index % 10) + 1}`,
+            verified: index % 3 === 0,
+            name: 'User Name',
+            following: Math.floor(Math.random() * 500),
+            followers: Math.floor(Math.random() * 1000)
+          },
           images: index % 2 === 0 ? [`https://picsum.photos/500/300?random=${index}`] : []
         };
       });

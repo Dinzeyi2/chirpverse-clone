@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, MessageCircle, UserCircle, Heart, Star, ThumbsUp, Flame } from 'lucide-react';
@@ -64,7 +65,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   });
   
   const [formData, setFormData] = useState({
-    name: user.name,
+    name: user.name || '',
     profession: user.profession || '',
   });
   

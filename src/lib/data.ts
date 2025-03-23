@@ -1,9 +1,26 @@
+
 export interface User {
   id: string;
   username: string;
   email: string;
   avatar: string;
   verified: boolean;
+  name?: string;
+  profession?: string;
+  following?: number;
+  followers?: number;
+}
+
+export interface Comment {
+  id: string;
+  content: string;
+  createdAt: string;
+  userId: string;
+  user?: User;
+  media?: {
+    type: string;
+    url: string;
+  }[];
 }
 
 export interface Post {
@@ -13,8 +30,12 @@ export interface Post {
   userId: string;
   likes: number;
   replies: number;
+  reposts?: number;
+  views?: number;
   user?: User;
   liked?: boolean;
+  bookmarked?: boolean;
+  isOwner?: boolean;
   images?: string[];
   codeBlocks?: {code: string, language: string}[];
 }

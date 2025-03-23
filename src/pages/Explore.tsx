@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import SwipeablePostView from '@/components/feed/SwipeablePostView';
@@ -28,10 +29,11 @@ const Explore = () => {
         userId: 'user1',
         user: {
           id: 'user1',
-          name: 'John Doe',
           username: 'johndoe',
+          email: 'john@example.com',
           avatar: 'https://i.pravatar.cc/150?img=1',
           verified: true,
+          name: 'John Doe',
           followers: 5000,
           following: 750
         }
@@ -47,10 +49,11 @@ const Explore = () => {
         userId: 'user2',
         user: {
           id: 'user2',
-          name: 'Jane Smith',
           username: 'janesmith',
+          email: 'jane@example.com',
           avatar: 'https://i.pravatar.cc/150?img=2',
           verified: false,
+          name: 'Jane Smith',
           followers: 3200,
           following: 420
         }
@@ -66,10 +69,11 @@ const Explore = () => {
         userId: 'user3',
         user: {
           id: 'user3',
-          name: 'Mark Wilson',
           username: 'markwilson',
+          email: 'mark@example.com',
           avatar: 'https://i.pravatar.cc/150?img=3',
           verified: true,
+          name: 'Mark Wilson',
           followers: 12000,
           following: 350
         }
@@ -85,10 +89,11 @@ const Explore = () => {
         userId: 'user4',
         user: {
           id: 'user4',
-          name: 'Sarah Johnson',
           username: 'sarahj',
+          email: 'sarah@example.com',
           avatar: 'https://i.pravatar.cc/150?img=4',
           verified: true,
+          name: 'Sarah Johnson',
           followers: 25000,
           following: 410
         }
@@ -104,10 +109,11 @@ const Explore = () => {
         userId: 'user5',
         user: {
           id: 'user5',
-          name: 'Alex Thompson',
           username: 'alexthompson',
+          email: 'alex@example.com',
           avatar: 'https://i.pravatar.cc/150?img=5',
           verified: false,
+          name: 'Alex Thompson',
           followers: 4800,
           following: 650
         }
@@ -154,10 +160,11 @@ const Explore = () => {
           userId: `user-${index}`,
           user: {
             id: `user-${index}`,
-            name: `User ${index + 1}`,
             username: `user${index + 1}`,
+            email: `user${index+1}@example.com`,
             avatar: `https://i.pravatar.cc/150?img=${(index % 10) + 1}`,
             verified: index % 3 === 0,
+            name: `User ${index + 1}`,
             followers: Math.floor(Math.random() * 10000),
             following: Math.floor(Math.random() * 1000)
           }
