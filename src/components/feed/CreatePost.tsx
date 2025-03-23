@@ -1,11 +1,11 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { Image, Smile, X, Video } from 'lucide-react';
+import { Image, X, Video, SmilePlus } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { toast } from 'sonner';
 import { DialogClose } from '@/components/ui/dialog';
 import { supabase, extractLanguageMentions, notifyLanguageUsers } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
-import EmojiPicker from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -29,6 +29,26 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const maxImages = 2;
   const maxVideoLength = 120; // 2 minutes in seconds
   
+  // Common emojis used in Slack-style
+  const frequentEmojis = [
+    { emoji: '👍', name: 'thumbs up' },
+    { emoji: '❤️', name: 'heart' },
+    { emoji: '😊', name: 'smile' },
+    { emoji: '🎉', name: 'party' },
+    { emoji: '👏', name: 'clap' },
+    { emoji: '🔥', name: 'fire' },
+    { emoji: '💯', name: 'hundred' },
+    { emoji: '🙌', name: 'raised hands' },
+    { emoji: '😂', name: 'joy' },
+    { emoji: '🤔', name: 'thinking' },
+    { emoji: '👋', name: 'wave' },
+    { emoji: '✅', name: 'check' },
+    { emoji: '⭐', name: 'star' },
+    { emoji: '🚀', name: 'rocket' },
+    { emoji: '👀', name: 'eyes' },
+    { emoji: '👌', name: 'ok hand' }
+  ];
+  
   useEffect(() => {
     if (inDialog && textareaRef.current) {
       textareaRef.current.focus();
@@ -51,24 +71,36 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     }
   };
 
-  const handleEmojiClick = (emojiData: { emoji: string }) => {
-    if (postContent.length + emojiData.emoji.length <= maxChars) {
-      const newText = postContent + emojiData.emoji;
-      setPostContent(newText);
-      setCharCount(newText.length);
-      
-      setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.focus();
-          autoResizeTextarea();
-        }
-      }, 10);
-    }
-    
-    const event = window.event;
-    if (event) {
-      event.stopPropagation();
-      event.preventDefault();
+  const handleEmojiClick = (emoji: string) => {
+    if (postContent.length + emoji.length <= maxChars) {
+      if (textareaRef.current) {
+        const cursorPosition = textareaRef.current.selectionStart;
+        const textBefore = postContent.substring(0, cursorPosition);
+        const textAfter = postContent.substring(cursorPosition);
+        
+        const newText = textBefore + emoji + textAfter;
+        setPostContent(newText);
+        setCharCount(newText.length);
+        
+        // Close the emoji picker
+        setEmojiPickerOpen(false);
+        
+        setTimeout(() => {
+          if (textareaRef.current) {
+            textareaRef.current.focus();
+            // Set cursor position after the inserted emoji
+            textareaRef.current.selectionStart = cursorPosition + emoji.length;
+            textareaRef.current.selectionEnd = cursorPosition + emoji.length;
+            autoResizeTextarea();
+          }
+        }, 10);
+      } else {
+        // Fallback if textarea ref isn't available
+        const newText = postContent + emoji;
+        setPostContent(newText);
+        setCharCount(newText.length);
+        setEmojiPickerOpen(false);
+      }
     }
   };
 
@@ -391,27 +423,25 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                       className="p-2 text-xBlue rounded-full hover:bg-xBlue/10 transition-colors"
                       disabled={isLoading}
                     >
-                      <Smile size={20} />
+                      <SmilePlus size={20} />
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[352px] p-0 border-none shadow-xl" align="start" side="top" onPointerDownOutside={(e) => {
-                    if (e.target && (e.target as HTMLElement).closest('.emoji-picker-react')) {
-                      e.preventDefault();
-                    }
-                  }}>
-                    <div className="emoji-picker-container w-full h-[350px]" onClick={(e) => e.stopPropagation()}>
-                      <EmojiPicker
-                        onEmojiClick={handleEmojiClick}
-                        width="100%"
-                        height={350}
-                        lazyLoadEmojis={false}
-                        searchDisabled={false}
-                        skinTonesDisabled={false}
-                        previewConfig={{
-                          showPreview: true,
-                          defaultCaption: "Pick an emoji..."
-                        }}
-                      />
+                  <PopoverContent className="w-[280px] p-0 border-none shadow-xl" align="start" side="top">
+                    <div className="p-2">
+                      <div className="text-sm font-medium text-gray-500 mb-2 px-2">Frequently Used</div>
+                      <div className="grid grid-cols-8 gap-1">
+                        {frequentEmojis.map((emojiItem, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            className="p-1.5 hover:bg-gray-100 rounded text-xl transition-colors"
+                            onClick={() => handleEmojiClick(emojiItem.emoji)}
+                            title={emojiItem.name}
+                          >
+                            {emojiItem.emoji}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </PopoverContent>
                 </Popover>
