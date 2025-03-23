@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -85,32 +84,27 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
     if (!fileName) {
       setFileName(defaultFileName);
     } else {
-      // Update extension if the filename already has one
       const nameWithoutExt = fileName.split('.')[0];
       setFileName(`${nameWithoutExt}.${getFileExtension(lang)}`);
     }
   };
 
-  // Set a default filename on component mount if not set
   useEffect(() => {
     if (!fileName) {
       setFileName(`file.${getFileExtension(language)}`);
     }
   }, [fileName, language]);
 
-  // Handle textarea scroll sync with line numbers
   const handleTextareaScroll = () => {
     if (textareaRef.current && lineNumbersRef.current) {
       lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
     }
   };
 
-  // Handle textarea input (including new lines)
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setCode(e.target.value);
   };
 
-  // Calculate line numbers based on code content
   const lineNumbers = code.split('\n').map((_, i) => i + 1);
 
   return (
@@ -149,7 +143,7 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
         <div className="flex flex-1 overflow-hidden">
           <div 
             ref={lineNumbersRef}
-            className="w-[50px] py-2 bg-[#1e1e1e] text-right text-xs text-gray-500 select-none border-r border-gray-800 overflow-hidden"
+            className="w-[50px] bg-[#1e1e1e] text-right text-xs text-gray-500 select-none border-r border-gray-800 overflow-y-hidden"
           >
             {lineNumbers.map(num => (
               <div key={num} className="pr-3 leading-6">{num}</div>

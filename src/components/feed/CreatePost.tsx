@@ -434,14 +434,16 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                         <X size={16} />
                       </button>
                     </div>
-                    <div className="overflow-x-auto max-h-[200px]">
-                      <pre className="p-3 text-sm font-mono">
-                        <code className="whitespace-pre text-gray-800 dark:text-gray-300">
-                          {codeBlock.code.length > 100 
-                            ? codeBlock.code.substring(0, 100) + '...' 
-                            : codeBlock.code}
-                        </code>
-                      </pre>
+                    <div className="overflow-x-auto">
+                      <ScrollArea className="max-h-[200px]">
+                        <pre className="p-3 text-sm font-mono">
+                          <code className="whitespace-pre text-gray-800 dark:text-gray-300">
+                            {codeBlock.code.length > 100 
+                              ? codeBlock.code.substring(0, 100) + '...' 
+                              : codeBlock.code}
+                          </code>
+                        </pre>
+                      </ScrollArea>
                     </div>
                   </div>
                 </div>

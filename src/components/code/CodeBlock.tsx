@@ -196,7 +196,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className }) => {
           </button>
         </div>
       </div>
-      <div className="relative overflow-x-auto">
+      <div className="relative overflow-hidden" style={{ maxHeight: expanded ? '80vh' : '400px' }}>
         <div className="flex text-sm font-mono">
           <div className="py-4 pl-4 pr-3 text-right select-none bg-[#1e1e1e] text-gray-500 border-r border-gray-700 min-w-[2.5rem]">
             {codeLines.map((_, i) => (
