@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -110,6 +111,9 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden bg-[#1e1e1e] text-white border-gray-800">
+        <DialogTitle className="sr-only">Code Editor</DialogTitle>
+        <DialogDescription className="sr-only">Edit your code snippet</DialogDescription>
+        
         <div className="flex items-center justify-between px-4 py-2 bg-[#252526] border-b border-gray-800">
           <div className="flex items-center text-sm text-gray-300">
             <FileCode size={16} className="mr-2 text-gray-400" />
@@ -143,7 +147,7 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
         <div className="flex flex-1 overflow-hidden">
           <div 
             ref={lineNumbersRef}
-            className="w-[50px] bg-[#1e1e1e] text-right text-xs text-gray-500 select-none border-r border-gray-800 overflow-y-hidden"
+            className="w-[50px] bg-[#1e1e1e] text-right text-xs text-gray-500 select-none border-r border-gray-800 overflow-y-auto"
           >
             {lineNumbers.map(num => (
               <div key={num} className="pr-3 leading-6">{num}</div>

@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Check, Copy, ChevronDown, ChevronUp, FileCode } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface CodeBlockProps {
   code: string;
@@ -196,28 +197,30 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className }) => {
           </button>
         </div>
       </div>
-      <div className="relative overflow-hidden" style={{ maxHeight: expanded ? '80vh' : '400px' }}>
-        <div className="flex text-sm font-mono">
-          <div className="py-4 pl-4 pr-3 text-right select-none bg-[#1e1e1e] text-gray-500 border-r border-gray-700 min-w-[2.5rem]">
-            {codeLines.map((_, i) => (
-              <div key={i} className="leading-6">
-                {i + 1}
-              </div>
-            ))}
-          </div>
-          <div className="overflow-x-auto w-full">
-            <pre className="py-4 pl-4 pr-4 font-mono whitespace-pre">
-              <code className="text-sm text-[#D4D4D4]">
-                {codeLines.map((line, i) => (
-                  <div key={i} className="leading-6">
-                    {tokenizeLine(line, language)}
-                  </div>
-                ))}
-              </code>
-            </pre>
+      <ScrollArea className={expanded ? 'h-[80vh]' : 'h-[400px]'}>
+        <div className="relative">
+          <div className="flex text-sm font-mono">
+            <div className="py-4 pl-4 pr-3 text-right select-none bg-[#1e1e1e] text-gray-500 border-r border-gray-700 min-w-[2.5rem]">
+              {codeLines.map((_, i) => (
+                <div key={i} className="leading-6">
+                  {i + 1}
+                </div>
+              ))}
+            </div>
+            <div className="overflow-x-auto w-full">
+              <pre className="py-4 pl-4 pr-4 font-mono whitespace-pre">
+                <code className="text-sm text-[#D4D4D4]">
+                  {codeLines.map((line, i) => (
+                    <div key={i} className="leading-6">
+                      {tokenizeLine(line, language)}
+                    </div>
+                  ))}
+                </code>
+              </pre>
+            </div>
           </div>
         </div>
-      </div>
+      </ScrollArea>
     </div>
   );
 };
