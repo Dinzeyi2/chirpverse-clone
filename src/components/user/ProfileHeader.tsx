@@ -154,7 +154,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     'https://i.pravatar.cc/150?img=6',
     'https://i.pravatar.cc/150?img=7',
     'https://i.pravatar.cc/150?img=8',
-    '/lovable-uploads/e393d1e5-eb82-4b44-b7de-b719d0ee9483.png',
+    '/lovable-uploads/60d558bd-9de4-44f8-81bb-468b61ac1f0e.png',
   ];
   
   const galleryImages = [
