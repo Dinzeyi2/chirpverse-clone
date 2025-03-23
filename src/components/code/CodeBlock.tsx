@@ -205,15 +205,17 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className }) => {
               </div>
             ))}
           </div>
-          <pre className="overflow-x-auto py-4 pl-4 pr-4 flex-grow bg-[#1e1e1e]">
-            <code className="font-mono whitespace-pre text-sm text-[#D4D4D4]">
-              {codeLines.map((line, i) => (
-                <div key={i} className="leading-6">
-                  {tokenizeLine(line, language)}
-                </div>
-              ))}
-            </code>
-          </pre>
+          <div className="overflow-x-auto w-full">
+            <pre className="py-4 pl-4 pr-4 font-mono whitespace-pre">
+              <code className="text-sm text-[#D4D4D4]">
+                {codeLines.map((line, i) => (
+                  <div key={i} className="leading-6">
+                    {tokenizeLine(line, language)}
+                  </div>
+                ))}
+              </code>
+            </pre>
+          </div>
         </div>
       </div>
     </div>

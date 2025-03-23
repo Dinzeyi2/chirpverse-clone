@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -45,6 +45,8 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
   const [code, setCode] = useState('');
   const [language, setLanguage] = useState('typescript');
   const [fileName, setFileName] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const lineNumbersRef = useRef<HTMLDivElement>(null);
 
   const handleSave = () => {
     onSave(code, language);
@@ -90,50 +92,25 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
   };
 
   // Set a default filename on component mount if not set
-  React.useEffect(() => {
+  useEffect(() => {
     if (!fileName) {
       setFileName(`file.${getFileExtension(language)}`);
     }
   }, [fileName, language]);
 
-  const getColorForToken = (token: string, lang: string): string => {
-    // Simple syntax highlighting based on token patterns
-    const patterns = {
-      keyword: /^(const|let|var|function|class|if|else|return|import|export|from|for|while|switch|case|break|continue|try|catch|throw|new|this|super|extends|implements|interface|type|enum|public|private|protected|static|async|await|yield|delete|typeof|instanceof|of|in|do|with)$/,
-      string: /^(['"`]).*\1$/,
-      number: /^\d+(\.\d+)?$/,
-      boolean: /^(true|false)$/,
-      comment: /^(\/\/|\/\*|\*\/).*$/,
-      punctuation: /[{}[\]().,;:]/,
-      operator: /[+\-*/%=&|^~<>!?]/,
-      variable: /^[a-zA-Z_$][a-zA-Z0-9_$]*$/,
-    };
-
-    if (token.trim().startsWith('import') || token.trim().startsWith('export') || token.trim().startsWith('from')) {
-      return 'text-pink-500'; // import/export statements
-    } else if (patterns.keyword.test(token)) {
-      return 'text-purple-600'; // keywords
-    } else if (patterns.string.test(token) || token.startsWith('"') || token.startsWith("'") || token.startsWith('`')) {
-      return 'text-green-600'; // strings
-    } else if (patterns.number.test(token)) {
-      return 'text-blue-600'; // numbers
-    } else if (patterns.boolean.test(token)) {
-      return 'text-blue-600'; // booleans
-    } else if (patterns.comment.test(token) || token.startsWith('//') || token.startsWith('/*') || token.startsWith('*')) {
-      return 'text-gray-500'; // comments
-    } else if (patterns.punctuation.test(token)) {
-      return 'text-gray-600'; // punctuation
-    } else if (patterns.operator.test(token)) {
-      return 'text-red-500'; // operators
-    } else if (token === 'DEFAULT' || token === 'config') {
-      return 'text-blue-500'; // special variables
-    } else if (token.startsWith('hsl')) {
-      return 'text-green-500'; // hsl values
-    } else {
-      return ''; // default color
+  // Handle textarea scroll sync with line numbers
+  const handleTextareaScroll = () => {
+    if (textareaRef.current && lineNumbersRef.current) {
+      lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
     }
   };
 
+  // Handle textarea input (including new lines)
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setCode(e.target.value);
+  };
+
+  // Calculate line numbers based on code content
   const lineNumbers = code.split('\n').map((_, i) => i + 1);
 
   return (
@@ -170,21 +147,24 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
         </div>
         
         <div className="flex flex-1 overflow-hidden">
-          <div className="w-[50px] py-2 bg-[#1e1e1e] text-right text-xs text-gray-500 select-none border-r border-gray-800 overflow-y-auto">
+          <div 
+            ref={lineNumbersRef}
+            className="w-[50px] py-2 bg-[#1e1e1e] text-right text-xs text-gray-500 select-none border-r border-gray-800 overflow-hidden"
+          >
             {lineNumbers.map(num => (
               <div key={num} className="pr-3 leading-6">{num}</div>
             ))}
           </div>
           
-          <div className="flex-1 overflow-auto">
-            <textarea
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="w-full h-full min-h-[400px] font-mono text-sm p-2 bg-[#1e1e1e] resize-none outline-none border-none text-gray-300"
-              placeholder="// Write your code here..."
-              spellCheck="false"
-            />
-          </div>
+          <textarea
+            ref={textareaRef}
+            value={code}
+            onChange={handleTextareaChange}
+            onScroll={handleTextareaScroll}
+            className="flex-1 w-full h-full min-h-[400px] max-h-[calc(90vh-120px)] font-mono text-sm p-2 bg-[#1e1e1e] resize-none outline-none border-none text-gray-300 overflow-auto"
+            placeholder="// Write your code here..."
+            spellCheck="false"
+          />
         </div>
 
         <div className="flex items-center justify-end px-4 py-2 bg-[#252526] border-t border-gray-800 gap-2">

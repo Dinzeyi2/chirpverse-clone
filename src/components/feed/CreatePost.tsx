@@ -419,8 +419,8 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
               
               {codeBlocks.map((codeBlock, index) => (
                 <div key={index} className="my-2 relative">
-                  <div className="rounded-lg overflow-hidden border border-gray-200 bg-gray-50 dark:bg-gray-900 dark:border-gray-700">
-                    <div className="px-3 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                  <div className="rounded-lg overflow-hidden border border-gray-200 bg-gray-50 dark:bg-[#1e1e1e] dark:border-gray-700">
+                    <div className="px-3 py-2 bg-gray-100 dark:bg-[#252526] border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                       <span className="text-sm font-medium text-gray-600 dark:text-gray-300">{codeBlock.language}</span>
                       <button
                         type="button"
@@ -434,12 +434,15 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                         <X size={16} />
                       </button>
                     </div>
-                    <pre className="overflow-x-auto p-3 text-sm font-mono">
-                      <code>{codeBlock.code.length > 100 
-                        ? codeBlock.code.substring(0, 100) + '...' 
-                        : codeBlock.code}
-                      </code>
-                    </pre>
+                    <div className="overflow-x-auto max-h-[200px]">
+                      <pre className="p-3 text-sm font-mono">
+                        <code className="whitespace-pre text-gray-800 dark:text-gray-300">
+                          {codeBlock.code.length > 100 
+                            ? codeBlock.code.substring(0, 100) + '...' 
+                            : codeBlock.code}
+                        </code>
+                      </pre>
+                    </div>
                   </div>
                 </div>
               ))}
