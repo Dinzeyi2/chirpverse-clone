@@ -355,22 +355,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
               )}
             </div>
             
-            {inDialog && (
-              <div className="py-3 border-t border-xExtraLightGray">
-                <button
-                  type="button"
-                  className="text-xBlue text-sm font-medium flex items-center hover:bg-xBlue/10 rounded-full px-3 py-1"
-                >
-                  <span className="text-xBlue mr-1">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                      <g><path d="M12 1.75C6.34 1.75 1.75 6.34 1.75 12S6.34 22.25 12 22.25 22.25 17.66 22.25 12 17.66 1.75 12 1.75zm-.25 10.48L10.5 17.5l-2-1.5v-3.5L7.5 9 10.25 7.5h1.5V19l-1 1-1-1V10.48zm5-1.5L15.5 9v2.5h-2.5l-.15 .03 2.9 3.47 1-1.5v-3.5z"></path></g>
-                    </svg>
-                  </span>
-                  Everyone can reply
-                </button>
-              </div>
-            )}
-            
             <div className="flex items-center justify-between">
               <div className="flex -ml-2">
                 <input 
