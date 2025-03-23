@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Image, Smile, MapPin, Calendar, BarChart, X, Video } from 'lucide-react';
+import { Image, Smile, X, Video } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { toast } from 'sonner';
 import { DialogClose } from '@/components/ui/dialog';
@@ -209,7 +209,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         }
       }
       
-      // Insert post into database
       const { data: newPost, error: postError } = await supabase
         .from('shoutouts')
         .insert({
@@ -224,11 +223,9 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         throw new Error(`Failed to create post: ${postError.message}`);
       }
       
-      // Extract programming language mentions from post content
       const languageMentions = extractLanguageMentions(postContent);
       console.log('Detected language mentions:', languageMentions);
       
-      // Send notifications for each programming language mention
       if (languageMentions.length > 0 && newPost) {
         for (const language of languageMentions) {
           await notifyLanguageUsers(
@@ -276,7 +273,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const renderHighlightedContent = () => {
     if (!postContent) return null;
     
-    // Split content by @language mentions
     const parts = postContent.split(/(@\w+)/g);
     
     return (
@@ -419,30 +415,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                     </div>
                   </PopoverContent>
                 </Popover>
-                <button 
-                  type="button"
-                  className="p-2 text-xBlue rounded-full hover:bg-xBlue/10 transition-colors"
-                  onClick={() => toast.info('Location selector would open here')}
-                  disabled={isLoading}
-                >
-                  <MapPin size={20} />
-                </button>
-                <button 
-                  type="button"
-                  className="p-2 text-xBlue rounded-full hover:bg-xBlue/10 transition-colors"
-                  onClick={() => toast.info('Schedule post dialog would open here')}
-                  disabled={isLoading}
-                >
-                  <Calendar size={20} />
-                </button>
-                <button 
-                  type="button"
-                  className="p-2 text-xBlue rounded-full hover:bg-xBlue/10 transition-colors md:block hidden"
-                  onClick={() => toast.info('Analytics options would open here')}
-                  disabled={isLoading}
-                >
-                  <BarChart size={20} />
-                </button>
               </div>
               
               <div className="flex items-center">
