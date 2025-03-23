@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import CodeEditorDialog from '@/components/code/CodeEditorDialog';
 import CodeBlock from '@/components/code/CodeBlock';
+import { useIsMobile, useScreenSize } from '@/hooks/use-mobile';
 
 interface CreatePostProps {
   onPostCreated?: (content: string, media?: {type: string, url: string}[]) => void;
@@ -27,6 +28,8 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
+  const isMobile = useIsMobile();
+  const { width } = useScreenSize();
   
   const maxChars = 280;
   const maxImages = 2;
@@ -387,16 +390,24 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   };
 
   return (
-    <div className={inDialog ? 'bg-background' : 'px-4 pt-4 pb-2 border-b border-xExtraLightGray'}>
+    <div className={
+      inDialog 
+        ? isMobile 
+          ? 'bg-background fixed inset-0 z-50 flex flex-col h-full w-full overflow-auto' 
+          : 'bg-background'
+        : 'px-4 pt-4 pb-2 border-b border-xExtraLightGray'
+    }>
       {inDialog && (
-        <div className="flex items-center justify-between p-4 border-b border-xExtraLightGray">
+        <div className="flex items-center justify-between p-4 border-b border-xExtraLightGray sticky top-0 bg-background z-10">
           <DialogClose className="p-2 rounded-full hover:bg-xExtraLightGray/50">
             <X size={20} />
           </DialogClose>
+          <div className="font-medium">Compose Post</div>
+          <div className="w-10"></div>
         </div>
       )}
       
-      <div className="flex p-4">
+      <div className={`flex p-4 ${inDialog && isMobile ? 'flex-1 overflow-auto' : ''}`}>
         <div className="mr-3">
           <img 
             src="https://i.pravatar.cc/150?img=1" 
@@ -406,15 +417,15 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         </div>
         
         <div className="flex-1">
-          <form onSubmit={handleSubmit}>
-            <div className="mb-4 relative">
+          <form onSubmit={handleSubmit} className={inDialog && isMobile ? 'h-full flex flex-col' : ''}>
+            <div className={`mb-4 relative ${inDialog && isMobile ? 'flex-1 overflow-auto' : ''}`}>
               <textarea
                 ref={textareaRef}
                 className="w-full border-none text-xl focus:ring-0 resize-none placeholder:text-xGray/70 min-h-[120px] bg-transparent outline-none"
                 placeholder="What's happening? Use @language to tag a programming language"
                 value={postContent}
                 onChange={handleTextChange}
-                rows={3}
+                rows={isMobile && inDialog ? 10 : 3}
                 disabled={isLoading}
               />
               
@@ -470,7 +481,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
               )}
             </div>
             
-            <div className="flex items-center justify-between">
+            <div className={`flex items-center justify-between ${inDialog && isMobile ? 'sticky bottom-0 bg-background pt-2 border-t border-border' : ''}`}>
               <div className="flex -ml-2 p-2 border border-gray-200 rounded-full bg-background">
                 <input 
                   type="file" 
