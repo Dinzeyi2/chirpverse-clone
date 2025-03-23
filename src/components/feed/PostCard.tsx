@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
 import { useTheme } from '@/components/theme/theme-provider';
 import { useAuth } from '@/contexts/AuthContext';
+import CodeBlock from '@/components/code/CodeBlock';
 
 interface PostCardProps {
   post: Post;
@@ -510,6 +511,23 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     }
   };
 
+  const renderCodeBlocks = () => {
+    if (!post.codeBlocks || post.codeBlocks.length === 0) return null;
+    
+    return (
+      <div className="mt-2">
+        {post.codeBlocks.map((codeBlock, index) => (
+          <CodeBlock 
+            key={index}
+            code={codeBlock.code}
+            language={codeBlock.language}
+            className="mb-2"
+          />
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div 
       onClick={handlePostClick}
@@ -534,8 +552,9 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           />
         </div>
       ) : (
-        <div className="p-6 flex-1 flex items-center justify-center">
-          <p className={`text-xl text-center ${textColor} font-medium`}>{post.content}</p>
+        <div className="p-6 flex-1 flex flex-col">
+          <p className={`text-xl ${textColor} font-medium mb-3`}>{post.content}</p>
+          {renderCodeBlocks()}
         </div>
       )}
       
@@ -624,6 +643,10 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           <h2 className={`text-base font-bold ${textColor} leading-tight mb-1 line-clamp-2 p-3 pt-3`}>
             {post.content}
           </h2>
+          
+          <div className="px-3">
+            {renderCodeBlocks()}
+          </div>
           
           <div className="flex items-center mt-1 px-3 pb-3">
             <img 

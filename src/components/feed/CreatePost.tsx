@@ -7,6 +7,7 @@ import { supabase, extractLanguageMentions, notifyLanguageUsers } from "@/integr
 import { useAuth } from '@/contexts/AuthContext';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import CodeEditorDialog from '@/components/code/CodeEditorDialog';
 
 interface CreatePostProps {
   onPostCreated?: (content: string, media?: {type: string, url: string}[]) => void;
@@ -19,6 +20,8 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const [isLoading, setIsLoading] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<{type: string, file: File, preview: string}[]>([]);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const [isCodeEditorOpen, setIsCodeEditorOpen] = useState(false);
+  const [codeBlocks, setCodeBlocks] = useState<{code: string, language: string}[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -200,32 +203,48 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     e.target.value = '';
   };
 
-  const handleCodeClick = () => {
-    const codeSnippet = "```\n// your code here\n```";
+  const handleCodeClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsCodeEditorOpen(true);
+  };
+
+  const handleSaveCode = (code: string, language: string) => {
+    if (!code.trim()) return;
     
-    if (textareaRef.current) {
-      const cursorPos = textareaRef.current.selectionStart || postContent.length;
-      
-      const textBefore = postContent.substring(0, cursorPos);
-      const textAfter = postContent.substring(cursorPos);
-      const newText = textBefore + codeSnippet + textAfter;
-      
-      if (newText.length <= maxChars) {
+    const newCodeBlock = { code, language };
+    setCodeBlocks(prev => [...prev, newCodeBlock]);
+    
+    const codeBlockId = codeBlocks.length;
+    const codePlaceholder = `[CODE_BLOCK_${codeBlockId}]`;
+    
+    if (postContent.length + codePlaceholder.length <= maxChars) {
+      if (textareaRef.current) {
+        const cursorPos = textareaRef.current.selectionStart || postContent.length;
+        
+        const textBefore = postContent.substring(0, cursorPos);
+        const textAfter = postContent.substring(cursorPos);
+        const newText = textBefore + codePlaceholder + textAfter;
+        
         setPostContent(newText);
         setCharCount(newText.length);
         
         setTimeout(() => {
           if (textareaRef.current) {
             textareaRef.current.focus();
-            const newCursorPosition = cursorPos + 4; // Position cursor after ```\n
+            const newCursorPosition = cursorPos + codePlaceholder.length;
             textareaRef.current.selectionStart = newCursorPosition;
             textareaRef.current.selectionEnd = newCursorPosition;
             autoResizeTextarea();
           }
         }, 10);
       } else {
-        toast.error(`Adding code snippet would exceed the ${maxChars} character limit`);
+        const newText = postContent + codePlaceholder;
+        setPostContent(newText);
+        setCharCount(newText.length);
       }
+    } else {
+      toast.error(`Adding code would exceed the ${maxChars} character limit`);
     }
   };
 
@@ -236,8 +255,8 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!postContent.trim() && mediaFiles.length === 0) {
-      toast.error('Please enter some content or add media to your post');
+    if (!postContent.trim() && mediaFiles.length === 0 && codeBlocks.length === 0) {
+      toast.error('Please enter some content, add media, or include code to your post');
       return;
     }
     
@@ -277,12 +296,22 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         }
       }
       
+      let processedContent = postContent;
+      const codeMetadata = [];
+      
+      for (let i = 0; i < codeBlocks.length; i++) {
+        const placeholder = `[CODE_BLOCK_${i}]`;
+        processedContent = processedContent.replace(placeholder, '');
+        codeMetadata.push(codeBlocks[i]);
+      }
+      
       const { data: newPost, error: postError } = await supabase
         .from('shoutouts')
         .insert({
-          content: postContent,
+          content: processedContent,
           user_id: user.id,
-          media: mediaUrls.length > 0 ? mediaUrls : null
+          media: mediaUrls.length > 0 ? mediaUrls : null,
+          code_blocks: codeMetadata.length > 0 ? codeMetadata : null
         })
         .select('id')
         .single();
@@ -307,12 +336,13 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       }
       
       if (onPostCreated) {
-        onPostCreated(postContent, mediaUrls);
+        onPostCreated(processedContent, mediaUrls);
       }
       
       setPostContent('');
       setCharCount(0);
       setMediaFiles([]);
+      setCodeBlocks([]);
       
       toast.success('Your post was sent successfully!');
       
@@ -386,6 +416,33 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                 rows={3}
                 disabled={isLoading}
               />
+              
+              {codeBlocks.map((codeBlock, index) => (
+                <div key={index} className="my-2 relative">
+                  <div className="rounded-lg overflow-hidden border border-gray-200 bg-gray-50 dark:bg-gray-900 dark:border-gray-700">
+                    <div className="px-3 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-600 dark:text-gray-300">{codeBlock.language}</span>
+                      <button
+                        type="button"
+                        className="p-1 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700"
+                        onClick={() => {
+                          setCodeBlocks(prev => prev.filter((_, i) => i !== index));
+                          setPostContent(prev => prev.replace(`[CODE_BLOCK_${index}]`, ''));
+                          setCharCount(prev => prev - `[CODE_BLOCK_${index}]`.length);
+                        }}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                    <pre className="overflow-x-auto p-3 text-sm font-mono">
+                      <code>{codeBlock.code.length > 100 
+                        ? codeBlock.code.substring(0, 100) + '...' 
+                        : codeBlock.code}
+                      </code>
+                    </pre>
+                  </div>
+                </div>
+              ))}
               
               {mediaFiles.length > 0 && (
                 <div className="mt-2 mb-4 relative">
@@ -511,7 +568,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                 )}
                 <Button
                   type="submit"
-                  disabled={(!postContent.trim() && mediaFiles.length === 0) || isLoading}
+                  disabled={(!postContent.trim() && mediaFiles.length === 0 && codeBlocks.length === 0) || isLoading}
                   isLoading={isLoading}
                   className="rounded-full px-4"
                 >
@@ -522,6 +579,12 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
           </form>
         </div>
       </div>
+      
+      <CodeEditorDialog 
+        open={isCodeEditorOpen}
+        onClose={() => setIsCodeEditorOpen(false)}
+        onSave={handleSaveCode}
+      />
     </div>
   );
 };
