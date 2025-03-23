@@ -146,14 +146,18 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   };
   
   const platformAvatars = [
-    'https://i.pravatar.cc/150?img=1',
-    'https://i.pravatar.cc/150?img=2',
-    'https://i.pravatar.cc/150?img=3',
-    'https://i.pravatar.cc/150?img=4',
-    'https://i.pravatar.cc/150?img=5',
-    'https://i.pravatar.cc/150?img=6',
-    'https://i.pravatar.cc/150?img=7',
-    'https://i.pravatar.cc/150?img=8',
+    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23FF6666"/><text x="50" y="60" font-size="40" text-anchor="middle" fill="white" font-family="sans-serif">A</text></svg>',
+    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%234285F4"/><text x="50" y="60" font-size="40" text-anchor="middle" fill="white" font-family="sans-serif">B</text></svg>',
+    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%2334A853"/><text x="50" y="60" font-size="40" text-anchor="middle" fill="white" font-family="sans-serif">C</text></svg>',
+    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23FBBC05"/><text x="50" y="60" font-size="40" text-anchor="middle" fill="white" font-family="sans-serif">D</text></svg>',
+    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23EA4335"/><text x="50" y="60" font-size="40" text-anchor="middle" fill="white" font-family="sans-serif">E</text></svg>',
+    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%239C27B0"/><text x="50" y="60" font-size="40" text-anchor="middle" fill="white" font-family="sans-serif">F</text></svg>',
+    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%230097A7"/><text x="50" y="60" font-size="40" text-anchor="middle" fill="white" font-family="sans-serif">G</text></svg>',
+    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%233F51B5"/><text x="50" y="60" font-size="40" text-anchor="middle" fill="white" font-family="sans-serif">H</text></svg>',
+    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23673AB7"/><text x="50" y="60" font-size="40" text-anchor="middle" fill="white" font-family="sans-serif">I</text></svg>',
+    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23FF5722"/><text x="50" y="60" font-size="40" text-anchor="middle" fill="white" font-family="sans-serif">J</text></svg>',
+    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23607D8B"/><text x="50" y="60" font-size="40" text-anchor="middle" fill="white" font-family="sans-serif">K</text></svg>',
+    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23795548"/><text x="50" y="60" font-size="40" text-anchor="middle" fill="white" font-family="sans-serif">L</text></svg>',
   ];
   
   const galleryImages = [
