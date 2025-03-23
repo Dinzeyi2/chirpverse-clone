@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -482,9 +483,11 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
             ref={lineNumbersRef}
             className="w-[50px] bg-[#1e1e1e] text-right text-xs text-gray-500 select-none border-r border-gray-800 overflow-hidden"
           >
-            <div className="h-full overflow-y-hidden">
+            <div className="h-full overflow-y-hidden pl-2 pr-3">
               {lineNumbers.map(num => (
-                <div key={num} className="pr-3 leading-6">{num}</div>
+                <div key={num} className="leading-6 relative">
+                  {num}
+                </div>
               ))}
             </div>
           </div>
@@ -492,6 +495,13 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
           <div className="flex-1 relative overflow-hidden">
             <ScrollArea className="h-full max-h-[calc(90vh-120px)] relative">
               <div className="relative">
+                {/* Guidelines for each line */}
+                <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+                  {lineNumbers.map((_, i) => (
+                    <div key={i} className="h-6 border-b border-gray-800/20"></div>
+                  ))}
+                </div>
+                
                 {/* Hidden textarea for actual editing */}
                 <textarea
                   ref={textareaRef}
@@ -509,7 +519,7 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
                 />
                 
                 {/* Styled div for showing highlighted code */}
-                <pre className="font-mono text-sm p-2 text-gray-300 whitespace-pre-wrap break-all min-h-[400px]">
+                <pre className="font-mono text-sm p-2 text-gray-300 whitespace-pre-wrap break-all min-h-[400px] relative z-0">
                   {highlightedCode.length > 0 ? highlightedCode : <span className="text-gray-500">// Write your code here...</span>}
                 </pre>
               </div>
