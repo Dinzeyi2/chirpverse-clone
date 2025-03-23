@@ -1,6 +1,5 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { Image, X, Video, SmilePlus } from 'lucide-react';
+import { Image, X, Video, Smile } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { toast } from 'sonner';
 import { DialogClose } from '@/components/ui/dialog';
@@ -29,24 +28,64 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const maxImages = 2;
   const maxVideoLength = 120; // 2 minutes in seconds
   
-  // Common emojis used in Slack-style
-  const frequentEmojis = [
-    { emoji: '👍', name: 'thumbs up' },
-    { emoji: '❤️', name: 'heart' },
-    { emoji: '😊', name: 'smile' },
-    { emoji: '🎉', name: 'party' },
-    { emoji: '👏', name: 'clap' },
-    { emoji: '🔥', name: 'fire' },
-    { emoji: '💯', name: 'hundred' },
-    { emoji: '🙌', name: 'raised hands' },
-    { emoji: '😂', name: 'joy' },
-    { emoji: '🤔', name: 'thinking' },
-    { emoji: '👋', name: 'wave' },
-    { emoji: '✅', name: 'check' },
-    { emoji: '⭐', name: 'star' },
-    { emoji: '🚀', name: 'rocket' },
-    { emoji: '👀', name: 'eyes' },
-    { emoji: '👌', name: 'ok hand' }
+  // Instagram-style emoji categories
+  const emojiCategories = [
+    {
+      category: "Frequently Used",
+      emojis: [
+        "😊", "❤️", "😂", "👍", "😍", "🔥", "😘", "👏", "🙏", "😁", 
+        "🥰", "😎", "🎉", "💯", "⭐", "🤔", "🥺", "👀", "🌹", "💕"
+      ]
+    },
+    {
+      category: "Smileys & People",
+      emojis: [
+        "😀", "😃", "😄", "😁", "😆", "😅", "🤣", "😂", "🙂", "🙃", 
+        "😉", "😊", "😇", "🥰", "😍", "🤩", "😘", "😗", "☺️", "😚"
+      ]
+    },
+    {
+      category: "Animals & Nature",
+      emojis: [
+        "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", 
+        "🦁", "🐮", "🐷", "🐸", "🐵", "🐔", "🐧", "🐦", "🐤", "🦆"
+      ]
+    },
+    {
+      category: "Food & Drink",
+      emojis: [
+        "🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🍈", "🍒", 
+        "🍑", "🥭", "🍍", "🥥", "🥝", "🍅", "🍆", "🥑", "🥦", "🥬"
+      ]
+    },
+    {
+      category: "Activities",
+      emojis: [
+        "⚽", "🏀", "🏈", "⚾", "🥎", "🎾", "🏐", "🏉", "🥏", "🎱", 
+        "🏓", "🏸", "🏒", "🏑", "🥍", "🏏", "🪃", "🥅", "⛳", "🪁"
+      ]
+    },
+    {
+      category: "Travel & Places",
+      emojis: [
+        "🚗", "🚕", "🚙", "🚌", "🚎", "🏎️", "🚓", "🚑", "🚒", "🚐", 
+        "🛻", "🚚", "🚛", "🚜", "🛴", "🚲", "🛵", "🏍️", "🛺", "🚨"
+      ]
+    },
+    {
+      category: "Objects",
+      emojis: [
+        "⌚", "📱", "📲", "💻", "⌨️", "🖥️", "🖨️", "🖱️", "🖲️", "🕹️", 
+        "🗜️", "💽", "💾", "💿", "📀", "📼", "📷", "📸", "📹", "🎥"
+      ]
+    },
+    {
+      category: "Symbols",
+      emojis: [
+        "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔", 
+        "❣️", "💕", "💞", "💓", "💗", "💖", "💘", "💝", "💟", "☮️"
+      ]
+    }
   ];
   
   useEffect(() => {
@@ -82,8 +121,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         setPostContent(newText);
         setCharCount(newText.length);
         
-        // Close the emoji picker
-        setEmojiPickerOpen(false);
+        // Keep emoji picker open (Instagram style)
         
         setTimeout(() => {
           if (textareaRef.current) {
@@ -99,7 +137,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         const newText = postContent + emoji;
         setPostContent(newText);
         setCharCount(newText.length);
-        setEmojiPickerOpen(false);
       }
     }
   };
@@ -423,25 +460,33 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                       className="p-2 text-xBlue rounded-full hover:bg-xBlue/10 transition-colors"
                       disabled={isLoading}
                     >
-                      <SmilePlus size={20} />
+                      <Smile size={20} />
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[280px] p-0 border-none shadow-xl" align="start" side="top">
-                    <div className="p-2">
-                      <div className="text-sm font-medium text-gray-500 mb-2 px-2">Frequently Used</div>
-                      <div className="grid grid-cols-8 gap-1">
-                        {frequentEmojis.map((emojiItem, index) => (
-                          <button
-                            key={index}
-                            type="button"
-                            className="p-1.5 hover:bg-gray-100 rounded text-xl transition-colors"
-                            onClick={() => handleEmojiClick(emojiItem.emoji)}
-                            title={emojiItem.name}
-                          >
-                            {emojiItem.emoji}
-                          </button>
-                        ))}
+                  <PopoverContent className="w-[320px] p-0 border border-gray-200 shadow-xl rounded-xl" align="start" side="top">
+                    <div className="instagram-emoji-picker">
+                      <div className="py-2 px-3 border-b border-gray-100">
+                        <div className="text-sm font-medium text-gray-600">Emojis</div>
                       </div>
+                      <ScrollArea className="h-[350px]">
+                        {emojiCategories.map((category, categoryIndex) => (
+                          <div key={categoryIndex} className="px-3 py-2">
+                            <div className="text-xs font-medium text-gray-500 mb-2">{category.category}</div>
+                            <div className="grid grid-cols-8 gap-1">
+                              {category.emojis.map((emoji, emojiIndex) => (
+                                <button
+                                  key={emojiIndex}
+                                  type="button"
+                                  className="flex items-center justify-center w-8 h-8 text-xl hover:bg-gray-100 rounded transition-colors"
+                                  onClick={() => handleEmojiClick(emoji)}
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </ScrollArea>
                     </div>
                   </PopoverContent>
                 </Popover>
