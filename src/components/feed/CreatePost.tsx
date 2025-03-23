@@ -40,7 +40,8 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       category: "Smileys & People",
       emojis: [
         "😀", "😃", "😄", "😁", "😆", "😅", "🤣", "😂", "🙂", "🙃", 
-        "😉", "😊", "😇", "🥰", "😍", "🤩", "😘", "😗", "☺️", "😚"
+        "😉", "😊", "😇", "🥰", "😍", "🤩", "😘", "😗", "☺️", "😚",
+        "🤗", "🫢", "🤭", "🫣", "🤫", "🤔", "🫡", "🤐", "🤨", "😐"
       ]
     },
     {
@@ -55,34 +56,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       emojis: [
         "🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🍈", "🍒", 
         "🍑", "🥭", "🍍", "🥥", "🥝", "🍅", "🍆", "🥑", "🥦", "🥬"
-      ]
-    },
-    {
-      category: "Activities",
-      emojis: [
-        "⚽", "🏀", "🏈", "⚾", "🥎", "🎾", "🏐", "🏉", "🥏", "🎱", 
-        "🏓", "🏸", "🏒", "🏑", "🥍", "🏏", "🪃", "🥅", "⛳", "🪁"
-      ]
-    },
-    {
-      category: "Travel & Places",
-      emojis: [
-        "🚗", "🚕", "🚙", "🚌", "🚎", "🏎️", "🚓", "🚑", "🚒", "🚐", 
-        "🛻", "🚚", "🚛", "🚜", "🛴", "🚲", "🛵", "🏍️", "🛺", "🚨"
-      ]
-    },
-    {
-      category: "Objects",
-      emojis: [
-        "⌚", "📱", "📲", "💻", "⌨️", "🖥️", "🖨️", "🖱️", "🖲️", "🕹️", 
-        "🗜️", "💽", "💾", "💿", "📀", "📼", "📷", "📸", "📹", "🎥"
-      ]
-    },
-    {
-      category: "Symbols",
-      emojis: [
-        "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔", 
-        "❣️", "💕", "💞", "💓", "💗", "💖", "💘", "💝", "💟", "☮️"
       ]
     }
   ];
@@ -112,23 +85,24 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const handleEmojiClick = (emoji: string) => {
     if (postContent.length + emoji.length <= maxChars) {
       if (textareaRef.current) {
-        const cursorPosition = textareaRef.current.selectionStart || postContent.length;
-        const textBefore = postContent.substring(0, cursorPosition);
-        const textAfter = postContent.substring(cursorPosition);
+        const cursorPos = textareaRef.current.selectionStart || postContent.length;
         
+        const textBefore = postContent.substring(0, cursorPos);
+        const textAfter = postContent.substring(cursorPos);
         const newText = textBefore + emoji + textAfter;
+        
         setPostContent(newText);
         setCharCount(newText.length);
         
         setTimeout(() => {
           if (textareaRef.current) {
             textareaRef.current.focus();
-            const newCursorPosition = cursorPosition + emoji.length;
+            const newCursorPosition = cursorPos + emoji.length;
             textareaRef.current.selectionStart = newCursorPosition;
             textareaRef.current.selectionEnd = newCursorPosition;
             autoResizeTextarea();
           }
-        }, 0);
+        }, 10);
       } else {
         const newText = postContent + emoji;
         setPostContent(newText);
