@@ -10,10 +10,33 @@ interface CodeBlockProps {
   className?: string;
 }
 
+interface SyntaxToken {
+  text: string;
+  type: 'keyword' | 'string' | 'number' | 'boolean' | 'comment' | 'punctuation' | 'operator' | 'variable' | 'function' | 'type' | 'regex' | 'plain';
+  color: string;
+}
+
+// Language-specific keywords for syntax highlighting
+const LANGUAGE_KEYWORDS: Record<string, string[]> = {
+  javascript: ['const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'class', 'import', 'export', 'from', 'async', 'await', 'try', 'catch', 'throw', 'new', 'this', 'super'],
+  typescript: ['const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'class', 'import', 'export', 'from', 'async', 'await', 'try', 'catch', 'throw', 'new', 'this', 'super', 'interface', 'type', 'enum', 'namespace', 'implements', 'extends'],
+  python: ['def', 'class', 'import', 'from', 'if', 'elif', 'else', 'try', 'except', 'finally', 'for', 'while', 'return', 'and', 'or', 'not', 'in', 'is', 'lambda', 'with', 'as', 'assert', 'break', 'continue', 'global', 'pass'],
+  java: ['public', 'private', 'protected', 'class', 'interface', 'enum', 'extends', 'implements', 'import', 'package', 'static', 'final', 'void', 'return', 'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'break', 'continue', 'try', 'catch', 'throw', 'throws', 'new', 'this', 'super'],
+  // Add more languages as needed
+};
+
+// Built-in types for each language
+const LANGUAGE_TYPES: Record<string, string[]> = {
+  javascript: ['Array', 'Object', 'String', 'Number', 'Boolean', 'Function', 'Promise', 'Map', 'Set', 'Date', 'RegExp', 'Error'],
+  typescript: ['string', 'number', 'boolean', 'any', 'void', 'null', 'undefined', 'never', 'unknown', 'Array', 'Record', 'Promise', 'Map', 'Set', 'Date', 'Partial', 'Required', 'Pick', 'Omit', 'Exclude', 'Extract', 'NonNullable', 'ReturnType'],
+  // Add more languages as needed
+};
+
 const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className }) => {
   const [copied, setCopied] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [fileName, setFileName] = useState(`${language}.${getFileExtension(language)}`);
+  const [highlightedCode, setHighlightedCode] = useState<React.ReactNode[]>([]);
   
   const copyToClipboard = () => {
     navigator.clipboard.writeText(code).then(() => {
@@ -26,8 +49,23 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className }) => {
   const displayedCode = !expanded && hasLongCode 
     ? code.split('\n').slice(0, 10).join('\n') + '\n// ...'
     : code;
-  
-  const codeLines = displayedCode.split('\n');
+
+  // Tokenize code for syntax highlighting
+  useEffect(() => {
+    const tokens = tokenizeCode(displayedCode, language);
+    const codeLines = displayedCode.split('\n');
+    
+    const highlighted = codeLines.map((line, lineIndex) => {
+      const lineTokens = tokenizeLine(line, language);
+      return (
+        <div key={lineIndex} className="leading-6">
+          {lineTokens}
+        </div>
+      );
+    });
+    
+    setHighlightedCode(highlighted);
+  }, [displayedCode, language]);
 
   function getFileExtension(lang: string): string {
     switch (lang.toLowerCase()) {
@@ -55,117 +93,207 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className }) => {
     }
   }
 
-  function getColorForToken(token: string, currentLanguage: string): string {
-    // Simple syntax highlighting based on token patterns
-    const patterns = {
-      keyword: /^(const|let|var|function|class|if|else|return|import|export|from|for|while|switch|case|break|continue|try|catch|throw|new|this|super|extends|implements|interface|type|enum|public|private|protected|static|async|await|yield|delete|typeof|instanceof|of|in|do|with)$/,
-      string: /^(['"`]).*\1$/,
-      number: /^\d+(\.\d+)?$/,
-      boolean: /^(true|false)$/,
-      comment: /^(\/\/|\/\*|\*\/).*$/,
-      punctuation: /[{}[\]().,;:]/,
-      operator: /[+\-*/%=&|^~<>!?]/,
-      variable: /^[a-zA-Z_$][a-zA-Z0-9_$]*$/,
-    };
+  // Tokenize code for syntax highlighting
+  const tokenizeCode = (input: string, lang: string): SyntaxToken[] => {
+    const tokens: SyntaxToken[] = [];
+    if (!input) return tokens;
 
-    // VSCode-like syntax highlighting colors
-    if (token.trim() === 'import' || token.trim() === 'export' || token.trim() === 'from' || token.trim() === 'type' || token.trim() === 'const') {
-      return 'text-[#C586C0]'; // purple for keywords like import/export/from/type
-    } else if (patterns.keyword.test(token)) {
-      return 'text-[#569CD6]'; // blue for keywords
-    } else if (patterns.string.test(token) || token.startsWith('"') || token.startsWith("'") || token.startsWith('`')) {
-      return 'text-[#CE9178]'; // brown-orange for strings
-    } else if (patterns.number.test(token)) {
-      return 'text-[#B5CEA8]'; // light green for numbers
-    } else if (patterns.boolean.test(token)) {
-      return 'text-[#569CD6]'; // blue for booleans
-    } else if (patterns.comment.test(token) || token.startsWith('//') || token.startsWith('/*') || token.startsWith('*')) {
-      return 'text-[#6A9955]'; // green for comments
-    } else if (patterns.punctuation.test(token)) {
-      return 'text-[#D4D4D4]'; // light gray for punctuation
-    } else if (patterns.operator.test(token)) {
-      return 'text-[#D4D4D4]'; // light gray for operators
-    } else if (token === 'config' || token === 'Config') {
-      return 'text-[#4EC9B0]'; // teal for types/interfaces
-    } else if (token === 'DEFAULT') {
-      return 'text-[#9CDCFE]'; // light blue for variables
-    } else if (token.startsWith('hsl')) {
-      return 'text-[#DCDCAA]'; // yellow for functions
-    } else {
-      return 'text-[#9CDCFE]'; // light blue default for variables
+    // Use the language-specific rules
+    const keywords = LANGUAGE_KEYWORDS[lang] || LANGUAGE_KEYWORDS.javascript;
+    const types = LANGUAGE_TYPES[lang] || LANGUAGE_TYPES.javascript;
+
+    // Split the input by various delimiters while preserving them
+    let currentToken = '';
+    let inString = false;
+    let stringDelimiter = '';
+    let inComment = false;
+    let inMultilineComment = false;
+
+    for (let i = 0; i < input.length; i++) {
+      const char = input[i];
+      const nextChar = i < input.length - 1 ? input[i + 1] : '';
+
+      // Handle comments
+      if (!inString && !inComment && !inMultilineComment && char === '/' && nextChar === '/') {
+        if (currentToken) {
+          tokens.push({ text: currentToken, type: 'plain', color: '#D4D4D4' });
+          currentToken = '';
+        }
+        inComment = true;
+        currentToken += char;
+        continue;
+      }
+
+      if (!inString && !inComment && !inMultilineComment && char === '/' && nextChar === '*') {
+        if (currentToken) {
+          tokens.push({ text: currentToken, type: 'plain', color: '#D4D4D4' });
+          currentToken = '';
+        }
+        inMultilineComment = true;
+        currentToken += char;
+        continue;
+      }
+
+      if (inComment && (char === '\n' || i === input.length - 1)) {
+        currentToken += char;
+        tokens.push({ text: currentToken, type: 'comment', color: '#6A9955' });
+        currentToken = '';
+        inComment = false;
+        continue;
+      }
+
+      if (inMultilineComment && char === '*' && nextChar === '/') {
+        currentToken += char + nextChar;
+        i++; // Skip next char
+        tokens.push({ text: currentToken, type: 'comment', color: '#6A9955' });
+        currentToken = '';
+        inMultilineComment = false;
+        continue;
+      }
+
+      if (inComment || inMultilineComment) {
+        currentToken += char;
+        continue;
+      }
+
+      // Handle strings
+      if (!inString && (char === '"' || char === "'" || char === '`')) {
+        if (currentToken) {
+          if (keywords.includes(currentToken)) {
+            tokens.push({ text: currentToken, type: 'keyword', color: '#569CD6' });
+          } else if (types.includes(currentToken)) {
+            tokens.push({ text: currentToken, type: 'type', color: '#4EC9B0' });
+          } else if (/^[0-9]+(\.[0-9]+)?$/.test(currentToken)) {
+            tokens.push({ text: currentToken, type: 'number', color: '#B5CEA8' });
+          } else if (currentToken === 'true' || currentToken === 'false') {
+            tokens.push({ text: currentToken, type: 'boolean', color: '#569CD6' });
+          } else if (/^[A-Z][A-Za-z0-9]*$/.test(currentToken)) {
+            tokens.push({ text: currentToken, type: 'type', color: '#4EC9B0' });
+          } else if (i < input.length - 1 && input[i + 1] === '(') {
+            tokens.push({ text: currentToken, type: 'function', color: '#DCDCAA' });
+          } else {
+            tokens.push({ text: currentToken, type: 'variable', color: '#9CDCFE' });
+          }
+          currentToken = '';
+        }
+        inString = true;
+        stringDelimiter = char;
+        currentToken += char;
+        continue;
+      }
+
+      if (inString && char === stringDelimiter && input[i - 1] !== '\\') {
+        currentToken += char;
+        tokens.push({ text: currentToken, type: 'string', color: '#CE9178' });
+        currentToken = '';
+        inString = false;
+        continue;
+      }
+
+      if (inString) {
+        currentToken += char;
+        continue;
+      }
+
+      // Handle operators and punctuation
+      if (/[+\-*/%=&|^~<>!?:;,.(){}[\]]/.test(char)) {
+        if (currentToken) {
+          if (keywords.includes(currentToken)) {
+            tokens.push({ text: currentToken, type: 'keyword', color: '#569CD6' });
+          } else if (currentToken === 'import' || currentToken === 'export' || currentToken === 'from' || currentToken === 'as') {
+            tokens.push({ text: currentToken, type: 'keyword', color: '#C586C0' });
+          } else if (types.includes(currentToken)) {
+            tokens.push({ text: currentToken, type: 'type', color: '#4EC9B0' });
+          } else if (/^[0-9]+(\.[0-9]+)?$/.test(currentToken)) {
+            tokens.push({ text: currentToken, type: 'number', color: '#B5CEA8' });
+          } else if (currentToken === 'true' || currentToken === 'false') {
+            tokens.push({ text: currentToken, type: 'boolean', color: '#569CD6' });
+          } else if (/^[A-Z][A-Za-z0-9]*$/.test(currentToken)) {
+            tokens.push({ text: currentToken, type: 'type', color: '#4EC9B0' });
+          } else if (i < input.length - 1 && input[i + 1] === '(') {
+            tokens.push({ text: currentToken, type: 'function', color: '#DCDCAA' });
+          } else {
+            tokens.push({ text: currentToken, type: 'variable', color: '#9CDCFE' });
+          }
+          currentToken = '';
+        }
+        tokens.push({ text: char, type: 'punctuation', color: '#D4D4D4' });
+        continue;
+      }
+
+      // Handle whitespace
+      if (/\s/.test(char)) {
+        if (currentToken) {
+          if (keywords.includes(currentToken)) {
+            tokens.push({ text: currentToken, type: 'keyword', color: '#569CD6' });
+          } else if (currentToken === 'import' || currentToken === 'export' || currentToken === 'from' || currentToken === 'as') {
+            tokens.push({ text: currentToken, type: 'keyword', color: '#C586C0' });
+          } else if (types.includes(currentToken)) {
+            tokens.push({ text: currentToken, type: 'type', color: '#4EC9B0' });
+          } else if (/^[0-9]+(\.[0-9]+)?$/.test(currentToken)) {
+            tokens.push({ text: currentToken, type: 'number', color: '#B5CEA8' });
+          } else if (currentToken === 'true' || currentToken === 'false') {
+            tokens.push({ text: currentToken, type: 'boolean', color: '#569CD6' });
+          } else if (/^[A-Z][A-Za-z0-9]*$/.test(currentToken)) {
+            tokens.push({ text: currentToken, type: 'type', color: '#4EC9B0' });
+          } else if (i < input.length - 1 && input[i + 1] === '(') {
+            tokens.push({ text: currentToken, type: 'function', color: '#DCDCAA' });
+          } else {
+            tokens.push({ text: currentToken, type: 'variable', color: '#9CDCFE' });
+          }
+          currentToken = '';
+        }
+        tokens.push({ text: char, type: 'plain', color: '#D4D4D4' });
+        continue;
+      }
+
+      // Collect characters for next token
+      currentToken += char;
     }
-  }
+
+    // Don't forget the last token
+    if (currentToken) {
+      if (inComment || inMultilineComment) {
+        tokens.push({ text: currentToken, type: 'comment', color: '#6A9955' });
+      } else if (inString) {
+        tokens.push({ text: currentToken, type: 'string', color: '#CE9178' });
+      } else if (keywords.includes(currentToken)) {
+        tokens.push({ text: currentToken, type: 'keyword', color: '#569CD6' });
+      } else if (currentToken === 'import' || currentToken === 'export' || currentToken === 'from' || currentToken === 'as') {
+        tokens.push({ text: currentToken, type: 'keyword', color: '#C586C0' });
+      } else if (types.includes(currentToken)) {
+        tokens.push({ text: currentToken, type: 'type', color: '#4EC9B0' });
+      } else if (/^[0-9]+(\.[0-9]+)?$/.test(currentToken)) {
+        tokens.push({ text: currentToken, type: 'number', color: '#B5CEA8' });
+      } else if (currentToken === 'true' || currentToken === 'false') {
+        tokens.push({ text: currentToken, type: 'boolean', color: '#569CD6' });
+      } else if (/^[A-Z][A-Za-z0-9]*$/.test(currentToken)) {
+        tokens.push({ text: currentToken, type: 'type', color: '#4EC9B0' });
+      } else if (currentToken.startsWith('DEFAULT')) {
+        tokens.push({ text: currentToken, type: 'variable', color: '#4FC1FF' });
+      } else if (currentToken.startsWith('hsl')) {
+        tokens.push({ text: currentToken, type: 'function', color: '#DCDCAA' });
+      } else {
+        tokens.push({ text: currentToken, type: 'variable', color: '#9CDCFE' });
+      }
+    }
+
+    return tokens;
+  };
 
   function tokenizeLine(line: string, lang: string): JSX.Element[] {
     if (!line) return [<span key={0}>&nbsp;</span>];
-
-    // Replace tabs with spaces for consistent rendering
-    line = line.replace(/\t/g, '    ');
-
-    // Handle different languages for better syntax highlighting
-    if (lang === 'typescript' || lang === 'javascript' || lang === 'tsx' || lang === 'jsx') {
-      // Split the line into tokens while preserving quotes
-      const tokens: string[] = [];
-      let currentToken = '';
-      let inString = false;
-      let stringChar = '';
-      
-      for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-        
-        if (!inString && (char === '"' || char === "'" || char === '`')) {
-          // Start of string
-          if (currentToken) tokens.push(currentToken);
-          currentToken = char;
-          inString = true;
-          stringChar = char;
-        } else if (inString && char === stringChar && line[i-1] !== '\\') {
-          // End of string
-          currentToken += char;
-          tokens.push(currentToken);
-          currentToken = '';
-          inString = false;
-        } else if (inString) {
-          // Inside string
-          currentToken += char;
-        } else if (/\s/.test(char)) {
-          // Whitespace
-          if (currentToken) tokens.push(currentToken);
-          tokens.push(char);
-          currentToken = '';
-        } else if (/[{}[\]().,;:]/.test(char)) {
-          // Punctuation
-          if (currentToken) tokens.push(currentToken);
-          tokens.push(char);
-          currentToken = '';
-        } else {
-          // Part of a token
-          currentToken += char;
-        }
-      }
-      
-      if (currentToken) tokens.push(currentToken);
-      
-      return tokens.map((token, i) => {
-        const color = getColorForToken(token, lang);
-        return (
-          <span key={i} className={color}>
-            {token}
-          </span>
-        );
-      });
-    }
     
-    // Default tokenization for other languages
-    return line.split(/(\s+|[{}[\]().,;:]|\b)/).filter(Boolean).map((token, i) => {
-      const color = getColorForToken(token, lang);
-      return (
-        <span key={i} className={color}>
-          {token}
-        </span>
-      );
-    });
+    const tokens = tokenizeCode(line, lang);
+    
+    return tokens.map((token, i) => (
+      <span key={i} style={{ color: token.color }}>
+        {token.text}
+      </span>
+    ));
   }
+
+  const lineNumbers = displayedCode.split('\n').map((_, i) => i + 1);
 
   return (
     <div className={cn(
@@ -197,24 +325,20 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className }) => {
           </button>
         </div>
       </div>
-      <ScrollArea className={expanded ? 'h-[80vh]' : 'h-[400px]'}>
+      <ScrollArea className={expanded ? 'h-[80vh]' : 'max-h-[400px]'}>
         <div className="relative">
           <div className="flex text-sm font-mono">
             <div className="py-4 pl-4 pr-3 text-right select-none bg-[#1e1e1e] text-gray-500 border-r border-gray-700 min-w-[2.5rem]">
-              {codeLines.map((_, i) => (
-                <div key={i} className="leading-6">
-                  {i + 1}
+              {lineNumbers.map((num) => (
+                <div key={num} className="leading-6">
+                  {num}
                 </div>
               ))}
             </div>
             <div className="overflow-x-auto w-full">
               <pre className="py-4 pl-4 pr-4 font-mono whitespace-pre">
                 <code className="text-sm text-[#D4D4D4]">
-                  {codeLines.map((line, i) => (
-                    <div key={i} className="leading-6">
-                      {tokenizeLine(line, language)}
-                    </div>
-                  ))}
+                  {highlightedCode}
                 </code>
               </pre>
             </div>

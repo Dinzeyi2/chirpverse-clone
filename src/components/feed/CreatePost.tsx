@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import CodeEditorDialog from '@/components/code/CodeEditorDialog';
+import CodeBlock from '@/components/code/CodeBlock';
 
 interface CreatePostProps {
   onPostCreated?: (content: string, media?: {type: string, url: string}[]) => void;
@@ -419,29 +420,21 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
               
               {codeBlocks.map((codeBlock, index) => (
                 <div key={index} className="my-2 relative">
-                  <div className="rounded-lg overflow-hidden border border-gray-200 bg-gray-50 dark:bg-[#1e1e1e] dark:border-gray-700">
-                    <div className="px-3 py-2 bg-gray-100 dark:bg-[#252526] border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                      <span className="text-sm font-medium text-gray-600 dark:text-gray-300">{codeBlock.language}</span>
-                      <button
-                        type="button"
-                        className="p-1 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700"
-                        onClick={() => {
-                          setCodeBlocks(prev => prev.filter((_, i) => i !== index));
-                          setPostContent(prev => prev.replace(`[CODE_BLOCK_${index}]`, ''));
-                          setCharCount(prev => prev - `[CODE_BLOCK_${index}]`.length);
-                        }}
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                    <ScrollArea className="h-[200px]">
-                      <pre className="p-3 text-sm font-mono whitespace-pre overflow-visible">
-                        <code className="text-gray-800 dark:text-gray-300">
-                          {codeBlock.code}
-                        </code>
-                      </pre>
-                    </ScrollArea>
-                  </div>
+                  <CodeBlock 
+                    code={codeBlock.code} 
+                    language={codeBlock.language} 
+                  />
+                  <button
+                    type="button"
+                    className="absolute top-2 right-10 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+                    onClick={() => {
+                      setCodeBlocks(prev => prev.filter((_, i) => i !== index));
+                      setPostContent(prev => prev.replace(`[CODE_BLOCK_${index}]`, ''));
+                      setCharCount(prev => prev - `[CODE_BLOCK_${index}]`.length);
+                    }}
+                  >
+                    <X size={16} />
+                  </button>
                 </div>
               ))}
               
