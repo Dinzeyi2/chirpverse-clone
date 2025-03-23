@@ -356,7 +356,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
             </div>
             
             <div className="flex items-center justify-between">
-              <div className="flex -ml-2">
+              <div className="flex -ml-2 p-2 border border-gray-200 rounded-full bg-background">
                 <input 
                   type="file" 
                   ref={fileInputRef} 
