@@ -28,7 +28,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const maxImages = 2;
   const maxVideoLength = 120; // 2 minutes in seconds
   
-  // Instagram-style emoji categories
   const emojiCategories = [
     {
       category: "Frequently Used",
@@ -113,7 +112,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const handleEmojiClick = (emoji: string) => {
     if (postContent.length + emoji.length <= maxChars) {
       if (textareaRef.current) {
-        const cursorPosition = textareaRef.current.selectionStart;
+        const cursorPosition = textareaRef.current.selectionStart || postContent.length;
         const textBefore = postContent.substring(0, cursorPosition);
         const textAfter = postContent.substring(cursorPosition);
         
@@ -121,19 +120,16 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         setPostContent(newText);
         setCharCount(newText.length);
         
-        // Keep emoji picker open (Instagram style)
-        
         setTimeout(() => {
           if (textareaRef.current) {
             textareaRef.current.focus();
-            // Set cursor position after the inserted emoji
-            textareaRef.current.selectionStart = cursorPosition + emoji.length;
-            textareaRef.current.selectionEnd = cursorPosition + emoji.length;
+            const newCursorPosition = cursorPosition + emoji.length;
+            textareaRef.current.selectionStart = newCursorPosition;
+            textareaRef.current.selectionEnd = newCursorPosition;
             autoResizeTextarea();
           }
-        }, 10);
+        }, 0);
       } else {
-        // Fallback if textarea ref isn't available
         const newText = postContent + emoji;
         setPostContent(newText);
         setCharCount(newText.length);
@@ -459,6 +455,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                       type="button"
                       className="p-2 text-xBlue rounded-full hover:bg-xBlue/10 transition-colors"
                       disabled={isLoading}
+                      aria-label="Add emoji"
                     >
                       <Smile size={20} />
                     </button>
