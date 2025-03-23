@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Image, X, Video, Smile } from 'lucide-react';
+import { Image, X, Video, Smile, Code } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { toast } from 'sonner';
 import { DialogClose } from '@/components/ui/dialog';
@@ -198,6 +198,35 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     }
     
     e.target.value = '';
+  };
+
+  const handleCodeClick = () => {
+    const codeSnippet = "```\n// your code here\n```";
+    
+    if (textareaRef.current) {
+      const cursorPos = textareaRef.current.selectionStart || postContent.length;
+      
+      const textBefore = postContent.substring(0, cursorPos);
+      const textAfter = postContent.substring(cursorPos);
+      const newText = textBefore + codeSnippet + textAfter;
+      
+      if (newText.length <= maxChars) {
+        setPostContent(newText);
+        setCharCount(newText.length);
+        
+        setTimeout(() => {
+          if (textareaRef.current) {
+            textareaRef.current.focus();
+            const newCursorPosition = cursorPos + 4; // Position cursor after ```\n
+            textareaRef.current.selectionStart = newCursorPosition;
+            textareaRef.current.selectionEnd = newCursorPosition;
+            autoResizeTextarea();
+          }
+        }, 10);
+      } else {
+        toast.error(`Adding code snippet would exceed the ${maxChars} character limit`);
+      }
+    }
   };
 
   const removeMedia = (index: number) => {
@@ -422,6 +451,15 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                   disabled={isLoading}
                 >
                   <Video size={20} />
+                </button>
+                <button 
+                  type="button"
+                  className="p-2 text-xBlue rounded-full hover:bg-xBlue/10 transition-colors"
+                  onClick={handleCodeClick}
+                  disabled={isLoading}
+                  aria-label="Add code snippet"
+                >
+                  <Code size={20} />
                 </button>
                 <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
                   <PopoverTrigger asChild>
