@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -384,10 +383,10 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
       } else {
         // Multi-line indentation
         const startLine = value.substring(0, selectionStart).lastIndexOf('\n') + 1;
-        const endLine = selectionEnd + value.substring(selectionEnd).indexOf('\n');
-        if (endLine === -1) endLine = value.length;
+        let endLinePos = selectionEnd + value.substring(selectionEnd).indexOf('\n');
+        if (endLinePos === -1) endLinePos = value.length;
         
-        const selectedText = value.substring(startLine, endLine);
+        const selectedText = value.substring(startLine, endLinePos);
         const lines = selectedText.split('\n');
         
         if (!e.shiftKey) {
@@ -395,7 +394,7 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
           const indentedLines = lines.map(line => indent + line);
           const newText = indentedLines.join('\n');
           
-          const newValue = value.substring(0, startLine) + newText + value.substring(endLine);
+          const newValue = value.substring(0, startLine) + newText + value.substring(endLinePos);
           setCode(newValue);
           
           // Adjust selection
@@ -410,7 +409,7 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
           const unindentedLines = lines.map(line => line.startsWith(indent) ? line.substring(indent.length) : line);
           const newText = unindentedLines.join('\n');
           
-          const newValue = value.substring(0, startLine) + newText + value.substring(endLine);
+          const newValue = value.substring(0, startLine) + newText + value.substring(endLinePos);
           setCode(newValue);
           
           // Adjust selection
@@ -532,4 +531,3 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
 };
 
 export default CodeEditorDialog;
-
