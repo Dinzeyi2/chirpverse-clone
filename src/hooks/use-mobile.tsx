@@ -8,7 +8,7 @@ const TABLET_BREAKPOINT = 1024
 const DESKTOP_BREAKPOINT = 1280
 
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
+  const [isMobile, setIsMobile] = React.useState<boolean | null>(null)
 
   React.useEffect(() => {
     const checkMobile = () => {
@@ -25,11 +25,12 @@ export function useIsMobile() {
     return () => window.removeEventListener("resize", checkMobile)
   }, [])
 
-  return !!isMobile
+  // Return false during SSR, true/false during CSR
+  return isMobile === null ? false : isMobile
 }
 
 export function useIsSmallMobile() {
-  const [isSmallMobile, setIsSmallMobile] = React.useState<boolean | undefined>(undefined)
+  const [isSmallMobile, setIsSmallMobile] = React.useState<boolean | null>(null)
 
   React.useEffect(() => {
     const checkSmallMobile = () => {
@@ -46,7 +47,8 @@ export function useIsSmallMobile() {
     return () => window.removeEventListener("resize", checkSmallMobile)
   }, [])
 
-  return !!isSmallMobile
+  // Return false during SSR, true/false during CSR
+  return isSmallMobile === null ? false : isSmallMobile
 }
 
 export function useScreenSize() {
@@ -85,4 +87,12 @@ export function useScreenSize() {
   }, [])
 
   return screenSize
+}
+
+// Export constants for use in other components
+export const BREAKPOINTS = {
+  SMALL_MOBILE: SMALL_MOBILE_BREAKPOINT,
+  MOBILE: MOBILE_BREAKPOINT,
+  TABLET: TABLET_BREAKPOINT,
+  DESKTOP: DESKTOP_BREAKPOINT,
 }
