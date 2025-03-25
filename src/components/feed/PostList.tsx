@@ -5,8 +5,12 @@ import { Inbox } from 'lucide-react';
 import PostCard from './PostCard';
 import PostSkeleton from './PostSkeleton';
 
+interface PostWithActions extends Post {
+  actions?: React.ReactNode;
+}
+
 interface PostListProps {
-  posts: Post[];
+  posts: PostWithActions[];
   loading?: boolean;
 }
 

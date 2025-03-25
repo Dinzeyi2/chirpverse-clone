@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import PostList from '@/components/feed/PostList';
 import { Post } from '@/lib/data';
+import PostActionMenu from '@/components/feed/PostActionMenu';
 import SwipeablePostView from '@/components/feed/SwipeablePostView';
 import { useTheme } from '@/components/theme/theme-provider';
 import { cn } from '@/lib/utils';
@@ -444,6 +445,11 @@ const Profile = () => {
     }
   };
 
+  const handlePostDeleted = async () => {
+    setPostsPage(1);
+    await fetchUserStats();
+  };
+
   if (loading) {
     return (
       <AppLayout>
@@ -490,7 +496,18 @@ const Profile = () => {
               )}>No posts to display</p>
             </div>
           ) : (
-            <SwipeablePostView posts={posts} />
+            <SwipeablePostView 
+              posts={posts.map(post => ({
+                ...post,
+                actions: (
+                  <PostActionMenu
+                    postId={post.id}
+                    isOwner={post.userId === user?.id}
+                    onPostDeleted={handlePostDeleted}
+                  />
+                )
+              }))} 
+            />
           )}
         </div>
       </div>

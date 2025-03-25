@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import PostCard from './PostCard';
 import { Post } from '@/lib/data';
@@ -15,8 +16,12 @@ import type { CarouselApi } from "@/components/ui/carousel";
 import { useScreenSize } from '@/hooks/use-mobile';
 import PostSkeleton from './PostSkeleton';
 
+interface PostWithActions extends Post {
+  actions?: React.ReactNode;
+}
+
 interface SwipeablePostViewProps {
-  posts: Post[];
+  posts: PostWithActions[];
   loading?: boolean;
 }
 
@@ -28,6 +33,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   const [isInitialRender, setIsInitialRender] = useState(true);
 
   useEffect(() => {
+    // Mark that we've completed initial render after a short timeout
     const timer = setTimeout(() => {
       setIsInitialRender(false);
     }, 500);
@@ -50,28 +56,30 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     };
   }, [api]);
 
+  // Calculate post sizes based on screen width
   const getPostSizing = () => {
+    // For mobile devices, make posts smaller to show more of adjacent posts
     if (width <= 480) {
       return {
-        basis: "90%",
-        scale: "scale-95",
-        opacity: "opacity-100"
+        basis: "90%",          // Takes 90% of the container width on very small devices
+        scale: "scale-95",     // Base scale for current post
+        opacity: "opacity-100" // Full opacity for current post
       };
     } else if (width <= 768) {
       return {
-        basis: "85%",
-        scale: "scale-95",
-        opacity: "opacity-100"
+        basis: "85%",          // Takes 85% of the container width on mobile devices
+        scale: "scale-95",     // Base scale for current post
+        opacity: "opacity-100" // Full opacity for current post
       };
     } else if (width <= 1024) {
       return {
-        basis: "1/2",
+        basis: "1/2",          // Takes half the container width on tablets
         scale: "scale-100",
         opacity: "opacity-100"
       };
     } else {
       return {
-        basis: "1/3",
+        basis: "1/3",          // Takes a third of the container width on desktops
         scale: "scale-100",
         opacity: "opacity-100"
       };
@@ -80,6 +88,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
 
   const { basis, scale, opacity } = getPostSizing();
 
+  // Determine colors based on theme
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const mutedTextColor = theme === 'dark' ? 'text-neutral-400' : 'text-gray-500';
   const bgColor = theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100';
@@ -131,6 +140,11 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
                   : "scale-90 opacity-70 z-10"
               )}>
                 <div className="relative">
+                  {post.actions && (
+                    <div className="absolute top-3 right-3 z-30">
+                      {post.actions}
+                    </div>
+                  )}
                   <PostCard post={post} />
                 </div>
               </div>
