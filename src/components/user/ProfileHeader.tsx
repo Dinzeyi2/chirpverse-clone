@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, MessageCircle, UserCircle, Heart, Star, ThumbsUp, Flame } from 'lucide-react';
@@ -335,58 +336,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   </Button>
                 </>
               )}
-            </div>
-            
-            <div className="mt-10">
-              <div className={cn(
-                "flex justify-center gap-2 md:gap-4 mb-4",
-                isMobile ? "flex-wrap px-2" : ""
-              )}>
-                <div className={cn(
-                  "backdrop-blur-sm rounded-full flex items-center gap-1 md:gap-2 border",
-                  isMobile ? "px-2.5 py-1.5 text-xs" : "px-4 py-2",
-                  isLightMode 
-                    ? "bg-white/80 text-black border-gray-200/50" 
-                    : "bg-black border-gray-800/50 text-white"
-                )}>
-                  <div className={cn(
-                    "rounded-full flex items-center justify-center",
-                    isMobile ? "w-4 h-4" : "w-5 h-5"
-                  )}>
-                    <MessageCircle size={isMobile ? 10 : 14} className={isLightMode ? "text-black" : "text-white"} />
-                  </div>
-                  <span className={cn(
-                    "font-medium font-heading tracking-wide",
-                    isMobile ? "text-xs" : "text-sm"
-                  )}>{stats.replies || 0} Replies</span>
-                </div>
-                
-                <div className={cn(
-                  "backdrop-blur-sm rounded-full flex items-center gap-1 md:gap-2 border",
-                  isMobile ? "px-2.5 py-1.5 text-xs" : "px-4 py-2",
-                  isLightMode 
-                    ? "bg-white/80 text-black border-gray-200/50" 
-                    : "bg-black border-gray-800/50 text-white"
-                )}>
-                  <div className={cn(
-                    "flex -space-x-1 mr-1",
-                    isMobile ? "-space-x-0.5" : "-space-x-1"
-                  )}>
-                    {emojiReactions.slice(0, isMobile ? 2 : 4).map((reaction, index) => (
-                      <div key={index} className={cn(
-                        "rounded-full bg-gray-800 flex items-center justify-center",
-                        isMobile ? "w-4 h-4" : "w-5 h-5"
-                      )}>
-                        <reaction.icon size={isMobile ? 8 : 10} className="text-white" />
-                      </div>
-                    ))}
-                  </div>
-                  <span className={cn(
-                    "font-medium font-heading tracking-wide",
-                    isMobile ? "text-xs" : "text-sm"
-                  )}>{userReactionsCount || 0} Reactions</span>
-                </div>
-              </div>
             </div>
           </div>
         </div>
