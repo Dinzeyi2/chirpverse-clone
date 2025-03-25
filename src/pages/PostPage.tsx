@@ -25,7 +25,6 @@ const PostPage: React.FC = () => {
       try {
         setLoading(true);
         
-        // Fetch the post immediately to show something to the user
         const { data: postData, error: postError } = await supabase
           .from('shoutouts')
           .select(`
@@ -62,10 +61,8 @@ const PostPage: React.FC = () => {
             }
           };
           
-          // Set post immediately to show something as fast as possible
           setPost(formattedPost);
           
-          // Fetch additional data in parallel
           Promise.all([
             supabase.from('likes').select('*', { count: 'exact' }).eq('shoutout_id', postId),
             supabase.from('comments').select('*', { count: 'exact' }).eq('shoutout_id', postId),
@@ -80,14 +77,12 @@ const PostPage: React.FC = () => {
             const likesCount = likesResponse.count || 0;
             const commentsCount = commentsCountResponse.count || 0;
             
-            // Update post with counts
             setPost(prev => ({
               ...prev,
               likes: likesCount,
               replies: commentsCount
             }));
             
-            // Process comments if available
             if (!commentsResponse.error && commentsResponse.data) {
               const formattedComments = commentsResponse.data.map(comment => ({
                 id: comment.id,
