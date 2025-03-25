@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, MessageCircle, UserCircle, Heart, Star, ThumbsUp, Flame } from 'lucide-react';
@@ -22,7 +21,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 interface ProfileHeaderProps {
   user: User;
@@ -443,27 +441,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 </div>
               </div>
             </div>
-          </div>
-
-          <div className={cn(
-            "border-t",
-            isLightMode ? "border-gray-200" : "border-gray-800"
-          )}>
-            <Tabs defaultValue="posts" onValueChange={handleTabChange} className="w-full">
-              <TabsList className="w-full bg-transparent rounded-none h-14">
-                <TabsTrigger 
-                  value="posts" 
-                  className={cn(
-                    "rounded-none h-full data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none text-sm font-medium w-full",
-                    isLightMode 
-                      ? "data-[state=active]:text-black text-gray-600" 
-                      : "data-[state=active]:text-white text-gray-400"
-                  )}
-                >
-                  Posts
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
           </div>
         </div>
       </div>

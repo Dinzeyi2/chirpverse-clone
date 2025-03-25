@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
@@ -346,7 +345,7 @@ const Profile = () => {
           user: {
             id: post.user_id,
             username: post.user_id.substring(0, 8),
-            email: 'user@example.com', // Added required email field
+            email: 'user@example.com',
             avatar: post.profiles?.avatar_url || 'https://i.pravatar.cc/150?img=1',
             verified: false,
             name: post.profiles?.full_name || 'Unknown User',
