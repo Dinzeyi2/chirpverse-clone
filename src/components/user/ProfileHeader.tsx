@@ -1,7 +1,7 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Camera, MessageCircle, UserCircle, Heart, Star, ThumbsUp, Flame } from 'lucide-react';
+import { ArrowLeft, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { User } from '@/lib/data';
 import { cn } from '@/lib/utils';
@@ -45,7 +45,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const [isFollowing, setIsFollowing] = useState(false);
   const { user: authUser, displayName: authDisplayName } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false);
   const { theme } = useTheme();
   const isMobile = useIsMobile();
   
@@ -68,75 +67,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     profession: user.profession || '',
   });
   
-  const [userReactionsCount, setUserReactionsCount] = useState(stats.reactions || 0);
-
-  useEffect(() => {
-    if (user?.id) {
-      const reactionsChannel = supabase
-        .channel('profile-reactions-changes')
-        .on('postgres_changes', 
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'post_reactions',
-            filter: `user_id=eq.${user.id}`
-          }, 
-          () => {
-            fetchUserReactions();
-          }
-        )
-        .subscribe();
-        
-      fetchUserReactions();
-      
-      return () => {
-        supabase.removeChannel(reactionsChannel);
-      };
-    }
-  }, [user?.id]);
-  
-  const fetchUserReactions = async () => {
-    if (!user?.id) return;
-    
-    try {
-      const { count, error } = await (supabase as any)
-        .from('post_reactions')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
-        
-      if (error) throw error;
-      if (count !== null) setUserReactionsCount(count);
-    } catch (error) {
-      console.error('Error fetching user reactions count:', error);
-    }
-  };
-  
-  const platformAvatars = [
-    'https://i.pravatar.cc/150?img=1',
-    'https://i.pravatar.cc/150?img=2',
-    'https://i.pravatar.cc/150?img=3',
-    'https://i.pravatar.cc/150?img=4',
-    'https://i.pravatar.cc/150?img=5',
-    'https://i.pravatar.cc/150?img=6',
-    'https://i.pravatar.cc/150?img=7',
-    'https://i.pravatar.cc/150?img=8',
-  ];
-  
-  const galleryImages = [
-    'https://images.unsplash.com/photo-1682685797828-d3b2561deef4?q=80&w=2070',
-    'https://images.unsplash.com/photo-1682685797661-9e0c87f59c60?q=80&w=2070',
-    'https://images.unsplash.com/photo-1498036882173-b41c28a8ba34?q=80&w=2070',
-    'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=2070',
-    'https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=2070',
-    'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?q=80&w=2070',
-  ];
-  
-  const emojiReactions = [
-    { icon: Heart, count: 425 },
-    { icon: ThumbsUp, count: 362 },
-    { icon: Star, count: 218 },
-    { icon: Flame, count: 195 }
-  ];
+  // Fixed profile image URL - using the uploaded blue smiley face
+  const blueProfileImage = "/lovable-uploads/c82714a7-4f91-4b00-922a-4caee389e8b2.png";
 
   const handleFollow = async () => {
     if (!authUser) {
@@ -213,38 +145,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     }
   };
 
-  const handleProfilePictureClick = () => {
-    if (isCurrentUser) {
-      setIsAvatarDialogOpen(true);
-    }
-  };
-
-  const handleSelectAvatar = async (avatarUrl: string) => {
-    if (!authUser) return;
-
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          avatar_url: avatarUrl
-        })
-        .eq('id', authUser.id);
-
-      if (error) throw error;
-
-      setProfileData(prev => ({
-        ...prev,
-        avatar: avatarUrl
-      }));
-
-      setIsAvatarDialogOpen(false);
-      toast.success('Profile picture updated successfully');
-    } catch (error: any) {
-      console.error('Error updating profile picture:', error);
-      toast.error('Failed to update profile picture');
-    }
-  };
-
   const handleTabChange = (value: string) => {
     if (onTabChange) {
       onTabChange(value);
@@ -285,22 +185,18 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           isLightMode ? "bg-lightBeige text-black" : "bg-black text-white"
         )}>
           <div className="flex flex-col items-center mt-[-80px] mb-4">
-            <div 
-              className="relative cursor-pointer" 
-              onClick={handleProfilePictureClick}
-            >
+            <div className="relative">
               <Avatar className={cn(
                 "w-40 h-40 border-4",
                 isLightMode ? "border-lightBeige" : "border-black"
               )}>
-                <AvatarImage src={profileData.avatar} alt={profileDisplayName} className="object-cover" />
+                <AvatarImage 
+                  src={blueProfileImage} 
+                  alt={profileDisplayName} 
+                  className="object-cover" 
+                />
                 <AvatarFallback>{profileDisplayName.charAt(0)}</AvatarFallback>
               </Avatar>
-              {isCurrentUser && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full opacity-0 hover:opacity-100 transition-opacity">
-                  <Camera size={24} className="text-white" />
-                </div>
-              )}
             </div>
           </div>
           
@@ -389,41 +285,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               </div>
             </div>
           </ScrollArea>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isAvatarDialogOpen} onOpenChange={setIsAvatarDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] p-6 rounded-2xl">
-          <DialogHeader className="mb-4">
-            <DialogTitle className="text-xl font-bold">Choose your profile picture</DialogTitle>
-          </DialogHeader>
-          
-          <div className="grid grid-cols-4 gap-4">
-            {platformAvatars.map((avatar, index) => (
-              <button
-                key={index}
-                className="relative rounded-full overflow-hidden transition-all hover:ring-2 hover:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                onClick={() => handleSelectAvatar(avatar)}
-              >
-                <img
-                  src={avatar}
-                  alt={`Avatar option ${index + 1}`}
-                  className="w-20 h-20 object-cover"
-                />
-                {avatar === profileData.avatar && (
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                    <div className="text-white">✓</div>
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-          
-          <div className="flex justify-end mt-4">
-            <Button variant="outline" onClick={() => setIsAvatarDialogOpen(false)}>
-              Cancel
-            </Button>
-          </div>
         </DialogContent>
       </Dialog>
     </div>
