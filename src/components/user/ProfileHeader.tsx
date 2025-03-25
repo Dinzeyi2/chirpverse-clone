@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, MessageCircle, UserCircle, Heart, Star, ThumbsUp, Flame } from 'lucide-react';
@@ -29,7 +30,7 @@ interface ProfileHeaderProps {
     posts: number;
     replies: number;
     reactions: number;
-    bluedify: number;
+    bluedify?: number; // Make bluedify optional
   };
   onTabChange?: (value: string) => void;
 }
