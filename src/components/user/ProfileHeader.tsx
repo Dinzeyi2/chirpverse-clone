@@ -68,7 +68,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   });
   
   const [userReactionsCount, setUserReactionsCount] = useState(stats.reactions || 0);
-  const [userBludifyCount, setUserBludifyCount] = useState(stats.bluedify || 0);
 
   useEffect(() => {
     if (user?.id) {
@@ -86,28 +85,11 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           }
         )
         .subscribe();
-
-      const bludifiesChannel = supabase
-        .channel('profile-bludifies-changes')
-        .on('postgres_changes', 
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'post_bludifies',
-            filter: `user_id=eq.${user.id}`
-          }, 
-          () => {
-            fetchUserBludifies();
-          }
-        )
-        .subscribe();
         
       fetchUserReactions();
-      fetchUserBludifies();
       
       return () => {
         supabase.removeChannel(reactionsChannel);
-        supabase.removeChannel(bludifiesChannel);
       };
     }
   }, [user?.id]);
@@ -125,22 +107,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       if (count !== null) setUserReactionsCount(count);
     } catch (error) {
       console.error('Error fetching user reactions count:', error);
-    }
-  };
-  
-  const fetchUserBludifies = async () => {
-    if (!user?.id) return;
-    
-    try {
-      const { count, error } = await supabase
-        .from('post_bludifies')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
-        
-      if (error) throw error;
-      if (count !== null) setUserBludifyCount(count);
-    } catch (error) {
-      console.error('Error fetching user bludifies count:', error);
     }
   };
   
@@ -419,25 +385,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     "font-medium font-heading tracking-wide",
                     isMobile ? "text-xs" : "text-sm"
                   )}>{userReactionsCount || 0} Reactions</span>
-                </div>
-                
-                <div className={cn(
-                  "backdrop-blur-sm rounded-full flex items-center gap-1 md:gap-2 border",
-                  isMobile ? "px-2.5 py-1.5 text-xs" : "px-4 py-2",
-                  isLightMode 
-                    ? "bg-white/80 text-black border-gray-200/50" 
-                    : "bg-black border-gray-800/50 text-white"
-                )}>
-                  <div className={cn(
-                    "rounded-full flex items-center justify-center",
-                    isMobile ? "w-4 h-4" : "w-5 h-5"
-                  )}>
-                    <Flame size={isMobile ? 10 : 14} className={isLightMode ? "text-black" : "text-white"} />
-                  </div>
-                  <span className={cn(
-                    "font-medium font-heading tracking-wide",
-                    isMobile ? "text-xs" : "text-sm"
-                  )}>{userBludifyCount || 0} Bluedify</span>
                 </div>
               </div>
             </div>
