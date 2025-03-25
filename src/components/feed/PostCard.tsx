@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile, ThumbsUp } from 'lucide-react';
@@ -443,6 +442,8 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     );
   };
 
+  const blueProfileImage = "/lovable-uploads/c82714a7-4f91-4b00-922a-4caee389e8b2.png";
+
   return (
     <div 
       onClick={handlePostClick}
@@ -541,7 +542,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           
           <div className="flex items-center mt-1 px-3 pb-3">
             <img 
-              src={post.user?.avatar} 
+              src={blueProfileImage} 
               alt={postAuthorName} 
               className="w-6 h-6 rounded-full object-cover mr-1.5"
             />
@@ -564,7 +565,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         <div className={contentBg}>
           <div className="flex items-center p-3">
             <img 
-              src={post.user?.avatar} 
+              src={blueProfileImage} 
               alt={postAuthorName} 
               className="w-6 h-6 rounded-full object-cover mr-1.5"
             />

@@ -18,6 +18,8 @@ const PostPage: React.FC = () => {
   const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
+  const blueProfileImage = "/lovable-uploads/c82714a7-4f91-4b00-922a-4caee389e8b2.png";
+  
   useEffect(() => {
     const fetchPostAndComments = async () => {
       if (!postId) return;
@@ -25,7 +27,6 @@ const PostPage: React.FC = () => {
       try {
         setLoading(true);
         
-        // Fetch the post immediately to show something to the user
         const { data: postData, error: postError } = await supabase
           .from('shoutouts')
           .select(`
@@ -55,17 +56,15 @@ const PostPage: React.FC = () => {
               id: postData.profiles.id,
               name: postData.profiles.full_name || 'User',
               username: postData.profiles.user_id?.substring(0, 8) || 'user',
-              avatar: postData.profiles.avatar_url || 'https://i.pravatar.cc/150?img=1',
+              avatar: blueProfileImage,
               verified: false,
               followers: 0,
               following: 0,
             }
           };
           
-          // Set post immediately to show something as fast as possible
           setPost(formattedPost);
           
-          // Fetch additional data in parallel
           Promise.all([
             supabase.from('likes').select('*', { count: 'exact' }).eq('shoutout_id', postId),
             supabase.from('comments').select('*', { count: 'exact' }).eq('shoutout_id', postId),
@@ -80,14 +79,12 @@ const PostPage: React.FC = () => {
             const likesCount = likesResponse.count || 0;
             const commentsCount = commentsCountResponse.count || 0;
             
-            // Update post with counts
             setPost(prev => ({
               ...prev,
               likes: likesCount,
               replies: commentsCount
             }));
             
-            // Process comments if available
             if (!commentsResponse.error && commentsResponse.data) {
               const formattedComments = commentsResponse.data.map(comment => ({
                 id: comment.id,
@@ -101,7 +98,7 @@ const PostPage: React.FC = () => {
                   id: comment.profiles.id,
                   name: comment.profiles.full_name || 'User',
                   username: comment.profiles.user_id?.substring(0, 8) || 'user',
-                  avatar: comment.profiles.avatar_url || 'https://i.pravatar.cc/150?img=1',
+                  avatar: blueProfileImage,
                   verified: false,
                   followers: 0,
                   following: 0,
@@ -159,7 +156,7 @@ const PostPage: React.FC = () => {
             id: data.profiles.id,
             name: data.profiles.full_name || 'User',
             username: data.profiles.user_id?.substring(0, 8) || 'user',
-            avatar: data.profiles.avatar_url || 'https://i.pravatar.cc/150?img=1',
+            avatar: blueProfileImage,
             verified: false,
             followers: 0,
             following: 0,
@@ -266,7 +263,7 @@ const PostPage: React.FC = () => {
               id: user.id,
               name: user.user_metadata?.full_name || 'User',
               username: user.user_metadata?.username || user.id.substring(0, 8),
-              avatar: 'https://i.pravatar.cc/150?img=1',
+              avatar: blueProfileImage,
               followers: 0,
               following: 0,
               verified: false,

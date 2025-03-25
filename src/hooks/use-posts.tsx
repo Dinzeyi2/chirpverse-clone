@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -12,12 +11,12 @@ export const usePosts = () => {
   const [error, setError] = useState<string | null>(null);
   const [sortOption, setSortOption] = useState<SortOption>('latest');
   
-  // Fetch posts with optimized queries
+  const blueProfileImage = "/lovable-uploads/c82714a7-4f91-4b00-922a-4caee389e8b2.png";
+
   const fetchPosts = async () => {
     try {
       setError(null);
       
-      // First quickly get basic post data to show something immediately
       const { data: basicShoutoutData, error: basicShoutoutError } = await supabase
         .from('shoutouts')
         .select('id, content, created_at, user_id, media')
@@ -31,7 +30,6 @@ export const usePosts = () => {
       }
       
       if (basicShoutoutData && basicShoutoutData.length > 0) {
-        // Format basic data for immediate display
         const quickPosts = basicShoutoutData.map(post => ({
           id: post.id,
           content: post.content,
@@ -48,35 +46,30 @@ export const usePosts = () => {
             id: post.user_id,
             name: 'Loading...',
             username: post.user_id?.substring(0, 8) || 'user',
-            avatar: 'https://i.pravatar.cc/150?img=1',
+            avatar: blueProfileImage,
             verified: false,
             followers: 0,
             following: 0,
           }
         }));
         
-        // Show quick data first
         setPosts(quickPosts);
         setLoading(false);
         
-        // Then load full post data in parallel
         const formattedPosts = await Promise.all(basicShoutoutData.map(async post => {
           try {
-            // Load profile data
             const { data: profileData } = await supabase
               .from('profiles')
               .select('full_name, avatar_url')
               .eq('user_id', post.user_id)
               .single();
               
-            // Get counts in parallel
             const [likesResult, commentsResult, savesResult] = await Promise.all([
               supabase.from('likes').select('*', { count: 'exact', head: true }).eq('shoutout_id', post.id),
               supabase.from('comments').select('*', { count: 'exact', head: true }).eq('shoutout_id', post.id),
               supabase.from('saved_posts').select('*', { count: 'exact', head: true }).eq('shoutout_id', post.id)
             ]);
             
-            // Get counts
             const likesCount = likesResult.count || 0;
             const commentsCount = commentsResult.count || 0;
             const savesCount = savesResult.count || 0;
@@ -104,7 +97,7 @@ export const usePosts = () => {
                 id: post.user_id,
                 name: profile.full_name || 'User',
                 username: displayUsername,
-                avatar: profile.avatar_url || 'https://i.pravatar.cc/150?img=1',
+                avatar: blueProfileImage,
                 verified: false,
                 followers: 0,
                 following: 0,
@@ -128,7 +121,7 @@ export const usePosts = () => {
                 id: post.user_id,
                 name: 'User',
                 username: 'user',
-                avatar: 'https://i.pravatar.cc/150?img=1',
+                avatar: blueProfileImage,
                 verified: false,
                 followers: 0,
                 following: 0,
@@ -137,7 +130,6 @@ export const usePosts = () => {
           }
         }));
         
-        // Update with complete data
         setPosts(formattedPosts);
       } else {
         setPosts([]);
@@ -152,7 +144,6 @@ export const usePosts = () => {
     }
   };
   
-  // Load more posts beyond initial batch
   const loadMorePosts = async () => {
     if (posts.length === 0) return;
     
@@ -170,16 +161,13 @@ export const usePosts = () => {
         return;
       }
       
-      // Process more posts similar to initial fetch
       const morePosts = await Promise.all(moreShoutoutData.map(async post => {
-        // Similar processing as in fetchPosts but for additional posts
         const { data: profileData } = await supabase
           .from('profiles')
           .select('full_name, avatar_url')
           .eq('user_id', post.user_id)
           .single();
           
-        // Basic formatted post with placeholder counts
         return {
           id: post.id,
           content: post.content,
@@ -196,7 +184,7 @@ export const usePosts = () => {
             id: post.user_id,
             name: profileData?.full_name || 'User',
             username: post.user_id?.substring(0, 8) || 'user',
-            avatar: profileData?.avatar_url || 'https://i.pravatar.cc/150?img=1',
+            avatar: blueProfileImage,
             verified: false,
             followers: 0,
             following: 0,
@@ -204,7 +192,6 @@ export const usePosts = () => {
         };
       }));
       
-      // Append to existing posts
       setPosts(prevPosts => [...prevPosts, ...morePosts]);
       
     } catch (error) {
@@ -212,7 +199,6 @@ export const usePosts = () => {
     }
   };
   
-  // Subscribe to real-time updates
   useEffect(() => {
     const setupRealtimeSubscription = () => {
       const channel = supabase
@@ -225,7 +211,6 @@ export const usePosts = () => {
           }, 
           async (payload) => {
             try {
-              // First add the new post with placeholder data for immediate feedback
               const quickNewPost = {
                 id: payload.new.id,
                 content: payload.new.content,
@@ -242,18 +227,16 @@ export const usePosts = () => {
                   id: payload.new.user_id,
                   name: 'Loading...',
                   username: payload.new.user_id?.substring(0, 8) || 'user',
-                  avatar: 'https://i.pravatar.cc/150?img=1',
+                  avatar: blueProfileImage,
                   verified: false,
                   followers: 0,
                   following: 0,
                 }
               };
               
-              // Add immediately to the posts array
               setPosts(prev => [quickNewPost, ...prev]);
               toast.success('New post added!');
               
-              // Then fetch full profile data
               const { data: profileData } = await supabase
                 .from('profiles')
                 .select('*')
@@ -267,7 +250,6 @@ export const usePosts = () => {
               
               const displayUsername = payload.new.user_id?.substring(0, 8) || 'user';
             
-              // Update the post with proper profile data
               setPosts(prev => prev.map(post => 
                 post.id === payload.new.id 
                   ? {
@@ -276,7 +258,7 @@ export const usePosts = () => {
                         id: payload.new.user_id,
                         name: profile.full_name || 'User',
                         username: displayUsername,
-                        avatar: profile.avatar_url || 'https://i.pravatar.cc/150?img=1',
+                        avatar: blueProfileImage,
                         verified: false,
                         followers: 0,
                         following: 0,
@@ -301,7 +283,6 @@ export const usePosts = () => {
     };
   }, []);
   
-  // Sort posts whenever posts or sortOption changes
   useEffect(() => {
     let sortedPosts = [...posts];
     
@@ -326,7 +307,6 @@ export const usePosts = () => {
     setSortedPosts(sortedPosts);
   }, [posts, sortOption]);
   
-  // Initial fetch
   useEffect(() => {
     fetchPosts();
   }, []);
