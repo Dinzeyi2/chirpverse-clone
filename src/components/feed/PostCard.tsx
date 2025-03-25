@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile, ThumbsUp, Flame } from 'lucide-react';
+import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile, ThumbsUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Post, formatDate } from '@/lib/data';
 import { toast } from 'sonner';
@@ -32,8 +33,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [reactions, setReactions] = useState<EmojiReaction[]>([]);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
-  const [isBludified, setIsBludified] = useState(false);
-  const [bludifyCount, setBludifyCount] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const hasMedia = post.images && post.images.length > 0;
@@ -156,35 +155,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     };
     
     checkBookmarkStatus();
-    
-    const checkBludifyStatus = async () => {
-      try {
-        const user = (await supabase.auth.getUser()).data.user;
-        if (user) {
-          const { data } = await supabase
-            .from('post_bludifies')
-            .select('*')
-            .eq('post_id', getPostId(post.id))
-            .eq('user_id', user.id)
-            .maybeSingle();
-          
-          if (data) {
-            setIsBludified(true);
-          }
-        }
-        
-        const { count } = await supabase
-          .from('post_bludifies')
-          .select('*', { count: 'exact', head: true })
-          .eq('post_id', getPostId(post.id));
-          
-        if (count !== null) setBludifyCount(count);
-      } catch (error) {
-        console.log('Bludify check error:', error);
-      }
-    };
-    
-    checkBludifyStatus();
   }, [post.id]);
 
   useEffect(() => {
@@ -268,61 +238,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     } catch (error) {
       console.error('Error handling like:', error);
       toast.error('Failed to update like status');
-    }
-  };
-
-  const handleBludify = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    try {
-      const user = (await supabase.auth.getUser()).data.user;
-      if (!user) {
-        toast.error('Please sign in to bludify this post');
-        return;
-      }
-      
-      if (isBludified) {
-        const { error } = await supabase
-          .from('post_bludifies')
-          .delete()
-          .eq('post_id', getPostId(post.id))
-          .eq('user_id', user.id);
-        
-        if (error) throw error;
-        setIsBludified(false);
-        setBludifyCount(prev => Math.max(0, prev - 1));
-        toast.success('Bludify removed');
-      } else {
-        const { error } = await supabase
-          .from('post_bludifies')
-          .insert({
-            post_id: getPostId(post.id),
-            user_id: user.id
-          });
-        
-        if (error) throw error;
-        setIsBludified(true);
-        setBludifyCount(prev => prev + 1);
-        
-        if (post.userId !== user.id) {
-          await supabase.from('notifications').insert({
-            type: 'reaction',
-            content: 'bludified your post',
-            recipient_id: post.userId,
-            sender_id: user.id,
-            metadata: {
-              post_id: post.id,
-              post_excerpt: post.content.substring(0, 50) + (post.content.length > 50 ? '...' : '')
-            }
-          });
-        }
-        
-        toast.success('Post bludified! This was useful');
-      }
-    } catch (error) {
-      console.error('Error toggling bludify:', error);
-      toast.error('Failed to update bludify. Please sign in.');
     }
   };
 
@@ -559,30 +474,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       )}
       
       <div className={`flex justify-between items-center p-2 border-t border-b ${actionBorder} ${actionBg}`}>
-        <button 
-          className={cn(
-            "flex items-center group",
-            isBludified && "text-xBlue"
-          )}
-          onClick={handleBludify}
-          aria-label={`${bludifyCount} bludifies`}
-        >
-          <div className={cn(
-            "p-1 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors",
-            isBludified && "text-xBlue"
-          )}>
-            <div className="flex items-center">
-              <Flame size={16} className={cn(
-                iconColor, "transition-colors",
-                isBludified && "text-xBlue fill-xBlue"
-              )} />
-              <span className={`ml-1 text-xs group-hover:text-xBlue ${isBludified ? '' : iconColor}`}>
-                {formatNumber(bludifyCount)}
-              </span>
-            </div>
-          </div>
-        </button>
-        
         <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
           <PopoverTrigger asChild>
             <button 
