@@ -284,17 +284,22 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
             }
           }
           
-          setPostContent('');
-          setCharCount(0);
-          setMediaFiles([]);
+          setTimeout(() => {
+            setPostContent('');
+            setCharCount(0);
+            setMediaFiles([]);
+            setIsLoading(false);
+            
+            if (textareaRef.current) {
+              textareaRef.current.style.height = 'auto';
+            }
+            
+            if (inDialog && dialogCloseRef.current) {
+              dialogCloseRef.current.click();
+            }
+          }, 1500);
           
-          if (textareaRef.current) {
-            textareaRef.current.style.height = 'auto';
-          }
-          
-          if (inDialog && dialogCloseRef.current) {
-            dialogCloseRef.current.click();
-          }
+          return;
         }
       } catch (postCreationError) {
         console.error('Error in post creation:', postCreationError);
@@ -306,7 +311,9 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       setPostError('Error creating post. Please try again.');
       toast.error('Error creating post. Please try again.');
     } finally {
-      setIsLoading(false);
+      if (!postSuccessful) {
+        setIsLoading(false);
+      }
     }
   };
   
