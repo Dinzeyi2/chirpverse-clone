@@ -31,7 +31,7 @@ const Auth = () => {
     <div className="min-h-screen bg-black flex flex-col text-white">
       {/* iblue Logo */}
       <div className="flex justify-center pt-8 pb-5">
-        <img src="/lovable-uploads/550cef80-c9ad-4c13-b56c-c73480dddf87.png" alt="i-blue logo" className="h-16 w-16" />
+        <span className="font-bold text-3xl tracking-tight bg-gradient-to-r from-[#4285F4] to-[#8AB4F8] bg-clip-text text-transparent">iblue</span>
       </div>
 
       {/* Main Content */}
@@ -39,7 +39,7 @@ const Auth = () => {
         <div className="w-full max-w-md">
           <div className="text-center mb-10">
             <h1 className="text-3xl font-bold text-white">
-              {activeTab === 'signin' ? 'Sign in to i-blue' : 'Join i-blue today'}
+              {activeTab === 'signin' ? 'Sign in to iblue' : 'Join iblue today'}
             </h1>
           </div>
 
@@ -79,7 +79,7 @@ const Auth = () => {
 
       {/* Footer */}
       <div className="py-4 text-center text-xs text-gray-500">
-        <p>© 2023 i-blue Corp.</p>
+        <p>© 2023 iblue Corp.</p>
       </div>
     </div>
   );
