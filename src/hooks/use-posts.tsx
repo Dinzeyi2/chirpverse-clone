@@ -370,7 +370,7 @@ export const usePosts = () => {
   useEffect(() => {
     let sortedPosts = [...posts];
     
-    switch (sortOption) {
+    switch ((sortOption as SortOption)) {
       case 'latest':
         sortedPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         break;

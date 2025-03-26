@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,11 +30,7 @@ const Auth = () => {
     <div className="min-h-screen bg-black flex flex-col text-white">
       {/* iblue Logo */}
       <div className="flex justify-center pt-8 pb-5">
-        <img 
-          src="/lovable-uploads/6cd6103f-8ab6-49f9-b4cc-8d47775646bd.png" 
-          alt="iblue logo" 
-          className="h-16 w-16"
-        />
+        <span className="font-bold text-3xl tracking-tight bg-gradient-to-r from-[#4285F4] to-[#8AB4F8] bg-clip-text text-transparent">iblue</span>
       </div>
 
       {/* Main Content */}

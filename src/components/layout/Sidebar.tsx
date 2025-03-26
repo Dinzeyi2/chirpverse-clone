@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -196,11 +195,7 @@ export const Sidebar = () => {
         <div className="flex flex-col h-full p-6">
           <div className="flex items-center justify-between mb-8">
             <Link to="/" className="p-2 rounded-full hover:bg-blue-500/10 transition-colors">
-              <img 
-                src="/lovable-uploads/6cd6103f-8ab6-49f9-b4cc-8d47775646bd.png" 
-                alt="iblue logo" 
-                className="h-10 w-10"
-              />
+              <span className="font-bold text-2xl tracking-tight bg-gradient-to-r from-[#4285F4] to-[#8AB4F8] bg-clip-text text-transparent">iblue</span>
             </Link>
             <button 
               onClick={toggleMobileMenu}
@@ -306,11 +301,7 @@ export const Sidebar = () => {
       <div className="flex flex-col h-full px-3 py-5">
         <div className="mb-6 flex justify-center lg:justify-start">
           <Link to="/" className="p-2 rounded-full hover:bg-blue-500/10 transition-colors">
-            <img 
-              src="/lovable-uploads/6cd6103f-8ab6-49f9-b4cc-8d47775646bd.png" 
-              alt="iblue logo" 
-              className="h-10 w-10"
-            />
+            <span className="font-bold text-2xl tracking-tight bg-gradient-to-r from-[#4285F4] to-[#8AB4F8] bg-clip-text text-transparent">iblue</span>
             <span className="sr-only">Home</span>
           </Link>
         </div>
