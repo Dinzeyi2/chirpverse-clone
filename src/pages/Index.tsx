@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useCallback, Suspense } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
 import SwipeablePostView from '@/components/feed/SwipeablePostView';
@@ -10,11 +11,14 @@ import { toast } from 'sonner';
 import { useTheme } from '@/components/theme/theme-provider';
 import PostSkeleton from '@/components/feed/PostSkeleton';
 import { usePosts } from '@/hooks/use-posts';
+import { Progress } from '@/components/ui/progress';
 
 const Index = () => {
   const [feedView, setFeedView] = useState<'swipeable' | 'list'>('swipeable');
   const { user } = useAuth();
   const { theme } = useTheme();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
   const { 
     posts, 
     loading, 
@@ -26,8 +30,6 @@ const Index = () => {
   
   const handlePostCreated = (content: string, media?: {type: string, url: string}[]) => {
     if (!user) return;
-    
-    console.log("Post created, adding to feed immediately");
     
     const newPost = {
       id: crypto.randomUUID(),
@@ -53,12 +55,16 @@ const Index = () => {
     };
     
     addNewPost(newPost);
+    toast.success('Post created successfully!');
   };
 
-  const handleRefresh = () => {
-    refreshPosts();
-    toast.info('Refreshing posts...');
-  };
+  const handleRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    refreshPosts().finally(() => {
+      setTimeout(() => setIsRefreshing(false), 500);
+    });
+    toast.info('Refreshing feed...');
+  }, [refreshPosts]);
 
   const bgColor = theme === 'dark' ? 'bg-black' : 'bg-lightBeige';
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
@@ -79,8 +85,9 @@ const Index = () => {
               className="p-2 rounded-md transition-colors hover:bg-gray-200/10"
               onClick={handleRefresh}
               aria-label="Refresh posts"
+              disabled={isRefreshing}
             >
-              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''} ${textColor}`} />
+              <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''} ${textColor}`} />
             </button>
             <button 
               className={cn(
@@ -110,9 +117,18 @@ const Index = () => {
         </div>
       </div>
       
+      {loading && !posts.length && (
+        <div className="p-4">
+          <div className="w-full h-1 overflow-hidden">
+            <Progress className="h-1" value={undefined} />
+          </div>
+          <div className="space-y-6 mt-4">
+            <PostSkeleton count={3} />
+          </div>
+        </div>
+      )}
+      
       <div className={`pt-0 ${bgColor}`}>
-        {loading && <div className="p-4 space-y-6"><PostSkeleton count={3} /></div>}
-        
         {error && !loading && (
           <div className={`p-6 ${errorBg} ${errorText} border ${errorBorder} rounded-md mx-4 my-6`}>
             <p className="mb-4">There was a problem loading posts. Please try again.</p>
@@ -129,11 +145,13 @@ const Index = () => {
         
         {posts.length > 0 && (
           <div className={`pt-0 ${bgColor}`}>
-            {feedView === 'swipeable' ? (
-              <SwipeablePostView posts={posts} loading={loading} />
-            ) : (
-              <PostList posts={posts} loading={loading} />
-            )}
+            <Suspense fallback={<PostSkeleton count={3} />}>
+              {feedView === 'swipeable' ? (
+                <SwipeablePostView posts={posts} loading={loading} />
+              ) : (
+                <PostList posts={posts} loading={loading} />
+              )}
+            </Suspense>
           </div>
         )}
         
