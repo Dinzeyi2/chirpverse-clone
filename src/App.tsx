@@ -106,10 +106,10 @@ const AppContent = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <ThemeProvider defaultTheme="ghibli">
+      <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
           <Toaster />
-          <Sonner position="top-center" theme="light" />
+          <Sonner position="top-center" theme="dark" />
           <BrowserRouter>
             <AppContent />
           </BrowserRouter>

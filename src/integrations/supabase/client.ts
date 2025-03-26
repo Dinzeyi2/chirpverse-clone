@@ -47,19 +47,6 @@ export const parseArrayField = (field: string | null): string[] => {
   }
 };
 
-// Function to extract code blocks from post content
-export const extractCodeBlocks = (content: string, codeBlocks: any[]): string => {
-  if (!codeBlocks || codeBlocks.length === 0) return content;
-  
-  let processedContent = content;
-  codeBlocks.forEach((block, index) => {
-    const placeholder = `[CODE_BLOCK_${index}]`;
-    processedContent = processedContent.replace(placeholder, '');
-  });
-  
-  return processedContent;
-};
-
 // Function to find and extract programming language mentions from post content
 export const extractLanguageMentions = (content: string): string[] => {
   // Regular expression to detect @language pattern

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Quicksand:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -84,45 +84,6 @@
     --sidebar-border: 0 0% 15%;
     --sidebar-ring: 203 89% 53%;
   }
-  
-  .ghibli {
-    --background: 47 100% 96%;
-    --foreground: 168 31% 33%;
-
-    --card: 49 54% 93%;
-    --card-foreground: 168 31% 33%;
-
-    --popover: 49 54% 93%;
-    --popover-foreground: 168 31% 33%;
-
-    --primary: 197 65% 55%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 86 50% 85%;
-    --secondary-foreground: 168 31% 33%;
-
-    --muted: 78 39% 87%;
-    --muted-foreground: 169 31% 40%;
-
-    --accent: 348 31% 84%;
-    --accent-foreground: 168 31% 33%;
-
-    --destructive: 0 62.8% 50.6%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 168 20% 80%;
-    --input: 168 20% 80%;
-    --ring: 197 65% 55%;
-    
-    --sidebar-background: 44 54% 90%;
-    --sidebar-foreground: 168 31% 33%;
-    --sidebar-primary: 197 65% 55%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 86 50% 85%;
-    --sidebar-accent-foreground: 168 31% 33%;
-    --sidebar-border: 168 20% 80%;
-    --sidebar-ring: 197 65% 53%;
-  }
 }
 
 @layer base {
@@ -149,22 +110,6 @@
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.ghibli ::-webkit-scrollbar-thumb {
-  background-color: rgba(78, 157, 166, 0.4); 
-}
-
-.ghibli ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(78, 157, 166, 0.6);
-}
-
-.ghibli .glass {
-  background: rgba(255, 250, 227, 0.8);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(62, 114, 114, 0.2);
-  box-shadow: 0 4px 15px rgba(115, 162, 157, 0.15);
 }
 
 .page-transition-enter {
@@ -434,29 +379,4 @@ button, a {
   .embla__slide {
     flex: 0 0 50%;
   }
-}
-
-.ghibli .card-animation {
-  box-shadow: 0 10px 20px rgba(115, 162, 157, 0.2);
-  border: 1px solid rgba(78, 157, 166, 0.2);
-}
-
-.ghibli .glow-blue {
-  box-shadow: 0 0 20px rgba(78, 157, 166, 0.7), inset 0 0 20px rgba(78, 157, 166, 0.4);
-}
-
-.ghibli .glow-purple {
-  box-shadow: 0 0 20px rgba(193, 156, 205, 0.7), inset 0 0 20px rgba(193, 156, 205, 0.4);
-}
-
-.ghibli .glow-red {
-  box-shadow: 0 0 20px rgba(217, 108, 108, 0.7), inset 0 0 20px rgba(217, 108, 108, 0.4);
-}
-
-.ghibli-bg-pattern {
-  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%234e9da6' fill-opacity='0.06' fill-rule='evenodd'/%3E%3C/svg%3E");
-}
-
-.ghibli-cloud-pattern {
-  background-image: url("data:image/svg+xml,%3Csvg width='56' height='28' viewBox='0 0 56 28' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M56 26c-2.813 0-5.456.726-7.752 2H56v-2zm-26 2h4.087C38.707 20.783 46.795 16 56 16v-2c-.672 0-1.339.024-1.999.07L54 14a2 2 0 0 1 2-2v-2a4 4 0 0 0-3.98 3.602 28.087 28.087 0 0 0-2.793-3.862A7.994 7.994 0 0 1 56 6V4a9.988 9.988 0 0 0-8.17 4.232 28.156 28.156 0 0 0-3.636-2.905A16.048 16.048 0 0 1 56 0v-2a18.001 18.001 0 0 0-15.797 8.898c-1.85-.985-3.805-1.76-5.859-2.28A25.977 25.977 0 0 1 56-10v-2a28.004 28.004 0 0 0-24.558 14.674c-1.574-.295-3.192-.455-4.843-.455C12.17-22.782 0-10.612 0 4v2c0 13.827 10.77 25.176 24.322 26H0v2h28z' fill='%23a2c3c0' fill-opacity='0.08' fill-rule='evenodd'/%3E%3C/svg%3E");
 }
