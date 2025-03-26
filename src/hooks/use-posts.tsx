@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -13,7 +12,6 @@ export const usePosts = () => {
   const [error, setError] = useState<string | null>(null);
   const [processingIds, setProcessingIds] = useState<string[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
-  // Define sortOption with the explicit SortOption type
   const sortOption: SortOption = 'latest';
   
   const blueProfileImage = "/lovable-uploads/c82714a7-4f91-4b00-922a-4caee389e8b2.png";
