@@ -24,9 +24,11 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const [isCodeEditorOpen, setIsCodeEditorOpen] = useState(false);
   const [codeBlocks, setCodeBlocks] = useState<{code: string, language: string}[]>([]);
+  const [postSuccessful, setPostSuccessful] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const dialogCloseRef = useRef<HTMLButtonElement>(null);
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const { width } = useScreenSize();
@@ -278,11 +280,9 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     const mediaUrls: {type: string, url: string}[] = [];
     
     try {
-      // Create optimistic UI update first
       if (onPostCreated) {
-        // Create immediate post for the UI
         const optimisticPost = {
-          id: '', // No ID yet, this will be our optimistic post marker
+          id: optimisticPostId,
           content: postContent,
           createdAt: currentTime,
           likes: 0,
@@ -292,39 +292,24 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
           replies: 0,
           views: 0,
           userId: user.id,
-          images: mediaFiles.length > 0 ? [{type: 'image', url: 'loading'}] : null,
+          images: mediaFiles.length > 0 ? mediaFiles.map(file => ({
+            type: file.type,
+            url: file.preview
+          })) : null,
           user: {
             id: user.id,
             name: user?.user_metadata?.full_name || 'User',
             username: user.id.substring(0, 8),
-            avatar: "/lovable-uploads/c82714a7-4f91-4b00-922a-4caee389e8b2.png",
+            avatar: blueProfileImage,
             verified: false,
             followers: 0,
             following: 0,
           }
         };
         
-        // Update UI immediately
-        onPostCreated(postContent, mediaUrls);
-        
-        // Clear the form
-        setPostContent('');
-        setCharCount(0);
-        setMediaFiles([]);
-        setCodeBlocks([]);
-        
-        if (textareaRef.current) {
-          textareaRef.current.style.height = 'auto';
-        }
-        
-        // Close dialog if in one
-        if (inDialog) {
-          const closeButton = document.querySelector('[aria-label="Close"]') as HTMLButtonElement;
-          if (closeButton) closeButton.click();
-        }
+        onPostCreated(postContent, optimisticPost.images || []);
       }
       
-      // Upload files in the background
       const uploadPromises = mediaFiles.map(async (media) => {
         const fileExt = media.file.name.split('.').pop();
         const fileName = `${crypto.randomUUID()}.${fileExt}`;
@@ -349,7 +334,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         };
       });
       
-      // Process content
       let processedContent = postContent;
       
       for (let i = 0; i < codeBlocks.length; i++) {
@@ -357,11 +341,9 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         processedContent = processedContent.replace(placeholder, '');
       }
       
-      // Wait for uploads to complete
       const uploadedMedia = await Promise.all(uploadPromises);
       const validMedia = uploadedMedia.filter(media => media !== null) as {type: string, url: string}[];
       
-      // Create post in database
       const { data: newPost, error: postError } = await supabase
         .from('shoutouts')
         .insert({
@@ -375,12 +357,13 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       if (postError) {
         console.error('Failed to create post:', postError);
         toast.error(`Failed to create post: ${postError.message}`);
+        setIsLoading(false);
         return;
       }
       
       if (newPost) {
-        // This just confirms to the user the post is saved
         toast.success('Post sent successfully!');
+        setPostSuccessful(true);
         
         const languageMentions = extractLanguageMentions(postContent);
         console.log('Detected language mentions:', languageMentions);
@@ -398,6 +381,19 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
           } catch (notifyError) {
             console.error('Error notifying users:', notifyError);
           }
+        }
+        
+        setPostContent('');
+        setCharCount(0);
+        setMediaFiles([]);
+        setCodeBlocks([]);
+        
+        if (textareaRef.current) {
+          textareaRef.current.style.height = 'auto';
+        }
+        
+        if (inDialog && dialogCloseRef.current) {
+          dialogCloseRef.current.click();
         }
       }
     } catch (error) {
@@ -446,7 +442,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     }>
       {inDialog && (
         <div className="flex items-center justify-between p-4 border-b border-xExtraLightGray sticky top-0 bg-background z-10">
-          <DialogClose className="p-2 rounded-full hover:bg-xExtraLightGray/50">
+          <DialogClose ref={dialogCloseRef} className="p-2 rounded-full hover:bg-xExtraLightGray/50">
             <X size={20} />
           </DialogClose>
           <div className="font-medium">Compose Post</div>
@@ -464,7 +460,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         </div>
         
         <div className="flex-1">
-          <form onSubmit={handleSubmit} className={inDialog && isMobile ? 'h-full flex flex-col' : ''}>
+          <form className={inDialog && isMobile ? 'h-full flex flex-col' : ''}>
             <div className={`mb-4 relative ${inDialog && isMobile ? 'flex-1 overflow-auto' : ''}`}>
               <textarea
                 ref={textareaRef}
@@ -619,14 +615,11 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                   </div>
                 )}
                 <Button
-                  type="submit"
+                  type="button"
                   disabled={(!postContent.trim() && mediaFiles.length === 0 && codeBlocks.length === 0) || isLoading}
                   isLoading={isLoading}
                   className="rounded-full px-4"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleSubmit(e);
-                  }}
+                  onClick={handleSubmit}
                 >
                   Post
                 </Button>
