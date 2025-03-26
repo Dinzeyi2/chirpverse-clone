@@ -1,649 +1,432 @@
-
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile, ThumbsUp } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Post, formatDate } from '@/lib/data';
-import { toast } from 'sonner';
-import { supabase } from "@/integrations/supabase/client";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
-import { useTheme } from '@/components/theme/theme-provider';
+import { Heart, MessageCircle, Repeat, Share, Bookmark, MoreHorizontal, AlertTriangle } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { Link } from 'react-router-dom';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import CodeBlock from '@/components/code/CodeBlock';
+
+interface User {
+  id: string;
+  name: string;
+  username: string;
+  avatar: string;
+  verified: boolean;
+  followers: number;
+  following: number;
+}
+
+interface Post {
+  id: string;
+  content: string;
+  createdAt: string;
+  likes: number;
+  comments: number;
+  saves: number;
+  reposts: number;
+  replies: number;
+  views: number;
+  userId: string;
+  images?: { type: string; url: string }[];
+  code_blocks?: { code: string; language: string }[];
+  user: User;
+}
 
 interface PostCardProps {
   post: Post;
+  onDelete?: (postId: string) => void;
 }
 
-interface EmojiReaction {
-  emoji: string;
-  count: number;
-  reacted: boolean;
-}
-
-const PostCard: React.FC<PostCardProps> = ({ post }) => {
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const { displayName, user } = useAuth();
-  const [isLiked, setIsLiked] = useState(post.liked || false);
-  const [isBookmarked, setIsBookmarked] = useState(false);
-  const [likeCount, setLikeCount] = useState(post.likes);
-  const [replyCount, setReplyCount] = useState(post.replies);
-  const [isImageLoaded, setIsImageLoaded] = useState(false);
-  const [reactions, setReactions] = useState<EmojiReaction[]>([]);
-  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-
-  const hasMedia = post.images && post.images.length > 0;
-  const isLightMode = theme === 'light';
-
-  const getPrivacyName = (userId: string) => {
-    if (!userId || userId.length < 4) return "blue";
-    const first2 = userId.substring(0, 2);
-    const last2 = userId.substring(userId.length - 2);
-    return `blue${first2}${last2}`;
+const PostCard: React.FC<PostCardProps> = ({ post, onDelete }) => {
+  const [liked, setLiked] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [likeCount, setLikeCount] = useState(post.likes || 0);
+  const [saveCount, setSaveCount] = useState(post.saves || 0);
+  const { user } = useAuth();
+  
+  useEffect(() => {
+    if (user) {
+      checkIfLiked();
+      checkIfSaved();
+    }
+  }, [user, post.id]);
+  
+  const checkIfLiked = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('post_reactions')
+        .select('*')
+        .eq('post_id', post.id)
+        .eq('user_id', user.id)
+        .eq('reaction_type', 'like')
+        .single();
+        
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error checking like status:', error);
+      }
+      
+      setLiked(!!data);
+    } catch (error) {
+      console.error('Error checking like status:', error);
+    }
   };
   
-  const postAuthorName = getPrivacyName(post.userId);
-
-  useEffect(() => {
-    const getCurrentUserId = async () => {
-      const { data } = await supabase.auth.getUser();
-      setCurrentUserId(data.user?.id || null);
-    };
-    
-    getCurrentUserId();
-  }, []);
-
-  const getImageUrl = (image: string | { type: string, url: string }): string => {
-    if (typeof image === 'string') {
-      return image;
-    }
-    return image.url;
-  };
-
-  const cardBg = isLightMode ? 'bg-white' : 'bg-gradient-to-b from-black/20 to-black/40';
-  const cardBorder = isLightMode ? 'border-gray-200' : 'border-neutral-800/50';
-  const textColor = isLightMode ? 'text-black' : 'text-white';
-  const textColorMuted = isLightMode ? 'text-gray-500' : 'text-neutral-400';
-  const mediaBg = isLightMode ? 'bg-gray-100' : 'bg-black';
-  const iconColor = isLightMode ? 'text-black' : 'text-white';
-  const actionBg = isLightMode ? 'bg-gray-100' : 'bg-black/40';
-  const actionBorder = isLightMode ? 'border-gray-200' : 'border-neutral-800/50';
-  const contentBg = isLightMode ? 'bg-white' : 'bg-black/90';
-  const hoverBg = isLightMode ? 'bg-gray-50' : 'bg-xBlue/10';
-  const reactionBg = isLightMode ? 'bg-gray-100' : 'bg-xSecondary';
-  const reactionBorder = isLightMode ? 'border-gray-300' : 'border-xBorder';
-  const reactionText = isLightMode ? 'text-gray-800' : 'text-gray-300';
-  const reactionActiveBg = isLightMode ? 'bg-blue-50' : 'bg-xBlue/10';
-  const reactionActiveBorder = isLightMode ? 'border-blue-200' : 'border-xBlue/20';
-
-  const getPostId = (postId: string): string => {
-    return String(postId);
-  };
-
-  useEffect(() => {
-    const fetchPostReactions = async () => {
-      try {
-        const { data: reactionData, error } = await (supabase as any)
-          .from('post_reactions')
-          .select('emoji, user_id')
-          .eq('post_id', getPostId(post.id));
-        
-        if (error) throw error;
-        
-        if (reactionData && reactionData.length > 0) {
-          const reactionCounts: Record<string, { count: number, reacted: boolean }> = {};
-          const user = (await supabase.auth.getUser()).data.user;
-          
-          reactionData.forEach((reaction: any) => {
-            if (!reactionCounts[reaction.emoji]) {
-              reactionCounts[reaction.emoji] = {
-                count: 0,
-                reacted: false
-              };
-            }
-            
-            reactionCounts[reaction.emoji].count += 1;
-            
-            if (user && reaction.user_id === user.id) {
-              reactionCounts[reaction.emoji].reacted = true;
-            }
-          });
-          
-          const formattedReactions: EmojiReaction[] = Object.entries(reactionCounts).map(([emoji, data]) => ({
-            emoji,
-            count: data.count,
-            reacted: data.reacted
-          }));
-          
-          setReactions(formattedReactions);
-        }
-      } catch (error) {
-        console.error('Error fetching post reactions:', error);
-      }
-    };
-    
-    fetchPostReactions();
-    
-    const reactionsChannel = supabase
-      .channel(`post-reactions-${post.id}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'post_reactions',
-        filter: `post_id=eq.${getPostId(post.id)}`
-      }, () => {
-        fetchPostReactions();
-      })
-      .subscribe();
-    
-    return () => {
-      supabase.removeChannel(reactionsChannel);
-    };
-  }, [post.id]);
-
-  useEffect(() => {
-    const checkBookmarkStatus = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('post_bookmarks')
-          .select('*')
-          .eq('post_id', getPostId(post.id))
-          .single();
-        
-        if (data) {
-          setIsBookmarked(true);
-        }
-      } catch (error) {
-        console.log('Bookmark check error or not found:', error);
-      }
-    };
-    
-    checkBookmarkStatus();
-  }, [post.id]);
-
-  useEffect(() => {
-    const fetchReplyCount = async () => {
-      try {
-        const { count, error } = await supabase
-          .from('comments')
-          .select('*', { count: 'exact', head: true })
-          .eq('shoutout_id', post.id);
-          
-        if (error) throw error;
-        if (count !== null) setReplyCount(count);
-      } catch (error) {
-        console.error('Error fetching reply count:', error);
-      }
-    };
-    
-    fetchReplyCount();
-    
-    const commentsChannel = supabase
-      .channel(`comments-${post.id}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'comments',
-        filter: `shoutout_id=eq.${post.id}`
-      }, (payload) => {
-        setReplyCount(prev => prev + 1);
-      })
-      .on('postgres_changes', {
-        event: 'DELETE',
-        schema: 'public',
-        table: 'comments',
-        filter: `shoutout_id=eq.${post.id}`
-      }, (payload) => {
-        setReplyCount(prev => Math.max(0, prev - 1));
-      })
-      .subscribe();
-      
-    return () => {
-      supabase.removeChannel(commentsChannel);
-    };
-  }, [post.id]);
-
-  const handlePostClick = () => {
-    navigate(`/post/${post.id}`);
-  };
-
-  const handleLike = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const checkIfSaved = async () => {
+    if (!user) return;
     
     try {
-      const user = (await supabase.auth.getUser()).data.user;
-      if (!user) {
-        toast.error('Please sign in to like this post');
-        return;
+      const { data, error } = await supabase
+        .from('post_bookmarks')
+        .select('*')
+        .eq('post_id', post.id)
+        .eq('user_id', user.id)
+        .single();
+        
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error checking bookmark status:', error);
       }
       
-      if (isLiked) {
-        setLikeCount(prev => prev - 1);
+      setSaved(!!data);
+    } catch (error) {
+      console.error('Error checking bookmark status:', error);
+    }
+  };
+  
+  const handleLike = async () => {
+    if (!user) {
+      toast.error('You must be logged in to like posts');
+      return;
+    }
+    
+    try {
+      if (liked) {
+        // Unlike
+        const { error } = await supabase
+          .from('post_reactions')
+          .delete()
+          .eq('post_id', post.id)
+          .eq('user_id', user.id)
+          .eq('reaction_type', 'like');
+          
+        if (error) {
+          console.error('Error unliking post:', error);
+          toast.error('Failed to unlike post');
+          return;
+        }
+        
+        setLiked(false);
+        setLikeCount(prev => Math.max(0, prev - 1));
       } else {
+        // Like
+        const { error } = await supabase
+          .from('post_reactions')
+          .insert({
+            post_id: post.id,
+            user_id: user.id,
+            reaction_type: 'like'
+          });
+          
+        if (error) {
+          console.error('Error liking post:', error);
+          toast.error('Failed to like post');
+          return;
+        }
+        
+        setLiked(true);
         setLikeCount(prev => prev + 1);
         
-        if (post.userId !== user.id) {
-          await supabase.from('notifications').insert({
-            type: 'like',
-            content: 'liked your post',
-            recipient_id: post.userId,
-            sender_id: user.id,
-            metadata: {
-              post_id: post.id,
-              post_excerpt: post.content.substring(0, 50) + (post.content.length > 50 ? '...' : '')
-            }
-          });
+        // Create notification for the post owner
+        if (user.id !== post.userId) {
+          await supabase
+            .from('notifications')
+            .insert({
+              type: 'like',
+              recipient_id: post.userId,
+              sender_id: user.id,
+              content: 'liked your post',
+              metadata: {
+                post_id: post.id,
+                post_excerpt: post.content.substring(0, 50) + (post.content.length > 50 ? '...' : '')
+              },
+              is_read: false
+            });
         }
-        
-        toast.success('You liked a post');
       }
-      setIsLiked(!isLiked);
     } catch (error) {
-      console.error('Error handling like:', error);
-      toast.error('Failed to update like status');
+      console.error('Error toggling like:', error);
+      toast.error('An error occurred. Please try again.');
     }
   };
-
-  const handleBookmark = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  
+  const handleSave = async () => {
+    if (!user) {
+      toast.error('You must be logged in to save posts');
+      return;
+    }
     
     try {
-      const user = (await supabase.auth.getUser()).data.user;
-      if (!user) {
-        toast.error('Please sign in to bookmark posts');
+      if (saved) {
+        // Unsave
+        const { error } = await supabase
+          .from('post_bookmarks')
+          .delete()
+          .eq('post_id', post.id)
+          .eq('user_id', user.id);
+          
+        if (error) {
+          console.error('Error unsaving post:', error);
+          toast.error('Failed to unsave post');
+          return;
+        }
+        
+        setSaved(false);
+        setSaveCount(prev => Math.max(0, prev - 1));
+      } else {
+        // Save
+        const { error } = await supabase
+          .from('post_bookmarks')
+          .insert({
+            post_id: post.id,
+            user_id: user.id
+          });
+          
+        if (error) {
+          console.error('Error saving post:', error);
+          toast.error('Failed to save post');
+          return;
+        }
+        
+        setSaved(true);
+        setSaveCount(prev => prev + 1);
+      }
+    } catch (error) {
+      console.error('Error toggling save:', error);
+      toast.error('An error occurred. Please try again.');
+    }
+  };
+  
+  const handleDelete = async () => {
+    if (!user || user.id !== post.userId) {
+      toast.error('You can only delete your own posts');
+      return;
+    }
+    
+    try {
+      const { error } = await supabase
+        .from('shoutouts')
+        .delete()
+        .eq('id', post.id);
+        
+      if (error) {
+        console.error('Error deleting post:', error);
+        toast.error('Failed to delete post');
         return;
       }
       
-      if (isBookmarked) {
-        const { error } = await supabase
-          .from('post_bookmarks')
-          .delete()
-          .eq('post_id', getPostId(post.id));
-        
-        if (error) throw error;
-        setIsBookmarked(false);
-        toast.success('Bookmark removed');
-      } else {
-        const { error } = await supabase
-          .from('post_bookmarks')
-          .insert({
-            post_id: getPostId(post.id),
-            user_id: user.id
-          });
-        
-        if (error) throw error;
-        setIsBookmarked(true);
-        
-        if (post.userId !== user.id) {
-          await supabase.from('notifications').insert({
-            type: 'bookmark',
-            content: 'bookmarked your post',
-            recipient_id: post.userId,
-            sender_id: user.id,
-            metadata: {
-              post_id: post.id,
-              post_excerpt: post.content.substring(0, 50) + (post.content.length > 50 ? '...' : '')
-            }
-          });
-        }
-        
-        toast.success('Post bookmarked');
+      toast.success('Post deleted successfully');
+      if (onDelete) {
+        onDelete(post.id);
       }
     } catch (error) {
-      console.error('Error toggling bookmark:', error);
-      toast.error('Failed to update bookmark. Please sign in.');
+      console.error('Error deleting post:', error);
+      toast.error('An error occurred. Please try again.');
     }
   };
-
-  const handleShare = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    toast.success('Share options opened');
-  };
-
-  const handleCommentClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    navigate(`/post/${post.id}`);
-  };
-
-  const formatTextWithLinks = (text: string) => {
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    
-    if (!text) return '';
-
-    const parts = text.split(urlRegex);
-    const matches = text.match(urlRegex) || [];
-    
-    return parts.map((part, index) => {
-      const isUrl = matches.some(match => match === part);
-      
-      if (isUrl) {
-        return (
-          <a 
-            key={index}
-            href={part}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xBlue hover:underline"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {part}
-          </a>
-        );
-      }
-      return part;
-    });
-  };
-
-  const formatNumber = (num: number): string => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + 'M';
-    }
-    if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'K';
-    }
-    return num.toString();
-  };
-
-  const handleEmojiPickerOpen = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setEmojiPickerOpen(!emojiPickerOpen);
-  };
-
-  const handleEmojiSelect = async (emojiData: EmojiClickData, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const selectedEmoji = emojiData.emoji;
-    const user = (await supabase.auth.getUser()).data.user;
-    
+  
+  const handleReport = async () => {
     if (!user) {
-      toast.error('Please sign in to react to posts');
+      toast.error('You must be logged in to report posts');
       return;
     }
     
     try {
-      const existingReaction = reactions.find(reaction => reaction.emoji === selectedEmoji && reaction.reacted);
-      
-      if (existingReaction) {
-        const { error } = await (supabase as any)
-          .from('post_reactions')
-          .delete()
-          .eq('post_id', getPostId(post.id))
-          .eq('user_id', user.id)
-          .eq('emoji', selectedEmoji);
-          
-        if (error) throw error;
+      const { error } = await supabase
+        .from('reports')
+        .insert({
+          post_id: post.id,
+          user_id: user.id,
+          reason: 'inappropriate content'
+        });
         
-        toast.success(`Removed ${selectedEmoji} reaction`);
-      } else {
-        const { error } = await (supabase as any)
-          .from('post_reactions')
-          .insert({
-            post_id: getPostId(post.id),
-            user_id: user.id,
-            emoji: selectedEmoji
-          });
-          
-        if (error) throw error;
-        
-        if (post.userId !== user.id) {
-          await supabase.from('notifications').insert({
-            type: 'reaction',
-            content: `reacted with ${selectedEmoji} to your post`,
-            recipient_id: post.userId,
-            sender_id: user.id,
-            metadata: {
-              post_id: post.id,
-              post_excerpt: post.content.substring(0, 50) + (post.content.length > 50 ? '...' : '')
-            }
-          });
-        }
-        
-        toast.success(`Added ${selectedEmoji} reaction`);
+      if (error) {
+        console.error('Error reporting post:', error);
+        toast.error('Failed to report post');
+        return;
       }
       
-      setEmojiPickerOpen(false);
+      toast.success('Post reported. Thank you for helping keep our community safe.');
     } catch (error) {
-      console.error('Error saving reaction:', error);
-      toast.error('Failed to save reaction');
+      console.error('Error reporting post:', error);
+      toast.error('An error occurred. Please try again.');
     }
   };
-
-  const handleReactionClick = async (emoji: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const user = (await supabase.auth.getUser()).data.user;
-    
-    if (!user) {
-      toast.error('Please sign in to react to posts');
-      return;
-    }
-    
+  
+  const formatTimeAgo = (dateString: string) => {
     try {
-      const existingReaction = reactions.find(r => r.emoji === emoji && r.reacted);
-      
-      if (existingReaction) {
-        const { error } = await (supabase as any)
-          .from('post_reactions')
-          .delete()
-          .eq('post_id', getPostId(post.id))
-          .eq('user_id', user.id)
-          .eq('emoji', emoji);
-          
-        if (error) throw error;
-        
-        toast.success(`Removed ${emoji} reaction`);
-      } else {
-        const { error } = await (supabase as any)
-          .from('post_reactions')
-          .insert({
-            post_id: getPostId(post.id),
-            user_id: user.id,
-            emoji: emoji
-          });
-          
-        if (error) throw error;
-        
-        toast.success(`Added ${emoji} reaction`);
-      }
+      const date = new Date(dateString);
+      return formatDistanceToNow(date, { addSuffix: true });
     } catch (error) {
-      console.error('Error toggling reaction:', error);
-      toast.error('Failed to update reaction');
+      console.error('Error formatting date:', error);
+      return 'some time ago';
     }
   };
-
-  const renderCodeBlocks = () => {
-    if (!post.codeBlocks || post.codeBlocks.length === 0) return null;
+  
+  const renderMedia = () => {
+    if (!post.images || post.images.length === 0) return null;
     
     return (
-      <div className="mt-2">
-        {post.codeBlocks.map((codeBlock, index) => (
-          <CodeBlock 
-            key={index}
-            code={codeBlock.code}
-            language={codeBlock.language}
-            className="mb-2"
-          />
+      <div className={`mt-2 mb-4 grid ${post.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-2 rounded-2xl overflow-hidden`}>
+        {post.images.map((media, index) => (
+          <div key={index} className="relative rounded-2xl overflow-hidden">
+            {media.type === 'image' ? (
+              <img 
+                src={media.url} 
+                alt={`Post media ${index}`}
+                className="w-full h-64 object-cover"
+              />
+            ) : (
+              <video 
+                src={media.url} 
+                className="w-full h-64 object-cover" 
+                controls
+              />
+            )}
+          </div>
         ))}
       </div>
     );
   };
 
-  const blueProfileImage = "/lovable-uploads/c82714a7-4f91-4b00-922a-4caee389e8b2.png";
-
   return (
-    <div 
-      onClick={handlePostClick}
-      className={cn(
-        'cursor-pointer block animate-fade-in relative rounded-xl overflow-hidden border',
-        cardBg, 'backdrop-blur-sm',
-        'transition-all duration-300 hover:shadow-xl hover:scale-[1.01]',
-        cardBorder,
-        !hasMedia && 'flex flex-col justify-center'
-      )}
-    >
-      {hasMedia ? (
-        <div className="flex flex-col">
-          <div className={`w-full aspect-[4/3] relative overflow-hidden ${mediaBg}`}>
-            <img 
-              src={getImageUrl(post.images[0])} 
-              alt="Post content" 
-              className={cn(
-                "w-full h-full object-cover transition-all duration-500",
-                !isImageLoaded ? "scale-105 blur-sm" : "scale-100 blur-0"
+    <div className="px-4 py-3 border-b border-xExtraLightGray hover:bg-xExtraLightGray/30 transition-colors">
+      <div className="flex">
+        <div className="mr-3">
+          <Link to={`/profile/${post.userId}`}>
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={post.user.avatar} alt={post.user.name} />
+              <AvatarFallback>{post.user.name.charAt(0)}</AvatarFallback>
+            </Avatar>
+          </Link>
+        </div>
+        
+        <div className="flex-1">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <Link to={`/profile/${post.userId}`} className="font-semibold hover:underline">
+                {post.user.name}
+              </Link>
+              {post.user.verified && (
+                <span className="ml-1 text-xBlue">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                    <path fillRule="evenodd" d="M8.603 3.799A4.49 4.49 0 0112 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 013.498 1.307 4.491 4.491 0 011.307 3.497A4.49 4.49 0 0121.75 12a4.49 4.49 0 01-1.549 3.397 4.491 4.491 0 01-1.307 3.497 4.491 4.491 0 01-3.497 1.307A4.49 4.49 0 0112 21.75a4.49 4.49 0 01-3.397-1.549 4.49 4.49 0 01-3.498-1.306 4.491 4.491 0 01-1.307-3.498A4.49 4.49 0 012.25 12c0-1.357.6-2.573 1.549-3.397a4.49 4.49 0 011.307-3.497 4.49 4.49 0 013.497-1.307zm7.007 6.387a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
+                  </svg>
+                </span>
               )}
-              onLoad={() => setIsImageLoaded(true)}
-            />
+              <span className="text-xGray ml-2">@{post.user.username}</span>
+              <span className="text-xGray mx-1">·</span>
+              <span className="text-xGray">{formatTimeAgo(post.createdAt)}</span>
+            </div>
+            
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-xGray hover:text-xBlue hover:bg-xBlue/10 rounded-full">
+                  <MoreHorizontal size={16} />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-0" align="end">
+                <div className="py-1">
+                  {user && user.id === post.userId ? (
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 rounded-none px-3 py-2 h-auto"
+                      onClick={handleDelete}
+                    >
+                      Delete post
+                    </Button>
+                  ) : (
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 rounded-none px-3 py-2 h-auto"
+                      onClick={handleReport}
+                    >
+                      <AlertTriangle size={16} className="mr-2" />
+                      Report post
+                    </Button>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
           
-          <div className={contentBg}>
-            <div className="p-3">
-              <h2 className={`text-base font-bold ${textColor} leading-tight mb-1`}>
-                {formatTextWithLinks(post.content)}
-              </h2>
-            
-              <div>
-                {renderCodeBlocks()}
+          <Link to={`/post/${post.id}`}>
+            {post.content && (
+              <div className="post-content mb-3 whitespace-pre-wrap break-words">
+                {post.content.split(/\[CODE_BLOCK_(\d+)\]/).map((part, index) => {
+                  // If it's an odd index, it's a code block reference
+                  if (index % 2 === 1) {
+                    const blockIndex = parseInt(part, 10);
+                    const codeBlock = post.code_blocks && post.code_blocks[blockIndex];
+                    
+                    return codeBlock ? (
+                      <CodeBlock 
+                        key={`code-${index}`}
+                        code={codeBlock.code} 
+                        language={codeBlock.language} 
+                      />
+                    ) : null;
+                  }
+                  
+                  // Regular text content
+                  return part ? (
+                    <span key={`text-${index}`}>{part}</span>
+                  ) : null;
+                })}
               </div>
-            </div>
+            )}
             
-            <div className="flex items-center mt-1 px-3 pb-3">
-              <img 
-                src={blueProfileImage} 
-                alt={postAuthorName} 
-                className="w-6 h-6 rounded-full object-cover mr-1.5"
-              />
-              <div className="flex items-center">
-                <span className="font-medium text-[#4285F4] mr-1 text-sm font-heading tracking-wide">
-                  {post.userId === currentUserId ? displayName : postAuthorName}
-                </span>
-                {post.user?.verified && (
-                  <span className="text-xBlue">
-                    <CheckCircle size={12} className="fill-xBlue text-black" />
-                  </span>
-                )}
-              </div>
-              <span className={`${textColorMuted} text-xs ml-auto`}>{formatDate(post.createdAt)}</span>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="p-6 flex-1 flex flex-col">
-          <p className={`text-xl ${textColor} font-medium mb-3`}>
-            {formatTextWithLinks(post.content)}
-          </p>
-          {renderCodeBlocks()}
-        </div>
-      )}
-      
-      <div className={`flex justify-between items-center p-2 border-t border-b ${actionBorder} ${actionBg}`}>
-        <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
-          <PopoverTrigger asChild>
+            {renderMedia()}
+          </Link>
+          
+          <div className="flex justify-between mt-2 text-xGray">
             <button 
-              className="flex items-center group"
-              onClick={handleEmojiPickerOpen}
+              className={`flex items-center space-x-1 hover:text-xBlue ${liked ? 'text-red-500 hover:text-red-600' : ''}`}
+              onClick={handleLike}
             >
-              <div className="p-1 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors">
-                <Smile size={16} className={iconColor} />
-              </div>
+              <Heart size={18} className={liked ? 'fill-current' : ''} />
+              <span>{likeCount > 0 ? likeCount : ''}</span>
             </button>
-          </PopoverTrigger>
-          <PopoverContent 
-            className="p-0 border-none shadow-xl"
-            side="top"
-          >
-            <EmojiPicker
-              onEmojiClick={(emojiData, event) => handleEmojiSelect(emojiData, event as unknown as React.MouseEvent)}
-              searchDisabled
-              skinTonesDisabled
-              width={280}
-              height={350}
-              theme={(theme === "dark" ? "dark" : "light") as Theme}
-            />
-          </PopoverContent>
-        </Popover>
-        
-        <button 
-          className="flex items-center group"
-          onClick={handleCommentClick}
-          aria-label={`${replyCount} replies`}
-        >
-          <div className="p-1 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors">
-            <MessageCircle size={16} className={iconColor} />
+            
+            <Link to={`/post/${post.id}`} className="flex items-center space-x-1 hover:text-xBlue">
+              <MessageCircle size={18} />
+              <span>{post.comments > 0 ? post.comments : ''}</span>
+            </Link>
+            
+            <button className="flex items-center space-x-1 hover:text-xBlue">
+              <Repeat size={18} />
+              <span>{post.reposts > 0 ? post.reposts : ''}</span>
+            </button>
+            
+            <button 
+              className={`flex items-center space-x-1 hover:text-xBlue ${saved ? 'text-yellow-500 hover:text-yellow-600' : ''}`}
+              onClick={handleSave}
+            >
+              <Bookmark size={18} className={saved ? 'fill-current' : ''} />
+              <span>{saveCount > 0 ? saveCount : ''}</span>
+            </button>
+            
+            <button className="flex items-center space-x-1 hover:text-xBlue">
+              <Share size={18} />
+            </button>
           </div>
-          <span className={`ml-1 text-xs group-hover:text-xBlue ${iconColor}`}>
-            {formatNumber(replyCount)}
-          </span>
-        </button>
-        
-        <button 
-          className={cn(
-            "flex items-center group",
-            isBookmarked && "text-xBlue"
-          )}
-          onClick={handleBookmark}
-        >
-          <div className={cn(
-            "p-1 rounded-full group-hover:bg-xBlue/10 group-hover:text-xBlue transition-colors",
-            isBookmarked && "text-xBlue"
-          )}>
-            <Bookmark size={16} className={cn(iconColor, isBookmarked ? "fill-current" : "")} />
-          </div>
-        </button>
+        </div>
       </div>
-      
-      {!hasMedia && (
-        <div className={contentBg}>
-          <div className="flex items-center p-3">
-            <img 
-              src={blueProfileImage} 
-              alt={postAuthorName} 
-              className="w-6 h-6 rounded-full object-cover mr-1.5"
-            />
-            <div className="flex items-center">
-              <span className="font-medium text-[#4285F4] mr-1 text-sm font-heading tracking-wide">
-                {post.userId === currentUserId ? displayName : postAuthorName}
-              </span>
-              {post.user?.verified && (
-                <span className="text-xBlue">
-                  <CheckCircle size={12} className="fill-xBlue text-black" />
-                </span>
-              )}
-            </div>
-            <span className={`${textColorMuted} text-xs ml-auto`}>{formatDate(post.createdAt)}</span>
-          </div>
-        </div>
-      )}
-      
-      {reactions.length > 0 && (
-        <div className="flex flex-wrap gap-1 p-2 pt-0">
-          {reactions.map((reaction, index) => (
-            <button
-              key={index}
-              onClick={(e) => handleReactionClick(reaction.emoji, e)}
-              className={cn(
-                "flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs border transition-colors",
-                reaction.reacted 
-                  ? reactionActiveBg + " " + reactionActiveBorder + " text-xBlue" 
-                  : reactionBg + " " + reactionBorder + " " + reactionText + " hover:bg-xSecondary/80"
-              )}
-            >
-              <span>{reaction.emoji}</span>
-              <span>{reaction.count}</span>
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 };

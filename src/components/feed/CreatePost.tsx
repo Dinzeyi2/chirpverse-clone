@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Image, X, Video, Smile, Code } from 'lucide-react';
 import Button from '@/components/common/Button';
@@ -312,12 +313,14 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         }
       });
       
+      // Prepare post content with code blocks
       let processedContent = postContent;
       
-      for (let i = 0; i < codeBlocks.length; i++) {
-        const placeholder = `[CODE_BLOCK_${i}]`;
-        processedContent = processedContent.replace(placeholder, '');
-      }
+      // Store code blocks as part of the post metadata
+      const codeBlocksData = codeBlocks.map(block => ({
+        code: block.code,
+        language: block.language
+      }));
       
       let validMedia: {type: string, url: string}[] = [];
       
@@ -333,12 +336,14 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       }
       
       try {
+        // Include code blocks in the database save
         const { data: newPost, error: postError } = await supabase
           .from('shoutouts')
           .insert({
             content: processedContent,
             user_id: user.id,
-            media: validMedia.length > 0 ? validMedia : null
+            media: validMedia.length > 0 ? validMedia : null,
+            code_blocks: codeBlocks.length > 0 ? codeBlocksData : null // Add code blocks to the database
           })
           .select('id')
           .single();
