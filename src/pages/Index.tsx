@@ -36,6 +36,8 @@ const Index = () => {
   const handlePostCreated = (content: string, media?: {type: string, url: string}[]) => {
     if (!user) return;
     
+    console.log("Post created, adding to feed immediately");
+    
     // Create a simple post object to show immediately in the UI
     const newPost = {
       id: crypto.randomUUID(), // Temporary ID, will be replaced when real data syncs
@@ -63,8 +65,7 @@ const Index = () => {
     // Add the new post to the posts list immediately
     addNewPost(newPost);
     
-    // Show success message
-    toast.success('Post created successfully!');
+    // No need for toast here since the UI already shows the new post
   };
 
   const handleSortChange = (option: SortOption) => {

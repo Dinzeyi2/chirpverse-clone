@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -151,8 +150,17 @@ export const usePosts = () => {
   }, []);
   
   const addNewPost = (post: any) => {
-    // Add the post to the beginning of the posts array
-    setPosts(prev => [post, ...prev]);
+    // Improved function to add the post to the beginning of the posts array
+    // This function is key for immediate feedback when posting
+    console.log("Adding new post to feed:", post);
+    setPosts(prev => {
+      // Check if the post is already in the array (avoid duplicates)
+      const existingPost = prev.find(p => p.id === post.id);
+      if (existingPost) {
+        return prev;
+      }
+      return [post, ...prev];
+    });
   };
   
   const loadMorePosts = async () => {
@@ -210,7 +218,7 @@ export const usePosts = () => {
     }
   };
   
-  // Set up realtime subscription for new posts
+  // Set up realtime subscription for new posts with better error handling
   useEffect(() => {
     const setupRealtimeSubscription = () => {
       console.log('Setting up realtime subscription for posts');
@@ -251,8 +259,12 @@ export const usePosts = () => {
                 }
               };
               
-              // Add this post immediately
-              setPosts(prev => [quickNewPost, ...prev]);
+              // Add this post immediately - check for duplicates
+              setPosts(prev => {
+                const postExists = prev.some(p => p.id === payload.new.id);
+                if (postExists) return prev;
+                return [quickNewPost, ...prev];
+              });
               
               // Show a toast notification for the new post
               toast.success('New post added!');
@@ -293,7 +305,9 @@ export const usePosts = () => {
             }
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log('Subscription status:', status);
+        });
         
       return channel;
     };

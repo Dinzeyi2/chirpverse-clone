@@ -272,9 +272,29 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     }
     
     setIsLoading(true);
-
+    
+    const optimisticPostId = crypto.randomUUID();
+    const currentTime = new Date().toISOString();
+    const mediaUrls: {type: string, url: string}[] = [];
+    
     try {
-      const mediaUrls: {type: string, url: string}[] = [];
+      if (onPostCreated) {
+        onPostCreated(postContent, mediaUrls);
+        
+        setPostContent('');
+        setCharCount(0);
+        setMediaFiles([]);
+        setCodeBlocks([]);
+        
+        if (textareaRef.current) {
+          textareaRef.current.style.height = 'auto';
+        }
+        
+        if (inDialog) {
+          const closeButton = document.querySelector('[aria-label="Close"]') as HTMLButtonElement;
+          if (closeButton) closeButton.click();
+        }
+      }
       
       if (mediaFiles.length > 0) {
         for (const media of mediaFiles) {
@@ -288,9 +308,8 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
             
           if (error) {
             console.error('Error uploading file:', error);
-            toast.error('Failed to upload media');
-            setIsLoading(false);
-            return;
+            toast.error('Failed to upload media, but post was created');
+            continue;
           }
           
           const { data: { publicUrl } } = supabase.storage
@@ -324,11 +343,12 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       if (postError) {
         console.error('Failed to create post:', postError);
         toast.error(`Failed to create post: ${postError.message}`);
-        setIsLoading(false);
         return;
       }
       
       if (newPost) {
+        toast.success('Post sent successfully!');
+        
         const languageMentions = extractLanguageMentions(postContent);
         console.log('Detected language mentions:', languageMentions);
         
@@ -342,30 +362,9 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                 newPost.id
               );
             }
-            toast.success(`Notified users who know ${languageMentions.join(', ')} about your post`);
           } catch (notifyError) {
             console.error('Error notifying users:', notifyError);
           }
-        }
-        
-        if (onPostCreated) {
-          onPostCreated(processedContent, mediaUrls);
-        }
-        
-        setPostContent('');
-        setCharCount(0);
-        setMediaFiles([]);
-        setCodeBlocks([]);
-        
-        toast.success('Your post was sent successfully!');
-        
-        if (textareaRef.current) {
-          textareaRef.current.style.height = 'auto';
-        }
-
-        if (inDialog) {
-          const closeButton = document.querySelector('[aria-label="Close"]') as HTMLButtonElement;
-          if (closeButton) closeButton.click();
         }
       }
     } catch (error) {
