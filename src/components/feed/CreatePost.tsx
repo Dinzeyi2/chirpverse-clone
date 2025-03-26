@@ -323,37 +323,45 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         .single();
       
       if (postError) {
-        throw new Error(`Failed to create post: ${postError.message}`);
+        console.error('Failed to create post:', postError);
+        toast.error(`Failed to create post: ${postError.message}`);
+        return;
       }
       
-      const languageMentions = extractLanguageMentions(postContent);
-      console.log('Detected language mentions:', languageMentions);
-      
-      if (languageMentions.length > 0 && newPost) {
-        for (const language of languageMentions) {
-          await notifyLanguageUsers(
-            user.id,
-            language,
-            postContent,
-            newPost.id
-          );
+      if (newPost) {
+        const languageMentions = extractLanguageMentions(postContent);
+        console.log('Detected language mentions:', languageMentions);
+        
+        if (languageMentions.length > 0) {
+          try {
+            for (const language of languageMentions) {
+              await notifyLanguageUsers(
+                user.id,
+                language,
+                postContent,
+                newPost.id
+              );
+            }
+            toast.success(`Notified users who know ${languageMentions.join(', ')} about your post`);
+          } catch (notifyError) {
+            console.error('Error notifying users:', notifyError);
+          }
         }
-        toast.success(`Notified users who know ${languageMentions.join(', ')} about your post`);
-      }
-      
-      if (onPostCreated) {
-        onPostCreated(processedContent, mediaUrls);
-      }
-      
-      setPostContent('');
-      setCharCount(0);
-      setMediaFiles([]);
-      setCodeBlocks([]);
-      
-      toast.success('Your post was sent successfully!');
-      
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
+        
+        if (onPostCreated) {
+          onPostCreated(processedContent, mediaUrls);
+        }
+        
+        setPostContent('');
+        setCharCount(0);
+        setMediaFiles([]);
+        setCodeBlocks([]);
+        
+        toast.success('Your post was sent successfully!');
+        
+        if (textareaRef.current) {
+          textareaRef.current.style.height = 'auto';
+        }
       }
     } catch (error) {
       console.error('Error creating post:', error);
