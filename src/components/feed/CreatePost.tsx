@@ -303,12 +303,10 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       }
       
       let processedContent = postContent;
-      const codeMetadata = [];
       
       for (let i = 0; i < codeBlocks.length; i++) {
         const placeholder = `[CODE_BLOCK_${i}]`;
         processedContent = processedContent.replace(placeholder, '');
-        codeMetadata.push(codeBlocks[i]);
       }
       
       const { data: newPost, error: postError } = await supabase
@@ -316,8 +314,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         .insert({
           content: processedContent,
           user_id: user.id,
-          media: mediaUrls.length > 0 ? mediaUrls : null,
-          code_blocks: codeMetadata.length > 0 ? codeMetadata : null
+          media: mediaUrls.length > 0 ? mediaUrls : null
         })
         .select('id')
         .single();
