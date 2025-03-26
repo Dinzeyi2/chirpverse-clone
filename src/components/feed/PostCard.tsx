@@ -314,7 +314,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     const matches = text.match(urlRegex) || [];
     
     return parts.map((part, index) => {
-      const isUrl = matches.includes(part);
+      const isUrl = matches.some(match => match === part);
       
       if (isUrl) {
         return (
