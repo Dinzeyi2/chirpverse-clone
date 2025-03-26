@@ -67,8 +67,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     profession: user.profession || '',
   });
   
-  // Fixed profile image URL - using the uploaded blue smiley face
-  const blueProfileImage = "/lovable-uploads/c82714a7-4f91-4b00-922a-4caee389e8b2.png";
+  // Fixed profile image URL - using the new uploaded smiley face image
+  const standardProfileImage = "/lovable-uploads/5bceb609-e538-4faa-85e7-8ef76f451d95.png";
 
   const handleFollow = async () => {
     if (!authUser) {
@@ -191,7 +191,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 isLightMode ? "border-lightBeige" : "border-black"
               )}>
                 <AvatarImage 
-                  src={blueProfileImage} 
+                  src={standardProfileImage} 
                   alt={profileDisplayName} 
                   className="object-cover" 
                 />

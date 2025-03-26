@@ -45,6 +45,8 @@ const Profile = () => {
   const profileUserId = userId || (user ? user.id : null);
   const isCurrentUser = user && profileUserId === user.id;
   
+  const standardProfileImage = "/lovable-uploads/5bceb609-e538-4faa-85e7-8ef76f451d95.png";
+  
   useEffect(() => {
     console.log("Profile component - User ID from URL:", userId);
     console.log("Profile component - Current user ID:", user?.id);
@@ -156,7 +158,7 @@ const Profile = () => {
               username: usernameToUse,
               bio: '',
               profession: '',
-              avatar: 'https://i.pravatar.cc/150?img=1',
+              avatar: standardProfileImage,
               verified: false,
               followers: 0,
               following: 0
@@ -177,7 +179,7 @@ const Profile = () => {
                 username: profileUserId.substring(0, 8),
                 bio: '',
                 profession: '',
-                avatar: 'https://i.pravatar.cc/150?img=1',
+                avatar: standardProfileImage,
                 verified: false,
                 followers: 0,
                 following: 0
@@ -190,7 +192,7 @@ const Profile = () => {
                 username: profileUserId.substring(0, 8),
                 bio: '',
                 profession: '',
-                avatar: 'https://i.pravatar.cc/150?img=1',
+                avatar: standardProfileImage,
                 verified: false,
                 followers: 0,
                 following: 0
@@ -208,7 +210,7 @@ const Profile = () => {
             username: usernameToUse,
             bio: profile.description || '',
             profession: profile.profession || '',
-            avatar: profile.avatar_url || 'https://i.pravatar.cc/150?img=1',
+            avatar: standardProfileImage,
             verified: false,
             followers: 0,
             following: 0
@@ -290,7 +292,7 @@ const Profile = () => {
             created_at,
             media,
             user_id,
-            profiles:user_id (full_name, avatar_url)
+            profiles:user_id (full_name)
           `)
           .eq('user_id', profileUserId)
           .order('created_at', { ascending: false })
@@ -315,7 +317,7 @@ const Profile = () => {
             id: post.user_id,
             username: post.user_id.substring(0, 8),
             email: 'user@example.com',
-            avatar: post.profiles?.avatar_url || 'https://i.pravatar.cc/150?img=1',
+            avatar: standardProfileImage,
             verified: false,
             name: post.profiles?.full_name || 'Unknown User',
             following: 0,

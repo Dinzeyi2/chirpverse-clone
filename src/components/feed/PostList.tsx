@@ -15,6 +15,9 @@ interface PostListProps {
   loading?: boolean;
 }
 
+// Standard profile image for all users
+const standardProfileImage = "/lovable-uploads/5bceb609-e538-4faa-85e7-8ef76f451d95.png";
+
 const PostList: React.FC<PostListProps> = ({ posts, loading = false }) => {
   if (loading) {
     return (
@@ -36,9 +39,18 @@ const PostList: React.FC<PostListProps> = ({ posts, loading = false }) => {
     );
   }
 
+  // Ensure all posts use the standard profile image
+  const postsWithStandardAvatar = posts.map(post => ({
+    ...post,
+    user: {
+      ...post.user,
+      avatar: standardProfileImage
+    }
+  }));
+
   return (
     <div className="space-y-4 p-4">
-      {posts.map(post => (
+      {postsWithStandardAvatar.map(post => (
         <div key={post.id} className="max-w-xl mx-auto">
           <PostCard post={post} />
         </div>
