@@ -55,6 +55,13 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     getCurrentUserId();
   }, []);
 
+  const getImageUrl = (image: string | { type: string, url: string }): string => {
+    if (typeof image === 'string') {
+      return image;
+    }
+    return image.url;
+  };
+
   const cardBg = isLightMode ? 'bg-white' : 'bg-gradient-to-b from-black/20 to-black/40';
   const cardBorder = isLightMode ? 'border-gray-200' : 'border-neutral-800/50';
   const textColor = isLightMode ? 'text-black' : 'text-white';
@@ -487,7 +494,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       {hasMedia ? (
         <div className={`w-full aspect-[4/3] relative overflow-hidden ${mediaBg}`}>
           <img 
-            src={post.images[0]} 
+            src={getImageUrl(post.images[0])} 
             alt="Post content" 
             className={cn(
               "w-full h-full object-cover transition-all duration-500",
