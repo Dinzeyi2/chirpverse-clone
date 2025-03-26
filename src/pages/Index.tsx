@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
@@ -38,9 +37,8 @@ const Index = () => {
     
     console.log("Post created, adding to feed immediately");
     
-    // Create a simple post object to show immediately in the UI
     const newPost = {
-      id: crypto.randomUUID(), // Temporary ID, will be replaced when real data syncs
+      id: crypto.randomUUID(),
       content,
       createdAt: new Date().toISOString(),
       likes: 0,
@@ -62,10 +60,7 @@ const Index = () => {
       }
     };
     
-    // Add the new post to the posts list immediately
     addNewPost(newPost);
-    
-    // No need for toast here since the UI already shows the new post
   };
 
   const handleSortChange = (option: SortOption) => {
@@ -77,7 +72,6 @@ const Index = () => {
     toast.info('Refreshing posts...');
   };
 
-  // Theme-based styling
   const bgColor = theme === 'dark' ? 'bg-black' : 'bg-lightBeige';
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const borderColor = theme === 'dark' ? 'border-neutral-800' : 'border-gray-200';
@@ -164,7 +158,6 @@ const Index = () => {
         </div>
       </div>
       
-      {/* Always show skeleton loader initially, then actual content when loaded */}
       <div className={`pt-0 ${bgColor}`}>
         {loading && <div className="p-4 space-y-6"><PostSkeleton count={3} /></div>}
         
@@ -189,19 +182,6 @@ const Index = () => {
             ) : (
               <PostList posts={posts} loading={loading} />
             )}
-          </div>
-        )}
-        
-        {/* Load more posts when user scrolls to bottom */}
-        {posts.length > 0 && !loading && (
-          <div className="flex justify-center pb-8 pt-4">
-            <Button 
-              variant="outline" 
-              onClick={loadMore}
-              className="text-sm"
-            >
-              Load more posts
-            </Button>
           </div>
         )}
       </div>
