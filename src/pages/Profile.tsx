@@ -45,7 +45,7 @@ const Profile = () => {
   const profileUserId = userId || (user ? user.id : null);
   const isCurrentUser = user && profileUserId === user.id;
   
-  const standardProfileImage = "/lovable-uploads/5bceb609-e538-4faa-85e7-8ef76f451d95.png";
+  const standardProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
   
   useEffect(() => {
     console.log("Profile component - User ID from URL:", userId);

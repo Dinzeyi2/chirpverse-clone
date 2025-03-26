@@ -15,8 +15,8 @@ interface PostListProps {
   loading?: boolean;
 }
 
-// Standard profile image for all users
-const standardProfileImage = "/lovable-uploads/5bceb609-e538-4faa-85e7-8ef76f451d95.png";
+// Standard profile image for all users - updated to the new blue smiley face
+const standardProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
 
 const PostList: React.FC<PostListProps> = ({ posts, loading = false }) => {
   if (loading) {
