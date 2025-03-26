@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
 import SwipeablePostView from '@/components/feed/SwipeablePostView';
@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { useTheme } from '@/components/theme/theme-provider';
 import PostSkeleton from '@/components/feed/PostSkeleton';
 import { usePosts, SortOption } from '@/hooks/use-posts';
+import CreatePost from '@/components/feed/CreatePost';
 
 const Index = () => {
   const [feedView, setFeedView] = useState<'swipeable' | 'list'>('swipeable');
@@ -33,6 +34,13 @@ const Index = () => {
     addNewPost
   } = usePosts();
   
+  // Add this effect to ensure posts are refreshed when a user logs in
+  useEffect(() => {
+    if (user) {
+      refreshPosts();
+    }
+  }, [user, refreshPosts]);
+  
   const handlePostCreated = (content: string, media?: {type: string, url: string}[]) => {
     if (!user) return;
     
@@ -40,7 +48,7 @@ const Index = () => {
     
     // Create a simple post object to show immediately in the UI
     const newPost = {
-      id: crypto.randomUUID(), // Temporary ID, will be replaced when real data syncs
+      id: '', // No ID yet, this will be our optimistic post marker
       content,
       createdAt: new Date().toISOString(),
       likes: 0,
@@ -163,6 +171,9 @@ const Index = () => {
           </div>
         </div>
       </div>
+      
+      {/* Add CreatePost component at the top of the feed */}
+      {user && <CreatePost onPostCreated={handlePostCreated} />}
       
       {/* Always show skeleton loader initially, then actual content when loaded */}
       <div className={`pt-0 ${bgColor}`}>

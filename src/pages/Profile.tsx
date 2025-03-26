@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import ProfileHeader from '@/components/user/ProfileHeader';
@@ -19,6 +19,7 @@ import {
   PaginationNext,
   PaginationPrevious
 } from '@/components/ui/pagination';
+import CreatePost from '@/components/feed/CreatePost';
 
 const Profile = () => {
   const { userId } = useParams<{ userId?: string }>();
@@ -61,7 +62,65 @@ const Profile = () => {
     }
   }, [profileUserId, user, navigate, userId]);
   
-  const fetchUserStats = async () => {
+  const fetchUserPosts = useCallback(async () => {
+    if (!profileUserId) return;
+    
+    try {
+      setLoadingPosts(true);
+      
+      const { data, error } = await supabase
+        .from('shoutouts')
+        .select(`
+          id,
+          content,
+          created_at,
+          media,
+          user_id,
+          profiles:user_id (full_name, avatar_url)
+        `)
+        .eq('user_id', profileUserId)
+        .order('created_at', { ascending: false })
+        .range((postsPage - 1) * postsPerPage, postsPage * postsPerPage - 1);
+        
+      if (error) {
+        console.error('Error fetching posts:', error);
+        setLoadingPosts(false);
+        return;
+      }
+      
+      const formattedPosts: Post[] = data.map((post: any) => ({
+        id: post.id,
+        content: post.content,
+        images: post.media || undefined,
+        createdAt: post.created_at,
+        likes: 0,
+        reposts: 0,
+        replies: 0,
+        views: 0,
+        userId: post.user_id,
+        user: {
+          id: post.user_id,
+          username: post.user_id.substring(0, 8),
+          email: 'user@example.com',
+          avatar: post.profiles?.avatar_url || "/lovable-uploads/c82714a7-4f91-4b00-922a-4caee389e8b2.png",
+          verified: false,
+          name: post.profiles?.full_name || 'Unknown User',
+          following: 0,
+          followers: 0
+        },
+        isOwner: isCurrentUser
+      }));
+      
+      setPosts(formattedPosts);
+    } catch (err) {
+      console.error('Error in fetchPosts:', err);
+      toast.error('Failed to load posts');
+    } finally {
+      setLoadingPosts(false);
+    }
+  }, [profileUserId, postsPage, isCurrentUser]);
+
+  const fetchUserStats = useCallback(async () => {
     if (!profileUserId) return;
     
     try {
@@ -118,7 +177,7 @@ const Profile = () => {
     } catch (err) {
       console.error('Error computing user stats:', err);
     }
-  };
+  }, [profileUserId]);
   
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -276,67 +335,73 @@ const Profile = () => {
   }, [profileUserId]);
 
   useEffect(() => {
-    const fetchPosts = async () => {
-      if (!profileUserId) return;
-      
-      try {
-        setLoadingPosts(true);
-        
-        const { data, error } = await supabase
-          .from('shoutouts')
-          .select(`
-            id,
-            content,
-            created_at,
-            media,
-            user_id,
-            profiles:user_id (full_name, avatar_url)
-          `)
-          .eq('user_id', profileUserId)
-          .order('created_at', { ascending: false })
-          .range((postsPage - 1) * postsPerPage, postsPage * postsPerPage - 1);
+    const postsChannel = supabase
+      .channel('profile-posts')
+      .on('postgres_changes', 
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'shoutouts',
+          filter: `user_id=eq.${profileUserId}`
+        }, 
+        async (payload) => {
+          console.log('New post for this profile received:', payload);
           
-        if (error) {
-          console.error('Error fetching posts:', error);
-          return;
+          const { data: postData, error: postError } = await supabase
+            .from('shoutouts')
+            .select(`
+              id,
+              content,
+              created_at,
+              media,
+              user_id,
+              profiles:user_id (full_name, avatar_url)
+            `)
+            .eq('id', payload.new.id)
+            .single();
+            
+          if (postError || !postData) {
+            console.error('Error fetching new post data:', postError);
+            return;
+          }
+          
+          const newPost: Post = {
+            id: postData.id,
+            content: postData.content,
+            images: postData.media || undefined,
+            createdAt: postData.created_at,
+            likes: 0,
+            reposts: 0,
+            replies: 0,
+            views: 0,
+            userId: postData.user_id,
+            user: {
+              id: postData.user_id,
+              username: postData.user_id.substring(0, 8),
+              email: 'user@example.com',
+              avatar: postData.profiles?.avatar_url || "/lovable-uploads/c82714a7-4f91-4b00-922a-4caee389e8b2.png",
+              verified: false,
+              name: postData.profiles?.full_name || 'Unknown User',
+              following: 0,
+              followers: 0
+            },
+            isOwner: isCurrentUser
+          };
+          
+          setPosts(prevPosts => {
+            if (prevPosts.some(p => p.id === newPost.id)) return prevPosts;
+            return [newPost, ...prevPosts];
+          });
+          
+          fetchUserStats();
         }
-        
-        const formattedPosts: Post[] = data.map((post: any) => ({
-          id: post.id,
-          content: post.content,
-          images: post.media?.url ? [post.media.url] : undefined,
-          createdAt: post.created_at,
-          likes: 0,
-          reposts: 0,
-          replies: 0,
-          views: 0,
-          userId: post.user_id,
-          user: {
-            id: post.user_id,
-            username: post.user_id.substring(0, 8),
-            email: 'user@example.com',
-            avatar: post.profiles?.avatar_url || 'https://i.pravatar.cc/150?img=1',
-            verified: false,
-            name: post.profiles?.full_name || 'Unknown User',
-            following: 0,
-            followers: 0
-          },
-          isOwner: isCurrentUser
-        }));
-        
-        setPosts(formattedPosts);
-      } catch (err) {
-        console.error('Error in fetchPosts:', err);
-        toast.error('Failed to load posts');
-      } finally {
-        setLoadingPosts(false);
-      }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(postsChannel);
     };
-    
-    if (profileUserId) {
-      fetchPosts();
-    }
-  }, [profileUserId, postsPage, isCurrentUser]);
+  }, [profileUserId, isCurrentUser, fetchUserStats]);
 
   useEffect(() => {
     if (!profileUserId) return;
@@ -419,6 +484,40 @@ const Profile = () => {
     await fetchUserStats();
   };
 
+  const handlePostCreated = (content: string, media?: {type: string, url: string}[]) => {
+    if (!user || !isCurrentUser) return;
+    
+    const newPost: Post = {
+      id: crypto.randomUUID(),
+      content,
+      createdAt: new Date().toISOString(),
+      likes: 0,
+      reposts: 0,
+      replies: 0,
+      views: 0,
+      userId: user.id,
+      images: media || undefined,
+      user: {
+        id: user.id,
+        username: user.id.substring(0, 8),
+        email: user?.email || 'user@example.com',
+        avatar: "/lovable-uploads/c82714a7-4f91-4b00-922a-4caee389e8b2.png",
+        verified: false,
+        name: user?.user_metadata?.full_name || 'User',
+        following: 0,
+        followers: 0
+      },
+      isOwner: true
+    };
+    
+    setPosts(prevPosts => [newPost, ...prevPosts]);
+    
+    setUserStats(prev => ({
+      ...prev,
+      posts: prev.posts + 1
+    }));
+  };
+
   if (loading) {
     return (
       <AppLayout>
@@ -452,6 +551,8 @@ const Profile = () => {
           stats={userStats}
           onTabChange={handleTabChange}
         />
+        
+        {isCurrentUser && <CreatePost onPostCreated={handlePostCreated} />}
         
         <div className="px-4 py-6">
           {loadingPosts ? (
