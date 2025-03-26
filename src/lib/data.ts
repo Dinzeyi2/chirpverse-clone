@@ -36,7 +36,7 @@ export interface Post {
   liked?: boolean;
   bookmarked?: boolean;
   isOwner?: boolean;
-  images?: string[] | {type: string, url: string}[];
+  images?: string[];
   codeBlocks?: {code: string, language: string}[];
 }
 

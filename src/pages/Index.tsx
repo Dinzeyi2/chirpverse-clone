@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
 import SwipeablePostView from '@/components/feed/SwipeablePostView';
@@ -17,7 +17,6 @@ import { toast } from 'sonner';
 import { useTheme } from '@/components/theme/theme-provider';
 import PostSkeleton from '@/components/feed/PostSkeleton';
 import { usePosts, SortOption } from '@/hooks/use-posts';
-import CreatePost from '@/components/feed/CreatePost';
 
 const Index = () => {
   const [feedView, setFeedView] = useState<'swipeable' | 'list'>('swipeable');
@@ -34,13 +33,6 @@ const Index = () => {
     addNewPost
   } = usePosts();
   
-  // Add this effect to ensure posts are refreshed when a user logs in
-  useEffect(() => {
-    if (user) {
-      refreshPosts();
-    }
-  }, [user, refreshPosts]);
-  
   const handlePostCreated = (content: string, media?: {type: string, url: string}[]) => {
     if (!user) return;
     
@@ -48,7 +40,7 @@ const Index = () => {
     
     // Create a simple post object to show immediately in the UI
     const newPost = {
-      id: '', // No ID yet, this will be our optimistic post marker
+      id: crypto.randomUUID(), // Temporary ID, will be replaced when real data syncs
       content,
       createdAt: new Date().toISOString(),
       likes: 0,
@@ -58,7 +50,7 @@ const Index = () => {
       replies: 0,
       views: 0,
       userId: user.id,
-      images: media || undefined,
+      images: media || null,
       user: {
         id: user.id,
         name: user?.user_metadata?.full_name || 'User',
@@ -67,7 +59,6 @@ const Index = () => {
         verified: false,
         followers: 0,
         following: 0,
-        email: user?.email || 'user@example.com',
       }
     };
     
@@ -172,9 +163,6 @@ const Index = () => {
           </div>
         </div>
       </div>
-      
-      {/* Add CreatePost component at the top of the feed */}
-      {user && <CreatePost onPostCreated={handlePostCreated} />}
       
       {/* Always show skeleton loader initially, then actual content when loaded */}
       <div className={`pt-0 ${bgColor}`}>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -187,18 +188,13 @@ export const usePosts = () => {
         return prev;
       }
       
-      // Add the new post and mark as processing if it has an ID
+      // Add the new post and mark as processing
       if (post.id) {
         setProcessingIds(prev => [...prev, post.id]);
       }
       
       return [post, ...prev];
     });
-    
-    // Also trigger a refresh to get the latest posts
-    setTimeout(() => {
-      fetchPosts();
-    }, 1500);
   };
   
   const loadMorePosts = async () => {
