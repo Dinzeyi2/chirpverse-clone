@@ -168,7 +168,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     
     const optimisticPostId = crypto.randomUUID();
     const currentTime = new Date().toISOString();
-    const mediaUrls: {type: string, url: string}[] = [];
+    let mediaUrls: {type: string, url: string}[] = [];
     
     try {
       if (onPostCreated) {
@@ -199,57 +199,62 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         };
         
         onPostCreated(postContent, optimisticPost.images || []);
+        console.log("Added optimistic post to UI:", optimisticPost);
       }
       
-      const uploadPromises = mediaFiles.map(async (media) => {
-        const fileExt = media.file.name.split('.').pop();
-        const fileName = `${crypto.randomUUID()}.${fileExt}`;
-        const filePath = `posts/${fileName}`;
+      if (mediaFiles.length > 0) {
+        console.log(`Uploading ${mediaFiles.length} media files...`);
+        
+        const uploadPromises = mediaFiles.map(async (media) => {
+          const fileExt = media.file.name.split('.').pop();
+          const fileName = `${crypto.randomUUID()}.${fileExt}`;
+          const filePath = `posts/${fileName}`;
+          
+          try {
+            const { data, error } = await supabase.storage
+              .from('media')
+              .upload(filePath, media.file);
+              
+            if (error) {
+              console.error('Error uploading file:', error);
+              throw new Error(`Failed to upload media: ${error.message}`);
+            }
+            
+            const { data: { publicUrl } } = supabase.storage
+              .from('media')
+              .getPublicUrl(filePath);
+              
+            return {
+              type: media.type,
+              url: publicUrl
+            };
+          } catch (uploadError) {
+            console.error('Upload error:', uploadError);
+            throw new Error(`Failed to upload media: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}`);
+          }
+        });
         
         try {
-          const { data, error } = await supabase.storage
-            .from('media')
-            .upload(filePath, media.file);
-            
-          if (error) {
-            console.error('Error uploading file:', error);
-            throw new Error(`Failed to upload media: ${error.message}`);
-          }
-          
-          const { data: { publicUrl } } = supabase.storage
-            .from('media')
-            .getPublicUrl(filePath);
-            
-          return {
-            type: media.type,
-            url: publicUrl
-          };
+          const uploadedMedia = await Promise.all(uploadPromises);
+          mediaUrls = uploadedMedia.filter(media => media !== null) as {type: string, url: string}[];
+          console.log("Successfully uploaded media:", mediaUrls);
         } catch (uploadError) {
-          console.error('Upload error:', uploadError);
-          throw new Error(`Failed to upload media: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}`);
+          console.error('Error in media uploads:', uploadError);
+          setPostError('Some media files failed to upload');
+          setIsLoading(false);
+          toast.error('Some media files failed to upload');
+          return;
         }
-      });
-      
-      let validMedia: {type: string, url: string}[] = [];
-      
-      try {
-        const uploadedMedia = await Promise.all(uploadPromises);
-        validMedia = uploadedMedia.filter(media => media !== null) as {type: string, url: string}[];
-      } catch (uploadError) {
-        console.error('Error in media uploads:', uploadError);
-        setPostError('Some media files failed to upload');
-        setIsLoading(false);
-        toast.error('Some media files failed to upload');
-        return;
       }
       
       try {
+        console.log("Creating post in database...");
         const { data: newPost, error: postError } = await supabase
           .from('shoutouts')
           .insert({
             content: postContent,
             user_id: user.id,
-            media: validMedia.length > 0 ? validMedia : null
+            media: mediaUrls.length > 0 ? mediaUrls : null
           })
           .select('id')
           .single();
@@ -263,6 +268,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         }
         
         if (newPost) {
+          console.log("Post successfully created with ID:", newPost.id);
           setPostSuccessful(true);
           toast.success('Post sent successfully!');
           
@@ -297,7 +303,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
             if (inDialog && dialogCloseRef.current) {
               dialogCloseRef.current.click();
             }
-          }, 1500);
+          }, 3000);
           
           return;
         }

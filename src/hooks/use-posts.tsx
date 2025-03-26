@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -15,8 +14,9 @@ export const usePosts = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const sortOption: SortOption = 'latest';
   const [userLanguages, setUserLanguages] = useState<string[]>([]);
+  const queryClient = useQueryClient();
   
-  const blueProfileImage = "/lovable-uploads/c82714a7-4f91-4b00-922a-4caee389e8b2.png";
+  const blueProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
 
   // Fetch the current user's programming languages
   const fetchUserLanguages = useCallback(async () => {
@@ -56,6 +56,8 @@ export const usePosts = () => {
       setLoading(true);
       setError(null);
       
+      console.log("Fetching posts...");
+      
       const { data: basicShoutoutData, error: basicShoutoutError } = await supabase
         .from('shoutouts')
         .select('id, content, created_at, user_id, media')
@@ -68,6 +70,8 @@ export const usePosts = () => {
         setLoading(false);
         return;
       }
+      
+      console.log(`Fetched ${basicShoutoutData?.length || 0} posts`);
       
       if (basicShoutoutData && basicShoutoutData.length > 0) {
         const quickPosts = basicShoutoutData.map(post => ({
@@ -94,10 +98,7 @@ export const usePosts = () => {
           languages: extractLanguagesFromContent(post.content)
         }));
         
-        setPosts(prev => {
-          return [...quickPosts];
-        });
-        
+        setPosts(quickPosts);
         setLoading(false);
         
         Promise.all(
@@ -198,7 +199,6 @@ export const usePosts = () => {
         setProcessingIds(prev => [...prev, post.id]);
       }
       
-      // Extract languages from content if not already provided
       const postWithLanguages = {
         ...post,
         languages: post.languages || extractLanguagesFromContent(post.content)
@@ -336,6 +336,12 @@ export const usePosts = () => {
           async (payload) => {
             console.log('New post received via realtime:', payload);
             
+            const existingPost = posts.find(p => p.id === payload.new.id);
+            if (existingPost) {
+              console.log('Post already exists in state, not adding again');
+              return;
+            }
+            
             const quickNewPost = {
               id: payload.new.id,
               content: payload.new.content,
@@ -360,7 +366,9 @@ export const usePosts = () => {
             };
             
             setPosts(prev => {
-              if (prev.some(p => p.id === payload.new.id)) return prev;
+              if (prev.some(p => p.id === payload.new.id)) {
+                return prev;
+              }
               
               const optimisticPostIndex = prev.findIndex(p => 
                 p.content === payload.new.content && 
@@ -400,7 +408,9 @@ export const usePosts = () => {
             }
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log(`Realtime subscription status: ${status}`);
+        });
         
       return channel;
     };
@@ -411,26 +421,21 @@ export const usePosts = () => {
       console.log('Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [posts]);
   
-  // Sort posts with priority for matching user's programming languages
   useEffect(() => {
     let sortedPosts = [...posts];
     
-    // Custom sort function that prioritizes matching language posts
     const sortByRelevance = (a: any, b: any) => {
-      // First check if post languages match user languages
       const aMatches = hasLanguageMatch(a.languages || [], userLanguages);
       const bMatches = hasLanguageMatch(b.languages || [], userLanguages);
       
       if (aMatches && !bMatches) return -1;
       if (!aMatches && bMatches) return 1;
       
-      // If both match or both don't match, sort by date (most recent first)
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     };
     
-    // Check if any language in post matches user's languages
     function hasLanguageMatch(postLanguages: string[], userLanguages: string[]): boolean {
       if (!postLanguages.length || !userLanguages.length) return false;
       
@@ -443,7 +448,6 @@ export const usePosts = () => {
     
     switch ((sortOption as SortOption)) {
       case 'latest':
-        // Use the custom sorter that prioritizes matching language posts
         sortedPosts.sort(sortByRelevance);
         break;
       case 'popular':
@@ -463,7 +467,6 @@ export const usePosts = () => {
     setSortedPosts(sortedPosts);
   }, [posts, sortOption, userLanguages]);
   
-  // Initial data loading
   useEffect(() => {
     fetchUserLanguages();
     fetchPosts();

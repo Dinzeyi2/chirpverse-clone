@@ -9,11 +9,22 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  realtime: {
+    params: {
+      eventsPerSecond: 10
+    }
+  }
+});
 
 // Add a helper function to enable realtime on tables we need
 export const enableRealtimeForTables = () => {
+  console.log('Enabling realtime for all tables...');
+  
   supabase.channel('schema-db-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'shoutouts' }, (payload) => {
+      console.log('Shoutout changes detected', payload);
+    })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'post_reactions' }, (payload) => {
       console.log('Reaction changes detected', payload);
     })
@@ -26,7 +37,9 @@ export const enableRealtimeForTables = () => {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, (payload) => {
       console.log('Notification changes detected', payload);
     })
-    .subscribe();
+    .subscribe((status) => {
+      console.log(`Realtime connection status: ${status}`);
+    });
 };
 
 // Helper function to convert arrays to JSON strings for Supabase storage

@@ -32,6 +32,8 @@ const Index = () => {
   const handlePostCreated = (content: string, media?: {type: string, url: string}[]) => {
     if (!user) return;
     
+    console.log("Post created, adding to feed:", content, media);
+    
     // Extract mentioned languages from the post content
     const extractLanguages = (content: string): string[] => {
       const mentionRegex = /@(\w+)/g;
@@ -58,21 +60,25 @@ const Index = () => {
         id: user.id,
         name: user?.user_metadata?.full_name || 'User',
         username: user.id.substring(0, 8),
-        avatar: "/lovable-uploads/c82714a7-4f91-4b00-922a-4caee389e8b2.png",
+        avatar: "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
         verified: false,
         followers: 0,
         following: 0,
       }
     };
     
+    // Add new post to the feed
     addNewPost(newPost);
-    toast.success('Post created successfully!');
   };
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
+    console.log("Refreshing posts...");
     refreshPosts().finally(() => {
-      setTimeout(() => setIsRefreshing(false), 500);
+      setTimeout(() => {
+        setIsRefreshing(false);
+        console.log("Refresh complete");
+      }, 500);
     });
     toast.info('Refreshing feed...');
   }, [refreshPosts]);

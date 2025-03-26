@@ -17,14 +17,40 @@ import Settings from "./pages/Settings";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { useEffect } from "react";
-import { enableRealtimeForTables } from "./integrations/supabase/client";
+import { enableRealtimeForTables, supabase } from "./integrations/supabase/client";
 
-const queryClient = new QueryClient();
+// Create a new query client with better cache settings
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30 * 1000, // 30 seconds
+      retry: 1,
+      refetchOnWindowFocus: false
+    }
+  }
+});
 
 const AppContent = () => {
   useEffect(() => {
     // Enable realtime updates when the app loads
     enableRealtimeForTables();
+    
+    // Test connectivity
+    const testRealtime = async () => {
+      try {
+        console.log("Testing Supabase connectivity...");
+        const { data, error } = await supabase.from('shoutouts').select('id').limit(1);
+        if (error) {
+          console.error("Supabase connectivity error:", error);
+        } else {
+          console.log("Supabase is connected. Sample data:", data);
+        }
+      } catch (err) {
+        console.error("Supabase connection test failed:", err);
+      }
+    };
+    
+    testRealtime();
   }, []);
 
   return (
