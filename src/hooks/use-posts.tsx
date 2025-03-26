@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -13,25 +12,19 @@ export const usePosts = () => {
   const [error, setError] = useState<string | null>(null);
   const [processingIds, setProcessingIds] = useState<string[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const sortOption = 'latest'; // Default to latest (removed the sort option UI)
+  const sortOption: SortOption = 'latest';
   
   const blueProfileImage = "/lovable-uploads/c82714a7-4f91-4b00-922a-4caee389e8b2.png";
 
-  // Function to fetch posts - made callback so it can be used in useEffect dependencies
   const fetchPosts = useCallback(async () => {
     try {
-      // Cancel previous request if it exists
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
-      
-      // Create new abort controller for this request
       abortControllerRef.current = new AbortController();
-      
       setLoading(true);
       setError(null);
       
-      // First, use a simpler query to get posts quickly
       const { data: basicShoutoutData, error: basicShoutoutError } = await supabase
         .from('shoutouts')
         .select('id, content, created_at, user_id, media')
@@ -46,7 +39,6 @@ export const usePosts = () => {
       }
       
       if (basicShoutoutData && basicShoutoutData.length > 0) {
-        // Immediately show basic versions of posts for better UX
         const quickPosts = basicShoutoutData.map(post => ({
           id: post.id,
           content: post.content,
@@ -71,24 +63,20 @@ export const usePosts = () => {
         }));
         
         setPosts(prev => {
-          // Replace existing posts with new ones
           return [...quickPosts];
         });
         
         setLoading(false);
         
-        // Then load details in background
         Promise.all(
           basicShoutoutData.map(async (post) => {
             try {
-              // Batch fetch likes, comments, saves counts
               const [likesResult, commentsResult, savesResult] = await Promise.all([
                 supabase.from('likes').select('*', { count: 'exact', head: true }).eq('shoutout_id', post.id),
                 supabase.from('comments').select('*', { count: 'exact', head: true }).eq('shoutout_id', post.id),
                 supabase.from('saved_posts').select('*', { count: 'exact', head: true }).eq('shoutout_id', post.id)
               ]);
               
-              // Get profile data
               const { data: profileData } = await supabase
                 .from('profiles')
                 .select('full_name, avatar_url')
@@ -123,15 +111,12 @@ export const usePosts = () => {
             }
           })
         ).then(enrichedPosts => {
-          // Filter out any failed post enrichments
           const validPosts = enrichedPosts.filter(Boolean);
           
           if (validPosts.length > 0) {
             setPosts(prev => {
-              // Create a map for quick lookup
               const enrichedPostsMap = new Map(validPosts.map(post => [post.id, post]));
               
-              // Update existing posts with enriched data
               return prev.map(existingPost => 
                 enrichedPostsMap.has(existingPost.id) 
                   ? enrichedPostsMap.get(existingPost.id) 
@@ -157,9 +142,7 @@ export const usePosts = () => {
   const addNewPost = useCallback((post: any) => {
     console.log("Adding new post to feed immediately:", post);
     
-    // Immediately add post to the top of the list
     setPosts(prev => {
-      // Check if post exists by content + user combo (avoiding duplicates)
       const isDuplicate = prev.some(p => 
         p.content === post.content && 
         p.userId === post.userId &&
@@ -171,7 +154,6 @@ export const usePosts = () => {
         return prev;
       }
       
-      // Add the new post and mark as processing
       if (post.id) {
         setProcessingIds(prev => [...prev, post.id]);
       }
@@ -186,7 +168,6 @@ export const usePosts = () => {
     try {
       setLoading(true);
       
-      // Only get posts that came before our oldest non-processing post
       const nonProcessingPosts = posts.filter(post => !processingIds.includes(post.id));
       if (nonProcessingPosts.length === 0) return;
       
@@ -204,7 +185,6 @@ export const usePosts = () => {
         return;
       }
       
-      // Quick load more posts
       const quickMorePosts = moreShoutoutData.map(post => ({
         id: post.id,
         content: post.content,
@@ -228,11 +208,9 @@ export const usePosts = () => {
         }
       }));
       
-      // Add these immediately
       setPosts(prevPosts => [...prevPosts, ...quickMorePosts]);
       setLoading(false);
       
-      // Then enrich in background
       Promise.all(
         moreShoutoutData.map(async (post) => {
           try {
@@ -242,7 +220,6 @@ export const usePosts = () => {
               .eq('user_id', post.user_id)
               .single();
               
-            // Get interaction metrics
             const [likesResult, commentsResult, savesResult] = await Promise.all([
               supabase.from('likes').select('*', { count: 'exact', head: true }).eq('shoutout_id', post.id),
               supabase.from('comments').select('*', { count: 'exact', head: true }).eq('shoutout_id', post.id),
@@ -277,15 +254,12 @@ export const usePosts = () => {
           }
         })
       ).then(enrichedPosts => {
-        // Filter out any failed post enrichments
         const validPosts = enrichedPosts.filter(Boolean);
         
         if (validPosts.length > 0) {
           setPosts(prev => {
-            // Create a map for quick lookup
             const enrichedPostsMap = new Map(validPosts.map(post => [post.id, post]));
             
-            // Update existing posts with enriched data
             return prev.map(existingPost => 
               enrichedPostsMap.has(existingPost.id) 
                 ? enrichedPostsMap.get(existingPost.id) 
@@ -301,7 +275,6 @@ export const usePosts = () => {
     }
   }, [posts, processingIds]);
   
-  // Set up realtime subscription for new posts
   useEffect(() => {
     const setupRealtimeSubscription = () => {
       console.log('Setting up realtime subscription for posts');
@@ -317,7 +290,6 @@ export const usePosts = () => {
           async (payload) => {
             console.log('New post received via realtime:', payload);
             
-            // Create instant placeholder post
             const quickNewPost = {
               id: payload.new.id,
               content: payload.new.content,
@@ -341,12 +313,9 @@ export const usePosts = () => {
               }
             };
             
-            // Add immediately
             setPosts(prev => {
-              // Avoid duplicates
               if (prev.some(p => p.id === payload.new.id)) return prev;
               
-              // Check for duplicates of local optimistic posts
               const optimisticPostIndex = prev.findIndex(p => 
                 p.content === payload.new.content && 
                 p.userId === payload.new.user_id &&
@@ -354,7 +323,6 @@ export const usePosts = () => {
               );
               
               if (optimisticPostIndex >= 0) {
-                // Replace the optimistic post with the real one
                 const newPosts = [...prev];
                 newPosts[optimisticPostIndex] = quickNewPost;
                 return newPosts;
@@ -363,7 +331,6 @@ export const usePosts = () => {
               return [quickNewPost, ...prev];
             });
             
-            // Then fetch user details
             try {
               const { data: profileData } = await supabase
                 .from('profiles')
@@ -371,7 +338,6 @@ export const usePosts = () => {
                 .eq('user_id', payload.new.user_id)
                 .single();
                 
-              // Update the post with user details
               setPosts(prev => prev.map(post => 
                 post.id === payload.new.id 
                   ? {
@@ -401,7 +367,6 @@ export const usePosts = () => {
     };
   }, []);
   
-  // Sort posts whenever posts or sortOption changes
   useEffect(() => {
     let sortedPosts = [...posts];
     
@@ -426,12 +391,10 @@ export const usePosts = () => {
     setSortedPosts(sortedPosts);
   }, [posts, sortOption]);
   
-  // Load posts when component mounts
   useEffect(() => {
     fetchPosts();
     
     return () => {
-      // Cleanup function - abort any pending requests
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
