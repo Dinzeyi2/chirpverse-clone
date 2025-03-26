@@ -305,6 +305,33 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     navigate(`/post/${post.id}`);
   };
 
+  const formatTextWithLinks = (text: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    
+    if (!text) return '';
+
+    const parts = text.split(urlRegex);
+    const matches = text.match(urlRegex) || [];
+    
+    return parts.map((part, index) => {
+      if (matches.includes(part)) {
+        return (
+          <a 
+            key={index}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xBlue hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
+
   const formatNumber = (num: number): string => {
     if (num >= 1000000) {
       return (num / 1000000).toFixed(1) + 'M';
@@ -469,7 +496,9 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         </div>
       ) : (
         <div className="p-6 flex-1 flex flex-col">
-          <p className={`text-xl ${textColor} font-medium mb-3`}>{post.content}</p>
+          <p className={`text-xl ${textColor} font-medium mb-3`}>
+            {formatTextWithLinks(post.content)}
+          </p>
           {renderCodeBlocks()}
         </div>
       )}
@@ -533,7 +562,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       {hasMedia && (
         <div className={contentBg}>
           <h2 className={`text-base font-bold ${textColor} leading-tight mb-1 line-clamp-2 p-3 pt-3`}>
-            {post.content}
+            {formatTextWithLinks(post.content)}
           </h2>
           
           <div className="px-3">
