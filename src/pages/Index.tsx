@@ -1,25 +1,30 @@
-
 import React, { useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
 import SwipeablePostView from '@/components/feed/SwipeablePostView';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { Grid, List, RefreshCw } from 'lucide-react';
+import { Grid, List, Plus, RefreshCw } from 'lucide-react';
+import { 
+  Dialog,
+  DialogContent,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { useTheme } from '@/components/theme/theme-provider';
+import PostSkeleton from '@/components/feed/PostSkeleton';
+import { usePosts, SortOption } from '@/hooks/use-posts';
+import CreatePost from '@/components/feed/CreatePost';
 import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import { useTheme } from '@/components/theme/theme-provider';
-import PostSkeleton from '@/components/feed/PostSkeleton';
-import { usePosts, SortOption } from '@/hooks/use-posts';
 
 const Index = () => {
   const [feedView, setFeedView] = useState<'swipeable' | 'list'>('swipeable');
+  const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
   const { user } = useAuth();
   const { theme } = useTheme();
   const { 
@@ -38,9 +43,8 @@ const Index = () => {
     
     console.log("Post created, adding to feed immediately");
     
-    // Create a simple post object to show immediately in the UI
     const newPost = {
-      id: crypto.randomUUID(), // Temporary ID, will be replaced when real data syncs
+      id: crypto.randomUUID(),
       content,
       createdAt: new Date().toISOString(),
       likes: 0,
@@ -62,10 +66,7 @@ const Index = () => {
       }
     };
     
-    // Add the new post to the posts list immediately
     addNewPost(newPost);
-    
-    // No need for toast here since the UI already shows the new post
   };
 
   const handleSortChange = (option: SortOption) => {
@@ -77,7 +78,6 @@ const Index = () => {
     toast.info('Refreshing posts...');
   };
 
-  // Theme-based styling
   const bgColor = theme === 'dark' ? 'bg-black' : 'bg-lightBeige';
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const borderColor = theme === 'dark' ? 'border-neutral-800' : 'border-gray-200';
@@ -164,7 +164,6 @@ const Index = () => {
         </div>
       </div>
       
-      {/* Always show skeleton loader initially, then actual content when loaded */}
       <div className={`pt-0 ${bgColor}`}>
         {loading && <div className="p-4 space-y-6"><PostSkeleton count={3} /></div>}
         
@@ -192,7 +191,6 @@ const Index = () => {
           </div>
         )}
         
-        {/* Load more posts when user scrolls to bottom */}
         {posts.length > 0 && !loading && (
           <div className="flex justify-center pb-8 pt-4">
             <Button 
@@ -205,6 +203,26 @@ const Index = () => {
           </div>
         )}
       </div>
+
+      {user && (
+        <>
+          <Dialog open={isPostDialogOpen} onOpenChange={setIsPostDialogOpen}>
+            <Button
+              onClick={() => setIsPostDialogOpen(true)}
+              className="fixed bottom-20 right-4 md:bottom-8 md:right-8 h-14 w-14 rounded-full shadow-lg bg-blue-500 hover:bg-blue-600 text-white"
+              size="icon"
+            >
+              <Plus className="h-6 w-6" />
+              <span className="sr-only">Create new post</span>
+            </Button>
+            <DialogContent className="sm:max-w-[600px] p-0">
+              <CreatePost onPostCreated={() => {
+                setIsPostDialogOpen(false);
+              }} inDialog={true} />
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
     </AppLayout>
   );
 };
