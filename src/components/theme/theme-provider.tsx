@@ -2,7 +2,7 @@
 import * as React from "react";
 import { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = "dark" | "light";
+type Theme = "dark" | "light" | "ghibli";
 
 type ThemeProviderProps = {
   children: React.ReactNode;
@@ -25,7 +25,7 @@ const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
 
 export function ThemeProvider({
   children,
-  defaultTheme = "light",
+  defaultTheme = "ghibli",
   storageKey = "ui-theme",
   forcedTheme,
   ...props
@@ -38,12 +38,12 @@ export function ThemeProvider({
     const root = window.document.documentElement;
     
     if (forcedTheme) {
-      root.classList.remove("light", "dark");
+      root.classList.remove("light", "dark", "ghibli");
       root.classList.add(forcedTheme);
       return;
     }
 
-    root.classList.remove("light", "dark");
+    root.classList.remove("light", "dark", "ghibli");
     root.classList.add(theme);
   }, [theme, forcedTheme]);
 

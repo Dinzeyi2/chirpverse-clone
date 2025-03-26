@@ -18,10 +18,16 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const { width } = useScreenSize();
   const { user } = useAuth();
   
+  const getBackgroundClasses = () => {
+    if (theme === "dark") return "bg-black dark";
+    if (theme === "ghibli") return "bg-ghibli-cream ghibli ghibli-bg-pattern";
+    return "bg-lightBeige light";
+  };
+  
   return (
     <div className={cn(
       "min-h-screen w-full overflow-x-hidden",
-      theme === "dark" ? "bg-black dark" : "bg-lightBeige light"
+      getBackgroundClasses()
     )}>
       {/* Auth buttons for non-authenticated users */}
       {!user && (
@@ -30,12 +36,18 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           theme === "dark" ? "text-white" : "text-gray-900"
         )}>
           <Link to="/auth">
-            <Button variant="outline" size="sm" className="rounded-full px-4">
+            <Button variant="outline" size="sm" className={cn(
+              "rounded-full px-4", 
+              theme === "ghibli" && "border-ghibli-blue text-ghibli-darkTeal hover:bg-ghibli-blue/10"
+            )}>
               Log in
             </Button>
           </Link>
           <Link to="/auth?tab=signup">
-            <Button className="rounded-full px-4 bg-xBlue hover:bg-blue-600" size="sm">
+            <Button className={cn(
+              "rounded-full px-4", 
+              theme === "ghibli" ? "bg-ghibli-blue hover:bg-ghibli-blue/90" : "bg-xBlue hover:bg-blue-600"
+            )} size="sm">
               Sign up
             </Button>
           </Link>
@@ -49,7 +61,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       <main 
         className={cn(
           "flex-grow min-h-screen w-full",
-          theme === "dark" ? "bg-black" : "bg-lightBeige",
+          theme === "dark" ? "bg-black" : 
+            theme === "ghibli" ? "bg-ghibli-cream" : "bg-lightBeige",
           isMobile 
             ? "pb-20 px-1" // Reduced padding for better mobile view
             : "ml-[275px]" // Add margin for sidebar on desktop

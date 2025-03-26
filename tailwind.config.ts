@@ -20,8 +20,8 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				sans: ['Inter', 'sans-serif'],
-				display: ['Inter', 'sans-serif'],
+				sans: ['Quicksand', 'Inter', 'sans-serif'],
+				display: ['Quicksand', 'Inter', 'sans-serif'],
 				heading: ['Archivo', 'sans-serif'],
 			},
 			colors: {
@@ -97,7 +97,23 @@ export default {
 				xBorder: '#2F3336',
 				xSearchBg: '#202327',
 				// Light mode beige color from the image
-				lightBeige: '#f5f4f0'
+				lightBeige: '#f5f4f0',
+				// Studio Ghibli color palette
+				ghibli: {
+					blue: '#4E9DA6',
+					teal: '#73A29D',
+					green: '#8BAE74',
+					lightGreen: '#D1E5C2',
+					sand: '#F2E8C6',
+					cream: '#FFFAE3',
+					pink: '#F9DBD1',
+					rose: '#EEB8B8',
+					brown: '#6A5837',
+					darkTeal: '#376B6D',
+					mauve: '#C19CCD',
+					gray: '#C3C9C9',
+					softRose: '#D96C6C',
+				}
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
