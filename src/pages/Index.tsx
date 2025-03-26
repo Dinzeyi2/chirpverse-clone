@@ -4,7 +4,6 @@ import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
 import SwipeablePostView from '@/components/feed/SwipeablePostView';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { Grid, List, RefreshCw } from 'lucide-react';
 import { 
@@ -30,34 +29,42 @@ const Index = () => {
     sortOption, 
     setSortOption, 
     refresh: refreshPosts,
-    loadMore 
+    loadMore,
+    addNewPost
   } = usePosts();
   
   const handlePostCreated = (content: string, media?: {type: string, url: string}[]) => {
     if (!user) return;
     
-    const createPost = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('shoutouts')
-          .insert({
-            content,
-            user_id: user.id,
-            media: media || null
-          })
-          .select()
-          .single();
-          
-        if (error) throw error;
-        
-        toast.success('Post created successfully!');
-      } catch (error) {
-        console.error('Error creating post:', error);
-        toast.error('Failed to create post');
+    // Create a simple post object to show immediately in the UI
+    const newPost = {
+      id: crypto.randomUUID(), // Temporary ID, will be replaced when real data syncs
+      content,
+      createdAt: new Date().toISOString(),
+      likes: 0,
+      comments: 0,
+      saves: 0,
+      reposts: 0,
+      replies: 0,
+      views: 0,
+      userId: user.id,
+      images: media || null,
+      user: {
+        id: user.id,
+        name: user?.user_metadata?.full_name || 'User',
+        username: user.id.substring(0, 8),
+        avatar: "/lovable-uploads/c82714a7-4f91-4b00-922a-4caee389e8b2.png",
+        verified: false,
+        followers: 0,
+        following: 0,
       }
     };
     
-    createPost();
+    // Add the new post to the posts list immediately
+    addNewPost(newPost);
+    
+    // Show success message
+    toast.success('Post created successfully!');
   };
 
   const handleSortChange = (option: SortOption) => {

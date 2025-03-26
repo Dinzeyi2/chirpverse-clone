@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -13,8 +14,10 @@ export const usePosts = () => {
   
   const blueProfileImage = "/lovable-uploads/c82714a7-4f91-4b00-922a-4caee389e8b2.png";
 
-  const fetchPosts = async () => {
+  // Function to fetch posts - made callback so it can be used in useEffect dependencies
+  const fetchPosts = useCallback(async () => {
     try {
+      setLoading(true);
       setError(null);
       
       const { data: basicShoutoutData, error: basicShoutoutError } = await supabase
@@ -26,10 +29,12 @@ export const usePosts = () => {
       if (basicShoutoutError) {
         console.error('Error fetching shoutouts:', basicShoutoutError);
         setError('Could not load posts');
+        setLoading(false);
         return;
       }
       
       if (basicShoutoutData && basicShoutoutData.length > 0) {
+        // First, show quick version of posts for better UX
         const quickPosts = basicShoutoutData.map(post => ({
           id: post.id,
           content: post.content,
@@ -56,6 +61,7 @@ export const usePosts = () => {
         setPosts(quickPosts);
         setLoading(false);
         
+        // Then load full data asynchronously
         const formattedPosts = await Promise.all(basicShoutoutData.map(async post => {
           try {
             const { data: profileData } = await supabase
@@ -142,6 +148,11 @@ export const usePosts = () => {
       toast.error('Could not load posts');
       setLoading(false);
     }
+  }, []);
+  
+  const addNewPost = (post: any) => {
+    // Add the post to the beginning of the posts array
+    setPosts(prev => [post, ...prev]);
   };
   
   const loadMorePosts = async () => {
@@ -199,8 +210,11 @@ export const usePosts = () => {
     }
   };
   
+  // Set up realtime subscription for new posts
   useEffect(() => {
     const setupRealtimeSubscription = () => {
+      console.log('Setting up realtime subscription for posts');
+      
       const channel = supabase
         .channel('public:shoutouts')
         .on('postgres_changes', 
@@ -210,7 +224,10 @@ export const usePosts = () => {
             table: 'shoutouts'
           }, 
           async (payload) => {
+            console.log('New post received via realtime:', payload);
+            
             try {
+              // Create a quick version of the post immediately
               const quickNewPost = {
                 id: payload.new.id,
                 content: payload.new.content,
@@ -234,9 +251,13 @@ export const usePosts = () => {
                 }
               };
               
+              // Add this post immediately
               setPosts(prev => [quickNewPost, ...prev]);
+              
+              // Show a toast notification for the new post
               toast.success('New post added!');
               
+              // Then fetch user details
               const { data: profileData } = await supabase
                 .from('profiles')
                 .select('*')
@@ -250,6 +271,7 @@ export const usePosts = () => {
               
               const displayUsername = payload.new.user_id?.substring(0, 8) || 'user';
             
+              // Update the post with user details
               setPosts(prev => prev.map(post => 
                 post.id === payload.new.id 
                   ? {
@@ -279,10 +301,12 @@ export const usePosts = () => {
     const channel = setupRealtimeSubscription();
     
     return () => {
+      console.log('Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
   }, []);
   
+  // Sort posts whenever posts or sortOption changes
   useEffect(() => {
     let sortedPosts = [...posts];
     
@@ -307,9 +331,10 @@ export const usePosts = () => {
     setSortedPosts(sortedPosts);
   }, [posts, sortOption]);
   
+  // Load posts when component mounts
   useEffect(() => {
     fetchPosts();
-  }, []);
+  }, [fetchPosts]);
   
   return {
     posts: sortedPosts,
@@ -318,6 +343,7 @@ export const usePosts = () => {
     sortOption,
     setSortOption,
     refresh: fetchPosts,
-    loadMore: loadMorePosts
+    loadMore: loadMorePosts,
+    addNewPost
   };
 };

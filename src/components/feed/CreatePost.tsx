@@ -288,7 +288,9 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
             
           if (error) {
             console.error('Error uploading file:', error);
-            throw new Error('Failed to upload media');
+            toast.error('Failed to upload media');
+            setIsLoading(false);
+            return;
           }
           
           const { data: { publicUrl } } = supabase.storage
@@ -322,6 +324,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       if (postError) {
         console.error('Failed to create post:', postError);
         toast.error(`Failed to create post: ${postError.message}`);
+        setIsLoading(false);
         return;
       }
       
@@ -358,6 +361,11 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         
         if (textareaRef.current) {
           textareaRef.current.style.height = 'auto';
+        }
+
+        if (inDialog) {
+          const closeButton = document.querySelector('[aria-label="Close"]') as HTMLButtonElement;
+          if (closeButton) closeButton.click();
         }
       }
     } catch (error) {
