@@ -25,6 +25,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const [isCodeEditorOpen, setIsCodeEditorOpen] = useState(false);
   const [codeBlocks, setCodeBlocks] = useState<{code: string, language: string}[]>([]);
   const [postSuccessful, setPostSuccessful] = useState(false);
+  const [postError, setPostError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -274,6 +275,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     }
     
     setIsLoading(true);
+    setPostError(null);
     
     const optimisticPostId = crypto.randomUUID();
     const currentTime = new Date().toISOString();
@@ -335,8 +337,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
           };
         } catch (uploadError) {
           console.error('Upload error:', uploadError);
-          toast.error(`Failed to upload media: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}`);
-          return null;
+          throw new Error(`Failed to upload media: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}`);
         }
       });
       
@@ -354,7 +355,10 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         validMedia = uploadedMedia.filter(media => media !== null) as {type: string, url: string}[];
       } catch (uploadError) {
         console.error('Error in media uploads:', uploadError);
+        setPostError('Some media files failed to upload');
+        setIsLoading(false);
         toast.error('Some media files failed to upload');
+        return;
       }
       
       try {
@@ -370,13 +374,15 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         
         if (postError) {
           console.error('Failed to create post:', postError);
+          setPostError(`Failed to create post: ${postError.message}`);
+          setIsLoading(false);
           toast.error(`Failed to create post: ${postError.message}`);
           return;
         }
         
         if (newPost) {
-          toast.success('Post sent successfully!');
           setPostSuccessful(true);
+          toast.success('Post sent successfully!');
           
           const languageMentions = extractLanguageMentions(postContent);
           console.log('Detected language mentions:', languageMentions);
@@ -411,10 +417,12 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         }
       } catch (postCreationError) {
         console.error('Error in post creation:', postCreationError);
+        setPostError('Failed to create post. Please try again.');
         toast.error('Failed to create post. Please try again.');
       }
     } catch (error) {
       console.error('Error creating post:', error);
+      setPostError('Error creating post. Please try again.');
       toast.error('Error creating post. Please try again.');
     } finally {
       setIsLoading(false);
@@ -537,6 +545,12 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+              
+              {postError && (
+                <div className="mt-2 text-red-500 text-sm">
+                  {postError}
                 </div>
               )}
             </div>
