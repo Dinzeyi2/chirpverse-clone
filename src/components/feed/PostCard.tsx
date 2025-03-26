@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile, ThumbsUp } from 'lucide-react';
@@ -492,16 +493,49 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       )}
     >
       {hasMedia ? (
-        <div className={`w-full aspect-[4/3] relative overflow-hidden ${mediaBg}`}>
-          <img 
-            src={getImageUrl(post.images[0])} 
-            alt="Post content" 
-            className={cn(
-              "w-full h-full object-cover transition-all duration-500",
-              !isImageLoaded ? "scale-105 blur-sm" : "scale-100 blur-0"
-            )}
-            onLoad={() => setIsImageLoaded(true)}
-          />
+        <div className="flex flex-col">
+          <div className={`w-full aspect-[4/3] relative overflow-hidden ${mediaBg}`}>
+            <img 
+              src={getImageUrl(post.images[0])} 
+              alt="Post content" 
+              className={cn(
+                "w-full h-full object-cover transition-all duration-500",
+                !isImageLoaded ? "scale-105 blur-sm" : "scale-100 blur-0"
+              )}
+              onLoad={() => setIsImageLoaded(true)}
+            />
+          </div>
+          
+          <div className={contentBg}>
+            <div className="p-3">
+              <h2 className={`text-base font-bold ${textColor} leading-tight mb-1`}>
+                {formatTextWithLinks(post.content)}
+              </h2>
+            
+              <div>
+                {renderCodeBlocks()}
+              </div>
+            </div>
+            
+            <div className="flex items-center mt-1 px-3 pb-3">
+              <img 
+                src={blueProfileImage} 
+                alt={postAuthorName} 
+                className="w-6 h-6 rounded-full object-cover mr-1.5"
+              />
+              <div className="flex items-center">
+                <span className="font-medium text-[#4285F4] mr-1 text-sm font-heading tracking-wide">
+                  {post.userId === currentUserId ? displayName : postAuthorName}
+                </span>
+                {post.user?.verified && (
+                  <span className="text-xBlue">
+                    <CheckCircle size={12} className="fill-xBlue text-black" />
+                  </span>
+                )}
+              </div>
+              <span className={`${textColorMuted} text-xs ml-auto`}>{formatDate(post.createdAt)}</span>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="p-6 flex-1 flex flex-col">
@@ -567,37 +601,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           </div>
         </button>
       </div>
-      
-      {hasMedia && (
-        <div className={contentBg}>
-          <h2 className={`text-base font-bold ${textColor} leading-tight mb-1 line-clamp-2 p-3 pt-3`}>
-            {formatTextWithLinks(post.content)}
-          </h2>
-          
-          <div className="px-3">
-            {renderCodeBlocks()}
-          </div>
-          
-          <div className="flex items-center mt-1 px-3 pb-3">
-            <img 
-              src={blueProfileImage} 
-              alt={postAuthorName} 
-              className="w-6 h-6 rounded-full object-cover mr-1.5"
-            />
-            <div className="flex items-center">
-              <span className="font-medium text-[#4285F4] mr-1 text-sm font-heading tracking-wide">
-                {post.userId === currentUserId ? displayName : postAuthorName}
-              </span>
-              {post.user?.verified && (
-                <span className="text-xBlue">
-                  <CheckCircle size={12} className="fill-xBlue text-black" />
-                </span>
-              )}
-            </div>
-            <span className={`${textColorMuted} text-xs ml-auto`}>{formatDate(post.createdAt)}</span>
-          </div>
-        </div>
-      )}
       
       {!hasMedia && (
         <div className={contentBg}>
