@@ -94,35 +94,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     }
   };
 
-  const handleEmojiClick = (emoji: string) => {
-    if (postContent.length + emoji.length <= maxChars) {
-      if (textareaRef.current) {
-        const cursorPos = textareaRef.current.selectionStart || postContent.length;
-        
-        const textBefore = postContent.substring(0, cursorPos);
-        const textAfter = postContent.substring(cursorPos);
-        const newText = textBefore + emoji + textAfter;
-        
-        setPostContent(newText);
-        setCharCount(newText.length);
-        
-        setTimeout(() => {
-          if (textareaRef.current) {
-            textareaRef.current.focus();
-            const newCursorPosition = cursorPos + emoji.length;
-            textareaRef.current.selectionStart = newCursorPosition;
-            textareaRef.current.selectionEnd = newCursorPosition;
-            autoResizeTextarea();
-          }
-        }, 10);
-      } else {
-        const newText = postContent + emoji;
-        setPostContent(newText);
-        setCharCount(newText.length);
-      }
-    }
-  };
-
   const handleImageClick = () => {
     if (mediaFiles.length >= maxImages && mediaFiles.some(file => file.type === 'image')) {
       toast.error(`You can only upload up to ${maxImages} images`);
@@ -597,44 +568,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                 >
                   <Code size={20} />
                 </button>
-                <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
-                  <PopoverTrigger asChild>
-                    <button 
-                      type="button"
-                      className="p-2 text-xBlue rounded-full hover:bg-xBlue/10 transition-colors"
-                      disabled={isLoading}
-                      aria-label="Add emoji"
-                    >
-                      <Smile size={20} />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[320px] p-0 border border-gray-200 shadow-xl rounded-xl" align="start" side="top">
-                    <div className="instagram-emoji-picker">
-                      <div className="py-2 px-3 border-b border-gray-100">
-                        <div className="text-sm font-medium text-gray-600">Emojis</div>
-                      </div>
-                      <ScrollArea className="h-[350px]">
-                        {emojiCategories.map((category, categoryIndex) => (
-                          <div key={categoryIndex} className="px-3 py-2">
-                            <div className="text-xs font-medium text-gray-500 mb-2">{category.category}</div>
-                            <div className="grid grid-cols-8 gap-1">
-                              {category.emojis.map((emoji, emojiIndex) => (
-                                <button
-                                  key={emojiIndex}
-                                  type="button"
-                                  className="flex items-center justify-center w-8 h-8 text-xl hover:bg-gray-100 rounded transition-colors"
-                                  onClick={() => handleEmojiClick(emoji)}
-                                >
-                                  {emoji}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </ScrollArea>
-                    </div>
-                  </PopoverContent>
-                </Popover>
               </div>
               
               <div className="flex items-center">
