@@ -132,7 +132,9 @@ const PostPage: React.FC = () => {
     const matches = text.match(urlRegex) || [];
     
     return parts.map((part, index) => {
-      if (matches.includes(part)) {
+      const isUrl = matches.some(match => match === part);
+      
+      if (isUrl) {
         return (
           <a 
             key={index}
