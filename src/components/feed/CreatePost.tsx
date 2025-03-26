@@ -315,23 +315,29 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         const fileName = `${crypto.randomUUID()}.${fileExt}`;
         const filePath = `posts/${fileName}`;
         
-        const { data, error } = await supabase.storage
-          .from('media')
-          .upload(filePath, media.file);
+        try {
+          const { data, error } = await supabase.storage
+            .from('media')
+            .upload(filePath, media.file);
+            
+          if (error) {
+            console.error('Error uploading file:', error);
+            throw new Error(`Failed to upload media: ${error.message}`);
+          }
           
-        if (error) {
-          console.error('Error uploading file:', error);
+          const { data: { publicUrl } } = supabase.storage
+            .from('media')
+            .getPublicUrl(filePath);
+            
+          return {
+            type: media.type,
+            url: publicUrl
+          };
+        } catch (uploadError) {
+          console.error('Upload error:', uploadError);
+          toast.error(`Failed to upload media: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}`);
           return null;
         }
-        
-        const { data: { publicUrl } } = supabase.storage
-          .from('media')
-          .getPublicUrl(filePath);
-          
-        return {
-          type: media.type,
-          url: publicUrl
-        };
       });
       
       let processedContent = postContent;
@@ -341,60 +347,71 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         processedContent = processedContent.replace(placeholder, '');
       }
       
-      const uploadedMedia = await Promise.all(uploadPromises);
-      const validMedia = uploadedMedia.filter(media => media !== null) as {type: string, url: string}[];
+      let validMedia: {type: string, url: string}[] = [];
       
-      const { data: newPost, error: postError } = await supabase
-        .from('shoutouts')
-        .insert({
-          content: processedContent,
-          user_id: user.id,
-          media: validMedia.length > 0 ? validMedia : null
-        })
-        .select('id')
-        .single();
-      
-      if (postError) {
-        console.error('Failed to create post:', postError);
-        toast.error(`Failed to create post: ${postError.message}`);
-        setIsLoading(false);
-        return;
+      try {
+        const uploadedMedia = await Promise.all(uploadPromises);
+        validMedia = uploadedMedia.filter(media => media !== null) as {type: string, url: string}[];
+      } catch (uploadError) {
+        console.error('Error in media uploads:', uploadError);
+        toast.error('Some media files failed to upload');
       }
       
-      if (newPost) {
-        toast.success('Post sent successfully!');
-        setPostSuccessful(true);
+      try {
+        const { data: newPost, error: postError } = await supabase
+          .from('shoutouts')
+          .insert({
+            content: processedContent,
+            user_id: user.id,
+            media: validMedia.length > 0 ? validMedia : null
+          })
+          .select('id')
+          .single();
         
-        const languageMentions = extractLanguageMentions(postContent);
-        console.log('Detected language mentions:', languageMentions);
+        if (postError) {
+          console.error('Failed to create post:', postError);
+          toast.error(`Failed to create post: ${postError.message}`);
+          return;
+        }
         
-        if (languageMentions.length > 0) {
-          try {
-            for (const language of languageMentions) {
-              await notifyLanguageUsers(
-                user.id,
-                language,
-                postContent,
-                newPost.id
-              );
+        if (newPost) {
+          toast.success('Post sent successfully!');
+          setPostSuccessful(true);
+          
+          const languageMentions = extractLanguageMentions(postContent);
+          console.log('Detected language mentions:', languageMentions);
+          
+          if (languageMentions.length > 0) {
+            try {
+              for (const language of languageMentions) {
+                await notifyLanguageUsers(
+                  user.id,
+                  language,
+                  postContent,
+                  newPost.id
+                );
+              }
+            } catch (notifyError) {
+              console.error('Error notifying users:', notifyError);
             }
-          } catch (notifyError) {
-            console.error('Error notifying users:', notifyError);
+          }
+          
+          setPostContent('');
+          setCharCount(0);
+          setMediaFiles([]);
+          setCodeBlocks([]);
+          
+          if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+          }
+          
+          if (inDialog && dialogCloseRef.current) {
+            dialogCloseRef.current.click();
           }
         }
-        
-        setPostContent('');
-        setCharCount(0);
-        setMediaFiles([]);
-        setCodeBlocks([]);
-        
-        if (textareaRef.current) {
-          textareaRef.current.style.height = 'auto';
-        }
-        
-        if (inDialog && dialogCloseRef.current) {
-          dialogCloseRef.current.click();
-        }
+      } catch (postCreationError) {
+        console.error('Error in post creation:', postCreationError);
+        toast.error('Failed to create post. Please try again.');
       }
     } catch (error) {
       console.error('Error creating post:', error);
@@ -460,7 +477,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         </div>
         
         <div className="flex-1">
-          <form className={inDialog && isMobile ? 'h-full flex flex-col' : ''}>
+          <form className={inDialog && isMobile ? 'h-full flex flex-col' : ''} onSubmit={handleSubmit}>
             <div className={`mb-4 relative ${inDialog && isMobile ? 'flex-1 overflow-auto' : ''}`}>
               <textarea
                 ref={textareaRef}
@@ -615,11 +632,10 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                   </div>
                 )}
                 <Button
-                  type="button"
+                  type="submit"
                   disabled={(!postContent.trim() && mediaFiles.length === 0 && codeBlocks.length === 0) || isLoading}
                   isLoading={isLoading}
                   className="rounded-full px-4"
-                  onClick={handleSubmit}
                 >
                   Post
                 </Button>
