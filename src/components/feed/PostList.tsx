@@ -7,6 +7,7 @@ import PostSkeleton from './PostSkeleton';
 
 interface PostWithActions extends Post {
   actions?: React.ReactNode;
+  languages?: string[];
 }
 
 interface PostListProps {

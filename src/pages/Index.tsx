@@ -25,11 +25,21 @@ const Index = () => {
     error, 
     refresh: refreshPosts,
     loadMore,
-    addNewPost
+    addNewPost,
+    userLanguages
   } = usePosts();
   
   const handlePostCreated = (content: string, media?: {type: string, url: string}[]) => {
     if (!user) return;
+    
+    // Extract mentioned languages from the post content
+    const extractLanguages = (content: string): string[] => {
+      const mentionRegex = /@(\w+)/g;
+      const matches = [...(content.match(mentionRegex) || [])];
+      return matches.map(match => match.substring(1).toLowerCase());
+    };
+    
+    const languages = extractLanguages(content);
     
     const newPost = {
       id: crypto.randomUUID(),
@@ -43,6 +53,7 @@ const Index = () => {
       views: 0,
       userId: user.id,
       images: media || null,
+      languages,
       user: {
         id: user.id,
         name: user?.user_metadata?.full_name || 'User',
@@ -140,6 +151,16 @@ const Index = () => {
               <RefreshCw className="w-4 h-4" />
               Retry
             </Button>
+          </div>
+        )}
+        
+        {userLanguages && userLanguages.length > 0 && (
+          <div className="px-4 pt-3 pb-1">
+            <p className="text-sm text-neutral-500">
+              Your feed is personalized for: {userLanguages.map(lang => 
+                `#${lang}`
+              ).join(', ')}
+            </p>
           </div>
         )}
         
