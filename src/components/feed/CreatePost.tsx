@@ -278,9 +278,36 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     const mediaUrls: {type: string, url: string}[] = [];
     
     try {
+      // Create optimistic UI update first
       if (onPostCreated) {
+        // Create immediate post for the UI
+        const optimisticPost = {
+          id: '', // No ID yet, this will be our optimistic post marker
+          content: postContent,
+          createdAt: currentTime,
+          likes: 0,
+          comments: 0,
+          saves: 0,
+          reposts: 0,
+          replies: 0,
+          views: 0,
+          userId: user.id,
+          images: mediaFiles.length > 0 ? [{type: 'image', url: 'loading'}] : null,
+          user: {
+            id: user.id,
+            name: user?.user_metadata?.full_name || 'User',
+            username: user.id.substring(0, 8),
+            avatar: "/lovable-uploads/c82714a7-4f91-4b00-922a-4caee389e8b2.png",
+            verified: false,
+            followers: 0,
+            following: 0,
+          }
+        };
+        
+        // Update UI immediately
         onPostCreated(postContent, mediaUrls);
         
+        // Clear the form
         setPostContent('');
         setCharCount(0);
         setMediaFiles([]);
@@ -290,39 +317,39 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
           textareaRef.current.style.height = 'auto';
         }
         
+        // Close dialog if in one
         if (inDialog) {
           const closeButton = document.querySelector('[aria-label="Close"]') as HTMLButtonElement;
           if (closeButton) closeButton.click();
         }
       }
       
-      if (mediaFiles.length > 0) {
-        for (const media of mediaFiles) {
-          const fileExt = media.file.name.split('.').pop();
-          const fileName = `${crypto.randomUUID()}.${fileExt}`;
-          const filePath = `posts/${fileName}`;
+      // Upload files in the background
+      const uploadPromises = mediaFiles.map(async (media) => {
+        const fileExt = media.file.name.split('.').pop();
+        const fileName = `${crypto.randomUUID()}.${fileExt}`;
+        const filePath = `posts/${fileName}`;
+        
+        const { data, error } = await supabase.storage
+          .from('media')
+          .upload(filePath, media.file);
           
-          const { data, error } = await supabase.storage
-            .from('media')
-            .upload(filePath, media.file);
-            
-          if (error) {
-            console.error('Error uploading file:', error);
-            toast.error('Failed to upload media, but post was created');
-            continue;
-          }
-          
-          const { data: { publicUrl } } = supabase.storage
-            .from('media')
-            .getPublicUrl(filePath);
-            
-          mediaUrls.push({
-            type: media.type,
-            url: publicUrl
-          });
+        if (error) {
+          console.error('Error uploading file:', error);
+          return null;
         }
-      }
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('media')
+          .getPublicUrl(filePath);
+          
+        return {
+          type: media.type,
+          url: publicUrl
+        };
+      });
       
+      // Process content
       let processedContent = postContent;
       
       for (let i = 0; i < codeBlocks.length; i++) {
@@ -330,12 +357,17 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         processedContent = processedContent.replace(placeholder, '');
       }
       
+      // Wait for uploads to complete
+      const uploadedMedia = await Promise.all(uploadPromises);
+      const validMedia = uploadedMedia.filter(media => media !== null) as {type: string, url: string}[];
+      
+      // Create post in database
       const { data: newPost, error: postError } = await supabase
         .from('shoutouts')
         .insert({
           content: processedContent,
           user_id: user.id,
-          media: mediaUrls.length > 0 ? mediaUrls : null
+          media: validMedia.length > 0 ? validMedia : null
         })
         .select('id')
         .single();
@@ -347,6 +379,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       }
       
       if (newPost) {
+        // This just confirms to the user the post is saved
         toast.success('Post sent successfully!');
         
         const languageMentions = extractLanguageMentions(postContent);
@@ -590,6 +623,10 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                   disabled={(!postContent.trim() && mediaFiles.length === 0 && codeBlocks.length === 0) || isLoading}
                   isLoading={isLoading}
                   className="rounded-full px-4"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleSubmit(e);
+                  }}
                 >
                   Post
                 </Button>

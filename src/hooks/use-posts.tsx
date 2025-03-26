@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -10,6 +11,7 @@ export const usePosts = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortOption, setSortOption] = useState<SortOption>('latest');
+  const [processingIds, setProcessingIds] = useState<string[]>([]);
   
   const blueProfileImage = "/lovable-uploads/c82714a7-4f91-4b00-922a-4caee389e8b2.png";
 
@@ -57,7 +59,13 @@ export const usePosts = () => {
           }
         }));
         
-        setPosts(quickPosts);
+        setPosts(prev => {
+          // Merge with existing posts to prevent duplicates
+          const existingIds = new Set(prev.map(p => p.id));
+          const newPosts = quickPosts.filter(p => !existingIds.has(p.id));
+          return [...newPosts, ...prev];
+        });
+        
         setLoading(false);
         
         // Then load full data asynchronously
@@ -135,7 +143,21 @@ export const usePosts = () => {
           }
         }));
         
-        setPosts(formattedPosts);
+        setPosts(prev => {
+          // Update existing posts with full data
+          const updatedPosts = prev.map(existingPost => {
+            const updatedPost = formattedPosts.find(p => p.id === existingPost.id);
+            return updatedPost || existingPost;
+          });
+          
+          // Filter out any processing posts that have now been loaded from the database
+          return updatedPosts.filter(post => !processingIds.includes(post.id));
+        });
+        
+        // Clear out any processing IDs that have now been loaded
+        setProcessingIds(prev => 
+          prev.filter(id => !formattedPosts.some(post => post.id === id))
+        );
       } else {
         setPosts([]);
         setLoading(false);
@@ -147,18 +169,30 @@ export const usePosts = () => {
       toast.error('Could not load posts');
       setLoading(false);
     }
-  }, []);
+  }, [processingIds]);
   
   const addNewPost = (post: any) => {
-    // Improved function to add the post to the beginning of the posts array
-    // This function is key for immediate feedback when posting
-    console.log("Adding new post to feed:", post);
+    console.log("Adding new post to feed immediately:", post);
+    
+    // Immediately add post to the top of the list
     setPosts(prev => {
-      // Check if the post is already in the array (avoid duplicates)
-      const existingPost = prev.find(p => p.id === post.id);
-      if (existingPost) {
+      // Check if post exists by content + user combo (avoiding duplicates)
+      const isDuplicate = prev.some(p => 
+        p.content === post.content && 
+        p.userId === post.userId &&
+        Math.abs(new Date(p.createdAt).getTime() - new Date(post.createdAt).getTime()) < 3000
+      );
+      
+      if (isDuplicate) {
+        console.log("Duplicate post detected, not adding");
         return prev;
       }
+      
+      // Add the new post and mark as processing
+      if (post.id) {
+        setProcessingIds(prev => [...prev, post.id]);
+      }
+      
       return [post, ...prev];
     });
   };
@@ -167,7 +201,11 @@ export const usePosts = () => {
     if (posts.length === 0) return;
     
     try {
-      const lastPostDate = posts[posts.length - 1].createdAt;
+      // Only get posts that came before our oldest non-processing post
+      const nonProcessingPosts = posts.filter(post => !processingIds.includes(post.id));
+      if (nonProcessingPosts.length === 0) return;
+      
+      const lastPostDate = nonProcessingPosts[nonProcessingPosts.length - 1].createdAt;
       
       const { data: moreShoutoutData, error: moreShoutoutError } = await supabase
         .from('shoutouts')
@@ -261,13 +299,28 @@ export const usePosts = () => {
               
               // Add this post immediately - check for duplicates
               setPosts(prev => {
+                // Check if we already have this exact post ID
                 const postExists = prev.some(p => p.id === payload.new.id);
                 if (postExists) return prev;
+                
+                // Check for posts with very similar content that might be duplicates
+                const isDuplicate = prev.some(p => 
+                  p.content === payload.new.content && 
+                  p.userId === payload.new.user_id &&
+                  !p.id // This would be a local optimistic post
+                );
+                
+                if (isDuplicate) {
+                  // Replace the optimistic post with the real one
+                  return prev.map(p => 
+                    (p.content === payload.new.content && 
+                     p.userId === payload.new.user_id && 
+                     !p.id) ? quickNewPost : p
+                  );
+                }
+                
                 return [quickNewPost, ...prev];
               });
-              
-              // Show a toast notification for the new post
-              toast.success('New post added!');
               
               // Then fetch user details
               const { data: profileData } = await supabase
