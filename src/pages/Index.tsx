@@ -58,7 +58,7 @@ const Index = () => {
       replies: 0,
       views: 0,
       userId: user.id,
-      images: media || null,
+      images: media || undefined,
       user: {
         id: user.id,
         name: user?.user_metadata?.full_name || 'User',
@@ -67,6 +67,7 @@ const Index = () => {
         verified: false,
         followers: 0,
         following: 0,
+        email: user?.email || 'user@example.com',
       }
     };
     
