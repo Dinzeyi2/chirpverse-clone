@@ -67,6 +67,8 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     }
   ];
   
+  const blueProfileImage = "/lovable-uploads/c82714a7-4f91-4b00-922a-4caee389e8b2.png";
+  
   useEffect(() => {
     if (inDialog && textareaRef.current) {
       textareaRef.current.focus();
@@ -410,7 +412,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       <div className={`flex p-4 ${inDialog && isMobile ? 'flex-1 overflow-auto' : ''}`}>
         <div className="mr-3">
           <img 
-            src="https://i.pravatar.cc/150?img=1" 
+            src={blueProfileImage} 
             alt="Your avatar" 
             className="w-10 h-10 rounded-full object-cover"
           />
