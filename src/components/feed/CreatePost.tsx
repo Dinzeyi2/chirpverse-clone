@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Image, X, Video } from 'lucide-react';
 import Button from '@/components/common/Button';
@@ -34,7 +33,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const maxImages = 2;
   const maxVideoLength = 120; // 2 minutes in seconds
   
-  const blueProfileImage = "/lovable-uploads/c82714a7-4f91-4b00-922a-4caee389e8b2.png";
+  const blueProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
   
   useEffect(() => {
     if (inDialog && textareaRef.current) {
