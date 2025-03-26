@@ -261,8 +261,7 @@ export const Sidebar = () => {
                 size="lg"
                 className="w-full font-bold bg-primary text-white hover:bg-primary/90 hover:text-white border-0 px-6 py-3 rounded-full mb-6"
               >
-                <PlusCircle size={24} className="mr-2" />
-                <span className="font-heading tracking-wide uppercase border border-black/20 rounded-full px-4 py-1">Post</span>
+                <PlusCircle size={24} />
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[600px] p-0 rounded-2xl bg-background border-border">
@@ -408,14 +407,7 @@ export const Sidebar = () => {
                     isCollapsed ? "p-3" : "px-6 py-3 rounded-full"
                   )}
                 >
-                  {isCollapsed ? (
-                    <PlusCircle size={24} />
-                  ) : (
-                    <>
-                      <PlusCircle size={24} className="mr-2" />
-                      <span className="font-heading tracking-wide uppercase border border-black/20 rounded-full px-4 py-1">Post</span>
-                    </>
-                  )}
+                  <PlusCircle size={24} />
                 </Button>
               </DialogTrigger>
               <DialogContent className={cn(
@@ -433,4 +425,3 @@ export const Sidebar = () => {
 };
 
 export default Sidebar;
-
