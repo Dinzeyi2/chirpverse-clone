@@ -6,90 +6,67 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://vcywiyvbfrylffwfzsny.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjeXdpeXZiZnJ5bGZmd2Z6c255Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc0ODA3MDIsImV4cCI6MjA1MzA1NjcwMn0.rZUZjLf4j6h0lhl53PhKJ0eARsBXdmlPOtIAHTJQxNE";
 
-// Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
-
+// Simple client configuration with longer timeouts and better retry logic
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+  },
+  global: {
+    fetch: (...args) => {
+      return fetch(...args);
+    },
+  },
   realtime: {
     params: {
-      eventsPerSecond: 10
+      eventsPerSecond: 5
     }
   }
 });
 
-// Enhanced realtime activation with simplified handling
+// Simple realtime activation
 export const enableRealtimeForTables = () => {
-  console.log('Enabling realtime for shoutouts table with improved handling...');
-  
-  // Create a dedicated channel just for shoutouts (posts)
-  const shoutoutsChannel = supabase.channel('shoutouts-realtime')
-    .on('postgres_changes', 
-      { 
-        event: '*', // Listen to all events (INSERT, UPDATE, DELETE) 
+  try {
+    const channel = supabase.channel('public:shoutouts')
+      .on('postgres_changes', { 
+        event: '*', 
         schema: 'public', 
-        table: 'shoutouts'
-      }, 
-      (payload) => {
-        console.log('Shoutout change detected in realtime:', payload);
-        // This will trigger our listener in the usePosts hook
-      }
-    )
-    .subscribe((status) => {
-      console.log(`Shoutouts realtime connection status: ${status}`);
-    });
-    
-  // Create a general channel for other tables with simpler configuration
-  const generalChannel = supabase.channel('schema-db-changes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'post_reactions' }, (payload) => {
-      console.log('Reaction changes detected', payload);
-    })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'post_bludifies' }, (payload) => {
-      console.log('Bludify changes detected', payload);
-    })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'post_bookmarks' }, (payload) => {
-      console.log('Bookmark changes detected', payload);
-    })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, (payload) => {
-      console.log('Notification changes detected', payload);
-    })
-    .subscribe((status) => {
-      console.log(`General realtime connection status: ${status}`);
-    });
-  
-  return { shoutoutsChannel, generalChannel };
+        table: 'shoutouts' 
+      }, (payload) => {
+        console.log('Shoutout change detected:', payload);
+      })
+      .subscribe();
+      
+    return channel;
+  } catch (err) {
+    console.error('Error setting up realtime:', err);
+    return null;
+  }
 };
 
-// Helper function to convert arrays to JSON strings for Supabase storage
+// Helper functions for array handling
 export const prepareArrayField = (field: string[]): string => {
   return JSON.stringify(field);
 };
 
-// Helper function to parse JSON strings from Supabase to arrays
 export const parseArrayField = (field: string | null): string[] => {
   if (!field) return [];
   try {
-    // Try to parse as JSON array
     const parsed = JSON.parse(field);
     return Array.isArray(parsed) ? parsed : [field];
   } catch (error) {
-    // If it's not valid JSON, return it as a single item array
     return [field];
   }
 };
 
-// Function to find and extract programming language mentions from post content
+// Extract language mentions from post content
 export const extractLanguageMentions = (content: string): string[] => {
-  // Regular expression to detect @language pattern
   const mentionRegex = /@(\w+)/g;
-  
-  // Find all matches
-  const matches = [...content.matchAll(mentionRegex)];
-  
-  // Extract language names from matches
+  const matches = [...(content.matchAll(mentionRegex) || [])];
   return matches.map(match => match[1].toLowerCase().trim());
 };
 
-// Function to create a notification for users who have selected a specific programming language
+// Notify users about language mentions
 export const notifyLanguageUsers = async (
   senderId: string, 
   language: string, 
@@ -97,38 +74,36 @@ export const notifyLanguageUsers = async (
   postId: string
 ): Promise<void> => {
   try {
-    // Find all users who have this programming language in their profile
+    // Find users with this language in their profile
     const { data: profilesWithLanguage, error: profilesError } = await supabase
       .from('profiles')
       .select('user_id, programming_languages')
-      .not('user_id', 'eq', senderId); // Exclude the sender
+      .not('user_id', 'eq', senderId);
     
     if (profilesError) {
       console.error('Error fetching profiles:', profilesError);
       return;
     }
     
-    // Filter users who have the tagged language in their programming languages list
+    // Filter users who have the tagged language
     const usersToNotify = profilesWithLanguage.filter(profile => {
       const languages = Array.isArray(profile.programming_languages) 
         ? profile.programming_languages 
         : parseArrayField(profile.programming_languages as any);
       
-      return languages.some(lang => 
-        lang.toLowerCase() === language.toLowerCase()
-      );
+      return languages.some(lang => lang.toLowerCase() === language.toLowerCase());
     });
     
-    console.log(`Found ${usersToNotify.length} users to notify for language: ${language}`);
+    if (usersToNotify.length === 0) return;
     
-    // Prepare notification data
+    // Prepare notifications
     const notifications = usersToNotify.map(profile => ({
       type: 'language_mention',
       recipient_id: profile.user_id,
       sender_id: senderId,
       content: `mentioned ${language} in a post`,
       metadata: {
-        language: language,
+        language,
         post_id: postId,
         post_excerpt: postContent.substring(0, 100) + (postContent.length > 100 ? '...' : '')
       },
@@ -137,15 +112,9 @@ export const notifyLanguageUsers = async (
     
     // Insert notifications
     if (notifications.length > 0) {
-      const { error: notificationError } = await supabase
+      await supabase
         .from('notifications')
         .insert(notifications);
-      
-      if (notificationError) {
-        console.error('Error creating notifications:', notificationError);
-      } else {
-        console.log(`Created ${notifications.length} notifications for language: ${language}`);
-      }
     }
   } catch (error) {
     console.error('Error in notifyLanguageUsers:', error);

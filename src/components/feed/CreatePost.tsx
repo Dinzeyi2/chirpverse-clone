@@ -1,14 +1,12 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Image, X, Video } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { toast } from 'sonner';
 import { DialogClose } from '@/components/ui/dialog';
-import { supabase, extractLanguageMentions, notifyLanguageUsers } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useIsMobile, useScreenSize } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface CreatePostProps {
   onPostCreated?: (content: string, media?: {type: string, url: string}[]) => void;
@@ -20,128 +18,58 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const [charCount, setCharCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<{type: string, file: File, preview: string}[]>([]);
-  const [postSuccessful, setPostSuccessful] = useState(false);
-  const [postError, setPostError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const dialogCloseRef = useRef<HTMLButtonElement>(null);
   const { user } = useAuth();
   const isMobile = useIsMobile();
-  const { width } = useScreenSize();
   
   const maxChars = 280;
-  const maxImages = 2;
-  const maxVideoLength = 120; // 2 minutes in seconds
-  
   const blueProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
-  
-  useEffect(() => {
-    if (inDialog && textareaRef.current) {
-      textareaRef.current.focus();
-    }
-  }, [inDialog]);
   
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const text = e.target.value;
     if (text.length <= maxChars) {
       setPostContent(text);
       setCharCount(text.length);
-      autoResizeTextarea();
-    }
-  };
-  
-  const autoResizeTextarea = () => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      
+      // Auto resize textarea
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+        textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      }
     }
   };
 
   const handleImageClick = () => {
-    if (mediaFiles.length >= maxImages && mediaFiles.some(file => file.type === 'image')) {
-      toast.error(`You can only upload up to ${maxImages} images`);
-      return;
-    }
-
-    if (mediaFiles.some(file => file.type === 'video')) {
-      toast.error('You cannot upload both images and a video');
-      return;
-    }
-
     fileInputRef.current?.click();
   };
 
   const handleVideoClick = () => {
-    if (mediaFiles.length > 0) {
-      toast.error('You cannot upload both images and a video');
-      return;
-    }
-
     videoInputRef.current?.click();
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     
     const file = files[0];
     const fileType = file.type.split('/')[0];
     
-    if (fileType === 'image') {
-      if (mediaFiles.length >= maxImages) {
-        toast.error(`You can only upload up to ${maxImages} images`);
-        return;
-      }
-      
-      if (mediaFiles.some(media => media.type === 'video')) {
-        toast.error('You cannot upload both images and a video');
-        return;
-      }
-
+    // Handle image and video files
+    if (fileType === 'image' || fileType === 'video') {
       const reader = new FileReader();
       reader.onload = (event) => {
-        if (event.target && event.target.result) {
+        if (event.target?.result) {
           setMediaFiles(prev => [...prev, {
-            type: 'image',
+            type: fileType,
             file,
-            preview: event.target?.result as string
+            preview: event.target.result as string
           }]);
         }
       };
       reader.readAsDataURL(file);
-    } 
-    else if (fileType === 'video') {
-      if (mediaFiles.length > 0) {
-        toast.error('You can only upload one video');
-        return;
-      }
-
-      const video = document.createElement('video');
-      video.preload = 'metadata';
-      
-      video.onloadedmetadata = () => {
-        window.URL.revokeObjectURL(video.src);
-        
-        if (video.duration > maxVideoLength) {
-          toast.error(`Video must be less than 2 minutes long`);
-          return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          if (event.target && event.target.result) {
-            setMediaFiles([{
-              type: 'video',
-              file,
-              preview: event.target?.result as string
-            }]);
-          }
-        };
-        reader.readAsDataURL(file);
-      };
-      
-      video.src = URL.createObjectURL(file);
     }
     
     e.target.value = '';
@@ -156,8 +84,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     setCharCount(0);
     setMediaFiles([]);
     setIsLoading(false);
-    setPostSuccessful(false);
-    setPostError(null);
     
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -168,196 +94,137 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     }
   };
   
+  const createPost = async () => {
+    // Simple direct post creation without media handling
+    try {
+      const { data, error } = await supabase
+        .from('shoutouts')
+        .insert({
+          content: postContent,
+          user_id: user?.id,
+          media: null
+        })
+        .select('id')
+        .single();
+        
+      if (error) throw error;
+      return data.id;
+    } catch (err) {
+      console.error('Error creating post:', err);
+      throw err;
+    }
+  };
+  
+  const uploadMedia = async (postId: string) => {
+    if (mediaFiles.length === 0) return [];
+    
+    const uploadPromises = mediaFiles.map(async (media) => {
+      try {
+        const fileExt = media.file.name.split('.').pop();
+        const fileName = `${crypto.randomUUID()}.${fileExt}`;
+        const filePath = `posts/${fileName}`;
+        
+        const { error } = await supabase.storage
+          .from('media')
+          .upload(filePath, media.file);
+          
+        if (error) throw error;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('media')
+          .getPublicUrl(filePath);
+          
+        return {
+          type: media.type,
+          url: publicUrl
+        };
+      } catch (err) {
+        console.error('Upload error:', err);
+        return null;
+      }
+    });
+    
+    try {
+      const results = await Promise.all(uploadPromises);
+      return results.filter(Boolean) as {type: string, url: string}[];
+    } catch (err) {
+      console.error('Error in media uploads:', err);
+      return [];
+    }
+  };
+  
+  const updatePostWithMedia = async (postId: string, mediaUrls: {type: string, url: string}[]) => {
+    if (mediaUrls.length === 0) return;
+    
+    try {
+      await supabase
+        .from('shoutouts')
+        .update({ media: mediaUrls })
+        .eq('id', postId);
+    } catch (err) {
+      console.error('Error updating post with media:', err);
+    }
+  };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!postContent.trim() && mediaFiles.length === 0) {
-      toast.error('Please enter some content or add media to your post');
+      toast.error('Please enter content or add media');
       return;
     }
     
     if (!user) {
-      toast.error('You must be logged in to create a post');
+      toast.error('You must be logged in to post');
       return;
     }
     
     setIsLoading(true);
-    setPostError(null);
-    
-    const optimisticPostId = crypto.randomUUID();
-    const currentTime = new Date().toISOString();
-    let mediaUrls: {type: string, url: string}[] = [];
     
     try {
-      // First, create optimistic UI update with the post
+      // Create optimistic post for UI
+      const optimisticPostId = crypto.randomUUID();
+      
       if (onPostCreated) {
-        const optimisticPost = {
-          id: optimisticPostId,
-          content: postContent,
-          createdAt: currentTime,
-          likes: 0,
-          comments: 0,
-          saves: 0,
-          reposts: 0,
-          replies: 0,
-          views: 0,
-          userId: user.id,
-          images: mediaFiles.length > 0 ? mediaFiles.map(file => ({
-            type: file.type,
-            url: file.preview
-          })) : null,
-          user: {
-            id: user.id,
-            name: user?.user_metadata?.full_name || 'User',
-            username: user.id.substring(0, 8),
-            avatar: blueProfileImage,
-            verified: false,
-            followers: 0,
-            following: 0,
-          }
-        };
+        const optimisticMedia = mediaFiles.map(file => ({
+          type: file.type,
+          url: file.preview
+        }));
         
-        onPostCreated(postContent, optimisticPost.images || []);
-        console.log("Added optimistic post to UI:", optimisticPost);
+        onPostCreated(postContent, optimisticMedia);
       }
       
-      // Upload media files if present
+      // Reset form immediately for better UX
+      resetForm();
+      
+      // Create the actual post
+      const postId = await createPost();
+      
+      // Upload media in the background
       if (mediaFiles.length > 0) {
-        console.log(`Uploading ${mediaFiles.length} media files...`);
+        const mediaUrls = await uploadMedia(postId);
         
-        const uploadPromises = mediaFiles.map(async (media) => {
-          const fileExt = media.file.name.split('.').pop();
-          const fileName = `${crypto.randomUUID()}.${fileExt}`;
-          const filePath = `posts/${fileName}`;
-          
-          try {
-            const { data, error } = await supabase.storage
-              .from('media')
-              .upload(filePath, media.file);
-              
-            if (error) {
-              console.error('Error uploading file:', error);
-              throw new Error(`Failed to upload media: ${error.message}`);
-            }
-            
-            const { data: { publicUrl } } = supabase.storage
-              .from('media')
-              .getPublicUrl(filePath);
-              
-            return {
-              type: media.type,
-              url: publicUrl
-            };
-          } catch (uploadError) {
-            console.error('Upload error:', uploadError);
-            throw new Error(`Failed to upload media: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}`);
-          }
-        });
-        
-        try {
-          const uploadedMedia = await Promise.all(uploadPromises);
-          mediaUrls = uploadedMedia.filter(media => media !== null) as {type: string, url: string}[];
-          console.log("Successfully uploaded media:", mediaUrls);
-        } catch (uploadError) {
-          console.error('Error in media uploads:', uploadError);
-          setPostError('Some media files failed to upload');
-          setIsLoading(false);
-          toast.error('Some media files failed to upload');
-          return;
+        // Update post with media URLs
+        if (mediaUrls.length > 0) {
+          await updatePostWithMedia(postId, mediaUrls);
         }
       }
       
-      // Create post in database
-      console.log("Creating post in database...");
-      const { data: newPost, error: postError } = await supabase
-        .from('shoutouts')
-        .insert({
-          content: postContent,
-          user_id: user.id,
-          media: mediaUrls.length > 0 ? mediaUrls : null
-        })
-        .select('id')
-        .single();
-      
-      if (postError) {
-        console.error('Failed to create post:', postError);
-        setPostError(`Failed to create post: ${postError.message}`);
-        setIsLoading(false);
-        toast.error(`Failed to create post: ${postError.message}`);
-        return;
-      }
-      
-      if (newPost) {
-        console.log("Post successfully created with ID:", newPost.id);
-        setPostSuccessful(true);
-        toast.success('Post sent successfully!');
-        
-        // Handle language mentions
-        const languageMentions = extractLanguageMentions(postContent);
-        console.log('Detected language mentions:', languageMentions);
-        
-        if (languageMentions.length > 0) {
-          try {
-            for (const language of languageMentions) {
-              await notifyLanguageUsers(
-                user.id,
-                language,
-                postContent,
-                newPost.id
-              );
-            }
-          } catch (notifyError) {
-            console.error('Error notifying users:', notifyError);
-            // Non-critical error, continue
-          }
-        }
-        
-        // Reset form immediately after successful post
-        resetForm();
-      }
+      toast.success('Post sent successfully!');
     } catch (error) {
       console.error('Error creating post:', error);
-      setPostError('Error creating post. Please try again.');
-      toast.error('Error creating post. Please try again.');
+      toast.error('Failed to create post. Please try again.');
+    } finally {
       setIsLoading(false);
     }
   };
   
-  const calculateRemainingChars = () => {
-    return maxChars - charCount;
-  };
-  
-  const getRemainingCharsColor = () => {
-    const remaining = calculateRemainingChars();
-    if (remaining <= 20) return 'text-red-500';
-    if (remaining <= 40) return 'text-yellow-500';
-    return 'text-xGray';
-  };
-
-  const renderHighlightedContent = () => {
-    if (!postContent) return null;
-    
-    const parts = postContent.split(/(@\w+)/g);
-    
-    return (
-      <div className="absolute top-0 left-0 w-full pointer-events-none text-xl p-4">
-        {parts.map((part, index) => {
-          if (part.match(/^@\w+/)) {
-            return <span key={index} className="text-blue-500">{part}</span>;
-          }
-          return <span key={index}>{part}</span>;
-        })}
-      </div>
-    );
-  };
-
   return (
-    <div className={
-      inDialog 
-        ? isMobile 
-          ? 'bg-background fixed inset-0 z-50 flex flex-col h-full w-full overflow-auto' 
-          : 'bg-background'
-        : 'px-4 pt-4 pb-2 border-b border-xExtraLightGray'
+    <div className={inDialog 
+      ? isMobile 
+        ? 'bg-background fixed inset-0 z-50 flex flex-col h-full w-full overflow-auto' 
+        : 'bg-background'
+      : 'px-4 pt-4 pb-2 border-b border-xExtraLightGray'
     }>
       {inDialog && (
         <div className="flex items-center justify-between p-4 border-b border-xExtraLightGray sticky top-0 bg-background z-10">
@@ -421,12 +288,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                   </div>
                 </div>
               )}
-              
-              {postError && (
-                <div className="mt-2 text-red-500 text-sm">
-                  {postError}
-                </div>
-              )}
             </div>
             
             <div className={`flex items-center justify-between ${inDialog && isMobile ? 'sticky bottom-0 bg-background pt-2 border-t border-border' : ''}`}>
@@ -467,8 +328,8 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
               <div className="flex items-center">
                 {postContent && (
                   <div className="mr-3 flex items-center">
-                    <div className={`text-sm ${getRemainingCharsColor()}`}>
-                      {calculateRemainingChars()}
+                    <div className={`text-sm ${maxChars - charCount <= 20 ? 'text-red-500' : maxChars - charCount <= 40 ? 'text-yellow-500' : 'text-xGray'}`}>
+                      {maxChars - charCount}
                     </div>
                   </div>
                 )}
