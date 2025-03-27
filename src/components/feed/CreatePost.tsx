@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Image, X, Video } from 'lucide-react';
 import Button from '@/components/common/Button';
@@ -20,7 +21,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const [charCount, setCharCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<{type: string, file: File, preview: string}[]>([]);
-  const [postSuccessful, setPostSuccessful] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -28,7 +28,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const dialogCloseRef = useRef<HTMLButtonElement>(null);
   const { user } = useAuth();
   const isMobile = useIsMobile();
-  const { width } = useScreenSize();
   
   const maxChars = 280;
   const maxImages = 2;
@@ -168,12 +167,13 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     setPostError(null);
     
     try {
+      // Start with an empty media array
       let mediaUrls: {type: string, url: string}[] = [];
       
+      // Only process media files if there are any
       if (mediaFiles.length > 0) {
-        console.log(`Uploading ${mediaFiles.length} media files...`);
-        
-        const uploadPromises = mediaFiles.map(async (media) => {
+        // Process media uploads one at a time to reduce complexity
+        for (const media of mediaFiles) {
           const fileExt = media.file.name.split('.').pop();
           const fileName = `${crypto.randomUUID()}.${fileExt}`;
           const filePath = `posts/${fileName}`;
@@ -192,30 +192,19 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
               .from('media')
               .getPublicUrl(filePath);
               
-            return {
+            mediaUrls.push({
               type: media.type,
               url: publicUrl
-            };
+            });
           } catch (uploadError) {
             console.error('Upload error:', uploadError);
-            throw new Error(`Failed to upload media: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}`);
+            toast.error('Failed to upload media. Continuing with post creation...');
+            // Continue with post creation even if media upload fails
           }
-        });
-        
-        try {
-          const uploadedMedia = await Promise.all(uploadPromises);
-          mediaUrls = uploadedMedia.filter(media => media !== null) as {type: string, url: string}[];
-          console.log("Successfully uploaded media:", mediaUrls);
-        } catch (uploadError) {
-          console.error('Error in media uploads:', uploadError);
-          setPostError('Some media files failed to upload');
-          setIsLoading(false);
-          toast.error('Some media files failed to upload');
-          return;
         }
       }
       
-      console.log("Creating post in database...");
+      // Create the post in the database
       const { data: newPost, error: postError } = await supabase
         .from('shoutouts')
         .insert({
@@ -227,30 +216,34 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         .single();
       
       if (postError) {
-        console.error('Failed to create post:', postError);
         setPostError(`Failed to create post: ${postError.message}`);
-        setIsLoading(false);
         toast.error(`Failed to create post: ${postError.message}`);
         return;
       }
       
       if (newPost) {
-        console.log("Post successfully created with ID:", newPost.id);
+        // Reset form immediately
+        setPostContent('');
+        setCharCount(0);
+        setMediaFiles([]);
         
-        const languageMentions = extractLanguageMentions(postContent);
-        
-        if (onPostCreated) {
-          onPostCreated(postContent, mediaUrls);
-          console.log("Added post to UI with real ID:", newPost.id);
-          
-          setTimeout(() => {
-            toast.success("Your post is now visible in the feed!");
-          }, 1500);
+        if (textareaRef.current) {
+          textareaRef.current.style.height = 'auto';
         }
         
-        setPostSuccessful(true);
+        if (inDialog && dialogCloseRef.current) {
+          dialogCloseRef.current.click();
+        }
+        
+        // Notify parent component about new post
+        if (onPostCreated) {
+          onPostCreated(postContent, mediaUrls);
+        }
+        
         toast.success('Post created successfully!');
         
+        // Process language mentions in the background
+        const languageMentions = extractLanguageMentions(postContent);
         if (languageMentions.length > 0) {
           try {
             for (const language of languageMentions) {
@@ -263,19 +256,8 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
             }
           } catch (notifyError) {
             console.error('Error notifying users:', notifyError);
+            // Don't block user flow if notifications fail
           }
-        }
-        
-        setPostContent('');
-        setCharCount(0);
-        setMediaFiles([]);
-        
-        if (textareaRef.current) {
-          textareaRef.current.style.height = 'auto';
-        }
-        
-        if (inDialog && dialogCloseRef.current) {
-          dialogCloseRef.current.click();
         }
       }
     } catch (error) {
@@ -296,23 +278,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     if (remaining <= 20) return 'text-red-500';
     if (remaining <= 40) return 'text-yellow-500';
     return 'text-xGray';
-  };
-
-  const renderHighlightedContent = () => {
-    if (!postContent) return null;
-    
-    const parts = postContent.split(/(@\w+)/g);
-    
-    return (
-      <div className="absolute top-0 left-0 w-full pointer-events-none text-xl p-4">
-        {parts.map((part, index) => {
-          if (part.match(/^@\w+/)) {
-            return <span key={index} className="text-blue-500">{part}</span>;
-          }
-          return <span key={index}>{part}</span>;
-        })}
-      </div>
-    );
   };
 
   return (
