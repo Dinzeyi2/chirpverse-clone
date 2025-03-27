@@ -207,7 +207,6 @@ const Index = () => {
                 <SwipeablePostView 
                   posts={posts} 
                   loading={loading} 
-                  loadMore={loadMore}
                   key={`${feedKey}-swipeable-${posts.length}`}
                 />
               ) : (
@@ -222,7 +221,7 @@ const Index = () => {
         )}
         
         {/* Load more button */}
-        {posts.length > 0 && !loading && feedView === 'list' && (
+        {posts.length > 0 && !loading && (
           <div className="flex justify-center pb-8 pt-4">
             <Button 
               variant="outline" 
