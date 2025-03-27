@@ -14,6 +14,7 @@ import { usePosts } from '@/hooks/use-posts';
 import { Progress } from '@/components/ui/progress';
 import CreatePost from '@/components/feed/CreatePost';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import GenerateAIPost from '@/components/feed/GenerateAIPost';
 
 const Index = () => {
   const [feedView, setFeedView] = useState<'swipeable' | 'list'>('swipeable');
@@ -114,7 +115,8 @@ const Index = () => {
     <AppLayout>
       {/* Header with view toggle and refresh button */}
       <div className={`sticky top-0 z-20 ${headerBg} border-b ${borderColor}`}>
-        <div className="flex justify-end items-center px-4 py-4">
+        <div className="flex justify-between items-center px-4 py-4">
+          <GenerateAIPost onPostGenerated={handlePostCreated} />
           <div className="flex items-center gap-4">
             <button
               className="p-2 rounded-md transition-colors hover:bg-gray-200/10"
