@@ -13,8 +13,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
   },
   global: {
-    fetch: (...args) => {
-      return fetch(...args);
+    fetch: (url: RequestInfo | URL, options?: RequestInit) => {
+      return fetch(url, options);
     },
   },
   realtime: {
