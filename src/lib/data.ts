@@ -38,6 +38,7 @@ export interface Post {
   isOwner?: boolean;
   images?: Array<string | {type: string, url: string}>;
   codeBlocks?: {code: string, language: string}[];
+  languages?: string[];
 }
 
 export function formatDate(dateStr: string): string {

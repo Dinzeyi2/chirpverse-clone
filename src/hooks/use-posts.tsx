@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -46,6 +47,13 @@ export const usePosts = () => {
       console.error('Error fetching user languages:', error);
     }
   }, []);
+
+  // Extract programming languages from post content
+  const extractLanguagesFromContent = (content: string): string[] => {
+    const mentionRegex = /@(\w+)/g;
+    const matches = [...(content.match(mentionRegex) || [])];
+    return matches.map(match => match.substring(1).toLowerCase());
+  };
 
   const fetchPosts = useCallback(async () => {
     try {
@@ -101,15 +109,18 @@ export const usePosts = () => {
         setPosts(quickPosts);
         setLoading(false);
         
+        // Enrich posts with additional data
         Promise.all(
           basicShoutoutData.map(async (post) => {
             try {
+              // Fetch like counts, comments counts, and saves counts in parallel
               const [likesResult, commentsResult, savesResult] = await Promise.all([
                 supabase.from('likes').select('*', { count: 'exact', head: true }).eq('shoutout_id', post.id),
                 supabase.from('comments').select('*', { count: 'exact', head: true }).eq('shoutout_id', post.id),
                 supabase.from('saved_posts').select('*', { count: 'exact', head: true }).eq('shoutout_id', post.id)
               ]);
               
+              // Fetch user profile data
               const { data: profileData } = await supabase
                 .from('profiles')
                 .select('full_name, avatar_url')
@@ -172,13 +183,6 @@ export const usePosts = () => {
       setLoading(false);
     }
   }, []);
-
-  // Extract programming languages from post content
-  const extractLanguagesFromContent = (content: string): string[] => {
-    const mentionRegex = /@(\w+)/g;
-    const matches = [...(content.match(mentionRegex) || [])];
-    return matches.map(match => match.substring(1).toLowerCase());
-  };
   
   const addNewPost = useCallback((post: any) => {
     console.log("Adding new post to feed immediately:", post);
@@ -251,12 +255,14 @@ export const usePosts = () => {
           verified: false,
           followers: 0,
           following: 0,
-        }
+        },
+        languages: extractLanguagesFromContent(post.content)
       }));
       
       setPosts(prevPosts => [...prevPosts, ...quickMorePosts]);
       setLoading(false);
       
+      // Enrich the additional posts
       Promise.all(
         moreShoutoutData.map(async (post) => {
           try {
@@ -284,6 +290,7 @@ export const usePosts = () => {
               views: 0,
               userId: post.user_id,
               images: post.media,
+              languages: extractLanguagesFromContent(post.content),
               user: {
                 id: post.user_id,
                 name: profileData?.full_name || 'User',
@@ -321,6 +328,7 @@ export const usePosts = () => {
     }
   }, [posts, processingIds]);
   
+  // Set up realtime subscription for new posts
   useEffect(() => {
     const setupRealtimeSubscription = () => {
       console.log('Setting up realtime subscription for posts');
@@ -354,6 +362,7 @@ export const usePosts = () => {
               views: 0,
               userId: payload.new.user_id,
               images: payload.new.media,
+              languages: extractLanguagesFromContent(payload.new.content),
               user: {
                 id: payload.new.user_id,
                 name: 'Loading...',
@@ -423,6 +432,7 @@ export const usePosts = () => {
     };
   }, [posts]);
   
+  // Sort posts based on relevance and selected sort option
   useEffect(() => {
     let sortedPosts = [...posts];
     
@@ -467,6 +477,7 @@ export const usePosts = () => {
     setSortedPosts(sortedPosts);
   }, [posts, sortOption, userLanguages]);
   
+  // Initial data fetching
   useEffect(() => {
     fetchUserLanguages();
     fetchPosts();
