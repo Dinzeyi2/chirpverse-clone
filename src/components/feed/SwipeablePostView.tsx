@@ -117,13 +117,13 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     if (width <= 480) {
       return {
         basis: "90%",          // Takes 90% of the container width on very small devices
-        scale: "scale-95",     // Base scale for current post
+        scale: "scale-100",    // Base scale for current post
         opacity: "opacity-100" // Full opacity for current post
       };
     } else if (width <= 768) {
       return {
         basis: "85%",          // Takes 85% of the container width on mobile devices
-        scale: "scale-95",     // Base scale for current post
+        scale: "scale-100",    // Base scale for current post
         opacity: "opacity-100" // Full opacity for current post
       };
     } else if (width <= 1024) {
@@ -222,8 +222,8 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
               <div className={cn(
                 "relative w-full transition-all duration-300 max-w-[350px] sm:max-w-[400px] mx-auto",
                 currentIndex === index 
-                  ? `${scale} ${opacity} z-20` 
-                  : "scale-90 opacity-70 z-10"
+                  ? `${scale} ${opacity} z-10` 
+                  : "scale-100 opacity-100 z-10"
               )}>
                 <div className="relative">
                   {post.actions && (

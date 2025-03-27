@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, Suspense, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
@@ -90,6 +91,7 @@ const Index = () => {
   const handleLoadMore = useCallback(async () => {
     if (loadMore) {
       await loadMore();
+      return;
     }
   }, [loadMore]);
 
