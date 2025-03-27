@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -6,8 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ImageIcon, Code2, X, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { extractLanguageMentions, notifyLanguageUsers } from '@/integrations/supabase/client';
+import { supabase, extractLanguageMentions, notifyLanguageUsers } from '@/integrations/supabase/client';
 import { useTheme } from '@/components/theme/theme-provider';
 import CodeEditor from '@/components/code/CodeEditor';
 
@@ -22,6 +22,7 @@ interface CreatePostProps {
   initialContent?: string;
   initialMedia?: {type: string, url: string}[];
   autoFocus?: boolean;
+  inDialog?: boolean;
 }
 
 interface MediaItem {
@@ -46,6 +47,7 @@ const CreatePost: React.FC<CreatePostProps> = ({
   initialContent = "",
   initialMedia = [],
   autoFocus = false,
+  inDialog = false,
 }) => {
   const [open, setOpen] = useState(false);
   const [content, setContent] = useState(initialContent);
@@ -188,7 +190,8 @@ const CreatePost: React.FC<CreatePostProps> = ({
           content: content,
           user_id: user.id,
           media: mediaData,
-          languages: languageMentions.length > 0 ? languageMentions : null
+          // Only include languages if the column exists
+          ...(languageMentions.length > 0 ? { languages: languageMentions } : {})
         })
         .select()
         .single();

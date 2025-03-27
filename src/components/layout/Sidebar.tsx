@@ -259,13 +259,19 @@ export const Sidebar = () => {
               <Button 
                 variant="outline"
                 size="lg"
-                className="w-full font-bold bg-primary text-white hover:bg-primary/90 hover:text-white border-0 px-6 py-3 rounded-full mb-6"
+                className={cn(
+                  "w-full font-bold bg-primary text-white hover:bg-primary/90 hover:text-white border-0",
+                  isCollapsed ? "p-3" : "px-6 py-3 rounded-full"
+                )}
               >
                 <PlusCircle size={24} />
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px] p-0 rounded-2xl bg-background border-border">
-              <CreatePost onPostCreated={handlePostCreated} inDialog={true} />
+            <DialogContent className={cn(
+              "max-w-full w-full h-[100dvh] p-0 rounded-none bg-background border-border",
+              "sm:max-w-[600px] sm:h-auto sm:rounded-2xl"
+            )}>
+              <CreatePost onPostCreated={handlePostCreated} />
             </DialogContent>
           </Dialog>
           
@@ -414,7 +420,7 @@ export const Sidebar = () => {
                 "max-w-full w-full h-[100dvh] p-0 rounded-none bg-background border-border",
                 "sm:max-w-[600px] sm:h-auto sm:rounded-2xl"
               )}>
-                <CreatePost onPostCreated={handlePostCreated} inDialog={true} />
+                <CreatePost onPostCreated={handlePostCreated} />
               </DialogContent>
             </Dialog>
           )}

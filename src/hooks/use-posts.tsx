@@ -46,6 +46,12 @@ export const usePosts = () => {
     }
   }, []);
 
+  const extractLanguagesFromContent = (content: string): string[] => {
+    const mentionRegex = /@(\w+)/g;
+    const matches = [...(content.match(mentionRegex) || [])];
+    return matches.map(match => match.substring(1).toLowerCase());
+  };
+
   const fetchPosts = useCallback(async () => {
     try {
       if (abortControllerRef.current) {
@@ -59,7 +65,7 @@ export const usePosts = () => {
       
       const { data: basicShoutoutData, error: basicShoutoutError } = await supabase
         .from('shoutouts')
-        .select('id, content, created_at, user_id, media, languages')
+        .select('id, content, created_at, user_id, media')
         .order('created_at', { ascending: false })
         .limit(15);
         
@@ -94,7 +100,7 @@ export const usePosts = () => {
             followers: 0,
             following: 0,
           },
-          languages: post.languages || extractLanguagesFromContent(post.content)
+          languages: extractLanguagesFromContent(post.content)
         }));
         
         setPosts(quickPosts);
@@ -172,12 +178,6 @@ export const usePosts = () => {
     }
   }, []);
 
-  const extractLanguagesFromContent = (content: string): string[] => {
-    const mentionRegex = /@(\w+)/g;
-    const matches = [...(content.match(mentionRegex) || [])];
-    return matches.map(match => match.substring(1).toLowerCase());
-  };
-  
   const addNewPost = useCallback((post: any) => {
     console.log("Adding new post to feed immediately:", post);
     
@@ -354,7 +354,7 @@ export const usePosts = () => {
               views: 0,
               userId: payload.new.user_id,
               images: payload.new.media,
-              languages: payload.new.languages || extractLanguagesFromContent(payload.new.content),
+              languages: extractLanguagesFromContent(payload.new.content),
               user: {
                 id: payload.new.user_id,
                 name: 'Loading...',
@@ -422,7 +422,7 @@ export const usePosts = () => {
       console.log('Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [posts]);
 
   useEffect(() => {
     let sortedPosts = [...posts];
