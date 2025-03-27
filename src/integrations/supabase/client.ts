@@ -17,7 +17,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   }
 });
 
-// Enhanced realtime activation with better logging
+// Enhanced realtime activation with simplified handling
 export const enableRealtimeForTables = () => {
   console.log('Enabling realtime for shoutouts table with improved handling...');
   
@@ -25,12 +25,12 @@ export const enableRealtimeForTables = () => {
   const shoutoutsChannel = supabase.channel('shoutouts-realtime')
     .on('postgres_changes', 
       { 
-        event: 'INSERT', 
+        event: '*', // Listen to all events (INSERT, UPDATE, DELETE) 
         schema: 'public', 
         table: 'shoutouts'
       }, 
       (payload) => {
-        console.log('New shoutout detected in realtime:', payload);
+        console.log('Shoutout change detected in realtime:', payload);
         // This will trigger our listener in the usePosts hook
       }
     )
@@ -38,8 +38,8 @@ export const enableRealtimeForTables = () => {
       console.log(`Shoutouts realtime connection status: ${status}`);
     });
     
-  // Create a general channel for other tables
-  supabase.channel('schema-db-changes')
+  // Create a general channel for other tables with simpler configuration
+  const generalChannel = supabase.channel('schema-db-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'post_reactions' }, (payload) => {
       console.log('Reaction changes detected', payload);
     })
@@ -53,10 +53,10 @@ export const enableRealtimeForTables = () => {
       console.log('Notification changes detected', payload);
     })
     .subscribe((status) => {
-      console.log(`Realtime connection status: ${status}`);
+      console.log(`General realtime connection status: ${status}`);
     });
   
-  return shoutoutsChannel;
+  return { shoutoutsChannel, generalChannel };
 };
 
 // Helper function to convert arrays to JSON strings for Supabase storage

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Image, X, Video } from 'lucide-react';
 import Button from '@/components/common/Button';
@@ -150,6 +151,23 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     setMediaFiles(prev => prev.filter((_, i) => i !== index));
   };
   
+  const resetForm = () => {
+    setPostContent('');
+    setCharCount(0);
+    setMediaFiles([]);
+    setIsLoading(false);
+    setPostSuccessful(false);
+    setPostError(null);
+    
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+    
+    if (inDialog && dialogCloseRef.current) {
+      dialogCloseRef.current.click();
+    }
+  };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -171,6 +189,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     let mediaUrls: {type: string, url: string}[] = [];
     
     try {
+      // First, create optimistic UI update with the post
       if (onPostCreated) {
         const optimisticPost = {
           id: optimisticPostId,
@@ -198,12 +217,11 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
           }
         };
         
-        setTimeout(() => {
-          onPostCreated(postContent, optimisticPost.images || []);
-          console.log("Added optimistic post to UI:", optimisticPost);
-        }, 0);
+        onPostCreated(postContent, optimisticPost.images || []);
+        console.log("Added optimistic post to UI:", optimisticPost);
       }
       
+      // Upload media files if present
       if (mediaFiles.length > 0) {
         console.log(`Uploading ${mediaFiles.length} media files...`);
         
@@ -249,79 +267,59 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         }
       }
       
-      try {
-        console.log("Creating post in database...");
-        const { data: newPost, error: postError } = await supabase
-          .from('shoutouts')
-          .insert({
-            content: postContent,
-            user_id: user.id,
-            media: mediaUrls.length > 0 ? mediaUrls : null
-          })
-          .select('id')
-          .single();
+      // Create post in database
+      console.log("Creating post in database...");
+      const { data: newPost, error: postError } = await supabase
+        .from('shoutouts')
+        .insert({
+          content: postContent,
+          user_id: user.id,
+          media: mediaUrls.length > 0 ? mediaUrls : null
+        })
+        .select('id')
+        .single();
+      
+      if (postError) {
+        console.error('Failed to create post:', postError);
+        setPostError(`Failed to create post: ${postError.message}`);
+        setIsLoading(false);
+        toast.error(`Failed to create post: ${postError.message}`);
+        return;
+      }
+      
+      if (newPost) {
+        console.log("Post successfully created with ID:", newPost.id);
+        setPostSuccessful(true);
+        toast.success('Post sent successfully!');
         
-        if (postError) {
-          console.error('Failed to create post:', postError);
-          setPostError(`Failed to create post: ${postError.message}`);
-          setIsLoading(false);
-          toast.error(`Failed to create post: ${postError.message}`);
-          return;
-        }
+        // Handle language mentions
+        const languageMentions = extractLanguageMentions(postContent);
+        console.log('Detected language mentions:', languageMentions);
         
-        if (newPost) {
-          console.log("Post successfully created with ID:", newPost.id);
-          setPostSuccessful(true);
-          toast.success('Post sent successfully!');
-          
-          const languageMentions = extractLanguageMentions(postContent);
-          console.log('Detected language mentions:', languageMentions);
-          
-          if (languageMentions.length > 0) {
-            try {
-              for (const language of languageMentions) {
-                await notifyLanguageUsers(
-                  user.id,
-                  language,
-                  postContent,
-                  newPost.id
-                );
-              }
-            } catch (notifyError) {
-              console.error('Error notifying users:', notifyError);
+        if (languageMentions.length > 0) {
+          try {
+            for (const language of languageMentions) {
+              await notifyLanguageUsers(
+                user.id,
+                language,
+                postContent,
+                newPost.id
+              );
             }
+          } catch (notifyError) {
+            console.error('Error notifying users:', notifyError);
+            // Non-critical error, continue
           }
-          
-          setTimeout(() => {
-            setPostContent('');
-            setCharCount(0);
-            setMediaFiles([]);
-            setIsLoading(false);
-            
-            if (textareaRef.current) {
-              textareaRef.current.style.height = 'auto';
-            }
-            
-            if (inDialog && dialogCloseRef.current) {
-              dialogCloseRef.current.click();
-            }
-          }, 500);
-          
-          return;
         }
-      } catch (postCreationError) {
-        console.error('Error in post creation:', postCreationError);
-        setPostError('Failed to create post. Please try again.');
-        toast.error('Failed to create post. Please try again.');
+        
+        // Reset form immediately after successful post
+        resetForm();
       }
     } catch (error) {
       console.error('Error creating post:', error);
       setPostError('Error creating post. Please try again.');
       toast.error('Error creating post. Please try again.');
-    } finally {
-      if (!postSuccessful) {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
     }
   };
   
