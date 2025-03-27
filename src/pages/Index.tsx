@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, Suspense, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
@@ -31,11 +32,13 @@ const Index = () => {
     userLanguages
   } = usePosts();
   
+  // Handle post creation
   const handlePostCreated = (content: string, media?: {type: string, url: string}[]) => {
     if (!user) return;
     
     console.log("Post created, adding to feed:", content);
     
+    // Extract language mentions
     const extractLanguages = (content: string): string[] => {
       const mentionRegex = /@(\w+)/g;
       const matches = [...(content.match(mentionRegex) || [])];
@@ -44,6 +47,7 @@ const Index = () => {
     
     const languages = extractLanguages(content);
     
+    // Create optimistic post
     const newPost = {
       id: crypto.randomUUID(),
       content,
@@ -68,11 +72,14 @@ const Index = () => {
       }
     };
     
+    // Add to posts list
     addNewPost(newPost);
     
+    // Refresh feed
     setFeedKey(`feed-${Date.now()}`);
   };
 
+  // Handle refresh button click
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
     console.log("Refreshing posts...");
@@ -87,21 +94,12 @@ const Index = () => {
     toast.info('Refreshing feed...');
   }, [refreshPosts]);
 
-  const handleLoadMore = useCallback(async (): Promise<void> => {
-    console.log("Loading more posts...");
-    try {
-      await loadMore();
-      console.log("Posts loaded successfully");
-    } catch (error) {
-      console.error("Error loading more posts:", error);
-      toast.error("Couldn't load more posts. Please try again.");
-    }
-  }, [loadMore]);
-
+  // Auto-refresh on initial load
   useEffect(() => {
     refreshPosts();
   }, [refreshPosts]);
 
+  // Theme-based styles
   const bgColor = theme === 'dark' ? 'bg-black' : 'bg-lightBeige';
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const borderColor = theme === 'dark' ? 'border-neutral-800' : 'border-gray-200';
@@ -114,6 +112,7 @@ const Index = () => {
 
   return (
     <AppLayout>
+      {/* Header with view toggle and refresh button */}
       <div className={`sticky top-0 z-20 ${headerBg} border-b ${borderColor}`}>
         <div className="flex justify-end items-center px-4 py-4">
           <div className="flex items-center gap-4">
@@ -153,10 +152,12 @@ const Index = () => {
         </div>
       </div>
       
+      {/* Post creation component */}
       <div className="border-b border-neutral-800">
         <CreatePost onPostCreated={handlePostCreated} />
       </div>
       
+      {/* Loading state */}
       {loading && !posts.length && (
         <div className="p-4">
           <div className="w-full h-1 overflow-hidden">
@@ -169,6 +170,7 @@ const Index = () => {
       )}
       
       <div className={`pt-0 ${bgColor}`}>
+        {/* Error state */}
         {error && !loading && (
           <Alert variant="destructive" className="m-4">
             <AlertTitle>Error Loading Posts</AlertTitle>
@@ -186,6 +188,7 @@ const Index = () => {
           </Alert>
         )}
         
+        {/* User's filter languages */}
         {userLanguages && userLanguages.length > 0 && (
           <div className="px-4 pt-3 pb-1">
             <p className="text-sm text-neutral-500">
@@ -196,6 +199,7 @@ const Index = () => {
           </div>
         )}
         
+        {/* Posts display */}
         {posts.length > 0 && (
           <div className={`pt-0 ${bgColor}`}>
             <Suspense fallback={<PostSkeleton count={3} />}>
@@ -203,7 +207,6 @@ const Index = () => {
                 <SwipeablePostView 
                   posts={posts} 
                   loading={loading} 
-                  loadMore={handleLoadMore}
                   key={`${feedKey}-swipeable-${posts.length}`}
                 />
               ) : (
@@ -217,11 +220,12 @@ const Index = () => {
           </div>
         )}
         
-        {posts.length > 0 && !loading && feedView === 'list' && (
+        {/* Load more button */}
+        {posts.length > 0 && !loading && (
           <div className="flex justify-center pb-8 pt-4">
             <Button 
               variant="outline" 
-              onClick={handleLoadMore}
+              onClick={loadMore}
               className="text-sm"
             >
               Load more posts
