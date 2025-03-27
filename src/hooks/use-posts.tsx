@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -110,6 +111,9 @@ export const usePosts = () => {
         // Integrate database posts with optimistic posts
         const databasePostIds = new Set(quickPosts.map(post => post.id));
         const validOptimisticPosts = optimisticPosts.filter(post => !databasePostIds.has(post.id));
+        
+        // Clear optimistic posts that are now in the database
+        setOptimisticPosts(validOptimisticPosts);
         
         // Combine and sort posts
         const combinedPosts = [...quickPosts, ...validOptimisticPosts];

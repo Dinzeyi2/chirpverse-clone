@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile, useScreenSize } from '@/hooks/use-mobile';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface CreatePostProps {
   onPostCreated?: (content: string, media?: {type: string, url: string}[]) => void;
@@ -167,12 +168,10 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     setIsLoading(true);
     setPostError(null);
     
-    const optimisticPostId = crypto.randomUUID();
-    const currentTime = new Date().toISOString();
-    let mediaUrls: {type: string, url: string}[] = [];
-    
     try {
       // Upload media files first if any
+      let mediaUrls: {type: string, url: string}[] = [];
+      
       if (mediaFiles.length > 0) {
         console.log(`Uploading ${mediaFiles.length} media files...`);
         
@@ -227,7 +226,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
           user_id: user.id,
           media: mediaUrls.length > 0 ? mediaUrls : null
         })
-        .select('id')
+        .select('id, created_at')
         .single();
       
       if (postError) {
@@ -241,12 +240,15 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       if (newPost) {
         console.log("Post successfully created with ID:", newPost.id);
         
-        // Create an optimistic UI update with the real post ID
+        // Use the real post ID and timestamp from the database
         if (onPostCreated) {
-          const optimisticPost = {
-            id: newPost.id, // Use the real post ID from the database
+          // Create an optimistic post with the real database ID and timestamp
+          const languageMentions = extractLanguageMentions(postContent);
+          
+          const realPost = {
+            id: newPost.id,
             content: postContent,
-            createdAt: currentTime,
+            createdAt: newPost.created_at,
             likes: 0,
             comments: 0,
             saves: 0,
@@ -255,7 +257,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
             views: 0,
             userId: user.id,
             images: mediaUrls.length > 0 ? mediaUrls : null,
-            languages: extractLanguageMentions(postContent),
+            languages: languageMentions,
             user: {
               id: user.id,
               name: user?.user_metadata?.full_name || 'User',
@@ -267,8 +269,8 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
             }
           };
           
-          onPostCreated(postContent, optimisticPost.images || []);
-          console.log("Added post to UI with real ID:", optimisticPost);
+          onPostCreated(postContent, mediaUrls);
+          console.log("Added post to UI with real ID:", realPost);
         }
         
         setPostSuccessful(true);
@@ -289,6 +291,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
             }
           } catch (notifyError) {
             console.error('Error notifying users:', notifyError);
+            // Continue even if notifications fail
           }
         }
         
@@ -296,7 +299,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         setPostContent('');
         setCharCount(0);
         setMediaFiles([]);
-        setIsLoading(false);
         
         if (textareaRef.current) {
           textareaRef.current.style.height = 'auto';
@@ -309,8 +311,9 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     } catch (error) {
       console.error('Error creating post:', error);
       setPostError('Error creating post. Please try again.');
-      setIsLoading(false);
       toast.error('Error creating post. Please try again.');
+    } finally {
+      setIsLoading(false); // Always reset loading state
     }
   };
   
@@ -414,9 +417,9 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
               )}
               
               {postError && (
-                <div className="mt-2 text-red-500 text-sm">
-                  {postError}
-                </div>
+                <Alert variant="destructive" className="mt-2 py-2">
+                  <AlertDescription>{postError}</AlertDescription>
+                </Alert>
               )}
             </div>
             

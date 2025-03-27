@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, Suspense, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
@@ -36,42 +37,11 @@ const Index = () => {
     
     console.log("Post created, adding to feed:", content, media);
     
-    const extractLanguages = (content: string): string[] => {
-      const mentionRegex = /@(\w+)/g;
-      const matches = [...(content.match(mentionRegex) || [])];
-      return matches.map(match => match.substring(1).toLowerCase());
-    };
+    // The actual post will be added via the real-time subscription
+    // This function will be called with the content and media when the post is submitted
+    // but the real database post will come through the real-time channel
     
-    const languages = extractLanguages(content);
-    
-    const newPost = {
-      id: crypto.randomUUID(),
-      content,
-      createdAt: new Date().toISOString(),
-      likes: 0,
-      comments: 0,
-      saves: 0,
-      reposts: 0,
-      replies: 0,
-      views: 0,
-      userId: user.id,
-      images: media || null,
-      languages,
-      user: {
-        id: user.id,
-        name: user?.user_metadata?.full_name || 'User',
-        username: user.id.substring(0, 8),
-        avatar: "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
-        verified: false,
-        followers: 0,
-        following: 0,
-      }
-    };
-    
-    addNewPost(newPost);
-    
-    setFeedKey(`feed-${Date.now()}`);
-    
+    // We'll manually trigger a refresh after a short delay
     setTimeout(() => {
       refreshPosts();
     }, 2000);
