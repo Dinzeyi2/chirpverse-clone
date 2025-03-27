@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, Suspense } from 'react';
+import React, { useState, useCallback, Suspense, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
 import SwipeablePostView from '@/components/feed/SwipeablePostView';
@@ -18,6 +18,8 @@ const Index = () => {
   const { user } = useAuth();
   const { theme } = useTheme();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // Added a key for forcing rerender when new posts are added
+  const [feedKey, setFeedKey] = useState<string>(`feed-${Date.now()}`);
   
   const { 
     posts, 
@@ -29,7 +31,7 @@ const Index = () => {
     userLanguages
   } = usePosts();
   
-  // IMPROVED: Better post creation handling
+  // IMPROVED: Better post creation handling with rerender trigger
   const handlePostCreated = (content: string, media?: {type: string, url: string}[]) => {
     if (!user) return;
     
@@ -68,8 +70,11 @@ const Index = () => {
       }
     };
     
-    // IMPROVED: Add new post and trigger UI update
+    // Add new post to the posts state
     addNewPost(newPost);
+    
+    // Force a refresh of the component to ensure new post is displayed
+    setFeedKey(`feed-${Date.now()}`);
     
     // Force a refresh after a short delay to ensure server-side data is loaded
     setTimeout(() => {
@@ -84,9 +89,16 @@ const Index = () => {
       setTimeout(() => {
         setIsRefreshing(false);
         console.log("Refresh complete");
+        // Force rerender of feed components after refresh
+        setFeedKey(`feed-${Date.now()}`);
       }, 500);
     });
     toast.info('Refreshing feed...');
+  }, [refreshPosts]);
+
+  // Auto-refresh on mount
+  useEffect(() => {
+    refreshPosts();
   }, [refreshPosts]);
 
   const bgColor = theme === 'dark' ? 'bg-black' : 'bg-lightBeige';
@@ -183,13 +195,13 @@ const Index = () => {
                 <SwipeablePostView 
                   posts={posts} 
                   loading={loading} 
-                  key={`posts-view-${posts.length}`} // IMPROVED: Force re-render when posts count changes
+                  key={`${feedKey}-swipeable-${posts.length}`} // Force re-render when feed key or posts change
                 />
               ) : (
                 <PostList 
                   posts={posts} 
                   loading={loading} 
-                  key={`posts-list-${posts.length}`} // IMPROVED: Force re-render when posts count changes
+                  key={`${feedKey}-list-${posts.length}`} // Force re-render when feed key or posts change
                 />
               )}
             </Suspense>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -17,6 +16,7 @@ export const usePosts = () => {
   const [userLanguages, setUserLanguages] = useState<string[]>([]);
   const queryClient = useQueryClient();
   const [optimisticPosts, setOptimisticPosts] = useState<any[]>([]);
+  const realTimeChannelRef = useRef<any>(null);
   
   const blueProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
 
@@ -107,16 +107,20 @@ export const usePosts = () => {
           languages: extractLanguagesFromContent(post.content)
         }));
         
-        // Preserve optimistic posts and add them to the fetched posts if they're not already there
+        // Add optimistic posts to the fetched posts if they're not already there
         const combinedPosts = [...quickPosts];
         
         // Add any optimistic posts that aren't in the fetched data
         optimisticPosts.forEach(optimisticPost => {
-          const alreadyExists = combinedPosts.some(p => p.id === optimisticPost.id);
-          if (!alreadyExists) {
+          if (!combinedPosts.some(p => p.id === optimisticPost.id)) {
             combinedPosts.unshift(optimisticPost);
           }
         });
+        
+        // Sort by creation date to ensure newest posts are at the top
+        combinedPosts.sort((a, b) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
         
         setPosts(combinedPosts);
         setLoading(false);
@@ -206,7 +210,7 @@ export const usePosts = () => {
   
   // IMPROVED: More reliable optimistic post updates
   const addNewPost = useCallback((post: any) => {
-    console.log("Adding new post to feed immediately:", post);
+    console.log("Adding new optimistic post to feed immediately:", post);
     
     // Create a full post object with all required fields
     const newOptimisticPost = {
@@ -234,31 +238,21 @@ export const usePosts = () => {
     // Add to optimistic posts collection
     setOptimisticPosts(prev => [newOptimisticPost, ...prev]);
     
-    // IMPROVED: Immediate display in main post state with better sorting
+    // Immediately update posts array for display
     setPosts(prev => {
-      // Check if this post already exists
-      const existingIndex = prev.findIndex(p => p.id === newOptimisticPost.id);
-      
-      let newPosts;
-      if (existingIndex >= 0) {
-        // Update existing post
-        newPosts = [...prev];
-        newPosts[existingIndex] = newOptimisticPost;
-      } else {
-        // Add optimistic post at the beginning of the array
-        newPosts = [newOptimisticPost, ...prev];
+      // Don't add duplicate posts
+      if (prev.some(p => p.id === newOptimisticPost.id)) {
+        return prev;
       }
       
-      // Ensure posts are sorted by creation date
-      return newPosts.sort((a, b) => 
+      // Add the new post at the beginning
+      const updatedPosts = [newOptimisticPost, ...prev];
+      
+      // Sort by creation date
+      return updatedPosts.sort((a, b) => 
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
     });
-    
-    // Track processing IDs
-    if (post.id) {
-      setProcessingIds(prev => [...prev, post.id]);
-    }
   }, []);
   
   const loadMorePosts = useCallback(async () => {
@@ -382,6 +376,10 @@ export const usePosts = () => {
     const setupRealtimeSubscription = () => {
       console.log('Setting up realtime subscription for posts');
       
+      if (realTimeChannelRef.current) {
+        supabase.removeChannel(realTimeChannelRef.current);
+      }
+      
       const channel = supabase
         .channel('public:shoutouts')
         .on('postgres_changes', 
@@ -393,65 +391,13 @@ export const usePosts = () => {
           async (payload) => {
             console.log('New post received via realtime:', payload);
             
-            // IMPROVED: More reliable post matching
-            // Check if we already have this post by ID
-            const existingPostIndex = posts.findIndex(p => p.id === payload.new.id);
-            
-            if (existingPostIndex >= 0) {
-              console.log('Post already exists in state at index', existingPostIndex);
-              // Update the post data with the confirmed server data
-              setPosts(prev => {
-                const updatedPosts = [...prev];
-                updatedPosts[existingPostIndex] = {
-                  ...updatedPosts[existingPostIndex],
-                  id: payload.new.id,
-                  content: payload.new.content,
-                  createdAt: payload.new.created_at,
-                  userId: payload.new.user_id,
-                  images: payload.new.media,
-                };
-                return updatedPosts;
-              });
-              
-              // Remove this post from optimistic posts if it was there
-              setOptimisticPosts(prev => prev.filter(p => p.id !== payload.new.id));
-              
+            // Check if we already have this post in the posts state
+            if (posts.some(p => p.id === payload.new.id)) {
+              console.log('Post already exists in state, skipping', payload.new.id);
               return;
             }
             
-            // IMPROVED: Better matching for optimistic posts
-            // Look for an optimistic post with matching content and user
-            const matchingOptimisticIndex = posts.findIndex(p => 
-              p.userId === payload.new.user_id &&
-              (p.content === payload.new.content || 
-               // Also match on similar content (more lenient matching)
-               (p.content && payload.new.content && 
-                p.content.trim() === payload.new.content.trim()))
-            );
-            
-            if (matchingOptimisticIndex >= 0) {
-              console.log('Found matching optimistic post at index', matchingOptimisticIndex);
-              // Replace the optimistic post with the confirmed server data
-              setPosts(prev => {
-                const updatedPosts = [...prev];
-                updatedPosts[matchingOptimisticIndex] = {
-                  ...updatedPosts[matchingOptimisticIndex],
-                  id: payload.new.id,
-                  content: payload.new.content,
-                  createdAt: payload.new.created_at,
-                  userId: payload.new.user_id,
-                  images: payload.new.media,
-                };
-                return updatedPosts;
-              });
-              
-              // Remove this post from optimistic posts
-              setOptimisticPosts(prev => prev.filter(p => p.id !== posts[matchingOptimisticIndex].id));
-              
-              return;
-            }
-            
-            // IMPROVED: For completely new posts, add them immediately
+            // Add the new post to the posts state
             const quickNewPost = {
               id: payload.new.id,
               content: payload.new.content,
@@ -467,7 +413,7 @@ export const usePosts = () => {
               languages: extractLanguagesFromContent(payload.new.content),
               user: {
                 id: payload.new.user_id,
-                name: 'Loading...',
+                name: 'User', // Will be updated after profile fetch
                 username: payload.new.user_id?.substring(0, 8) || 'user',
                 avatar: blueProfileImage,
                 verified: false,
@@ -478,11 +424,21 @@ export const usePosts = () => {
             
             // Add the new post and ensure sorting
             setPosts(prev => {
+              // Don't add duplicate posts
+              if (prev.some(p => p.id === quickNewPost.id)) {
+                return prev;
+              }
+              
               const newPosts = [quickNewPost, ...prev];
               return newPosts.sort((a, b) => 
                 new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
               );
             });
+            
+            // Clean up optimistic posts list by removing any that match this real post
+            setOptimisticPosts(prev => 
+              prev.filter(p => p.id !== payload.new.id)
+            );
             
             // Fetch profile data for the new post
             try {
@@ -512,6 +468,7 @@ export const usePosts = () => {
           console.log(`Realtime subscription status: ${status}`);
         });
         
+      realTimeChannelRef.current = channel;
       return channel;
     };
     
@@ -519,7 +476,9 @@ export const usePosts = () => {
     
     return () => {
       console.log('Cleaning up realtime subscription');
-      supabase.removeChannel(channel);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [posts]);
   
@@ -576,6 +535,9 @@ export const usePosts = () => {
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
+      }
+      if (realTimeChannelRef.current) {
+        supabase.removeChannel(realTimeChannelRef.current);
       }
     };
   }, [fetchPosts, fetchUserLanguages]);

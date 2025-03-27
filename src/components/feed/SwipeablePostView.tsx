@@ -59,10 +59,10 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     };
   }, [api]);
 
-  // IMPROVED: Better carousel update when posts change
+  // FIXED: Remove JSON.stringify to prevent circular structure error
   useEffect(() => {
     // If posts have changed
-    if (posts.length > 0 && JSON.stringify(posts) !== JSON.stringify(prevPostsRef.current)) {
+    if (posts.length > 0 && prevPostsRef.current !== posts) {
       console.log("Posts changed, updating carousel");
       
       // Force carousel reset on significant changes to post array
@@ -158,7 +158,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
           dragFree: false,
           containScroll: "trimSnaps"
         }}
-        key={carouselKey} // IMPROVED: Dynamic key to force re-render when posts change
+        key={carouselKey} // Dynamic key to force re-render when posts change
       >
         <CarouselContent className="mx-auto">
           {posts.map((post, index) => (
