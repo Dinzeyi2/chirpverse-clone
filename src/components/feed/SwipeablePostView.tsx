@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import PostCard from './PostCard';
 import { Post } from '@/lib/data';
@@ -23,10 +24,9 @@ interface PostWithActions extends Post {
 interface SwipeablePostViewProps {
   posts: PostWithActions[];
   loading?: boolean;
-  loadMore?: () => Promise<void>;
 }
 
-const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = false, loadMore }) => {
+const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = false }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [api, setApi] = useState<CarouselApi | null>(null);
   const { theme } = useTheme();
@@ -34,8 +34,6 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   const [isInitialRender, setIsInitialRender] = useState(true);
   const prevPostsRef = useRef<PostWithActions[]>([]);
   const [carouselKey, setCarouselKey] = useState<string>(`carousel-${Date.now()}`);
-  const maxIndexReachedRef = useRef<number>(0);
-  const loadingMoreRef = useRef<boolean>(false);
 
   useEffect(() => {
     // Mark that we've completed initial render after a short timeout
@@ -52,30 +50,14 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     }
 
     const onSelect = () => {
-      const newIndex = api.selectedScrollSnap();
-      setCurrentIndex(newIndex);
-      
-      // Keep track of the furthest index reached
-      if (newIndex > maxIndexReachedRef.current) {
-        maxIndexReachedRef.current = newIndex;
-      }
-      
-      // If we're approaching the end and we have a loadMore function, load more posts
-      if (newIndex >= posts.length - 2 && loadMore && !loadingMoreRef.current) {
-        loadingMoreRef.current = true;
-        console.log("Approaching end of posts, loading more...");
-        
-        loadMore().finally(() => {
-          loadingMoreRef.current = false;
-        });
-      }
+      setCurrentIndex(api.selectedScrollSnap());
     };
 
     api.on("select", onSelect);
     return () => {
       api.off("select", onSelect);
     };
-  }, [api, posts.length, loadMore]);
+  }, [api]);
 
   // IMPROVED: More efficient post changes detection
   useEffect(() => {
@@ -101,7 +83,6 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
           if (api) {
             api.scrollTo(0);
             setCurrentIndex(0);
-            maxIndexReachedRef.current = 0;
           }
         }, 10);
       }
@@ -117,13 +98,13 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     if (width <= 480) {
       return {
         basis: "90%",          // Takes 90% of the container width on very small devices
-        scale: "scale-100",    // Base scale for current post
+        scale: "scale-95",     // Base scale for current post
         opacity: "opacity-100" // Full opacity for current post
       };
     } else if (width <= 768) {
       return {
         basis: "85%",          // Takes 85% of the container width on mobile devices
-        scale: "scale-100",    // Base scale for current post
+        scale: "scale-95",     // Base scale for current post
         opacity: "opacity-100" // Full opacity for current post
       };
     } else if (width <= 1024) {
@@ -169,43 +150,13 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     );
   }
 
-  // Handle button clicks with improved navigation logic
-  const handlePrevClick = () => {
-    console.log("Previous button clicked");
-    if (api && currentIndex > 0) {
-      api.scrollPrev();
-    }
-  };
-
-  const handleNextClick = () => {
-    console.log("Next button clicked");
-    if (api) {
-      // Check if we're at the end and need to load more
-      if (currentIndex >= posts.length - 1 && loadMore && !loadingMoreRef.current) {
-        loadingMoreRef.current = true;
-        
-        // Load more posts before attempting to scroll
-        loadMore().finally(() => {
-          loadingMoreRef.current = false;
-          // After loading more, we will try to scroll to the next post
-          setTimeout(() => {
-            api.scrollNext();
-          }, 100);
-        });
-      } else {
-        // Otherwise just scroll to next
-        api.scrollNext();
-      }
-    }
-  };
-
   return (
     <div className="w-full overflow-hidden py-4 relative">
       <Carousel 
         className="w-full max-w-6xl mx-auto"
         setApi={setApi}
         opts={{
-          loop: false, // Changed to false to prevent looping back to old posts
+          loop: true,
           align: "center",
           skipSnaps: false,
           dragFree: false,
@@ -222,8 +173,8 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
               <div className={cn(
                 "relative w-full transition-all duration-300 max-w-[350px] sm:max-w-[400px] mx-auto",
                 currentIndex === index 
-                  ? `${scale} ${opacity} z-10` 
-                  : "scale-100 opacity-100 z-10"
+                  ? `${scale} ${opacity} z-20` 
+                  : "scale-90 opacity-70 z-10"
               )}>
                 <div className="relative">
                   {post.actions && (
@@ -241,16 +192,15 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
         {posts.length > 1 && (
           <>
             <button 
-              onClick={handlePrevClick} 
+              onClick={() => api?.scrollPrev()} 
               className={`absolute left-1 sm:left-4 top-1/2 transform -translate-y-1/2 ${navBgColor} z-30 h-10 w-10 rounded-full flex items-center justify-center`}
               aria-label="Previous post"
-              disabled={currentIndex === 0} // Disable if at first post
             >
               <ChevronLeft className="h-6 w-6" />
             </button>
             
             <button 
-              onClick={handleNextClick} 
+              onClick={() => api?.scrollNext()} 
               className={`absolute right-1 sm:right-4 top-1/2 transform -translate-y-1/2 ${navBgColor} z-30 h-10 w-10 rounded-full flex items-center justify-center`}
               aria-label="Next post"
             >
