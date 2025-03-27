@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Image, X, Video } from 'lucide-react';
 import Button from '@/components/common/Button';
@@ -169,7 +168,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     setPostError(null);
     
     try {
-      // Upload media files first if any
       let mediaUrls: {type: string, url: string}[] = [];
       
       if (mediaFiles.length > 0) {
@@ -217,7 +215,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         }
       }
       
-      // Insert the post into the database
       console.log("Creating post in database...");
       const { data: newPost, error: postError } = await supabase
         .from('shoutouts')
@@ -240,44 +237,19 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       if (newPost) {
         console.log("Post successfully created with ID:", newPost.id);
         
-        // Use the real post ID and timestamp from the database
+        const languageMentions = extractLanguageMentions(postContent);
+        
         if (onPostCreated) {
-          // Create an optimistic post with the real database ID and timestamp
-          const languageMentions = extractLanguageMentions(postContent);
-          
-          const realPost = {
-            id: newPost.id,
-            content: postContent,
-            createdAt: newPost.created_at,
-            likes: 0,
-            comments: 0,
-            saves: 0,
-            reposts: 0,
-            replies: 0,
-            views: 0,
-            userId: user.id,
-            images: mediaUrls.length > 0 ? mediaUrls : null,
-            languages: languageMentions,
-            user: {
-              id: user.id,
-              name: user?.user_metadata?.full_name || 'User',
-              username: user.id.substring(0, 8),
-              avatar: blueProfileImage,
-              verified: false,
-              followers: 0,
-              following: 0,
-            }
-          };
-          
           onPostCreated(postContent, mediaUrls);
-          console.log("Added post to UI with real ID:", realPost);
+          console.log("Added post to UI with real ID:", newPost.id);
+          
+          setTimeout(() => {
+            toast.success("Your post is now visible in the feed!");
+          }, 1500);
         }
         
         setPostSuccessful(true);
-        toast.success('Post sent successfully!');
-        
-        const languageMentions = extractLanguageMentions(postContent);
-        console.log('Detected language mentions:', languageMentions);
+        toast.success('Post created successfully!');
         
         if (languageMentions.length > 0) {
           try {
@@ -291,11 +263,9 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
             }
           } catch (notifyError) {
             console.error('Error notifying users:', notifyError);
-            // Continue even if notifications fail
           }
         }
         
-        // Reset form
         setPostContent('');
         setCharCount(0);
         setMediaFiles([]);
@@ -313,7 +283,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       setPostError('Error creating post. Please try again.');
       toast.error('Error creating post. Please try again.');
     } finally {
-      setIsLoading(false); // Always reset loading state
+      setIsLoading(false);
     }
   };
   

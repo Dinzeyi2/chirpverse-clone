@@ -14,6 +14,7 @@ import { usePosts } from '@/hooks/use-posts';
 import { Progress } from '@/components/ui/progress';
 import CreatePost from '@/components/feed/CreatePost';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
   const [feedView, setFeedView] = useState<'swipeable' | 'list'>('swipeable');
@@ -37,31 +38,62 @@ const Index = () => {
     
     console.log("Post created, adding to feed:", content, media);
     
-    // The actual post will be added via the real-time subscription
-    // This function will be called with the content and media when the post is submitted
-    // but the real database post will come through the real-time channel
-    
-    // We'll manually trigger a refresh after a short delay
+    // We'll manually trigger a refresh to get the new post
     setTimeout(() => {
       refreshPosts();
-    }, 2000);
+    }, 500);
+    
+    toast.success("Post created! It will appear in your feed shortly.");
   };
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
     console.log("Refreshing posts...");
+    
+    // Reset the feed key to force component remount
+    setFeedKey(`feed-${Date.now()}`);
+    
     refreshPosts().finally(() => {
       setTimeout(() => {
         setIsRefreshing(false);
         console.log("Refresh complete");
-        setFeedKey(`feed-${Date.now()}`);
       }, 500);
     });
+    
     toast.info('Refreshing feed...');
   }, [refreshPosts]);
 
+  // Setup realtime subscription for posts table changes
   useEffect(() => {
+    console.log("Setting up realtime in Index component");
+    
+    // Enable realtime for the shoutouts table
+    const enableRealtime = async () => {
+      const { error } = await supabase
+        .from('shoutouts')
+        .on('INSERT', (payload) => {
+          console.log('New post inserted:', payload);
+          // We'll just refresh the whole feed for simplicity
+          refreshPosts();
+        })
+        .subscribe();
+        
+      if (error) {
+        console.error("Error setting up realtime:", error);
+      } else {
+        console.log("Realtime subscription established");
+      }
+    };
+    
+    enableRealtime();
+    
+    // Initial fetch
     refreshPosts();
+    
+    return () => {
+      // Clean up subscription
+      supabase.removeAllSubscriptions();
+    };
   }, [refreshPosts]);
 
   const bgColor = theme === 'dark' ? 'bg-black' : 'bg-lightBeige';

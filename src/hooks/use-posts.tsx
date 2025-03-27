@@ -18,6 +18,7 @@ export const usePosts = () => {
   const queryClient = useQueryClient();
   const [optimisticPosts, setOptimisticPosts] = useState<any[]>([]);
   const realTimeChannelRef = useRef<any>(null);
+  const loadingRef = useRef<boolean>(true);
   
   const blueProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
 
@@ -59,15 +60,20 @@ export const usePosts = () => {
 
   const fetchPosts = useCallback(async () => {
     try {
+      // Cancel any existing fetch request
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
       abortControllerRef.current = new AbortController();
+      
+      // Set loading state
       setLoading(true);
+      loadingRef.current = true;
       setError(null);
       
       console.log("Fetching posts...");
       
+      // Fetch basic post data
       const { data: basicShoutoutData, error: basicShoutoutError } = await supabase
         .from('shoutouts')
         .select('id, content, created_at, user_id, media')
@@ -78,12 +84,14 @@ export const usePosts = () => {
         console.error('Error fetching shoutouts:', basicShoutoutError);
         setError('Could not load posts');
         setLoading(false);
+        loadingRef.current = false;
         return;
       }
       
       console.log(`Fetched ${basicShoutoutData?.length || 0} posts`);
       
       if (basicShoutoutData && basicShoutoutData.length > 0) {
+        // Transform database posts into UI-ready format
         const quickPosts = basicShoutoutData.map(post => ({
           id: post.id,
           content: post.content,
@@ -123,24 +131,19 @@ export const usePosts = () => {
         
         setPosts(combinedPosts);
         setLoading(false);
+        loadingRef.current = false;
         
-        // Enrich posts with additional data
+        // Enrich posts with additional data in the background
         Promise.all(
           basicShoutoutData.map(async (post) => {
             try {
-              // Fetch like counts, comments counts, and saves counts in parallel
-              const [likesResult, commentsResult, savesResult] = await Promise.all([
+              // Fetch counts and user data in parallel
+              const [likesResult, commentsResult, savesResult, profileResult] = await Promise.all([
                 supabase.from('likes').select('*', { count: 'exact', head: true }).eq('shoutout_id', post.id),
                 supabase.from('comments').select('*', { count: 'exact', head: true }).eq('shoutout_id', post.id),
-                supabase.from('saved_posts').select('*', { count: 'exact', head: true }).eq('shoutout_id', post.id)
+                supabase.from('saved_posts').select('*', { count: 'exact', head: true }).eq('shoutout_id', post.id),
+                supabase.from('profiles').select('full_name, avatar_url').eq('user_id', post.user_id).single()
               ]);
-              
-              // Fetch user profile data
-              const { data: profileData } = await supabase
-                .from('profiles')
-                .select('full_name, avatar_url')
-                .eq('user_id', post.user_id)
-                .single();
                 
               return {
                 id: post.id,
@@ -157,7 +160,7 @@ export const usePosts = () => {
                 languages: extractLanguagesFromContent(post.content),
                 user: {
                   id: post.user_id,
-                  name: profileData?.full_name || 'User',
+                  name: profileResult.data?.full_name || 'User',
                   username: post.user_id?.substring(0, 8) || 'user',
                   avatar: blueProfileImage,
                   verified: false,
@@ -198,12 +201,14 @@ export const usePosts = () => {
         // Still keep optimistic posts even if no posts are fetched
         setPosts(optimisticPosts);
         setLoading(false);
+        loadingRef.current = false;
       }
       
     } catch (error) {
       console.error('Error fetching posts:', error);
       setError('Could not load posts');
       setLoading(false);
+      loadingRef.current = false;
     }
   }, [optimisticPosts]);
   
@@ -250,17 +255,22 @@ export const usePosts = () => {
         return updatedPosts;
       } else {
         // Add new post at the beginning
-        return [newPost, ...prev];
+        const newPosts = [newPost, ...prev];
+        // Sort by created date to ensure proper order
+        return newPosts.sort((a, b) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
       }
     });
   }, []);
   
   // Load more posts
   const loadMorePosts = useCallback(async () => {
-    if (posts.length === 0) return;
+    if (posts.length === 0 || loadingRef.current) return;
     
     try {
       setLoading(true);
+      loadingRef.current = true;
       
       const nonProcessingPosts = posts.filter(post => !processingIds.includes(post.id));
       if (nonProcessingPosts.length === 0) return;
@@ -276,6 +286,7 @@ export const usePosts = () => {
         
       if (moreShoutoutError || !moreShoutoutData || moreShoutoutData.length === 0) {
         setLoading(false);
+        loadingRef.current = false;
         return;
       }
       
@@ -306,6 +317,7 @@ export const usePosts = () => {
       
       setPosts(prevPosts => [...prevPosts, ...quickMorePosts]);
       setLoading(false);
+      loadingRef.current = false;
       
       // Enrich the additional posts with more data
       Promise.all(
@@ -370,6 +382,7 @@ export const usePosts = () => {
     } catch (error) {
       console.error('Error loading more posts:', error);
       setLoading(false);
+      loadingRef.current = false;
     }
   }, [posts, processingIds]);
   
@@ -460,7 +473,7 @@ export const usePosts = () => {
             }
           }
         )
-        .subscribe((status) => {
+        .subscribe(status => {
           console.log(`Realtime subscription status: ${status}`);
         });
         
@@ -480,6 +493,8 @@ export const usePosts = () => {
   
   // Sort posts based on relevance and selected sort option
   useEffect(() => {
+    if (posts.length === 0) return;
+    
     let sortedPosts = [...posts];
     
     const sortByRelevance = (a: any, b: any) => {

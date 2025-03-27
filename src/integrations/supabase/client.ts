@@ -38,6 +38,20 @@ export const enableRealtimeForTables = () => {
       console.log(`Shoutouts realtime connection status: ${status}`);
     });
     
+  // Enable realtime for the shoutouts table at the database level
+  supabase.rpc('supabase_realtime', { 
+    table: 'shoutouts',
+    insert: true,
+    update: true,
+    delete: false
+  }).then(({ error }) => {
+    if (error) {
+      console.error('Error enabling realtime:', error);
+    } else {
+      console.log('Realtime enabled for shoutouts table');
+    }
+  });
+  
   // Create a general channel for other tables
   supabase.channel('schema-db-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'post_reactions' }, (payload) => {
