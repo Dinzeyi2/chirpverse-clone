@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, Suspense, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
@@ -14,7 +13,7 @@ import { usePosts } from '@/hooks/use-posts';
 import { Progress } from '@/components/ui/progress';
 import CreatePost from '@/components/feed/CreatePost';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, enableRealtimeForTables } from '@/integrations/supabase/client';
 
 const Index = () => {
   const [feedView, setFeedView] = useState<'swipeable' | 'list'>('swipeable');
@@ -67,32 +66,15 @@ const Index = () => {
   useEffect(() => {
     console.log("Setting up realtime in Index component");
     
-    // Enable realtime for the shoutouts table
-    const enableRealtime = async () => {
-      const { error } = await supabase
-        .from('shoutouts')
-        .on('INSERT', (payload) => {
-          console.log('New post inserted:', payload);
-          // We'll just refresh the whole feed for simplicity
-          refreshPosts();
-        })
-        .subscribe();
-        
-      if (error) {
-        console.error("Error setting up realtime:", error);
-      } else {
-        console.log("Realtime subscription established");
-      }
-    };
-    
-    enableRealtime();
+    // Enable realtime for tables and get the channel
+    const channel = enableRealtimeForTables();
     
     // Initial fetch
     refreshPosts();
     
     return () => {
-      // Clean up subscription
-      supabase.removeAllSubscriptions();
+      // Clean up subscription - fix the removeAllSubscriptions issue
+      channel.unsubscribe();
     };
   }, [refreshPosts]);
 
