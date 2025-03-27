@@ -33,6 +33,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   const { isMobile, width } = useScreenSize();
   const [isInitialRender, setIsInitialRender] = useState(true);
   const prevPostsRef = useRef<PostWithActions[]>([]);
+  const [carouselKey, setCarouselKey] = useState<string>(`carousel-${Date.now()}`);
 
   useEffect(() => {
     // Mark that we've completed initial render after a short timeout
@@ -58,20 +59,32 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     };
   }, [api]);
 
-  // Update when posts change
+  // IMPROVED: Better carousel update when posts change
   useEffect(() => {
-    // If posts have changed and we've already set up the carousel
-    if (api && posts.length > 0 && JSON.stringify(posts) !== JSON.stringify(prevPostsRef.current)) {
+    // If posts have changed
+    if (posts.length > 0 && JSON.stringify(posts) !== JSON.stringify(prevPostsRef.current)) {
       console.log("Posts changed, updating carousel");
-      // If a new post was added at the beginning, show it
-      if (posts.length > prevPostsRef.current.length && posts[0]?.id !== prevPostsRef.current[0]?.id) {
-        // Give the carousel a moment to update before changing slides
+      
+      // Force carousel reset on significant changes to post array
+      if (
+        posts.length !== prevPostsRef.current.length || 
+        (posts.length > 0 && prevPostsRef.current.length > 0 && posts[0]?.id !== prevPostsRef.current[0]?.id)
+      ) {
+        console.log("Posts list significantly changed, forcing carousel refresh");
+        
+        // Generate new key to force carousel re-render
+        setCarouselKey(`carousel-${Date.now()}`);
+        
+        // Reset to first slide after a short delay to let the carousel reinitialize
         setTimeout(() => {
-          api.scrollTo(0);
-          setCurrentIndex(0);
-        }, 100);
+          if (api) {
+            api.scrollTo(0);
+            setCurrentIndex(0);
+          }
+        }, 50);
       }
-      prevPostsRef.current = posts;
+      
+      prevPostsRef.current = [...posts];
     }
   }, [posts, api]);
 
@@ -145,12 +158,12 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
           dragFree: false,
           containScroll: "trimSnaps"
         }}
-        key={`carousel-${posts.length}`} // Re-initialize when the number of posts changes
+        key={carouselKey} // IMPROVED: Dynamic key to force re-render when posts change
       >
         <CarouselContent className="mx-auto">
           {posts.map((post, index) => (
             <CarouselItem 
-              key={post.id || `temp-${index}`} 
+              key={`${post.id}-${index}`} // IMPROVED: Better key for more reliable renders
               className={`basis-${basis} flex justify-center items-center pl-0`}
             >
               <div className={cn(

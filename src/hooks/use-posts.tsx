@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -203,6 +204,7 @@ export const usePosts = () => {
     }
   }, [optimisticPosts]);
   
+  // IMPROVED: More reliable optimistic post updates
   const addNewPost = useCallback((post: any) => {
     console.log("Adding new post to feed immediately:", post);
     
@@ -232,19 +234,28 @@ export const usePosts = () => {
     // Add to optimistic posts collection
     setOptimisticPosts(prev => [newOptimisticPost, ...prev]);
     
-    // Also add to main posts state for immediate display
+    // IMPROVED: Immediate display in main post state with better sorting
     setPosts(prev => {
       // Check if this post already exists
-      const isDuplicate = prev.some(p => p.id === newOptimisticPost.id);
-      if (isDuplicate) {
-        return prev;
+      const existingIndex = prev.findIndex(p => p.id === newOptimisticPost.id);
+      
+      let newPosts;
+      if (existingIndex >= 0) {
+        // Update existing post
+        newPosts = [...prev];
+        newPosts[existingIndex] = newOptimisticPost;
+      } else {
+        // Add optimistic post at the beginning of the array
+        newPosts = [newOptimisticPost, ...prev];
       }
       
-      // Add optimistic post at the beginning of the array
-      return [newOptimisticPost, ...prev];
+      // Ensure posts are sorted by creation date
+      return newPosts.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
     });
     
-    // Track processing IDs if needed
+    // Track processing IDs
     if (post.id) {
       setProcessingIds(prev => [...prev, post.id]);
     }
@@ -366,7 +377,7 @@ export const usePosts = () => {
     }
   }, [posts, processingIds]);
   
-  // Set up realtime subscription for new posts
+  // IMPROVED: Enhanced realtime subscription for new posts
   useEffect(() => {
     const setupRealtimeSubscription = () => {
       console.log('Setting up realtime subscription for posts');
@@ -382,7 +393,8 @@ export const usePosts = () => {
           async (payload) => {
             console.log('New post received via realtime:', payload);
             
-            // Check if we already have this post (either from fetched data or optimistic UI)
+            // IMPROVED: More reliable post matching
+            // Check if we already have this post by ID
             const existingPostIndex = posts.findIndex(p => p.id === payload.new.id);
             
             if (existingPostIndex >= 0) {
@@ -407,11 +419,14 @@ export const usePosts = () => {
               return;
             }
             
-            // Look for an optimistic post with matching content but different ID
+            // IMPROVED: Better matching for optimistic posts
+            // Look for an optimistic post with matching content and user
             const matchingOptimisticIndex = posts.findIndex(p => 
-              p.content === payload.new.content && 
               p.userId === payload.new.user_id &&
-              Math.abs(new Date(p.createdAt).getTime() - new Date(payload.new.created_at).getTime()) < 5000
+              (p.content === payload.new.content || 
+               // Also match on similar content (more lenient matching)
+               (p.content && payload.new.content && 
+                p.content.trim() === payload.new.content.trim()))
             );
             
             if (matchingOptimisticIndex >= 0) {
@@ -436,7 +451,7 @@ export const usePosts = () => {
               return;
             }
             
-            // This is a completely new post we haven't seen before
+            // IMPROVED: For completely new posts, add them immediately
             const quickNewPost = {
               id: payload.new.id,
               content: payload.new.content,
@@ -461,8 +476,13 @@ export const usePosts = () => {
               }
             };
             
-            // Add the new post to the beginning of the list
-            setPosts(prev => [quickNewPost, ...prev]);
+            // Add the new post and ensure sorting
+            setPosts(prev => {
+              const newPosts = [quickNewPost, ...prev];
+              return newPosts.sort((a, b) => 
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+              );
+            });
             
             // Fetch profile data for the new post
             try {

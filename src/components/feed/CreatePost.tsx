@@ -198,8 +198,10 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
           }
         };
         
-        onPostCreated(postContent, optimisticPost.images || []);
-        console.log("Added optimistic post to UI:", optimisticPost);
+        setTimeout(() => {
+          onPostCreated(postContent, optimisticPost.images || []);
+          console.log("Added optimistic post to UI:", optimisticPost);
+        }, 0);
       }
       
       if (mediaFiles.length > 0) {
@@ -303,7 +305,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
             if (inDialog && dialogCloseRef.current) {
               dialogCloseRef.current.click();
             }
-          }, 1000);
+          }, 500);
           
           return;
         }

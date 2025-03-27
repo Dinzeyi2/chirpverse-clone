@@ -29,6 +29,7 @@ const Index = () => {
     userLanguages
   } = usePosts();
   
+  // IMPROVED: Better post creation handling
   const handlePostCreated = (content: string, media?: {type: string, url: string}[]) => {
     if (!user) return;
     
@@ -67,8 +68,13 @@ const Index = () => {
       }
     };
     
-    // Add new post to the feed
+    // IMPROVED: Add new post and trigger UI update
     addNewPost(newPost);
+    
+    // Force a refresh after a short delay to ensure server-side data is loaded
+    setTimeout(() => {
+      refreshPosts();
+    }, 2000);
   };
 
   const handleRefresh = useCallback(() => {
@@ -174,9 +180,17 @@ const Index = () => {
           <div className={`pt-0 ${bgColor}`}>
             <Suspense fallback={<PostSkeleton count={3} />}>
               {feedView === 'swipeable' ? (
-                <SwipeablePostView posts={posts} loading={loading} />
+                <SwipeablePostView 
+                  posts={posts} 
+                  loading={loading} 
+                  key={`posts-view-${posts.length}`} // IMPROVED: Force re-render when posts count changes
+                />
               ) : (
-                <PostList posts={posts} loading={loading} />
+                <PostList 
+                  posts={posts} 
+                  loading={loading} 
+                  key={`posts-list-${posts.length}`} // IMPROVED: Force re-render when posts count changes
+                />
               )}
             </Suspense>
           </div>
