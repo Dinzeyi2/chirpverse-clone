@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Image, X, Video } from 'lucide-react';
 import Button from '@/components/common/Button';
@@ -171,39 +172,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     let mediaUrls: {type: string, url: string}[] = [];
     
     try {
-      if (onPostCreated) {
-        const optimisticPost = {
-          id: optimisticPostId,
-          content: postContent,
-          createdAt: currentTime,
-          likes: 0,
-          comments: 0,
-          saves: 0,
-          reposts: 0,
-          replies: 0,
-          views: 0,
-          userId: user.id,
-          images: mediaFiles.length > 0 ? mediaFiles.map(file => ({
-            type: file.type,
-            url: file.preview
-          })) : null,
-          user: {
-            id: user.id,
-            name: user?.user_metadata?.full_name || 'User',
-            username: user.id.substring(0, 8),
-            avatar: blueProfileImage,
-            verified: false,
-            followers: 0,
-            following: 0,
-          }
-        };
-        
-        setTimeout(() => {
-          onPostCreated(postContent, optimisticPost.images || []);
-          console.log("Added optimistic post to UI:", optimisticPost);
-        }, 0);
-      }
-      
+      // Upload media files first if any
       if (mediaFiles.length > 0) {
         console.log(`Uploading ${mediaFiles.length} media files...`);
         
@@ -249,79 +218,99 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         }
       }
       
-      try {
-        console.log("Creating post in database...");
-        const { data: newPost, error: postError } = await supabase
-          .from('shoutouts')
-          .insert({
+      // Insert the post into the database
+      console.log("Creating post in database...");
+      const { data: newPost, error: postError } = await supabase
+        .from('shoutouts')
+        .insert({
+          content: postContent,
+          user_id: user.id,
+          media: mediaUrls.length > 0 ? mediaUrls : null
+        })
+        .select('id')
+        .single();
+      
+      if (postError) {
+        console.error('Failed to create post:', postError);
+        setPostError(`Failed to create post: ${postError.message}`);
+        setIsLoading(false);
+        toast.error(`Failed to create post: ${postError.message}`);
+        return;
+      }
+      
+      if (newPost) {
+        console.log("Post successfully created with ID:", newPost.id);
+        
+        // Create an optimistic UI update with the real post ID
+        if (onPostCreated) {
+          const optimisticPost = {
+            id: newPost.id, // Use the real post ID from the database
             content: postContent,
-            user_id: user.id,
-            media: mediaUrls.length > 0 ? mediaUrls : null
-          })
-          .select('id')
-          .single();
-        
-        if (postError) {
-          console.error('Failed to create post:', postError);
-          setPostError(`Failed to create post: ${postError.message}`);
-          setIsLoading(false);
-          toast.error(`Failed to create post: ${postError.message}`);
-          return;
+            createdAt: currentTime,
+            likes: 0,
+            comments: 0,
+            saves: 0,
+            reposts: 0,
+            replies: 0,
+            views: 0,
+            userId: user.id,
+            images: mediaUrls.length > 0 ? mediaUrls : null,
+            languages: extractLanguageMentions(postContent),
+            user: {
+              id: user.id,
+              name: user?.user_metadata?.full_name || 'User',
+              username: user.id.substring(0, 8),
+              avatar: blueProfileImage,
+              verified: false,
+              followers: 0,
+              following: 0,
+            }
+          };
+          
+          onPostCreated(postContent, optimisticPost.images || []);
+          console.log("Added post to UI with real ID:", optimisticPost);
         }
         
-        if (newPost) {
-          console.log("Post successfully created with ID:", newPost.id);
-          setPostSuccessful(true);
-          toast.success('Post sent successfully!');
-          
-          const languageMentions = extractLanguageMentions(postContent);
-          console.log('Detected language mentions:', languageMentions);
-          
-          if (languageMentions.length > 0) {
-            try {
-              for (const language of languageMentions) {
-                await notifyLanguageUsers(
-                  user.id,
-                  language,
-                  postContent,
-                  newPost.id
-                );
-              }
-            } catch (notifyError) {
-              console.error('Error notifying users:', notifyError);
+        setPostSuccessful(true);
+        toast.success('Post sent successfully!');
+        
+        const languageMentions = extractLanguageMentions(postContent);
+        console.log('Detected language mentions:', languageMentions);
+        
+        if (languageMentions.length > 0) {
+          try {
+            for (const language of languageMentions) {
+              await notifyLanguageUsers(
+                user.id,
+                language,
+                postContent,
+                newPost.id
+              );
             }
+          } catch (notifyError) {
+            console.error('Error notifying users:', notifyError);
           }
-          
-          setTimeout(() => {
-            setPostContent('');
-            setCharCount(0);
-            setMediaFiles([]);
-            setIsLoading(false);
-            
-            if (textareaRef.current) {
-              textareaRef.current.style.height = 'auto';
-            }
-            
-            if (inDialog && dialogCloseRef.current) {
-              dialogCloseRef.current.click();
-            }
-          }, 500);
-          
-          return;
         }
-      } catch (postCreationError) {
-        console.error('Error in post creation:', postCreationError);
-        setPostError('Failed to create post. Please try again.');
-        toast.error('Failed to create post. Please try again.');
+        
+        // Reset form
+        setPostContent('');
+        setCharCount(0);
+        setMediaFiles([]);
+        setIsLoading(false);
+        
+        if (textareaRef.current) {
+          textareaRef.current.style.height = 'auto';
+        }
+        
+        if (inDialog && dialogCloseRef.current) {
+          dialogCloseRef.current.click();
+        }
       }
     } catch (error) {
       console.error('Error creating post:', error);
       setPostError('Error creating post. Please try again.');
+      setIsLoading(false);
       toast.error('Error creating post. Please try again.');
-    } finally {
-      if (!postSuccessful) {
-        setIsLoading(false);
-      }
     }
   };
   

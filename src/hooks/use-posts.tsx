@@ -107,17 +107,12 @@ export const usePosts = () => {
           languages: extractLanguagesFromContent(post.content)
         }));
         
-        // Add optimistic posts to the fetched posts if they're not already there
-        const combinedPosts = [...quickPosts];
+        // Integrate database posts with optimistic posts
+        const databasePostIds = new Set(quickPosts.map(post => post.id));
+        const validOptimisticPosts = optimisticPosts.filter(post => !databasePostIds.has(post.id));
         
-        // Add any optimistic posts that aren't in the fetched data
-        optimisticPosts.forEach(optimisticPost => {
-          if (!combinedPosts.some(p => p.id === optimisticPost.id)) {
-            combinedPosts.unshift(optimisticPost);
-          }
-        });
-        
-        // Sort by creation date to ensure newest posts are at the top
+        // Combine and sort posts
+        const combinedPosts = [...quickPosts, ...validOptimisticPosts];
         combinedPosts.sort((a, b) => 
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
@@ -179,14 +174,14 @@ export const usePosts = () => {
               // Create a map for faster lookups
               const enrichedPostsMap = new Map(validPosts.map(post => [post.id, post]));
               
-              // Keep optimistic posts that don't have a corresponding enriched post
+              // Update the posts with enriched data and keep optimistic posts
               const updatedPosts = prev.map(existingPost => 
                 enrichedPostsMap.has(existingPost.id) 
                   ? enrichedPostsMap.get(existingPost.id) 
                   : existingPost
               );
               
-              // Sort by creation date to ensure newest posts are at the top
+              // Sort by creation date
               return updatedPosts.sort((a, b) => 
                 new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
               );
@@ -208,14 +203,18 @@ export const usePosts = () => {
     }
   }, [optimisticPosts]);
   
-  // IMPROVED: More reliable optimistic post updates
+  // Add a new post directly with a real database ID
   const addNewPost = useCallback((post: any) => {
-    console.log("Adding new optimistic post to feed immediately:", post);
+    console.log("Adding post to feed:", post);
+    
+    if (!post.id) {
+      console.error("Post must have an ID");
+      return;
+    }
     
     // Create a full post object with all required fields
-    const newOptimisticPost = {
+    const newPost = {
       ...post,
-      id: post.id || crypto.randomUUID(),
       createdAt: post.createdAt || new Date().toISOString(),
       likes: post.likes || 0,
       comments: post.comments || 0,
@@ -235,26 +234,24 @@ export const usePosts = () => {
       }
     };
     
-    // Add to optimistic posts collection
-    setOptimisticPosts(prev => [newOptimisticPost, ...prev]);
-    
-    // Immediately update posts array for display
+    // Update posts state for immediate UI update
     setPosts(prev => {
-      // Don't add duplicate posts
-      if (prev.some(p => p.id === newOptimisticPost.id)) {
-        return prev;
+      // Check if post already exists
+      const existingPostIndex = prev.findIndex(p => p.id === newPost.id);
+      
+      if (existingPostIndex >= 0) {
+        // Replace existing post
+        const updatedPosts = [...prev];
+        updatedPosts[existingPostIndex] = newPost;
+        return updatedPosts;
+      } else {
+        // Add new post at the beginning
+        return [newPost, ...prev];
       }
-      
-      // Add the new post at the beginning
-      const updatedPosts = [newOptimisticPost, ...prev];
-      
-      // Sort by creation date
-      return updatedPosts.sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
     });
   }, []);
   
+  // Load more posts
   const loadMorePosts = useCallback(async () => {
     if (posts.length === 0) return;
     
@@ -278,6 +275,7 @@ export const usePosts = () => {
         return;
       }
       
+      // Quick post display
       const quickMorePosts = moreShoutoutData.map(post => ({
         id: post.id,
         content: post.content,
@@ -305,7 +303,7 @@ export const usePosts = () => {
       setPosts(prevPosts => [...prevPosts, ...quickMorePosts]);
       setLoading(false);
       
-      // Enrich the additional posts
+      // Enrich the additional posts with more data
       Promise.all(
         moreShoutoutData.map(async (post) => {
           try {
@@ -371,7 +369,7 @@ export const usePosts = () => {
     }
   }, [posts, processingIds]);
   
-  // IMPROVED: Enhanced realtime subscription for new posts
+  // Setup realtime subscription for new posts
   useEffect(() => {
     const setupRealtimeSubscription = () => {
       console.log('Setting up realtime subscription for posts');
@@ -397,8 +395,8 @@ export const usePosts = () => {
               return;
             }
             
-            // Add the new post to the posts state
-            const quickNewPost = {
+            // Add the new post to the posts state with complete data
+            const newPost = {
               id: payload.new.id,
               content: payload.new.content,
               createdAt: payload.new.created_at,
@@ -422,25 +420,19 @@ export const usePosts = () => {
               }
             };
             
-            // Add the new post and ensure sorting
+            // Add the new post ensuring no duplicates
             setPosts(prev => {
-              // Don't add duplicate posts
-              if (prev.some(p => p.id === quickNewPost.id)) {
+              if (prev.some(p => p.id === newPost.id)) {
                 return prev;
               }
               
-              const newPosts = [quickNewPost, ...prev];
-              return newPosts.sort((a, b) => 
+              const updatedPosts = [newPost, ...prev];
+              return updatedPosts.sort((a, b) => 
                 new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
               );
             });
             
-            // Clean up optimistic posts list by removing any that match this real post
-            setOptimisticPosts(prev => 
-              prev.filter(p => p.id !== payload.new.id)
-            );
-            
-            // Fetch profile data for the new post
+            // Fetch user profile data to enrich the post
             try {
               const { data: profileData } = await supabase
                 .from('profiles')
