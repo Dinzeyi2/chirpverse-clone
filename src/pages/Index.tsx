@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, Suspense, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
@@ -14,7 +13,6 @@ import { usePosts } from '@/hooks/use-posts';
 import { Progress } from '@/components/ui/progress';
 import CreatePost from '@/components/feed/CreatePost';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import { supabase, enableRealtimeForTables } from '@/integrations/supabase/client';
 
 const Index = () => {
   const [feedView, setFeedView] = useState<'swipeable' | 'list'>('swipeable');
@@ -38,66 +36,62 @@ const Index = () => {
     
     console.log("Post created, adding to feed:", content, media);
     
-    // Set a short timeout to allow the database to process the new post
+    const extractLanguages = (content: string): string[] => {
+      const mentionRegex = /@(\w+)/g;
+      const matches = [...(content.match(mentionRegex) || [])];
+      return matches.map(match => match.substring(1).toLowerCase());
+    };
+    
+    const languages = extractLanguages(content);
+    
+    const newPost = {
+      id: crypto.randomUUID(),
+      content,
+      createdAt: new Date().toISOString(),
+      likes: 0,
+      comments: 0,
+      saves: 0,
+      reposts: 0,
+      replies: 0,
+      views: 0,
+      userId: user.id,
+      images: media || null,
+      languages,
+      user: {
+        id: user.id,
+        name: user?.user_metadata?.full_name || 'User',
+        username: user.id.substring(0, 8),
+        avatar: "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
+        verified: false,
+        followers: 0,
+        following: 0,
+      }
+    };
+    
+    addNewPost(newPost);
+    
+    setFeedKey(`feed-${Date.now()}`);
+    
     setTimeout(() => {
       refreshPosts();
-      toast.success("Post created! It will appear in your feed shortly.");
-    }, 300);
+    }, 2000);
   };
 
   const handleRefresh = useCallback(() => {
-    // Only refresh if we're not already refreshing to prevent multiple calls
-    if (isRefreshing) return;
-    
     setIsRefreshing(true);
     console.log("Refreshing posts...");
-    
-    // Reset the feed key to force component remount
-    setFeedKey(`feed-${Date.now()}`);
-    
-    // Set a timeout to ensure we don't wait forever in case of errors
-    const timeoutId = setTimeout(() => {
-      setIsRefreshing(false);
-      if (!posts.length) {
-        toast.error('Refresh timed out. Please try again.');
-      }
-    }, 5000);
-    
-    refreshPosts()
-      .then(() => {
-        clearTimeout(timeoutId);
-        toast.success('Feed refreshed successfully!');
-      })
-      .catch((err) => {
-        console.error('Error refreshing posts:', err);
-        toast.error('Error refreshing feed. Please try again.');
-      })
-      .finally(() => {
-        setTimeout(() => {
-          setIsRefreshing(false);
-          console.log("Refresh complete");
-        }, 500);
-      });
-  }, [refreshPosts, isRefreshing, posts.length]);
+    refreshPosts().finally(() => {
+      setTimeout(() => {
+        setIsRefreshing(false);
+        console.log("Refresh complete");
+        setFeedKey(`feed-${Date.now()}`);
+      }, 500);
+    });
+    toast.info('Refreshing feed...');
+  }, [refreshPosts]);
 
-  // Setup realtime subscription for posts table changes
   useEffect(() => {
-    console.log("Setting up realtime in Index component");
-    
-    // Enable realtime for tables and get the channel
-    const channel = enableRealtimeForTables();
-    
-    // Initial fetch with a small delay to ensure the component is mounted
-    setTimeout(() => {
-      refreshPosts();
-    }, 100);
-    
-    return () => {
-      // Clean up subscription
-      if (channel) {
-        channel.unsubscribe();
-      }
-    };
+    refreshPosts();
   }, [refreshPosts]);
 
   const bgColor = theme === 'dark' ? 'bg-black' : 'bg-lightBeige';

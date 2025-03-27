@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Image, X, Video } from 'lucide-react';
 import Button from '@/components/common/Button';
@@ -9,7 +8,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile, useScreenSize } from '@/hooks/use-mobile';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface CreatePostProps {
   onPostCreated?: (content: string, media?: {type: string, url: string}[]) => void;
@@ -21,6 +19,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const [charCount, setCharCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<{type: string, file: File, preview: string}[]>([]);
+  const [postSuccessful, setPostSuccessful] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -28,6 +27,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const dialogCloseRef = useRef<HTMLButtonElement>(null);
   const { user } = useAuth();
   const isMobile = useIsMobile();
+  const { width } = useScreenSize();
   
   const maxChars = 280;
   const maxImages = 2;
@@ -166,14 +166,48 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     setIsLoading(true);
     setPostError(null);
     
+    const optimisticPostId = crypto.randomUUID();
+    const currentTime = new Date().toISOString();
+    let mediaUrls: {type: string, url: string}[] = [];
+    
     try {
-      // Start with an empty media array
-      let mediaUrls: {type: string, url: string}[] = [];
+      if (onPostCreated) {
+        const optimisticPost = {
+          id: optimisticPostId,
+          content: postContent,
+          createdAt: currentTime,
+          likes: 0,
+          comments: 0,
+          saves: 0,
+          reposts: 0,
+          replies: 0,
+          views: 0,
+          userId: user.id,
+          images: mediaFiles.length > 0 ? mediaFiles.map(file => ({
+            type: file.type,
+            url: file.preview
+          })) : null,
+          user: {
+            id: user.id,
+            name: user?.user_metadata?.full_name || 'User',
+            username: user.id.substring(0, 8),
+            avatar: blueProfileImage,
+            verified: false,
+            followers: 0,
+            following: 0,
+          }
+        };
+        
+        setTimeout(() => {
+          onPostCreated(postContent, optimisticPost.images || []);
+          console.log("Added optimistic post to UI:", optimisticPost);
+        }, 0);
+      }
       
-      // Only process media files if there are any
       if (mediaFiles.length > 0) {
-        // Process media uploads one at a time to reduce complexity
-        for (const media of mediaFiles) {
+        console.log(`Uploading ${mediaFiles.length} media files...`);
+        
+        const uploadPromises = mediaFiles.map(async (media) => {
           const fileExt = media.file.name.split('.').pop();
           const fileName = `${crypto.randomUUID()}.${fileExt}`;
           const filePath = `posts/${fileName}`;
@@ -192,80 +226,102 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
               .from('media')
               .getPublicUrl(filePath);
               
-            mediaUrls.push({
+            return {
               type: media.type,
               url: publicUrl
-            });
+            };
           } catch (uploadError) {
             console.error('Upload error:', uploadError);
-            toast.error('Failed to upload media. Continuing with post creation...');
-            // Continue with post creation even if media upload fails
+            throw new Error(`Failed to upload media: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}`);
           }
+        });
+        
+        try {
+          const uploadedMedia = await Promise.all(uploadPromises);
+          mediaUrls = uploadedMedia.filter(media => media !== null) as {type: string, url: string}[];
+          console.log("Successfully uploaded media:", mediaUrls);
+        } catch (uploadError) {
+          console.error('Error in media uploads:', uploadError);
+          setPostError('Some media files failed to upload');
+          setIsLoading(false);
+          toast.error('Some media files failed to upload');
+          return;
         }
       }
       
-      // Create the post in the database
-      const { data: newPost, error: postError } = await supabase
-        .from('shoutouts')
-        .insert({
-          content: postContent,
-          user_id: user.id,
-          media: mediaUrls.length > 0 ? mediaUrls : null
-        })
-        .select('id, created_at')
-        .single();
-      
-      if (postError) {
-        setPostError(`Failed to create post: ${postError.message}`);
-        toast.error(`Failed to create post: ${postError.message}`);
-        return;
-      }
-      
-      if (newPost) {
-        // Reset form immediately
-        setPostContent('');
-        setCharCount(0);
-        setMediaFiles([]);
+      try {
+        console.log("Creating post in database...");
+        const { data: newPost, error: postError } = await supabase
+          .from('shoutouts')
+          .insert({
+            content: postContent,
+            user_id: user.id,
+            media: mediaUrls.length > 0 ? mediaUrls : null
+          })
+          .select('id')
+          .single();
         
-        if (textareaRef.current) {
-          textareaRef.current.style.height = 'auto';
+        if (postError) {
+          console.error('Failed to create post:', postError);
+          setPostError(`Failed to create post: ${postError.message}`);
+          setIsLoading(false);
+          toast.error(`Failed to create post: ${postError.message}`);
+          return;
         }
         
-        if (inDialog && dialogCloseRef.current) {
-          dialogCloseRef.current.click();
-        }
-        
-        // Notify parent component about new post
-        if (onPostCreated) {
-          onPostCreated(postContent, mediaUrls);
-        }
-        
-        toast.success('Post created successfully!');
-        
-        // Process language mentions in the background
-        const languageMentions = extractLanguageMentions(postContent);
-        if (languageMentions.length > 0) {
-          try {
-            for (const language of languageMentions) {
-              await notifyLanguageUsers(
-                user.id,
-                language,
-                postContent,
-                newPost.id
-              );
+        if (newPost) {
+          console.log("Post successfully created with ID:", newPost.id);
+          setPostSuccessful(true);
+          toast.success('Post sent successfully!');
+          
+          const languageMentions = extractLanguageMentions(postContent);
+          console.log('Detected language mentions:', languageMentions);
+          
+          if (languageMentions.length > 0) {
+            try {
+              for (const language of languageMentions) {
+                await notifyLanguageUsers(
+                  user.id,
+                  language,
+                  postContent,
+                  newPost.id
+                );
+              }
+            } catch (notifyError) {
+              console.error('Error notifying users:', notifyError);
             }
-          } catch (notifyError) {
-            console.error('Error notifying users:', notifyError);
-            // Don't block user flow if notifications fail
           }
+          
+          setTimeout(() => {
+            setPostContent('');
+            setCharCount(0);
+            setMediaFiles([]);
+            setIsLoading(false);
+            
+            if (textareaRef.current) {
+              textareaRef.current.style.height = 'auto';
+            }
+            
+            if (inDialog && dialogCloseRef.current) {
+              dialogCloseRef.current.click();
+            }
+          }, 500);
+          
+          return;
         }
+      } catch (postCreationError) {
+        console.error('Error in post creation:', postCreationError);
+        setPostError('Failed to create post. Please try again.');
+        toast.error('Failed to create post. Please try again.');
       }
     } catch (error) {
       console.error('Error creating post:', error);
       setPostError('Error creating post. Please try again.');
       toast.error('Error creating post. Please try again.');
     } finally {
-      setIsLoading(false);
+      if (!postSuccessful) {
+        setIsLoading(false);
+      }
     }
   };
   
@@ -278,6 +334,23 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     if (remaining <= 20) return 'text-red-500';
     if (remaining <= 40) return 'text-yellow-500';
     return 'text-xGray';
+  };
+
+  const renderHighlightedContent = () => {
+    if (!postContent) return null;
+    
+    const parts = postContent.split(/(@\w+)/g);
+    
+    return (
+      <div className="absolute top-0 left-0 w-full pointer-events-none text-xl p-4">
+        {parts.map((part, index) => {
+          if (part.match(/^@\w+/)) {
+            return <span key={index} className="text-blue-500">{part}</span>;
+          }
+          return <span key={index}>{part}</span>;
+        })}
+      </div>
+    );
   };
 
   return (
@@ -352,9 +425,9 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
               )}
               
               {postError && (
-                <Alert variant="destructive" className="mt-2 py-2">
-                  <AlertDescription>{postError}</AlertDescription>
-                </Alert>
+                <div className="mt-2 text-red-500 text-sm">
+                  {postError}
+                </div>
               )}
             </div>
             

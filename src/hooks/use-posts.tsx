@@ -17,8 +17,6 @@ export const usePosts = () => {
   const queryClient = useQueryClient();
   const [optimisticPosts, setOptimisticPosts] = useState<any[]>([]);
   const realTimeChannelRef = useRef<any>(null);
-  const loadingRef = useRef<boolean>(true);
-  const lastRefreshRef = useRef<number>(0);
   
   const blueProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
 
@@ -60,28 +58,15 @@ export const usePosts = () => {
 
   const fetchPosts = useCallback(async () => {
     try {
-      // Implement debouncing - don't refresh if we just did
-      const now = Date.now();
-      if (now - lastRefreshRef.current < 2000) {
-        console.log("Skipping refresh - too soon after last refresh");
-        return;
-      }
-      lastRefreshRef.current = now;
-      
-      // Cancel any existing fetch request
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
       abortControllerRef.current = new AbortController();
-      
-      // Set loading state
       setLoading(true);
-      loadingRef.current = true;
       setError(null);
       
       console.log("Fetching posts...");
       
-      // Fetch basic post data
       const { data: basicShoutoutData, error: basicShoutoutError } = await supabase
         .from('shoutouts')
         .select('id, content, created_at, user_id, media')
@@ -92,14 +77,12 @@ export const usePosts = () => {
         console.error('Error fetching shoutouts:', basicShoutoutError);
         setError('Could not load posts');
         setLoading(false);
-        loadingRef.current = false;
         return;
       }
       
       console.log(`Fetched ${basicShoutoutData?.length || 0} posts`);
       
       if (basicShoutoutData && basicShoutoutData.length > 0) {
-        // Transform database posts into UI-ready format
         const quickPosts = basicShoutoutData.map(post => ({
           id: post.id,
           content: post.content,
@@ -124,116 +107,115 @@ export const usePosts = () => {
           languages: extractLanguagesFromContent(post.content)
         }));
         
-        // Integrate database posts with optimistic posts
-        const databasePostIds = new Set(quickPosts.map(post => post.id));
-        const validOptimisticPosts = optimisticPosts.filter(post => !databasePostIds.has(post.id));
+        // Add optimistic posts to the fetched posts if they're not already there
+        const combinedPosts = [...quickPosts];
         
-        // Clear optimistic posts that are now in the database
-        setOptimisticPosts(validOptimisticPosts);
+        // Add any optimistic posts that aren't in the fetched data
+        optimisticPosts.forEach(optimisticPost => {
+          if (!combinedPosts.some(p => p.id === optimisticPost.id)) {
+            combinedPosts.unshift(optimisticPost);
+          }
+        });
         
-        // Combine and sort posts
-        const combinedPosts = [...quickPosts, ...validOptimisticPosts];
+        // Sort by creation date to ensure newest posts are at the top
         combinedPosts.sort((a, b) => 
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
         
         setPosts(combinedPosts);
         setLoading(false);
-        loadingRef.current = false;
         
-        // Only enrich posts if they're visible (performance optimization)
-        setTimeout(() => {
-          Promise.all(
-            basicShoutoutData.slice(0, 5).map(async (post) => {
-              try {
-                // Fetch counts and user data in parallel
-                const [likesResult, commentsResult, savesResult, profileResult] = await Promise.all([
-                  supabase.from('likes').select('*', { count: 'exact', head: true }).eq('shoutout_id', post.id),
-                  supabase.from('comments').select('*', { count: 'exact', head: true }).eq('shoutout_id', post.id),
-                  supabase.from('saved_posts').select('*', { count: 'exact', head: true }).eq('shoutout_id', post.id),
-                  supabase.from('profiles').select('full_name, avatar_url').eq('user_id', post.user_id).single()
-                ]);
-                  
-                return {
-                  id: post.id,
-                  content: post.content,
-                  createdAt: post.created_at,
-                  likes: likesResult.count || 0,
-                  comments: commentsResult.count || 0, 
-                  saves: savesResult.count || 0,
-                  reposts: 0,
-                  replies: commentsResult.count || 0,
-                  views: 0,
-                  userId: post.user_id,
-                  images: post.media,
-                  languages: extractLanguagesFromContent(post.content),
-                  user: {
-                    id: post.user_id,
-                    name: profileResult.data?.full_name || 'User',
-                    username: post.user_id?.substring(0, 8) || 'user',
-                    avatar: blueProfileImage,
-                    verified: false,
-                    followers: 0,
-                    following: 0,
-                  }
-                };
-              } catch (err) {
-                console.error('Error enriching post:', err);
-                return null;
-              }
-            })
-          ).then(enrichedPosts => {
-            const validPosts = enrichedPosts.filter(Boolean);
-            
-            if (validPosts.length > 0) {
-              setPosts(prev => {
-                // Create a map for faster lookups
-                const enrichedPostsMap = new Map(validPosts.map(post => [post.id, post]));
+        // Enrich posts with additional data
+        Promise.all(
+          basicShoutoutData.map(async (post) => {
+            try {
+              // Fetch like counts, comments counts, and saves counts in parallel
+              const [likesResult, commentsResult, savesResult] = await Promise.all([
+                supabase.from('likes').select('*', { count: 'exact', head: true }).eq('shoutout_id', post.id),
+                supabase.from('comments').select('*', { count: 'exact', head: true }).eq('shoutout_id', post.id),
+                supabase.from('saved_posts').select('*', { count: 'exact', head: true }).eq('shoutout_id', post.id)
+              ]);
+              
+              // Fetch user profile data
+              const { data: profileData } = await supabase
+                .from('profiles')
+                .select('full_name, avatar_url')
+                .eq('user_id', post.user_id)
+                .single();
                 
-                // Update the posts with enriched data and keep optimistic posts
-                const updatedPosts = prev.map(existingPost => 
-                  enrichedPostsMap.has(existingPost.id) 
-                    ? enrichedPostsMap.get(existingPost.id) 
-                    : existingPost
-                );
-                
-                // Sort by creation date
-                return updatedPosts.sort((a, b) => 
-                  new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-                );
-              });
+              return {
+                id: post.id,
+                content: post.content,
+                createdAt: post.created_at,
+                likes: likesResult.count || 0,
+                comments: commentsResult.count || 0, 
+                saves: savesResult.count || 0,
+                reposts: 0,
+                replies: commentsResult.count || 0,
+                views: 0,
+                userId: post.user_id,
+                images: post.media,
+                languages: extractLanguagesFromContent(post.content),
+                user: {
+                  id: post.user_id,
+                  name: profileData?.full_name || 'User',
+                  username: post.user_id?.substring(0, 8) || 'user',
+                  avatar: blueProfileImage,
+                  verified: false,
+                  followers: 0,
+                  following: 0,
+                }
+              };
+            } catch (err) {
+              console.error('Error enriching post:', err);
+              return null;
             }
-          }).catch(err => {
-            console.error('Error in post enrichment:', err);
-          });
-        }, 100);
+          })
+        ).then(enrichedPosts => {
+          const validPosts = enrichedPosts.filter(Boolean);
+          
+          if (validPosts.length > 0) {
+            setPosts(prev => {
+              // Create a map for faster lookups
+              const enrichedPostsMap = new Map(validPosts.map(post => [post.id, post]));
+              
+              // Keep optimistic posts that don't have a corresponding enriched post
+              const updatedPosts = prev.map(existingPost => 
+                enrichedPostsMap.has(existingPost.id) 
+                  ? enrichedPostsMap.get(existingPost.id) 
+                  : existingPost
+              );
+              
+              // Sort by creation date to ensure newest posts are at the top
+              return updatedPosts.sort((a, b) => 
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+              );
+            });
+          }
+        }).catch(err => {
+          console.error('Error in post enrichment:', err);
+        });
       } else {
         // Still keep optimistic posts even if no posts are fetched
         setPosts(optimisticPosts);
         setLoading(false);
-        loadingRef.current = false;
       }
       
     } catch (error) {
       console.error('Error fetching posts:', error);
       setError('Could not load posts');
       setLoading(false);
-      loadingRef.current = false;
     }
   }, [optimisticPosts]);
   
-  // Add a new post directly with a real database ID
+  // IMPROVED: More reliable optimistic post updates
   const addNewPost = useCallback((post: any) => {
-    console.log("Adding post to feed:", post);
-    
-    if (!post.id) {
-      console.error("Post must have an ID");
-      return;
-    }
+    console.log("Adding new optimistic post to feed immediately:", post);
     
     // Create a full post object with all required fields
-    const newPost = {
+    const newOptimisticPost = {
       ...post,
+      id: post.id || crypto.randomUUID(),
       createdAt: post.createdAt || new Date().toISOString(),
       likes: post.likes || 0,
       comments: post.comments || 0,
@@ -253,34 +235,31 @@ export const usePosts = () => {
       }
     };
     
-    // Update posts state for immediate UI update
+    // Add to optimistic posts collection
+    setOptimisticPosts(prev => [newOptimisticPost, ...prev]);
+    
+    // Immediately update posts array for display
     setPosts(prev => {
-      // Check if post already exists
-      const existingPostIndex = prev.findIndex(p => p.id === newPost.id);
-      
-      if (existingPostIndex >= 0) {
-        // Replace existing post
-        const updatedPosts = [...prev];
-        updatedPosts[existingPostIndex] = newPost;
-        return updatedPosts;
-      } else {
-        // Add new post at the beginning
-        const newPosts = [newPost, ...prev];
-        // Sort by created date to ensure proper order
-        return newPosts.sort((a, b) => 
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
+      // Don't add duplicate posts
+      if (prev.some(p => p.id === newOptimisticPost.id)) {
+        return prev;
       }
+      
+      // Add the new post at the beginning
+      const updatedPosts = [newOptimisticPost, ...prev];
+      
+      // Sort by creation date
+      return updatedPosts.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
     });
   }, []);
   
-  // Load more posts
   const loadMorePosts = useCallback(async () => {
-    if (posts.length === 0 || loadingRef.current) return;
+    if (posts.length === 0) return;
     
     try {
       setLoading(true);
-      loadingRef.current = true;
       
       const nonProcessingPosts = posts.filter(post => !processingIds.includes(post.id));
       if (nonProcessingPosts.length === 0) return;
@@ -296,11 +275,9 @@ export const usePosts = () => {
         
       if (moreShoutoutError || !moreShoutoutData || moreShoutoutData.length === 0) {
         setLoading(false);
-        loadingRef.current = false;
         return;
       }
       
-      // Quick post display
       const quickMorePosts = moreShoutoutData.map(post => ({
         id: post.id,
         content: post.content,
@@ -327,9 +304,8 @@ export const usePosts = () => {
       
       setPosts(prevPosts => [...prevPosts, ...quickMorePosts]);
       setLoading(false);
-      loadingRef.current = false;
       
-      // Enrich the additional posts with more data
+      // Enrich the additional posts
       Promise.all(
         moreShoutoutData.map(async (post) => {
           try {
@@ -392,21 +368,16 @@ export const usePosts = () => {
     } catch (error) {
       console.error('Error loading more posts:', error);
       setLoading(false);
-      loadingRef.current = false;
     }
   }, [posts, processingIds]);
   
-  // Setup realtime subscription for new posts
+  // IMPROVED: Enhanced realtime subscription for new posts
   useEffect(() => {
     const setupRealtimeSubscription = () => {
       console.log('Setting up realtime subscription for posts');
       
       if (realTimeChannelRef.current) {
-        try {
-          supabase.removeChannel(realTimeChannelRef.current);
-        } catch (err) {
-          console.error('Error removing channel:', err);
-        }
+        supabase.removeChannel(realTimeChannelRef.current);
       }
       
       const channel = supabase
@@ -426,8 +397,8 @@ export const usePosts = () => {
               return;
             }
             
-            // Add the new post to the posts state with complete data
-            const newPost = {
+            // Add the new post to the posts state
+            const quickNewPost = {
               id: payload.new.id,
               content: payload.new.content,
               createdAt: payload.new.created_at,
@@ -451,21 +422,25 @@ export const usePosts = () => {
               }
             };
             
-            // Add the new post ensuring no duplicates
+            // Add the new post and ensure sorting
             setPosts(prev => {
-              if (prev.some(p => p.id === newPost.id)) {
+              // Don't add duplicate posts
+              if (prev.some(p => p.id === quickNewPost.id)) {
                 return prev;
               }
               
-              const updatedPosts = [newPost, ...prev];
-              return updatedPosts.sort((a, b) => 
+              const newPosts = [quickNewPost, ...prev];
+              return newPosts.sort((a, b) => 
                 new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
               );
             });
             
-            toast.success("New post received!");
+            // Clean up optimistic posts list by removing any that match this real post
+            setOptimisticPosts(prev => 
+              prev.filter(p => p.id !== payload.new.id)
+            );
             
-            // Fetch user profile data to enrich the post
+            // Fetch profile data for the new post
             try {
               const { data: profileData } = await supabase
                 .from('profiles')
@@ -489,7 +464,7 @@ export const usePosts = () => {
             }
           }
         )
-        .subscribe(status => {
+        .subscribe((status) => {
           console.log(`Realtime subscription status: ${status}`);
         });
         
@@ -502,19 +477,13 @@ export const usePosts = () => {
     return () => {
       console.log('Cleaning up realtime subscription');
       if (channel) {
-        try {
-          supabase.removeChannel(channel);
-        } catch (err) {
-          console.error('Error removing channel during cleanup:', err);
-        }
+        supabase.removeChannel(channel);
       }
     };
   }, [posts]);
   
   // Sort posts based on relevance and selected sort option
   useEffect(() => {
-    if (posts.length === 0) return;
-    
     let sortedPosts = [...posts];
     
     const sortByRelevance = (a: any, b: any) => {
@@ -561,29 +530,20 @@ export const usePosts = () => {
   // Initial data fetching
   useEffect(() => {
     fetchUserLanguages();
-    
-    // Add a small delay to avoid race conditions
-    const timer = setTimeout(() => {
-      fetchPosts();
-    }, 100);
+    fetchPosts();
     
     return () => {
-      clearTimeout(timer);
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
       if (realTimeChannelRef.current) {
-        try {
-          supabase.removeChannel(realTimeChannelRef.current);
-        } catch (err) {
-          console.error('Error removing channel during cleanup:', err);
-        }
+        supabase.removeChannel(realTimeChannelRef.current);
       }
     };
   }, [fetchPosts, fetchUserLanguages]);
   
   return {
-    posts: sortedPosts.length > 0 ? sortedPosts : posts,
+    posts: sortedPosts,
     loading,
     error,
     refresh: fetchPosts,
