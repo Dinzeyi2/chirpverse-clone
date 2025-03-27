@@ -42,7 +42,6 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({
   const loadMoreTriggeredRef = useRef(false);
 
   useEffect(() => {
-    // Mark that we've completed initial render after a short timeout
     const timer = setTimeout(() => {
       setIsInitialRender(false);
     }, 500);
@@ -50,15 +49,12 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({
     return () => clearTimeout(timer);
   }, []);
 
-  // Handle index change and trigger loadMore when needed
   const handleIndexChange = useCallback(async () => {
     if (!api) return;
     
     const newIndex = api.selectedScrollSnap();
     setCurrentIndex(newIndex);
 
-    // Check if we're near the end of the carousel
-    // "Near the end" means the last 2 posts
     if (
       loadMore && 
       !isLoadingMore && 
@@ -73,7 +69,6 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({
       try {
         await loadMore();
         console.log("Successfully loaded more posts");
-        // Reset the trigger after a delay to prevent rapid consecutive calls
         setTimeout(() => {
           loadMoreTriggeredRef.current = false;
         }, 1000);
@@ -100,31 +95,23 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({
     };
   }, [api, handleIndexChange]);
 
-  // IMPROVED: More efficient post changes detection
   useEffect(() => {
-    // If posts have changed
     if (posts.length > 0) {
       console.log("Posts changed, checking if carousel update needed");
       
       const currentFirstPostId = posts[0]?.id;
       const prevFirstPostId = prevPostsRef.current[0]?.id;
       
-      // Force carousel reset when new posts are added or the array changes significantly
       if (
         posts.length !== prevPostsRef.current.length || 
         currentFirstPostId !== prevFirstPostId
       ) {
         console.log("Posts list significantly changed, forcing carousel refresh");
         
-        // Generate new key to force carousel re-render
         setCarouselKey(`carousel-${Date.now()}`);
         
-        // Maintain the current index position when posts are added
-        // This prevents jumping to the beginning when new posts load
         setTimeout(() => {
           if (api) {
-            // Only reset to first slide if it's a completely new set
-            // Otherwise maintain position to prevent jarring experience
             if (prevPostsRef.current.length === 0 || currentFirstPostId !== prevFirstPostId) {
               api.scrollTo(0);
               setCurrentIndex(0);
@@ -133,35 +120,32 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({
         }, 10);
       }
       
-      // Always update our reference to the current posts
       prevPostsRef.current = [...posts];
     }
   }, [posts, api]);
 
-  // Calculate post sizes based on screen width
   const getPostSizing = () => {
-    // For mobile devices, make posts smaller to show more of adjacent posts
     if (width <= 480) {
       return {
-        basis: "90%",          // Takes 90% of the container width on very small devices
-        scale: "scale-95",     // Base scale for current post
-        opacity: "opacity-100" // Full opacity for current post
+        basis: "90%",
+        scale: "scale-95",
+        opacity: "opacity-100"
       };
     } else if (width <= 768) {
       return {
-        basis: "85%",          // Takes 85% of the container width on mobile devices
-        scale: "scale-95",     // Base scale for current post
-        opacity: "opacity-100" // Full opacity for current post
+        basis: "85%",
+        scale: "scale-95",
+        opacity: "opacity-100"
       };
     } else if (width <= 1024) {
       return {
-        basis: "1/2",          // Takes half the container width on tablets
+        basis: "1/2",
         scale: "scale-100",
         opacity: "opacity-100"
       };
     } else {
       return {
-        basis: "1/3",          // Takes a third of the container width on desktops
+        basis: "1/3",
         scale: "scale-100",
         opacity: "opacity-100"
       };
@@ -170,15 +154,12 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({
 
   const { basis, scale, opacity } = getPostSizing();
 
-  // Handle next post navigation
   const handleNextPost = useCallback(async () => {
     if (api) {
-      // If we're near the end and have loadMore function
       if (currentIndex >= posts.length - 2 && loadMore && !isLoadingMore) {
         setIsLoadingMore(true);
         try {
           await loadMore();
-          // Scroll after a brief delay to let new posts render
           setTimeout(() => {
             api.scrollNext();
           }, 100);
@@ -193,7 +174,6 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({
     }
   }, [api, currentIndex, posts.length, loadMore, isLoadingMore]);
 
-  // Determine colors based on theme
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const mutedTextColor = theme === 'dark' ? 'text-neutral-400' : 'text-gray-500';
   const bgColor = theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100';
@@ -225,18 +205,18 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({
         className="w-full max-w-6xl mx-auto"
         setApi={setApi}
         opts={{
-          loop: false, // Changed to false to better support loading more posts
+          loop: false,
           align: "center",
           skipSnaps: false,
           dragFree: false,
           containScroll: "trimSnaps"
         }}
-        key={carouselKey} // Dynamic key to force re-render when posts change
+        key={carouselKey}
       >
         <CarouselContent className="mx-auto">
           {posts.map((post, index) => (
             <CarouselItem 
-              key={`${post.id}-${index}`} // IMPROVED: Better key for more reliable renders
+              key={`${post.id}-${index}`}
               className={`basis-${basis} flex justify-center items-center pl-0`}
             >
               <div className={cn(
