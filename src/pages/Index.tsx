@@ -77,10 +77,11 @@ const Index = () => {
     setIsRefreshing(true);
     console.log("Refreshing posts...");
     
+    setFeedKey(`feed-${Date.now()}`);
+    
     refreshPosts().finally(() => {
       setTimeout(() => {
         setIsRefreshing(false);
-        setFeedKey(`feed-${Date.now()}`);
       }, 500);
     });
     
