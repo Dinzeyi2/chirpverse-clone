@@ -94,6 +94,20 @@ const Index = () => {
     toast.info('Refreshing feed...');
   }, [refreshPosts]);
 
+  // Handle load more with feedback
+  const handleLoadMore = useCallback(async () => {
+    console.log("Loading more posts...");
+    try {
+      await loadMore();
+      console.log("Posts loaded successfully");
+      return true;
+    } catch (error) {
+      console.error("Error loading more posts:", error);
+      toast.error("Couldn't load more posts. Please try again.");
+      return false;
+    }
+  }, [loadMore]);
+
   // Auto-refresh on initial load
   useEffect(() => {
     refreshPosts();
@@ -207,6 +221,7 @@ const Index = () => {
                 <SwipeablePostView 
                   posts={posts} 
                   loading={loading} 
+                  loadMore={handleLoadMore}
                   key={`${feedKey}-swipeable-${posts.length}`}
                 />
               ) : (
@@ -220,12 +235,12 @@ const Index = () => {
           </div>
         )}
         
-        {/* Load more button */}
-        {posts.length > 0 && !loading && (
+        {/* Load more button - only shown in list view */}
+        {posts.length > 0 && !loading && feedView === 'list' && (
           <div className="flex justify-center pb-8 pt-4">
             <Button 
               variant="outline" 
-              onClick={loadMore}
+              onClick={handleLoadMore}
               className="text-sm"
             >
               Load more posts

@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import PostCard from './PostCard';
 import { Post } from '@/lib/data';
 import { ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
@@ -24,16 +23,23 @@ interface PostWithActions extends Post {
 interface SwipeablePostViewProps {
   posts: PostWithActions[];
   loading?: boolean;
+  loadMore?: () => Promise<void>;
 }
 
-const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = false }) => {
+const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ 
+  posts, 
+  loading = false,
+  loadMore 
+}) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [api, setApi] = useState<CarouselApi | null>(null);
   const { theme } = useTheme();
   const { isMobile, width } = useScreenSize();
   const [isInitialRender, setIsInitialRender] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const prevPostsRef = useRef<PostWithActions[]>([]);
   const [carouselKey, setCarouselKey] = useState<string>(`carousel-${Date.now()}`);
+  const loadMoreTriggeredRef = useRef(false);
 
   useEffect(() => {
     // Mark that we've completed initial render after a short timeout
@@ -44,20 +50,55 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     return () => clearTimeout(timer);
   }, []);
 
+  // Handle index change and trigger loadMore when needed
+  const handleIndexChange = useCallback(async () => {
+    if (!api) return;
+    
+    const newIndex = api.selectedScrollSnap();
+    setCurrentIndex(newIndex);
+
+    // Check if we're near the end of the carousel
+    // "Near the end" means the last 2 posts
+    if (
+      loadMore && 
+      !isLoadingMore && 
+      !loadMoreTriggeredRef.current && 
+      posts.length > 0 && 
+      newIndex >= posts.length - 2
+    ) {
+      console.log(`Near end of posts (index ${newIndex} of ${posts.length}), loading more...`);
+      setIsLoadingMore(true);
+      loadMoreTriggeredRef.current = true;
+      
+      try {
+        await loadMore();
+        console.log("Successfully loaded more posts");
+        // Reset the trigger after a delay to prevent rapid consecutive calls
+        setTimeout(() => {
+          loadMoreTriggeredRef.current = false;
+        }, 1000);
+      } catch (error) {
+        console.error("Error loading more posts:", error);
+      } finally {
+        setIsLoadingMore(false);
+      }
+    }
+  }, [api, posts.length, loadMore, isLoadingMore]);
+
   useEffect(() => {
     if (!api) {
       return;
     }
 
     const onSelect = () => {
-      setCurrentIndex(api.selectedScrollSnap());
+      handleIndexChange();
     };
 
     api.on("select", onSelect);
     return () => {
       api.off("select", onSelect);
     };
-  }, [api]);
+  }, [api, handleIndexChange]);
 
   // IMPROVED: More efficient post changes detection
   useEffect(() => {
@@ -78,11 +119,16 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
         // Generate new key to force carousel re-render
         setCarouselKey(`carousel-${Date.now()}`);
         
-        // Reset to first slide immediately
+        // Maintain the current index position when posts are added
+        // This prevents jumping to the beginning when new posts load
         setTimeout(() => {
           if (api) {
-            api.scrollTo(0);
-            setCurrentIndex(0);
+            // Only reset to first slide if it's a completely new set
+            // Otherwise maintain position to prevent jarring experience
+            if (prevPostsRef.current.length === 0 || currentFirstPostId !== prevFirstPostId) {
+              api.scrollTo(0);
+              setCurrentIndex(0);
+            }
           }
         }, 10);
       }
@@ -124,6 +170,29 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
 
   const { basis, scale, opacity } = getPostSizing();
 
+  // Handle next post navigation
+  const handleNextPost = useCallback(async () => {
+    if (api) {
+      // If we're near the end and have loadMore function
+      if (currentIndex >= posts.length - 2 && loadMore && !isLoadingMore) {
+        setIsLoadingMore(true);
+        try {
+          await loadMore();
+          // Scroll after a brief delay to let new posts render
+          setTimeout(() => {
+            api.scrollNext();
+          }, 100);
+        } catch (error) {
+          console.error("Error loading more posts:", error);
+        } finally {
+          setIsLoadingMore(false);
+        }
+      } else {
+        api.scrollNext();
+      }
+    }
+  }, [api, currentIndex, posts.length, loadMore, isLoadingMore]);
+
   // Determine colors based on theme
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const mutedTextColor = theme === 'dark' ? 'text-neutral-400' : 'text-gray-500';
@@ -156,7 +225,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
         className="w-full max-w-6xl mx-auto"
         setApi={setApi}
         opts={{
-          loop: true,
+          loop: false, // Changed to false to better support loading more posts
           align: "center",
           skipSnaps: false,
           dragFree: false,
@@ -187,6 +256,14 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
               </div>
             </CarouselItem>
           ))}
+          
+          {isLoadingMore && (
+            <CarouselItem className={`basis-${basis} flex justify-center items-center pl-0`}>
+              <div className="relative w-full max-w-[350px] sm:max-w-[400px] mx-auto">
+                <PostSkeleton count={1} />
+              </div>
+            </CarouselItem>
+          )}
         </CarouselContent>
         
         {posts.length > 1 && (
@@ -200,7 +277,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
             </button>
             
             <button 
-              onClick={() => api?.scrollNext()} 
+              onClick={handleNextPost} 
               className={`absolute right-1 sm:right-4 top-1/2 transform -translate-y-1/2 ${navBgColor} z-30 h-10 w-10 rounded-full flex items-center justify-center`}
               aria-label="Next post"
             >
