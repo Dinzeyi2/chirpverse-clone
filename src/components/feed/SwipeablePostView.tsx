@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import PostCard from './PostCard';
 import { Post } from '@/lib/data';
@@ -35,6 +36,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   const [carouselKey, setCarouselKey] = useState<string>(`carousel-${Date.now()}`);
 
   useEffect(() => {
+    // Mark that we've completed initial render after a short timeout
     const timer = setTimeout(() => {
       setIsInitialRender(false);
     }, 500);
@@ -57,23 +59,26 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     };
   }, [api]);
 
+  // IMPROVED: More efficient post changes detection
   useEffect(() => {
+    // If posts have changed
     if (posts.length > 0) {
       console.log("Posts changed, checking if carousel update needed");
       
       const currentFirstPostId = posts[0]?.id;
       const prevFirstPostId = prevPostsRef.current[0]?.id;
-      const currentLength = posts.length;
-      const prevLength = prevPostsRef.current.length;
       
+      // Force carousel reset when new posts are added or the array changes significantly
       if (
-        currentLength > prevLength || 
+        posts.length !== prevPostsRef.current.length || 
         currentFirstPostId !== prevFirstPostId
       ) {
-        console.log("Posts list changed, forcing carousel refresh");
+        console.log("Posts list significantly changed, forcing carousel refresh");
         
+        // Generate new key to force carousel re-render
         setCarouselKey(`carousel-${Date.now()}`);
         
+        // Reset to first slide immediately
         setTimeout(() => {
           if (api) {
             api.scrollTo(0);
@@ -82,32 +87,35 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
         }, 10);
       }
       
+      // Always update our reference to the current posts
       prevPostsRef.current = [...posts];
     }
   }, [posts, api]);
 
+  // Calculate post sizes based on screen width
   const getPostSizing = () => {
+    // For mobile devices, make posts smaller to show more of adjacent posts
     if (width <= 480) {
       return {
-        basis: "90%",
-        scale: "scale-95",
-        opacity: "opacity-100"
+        basis: "90%",          // Takes 90% of the container width on very small devices
+        scale: "scale-95",     // Base scale for current post
+        opacity: "opacity-100" // Full opacity for current post
       };
     } else if (width <= 768) {
       return {
-        basis: "85%",
-        scale: "scale-95",
-        opacity: "opacity-100"
+        basis: "85%",          // Takes 85% of the container width on mobile devices
+        scale: "scale-95",     // Base scale for current post
+        opacity: "opacity-100" // Full opacity for current post
       };
     } else if (width <= 1024) {
       return {
-        basis: "1/2",
+        basis: "1/2",          // Takes half the container width on tablets
         scale: "scale-100",
         opacity: "opacity-100"
       };
     } else {
       return {
-        basis: "1/3",
+        basis: "1/3",          // Takes a third of the container width on desktops
         scale: "scale-100",
         opacity: "opacity-100"
       };
@@ -116,6 +124,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
 
   const { basis, scale, opacity } = getPostSizing();
 
+  // Determine colors based on theme
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const mutedTextColor = theme === 'dark' ? 'text-neutral-400' : 'text-gray-500';
   const bgColor = theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100';
@@ -147,18 +156,18 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
         className="w-full max-w-6xl mx-auto"
         setApi={setApi}
         opts={{
-          loop: false,
+          loop: true,
           align: "center",
           skipSnaps: false,
           dragFree: false,
           containScroll: "trimSnaps"
         }}
-        key={carouselKey}
+        key={carouselKey} // Dynamic key to force re-render when posts change
       >
         <CarouselContent className="mx-auto">
           {posts.map((post, index) => (
             <CarouselItem 
-              key={`${post.id}-${index}`}
+              key={`${post.id}-${index}`} // IMPROVED: Better key for more reliable renders
               className={`basis-${basis} flex justify-center items-center pl-0`}
             >
               <div className={cn(

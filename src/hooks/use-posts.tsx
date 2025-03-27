@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, enableRealtimeForTables } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -15,6 +16,7 @@ export const usePosts = () => {
   
   const blueProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
 
+  // Fetch the current user's programming languages
   const fetchUserLanguages = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -37,12 +39,14 @@ export const usePosts = () => {
     }
   }, []);
 
+  // Extract programming languages from post content
   const extractLanguagesFromContent = (content: string): string[] => {
     const mentionRegex = /@(\w+)/g;
     const matches = [...(content.match(mentionRegex) || [])];
     return matches.map(match => match.substring(1).toLowerCase());
   };
 
+  // Fetch posts from Supabase
   const fetchPosts = useCallback(async () => {
     if (isRefreshingRef.current) {
       return;
@@ -53,6 +57,7 @@ export const usePosts = () => {
     setError(null);
     
     try {
+      // Simple fetch with timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
       
@@ -67,6 +72,7 @@ export const usePosts = () => {
       if (shoutoutError) throw shoutoutError;
       
       if (shoutoutData && shoutoutData.length > 0) {
+        // Map posts to UI format
         const formattedPosts = shoutoutData.map(post => ({
           id: post.id,
           content: post.content,
@@ -91,6 +97,7 @@ export const usePosts = () => {
           }
         }));
         
+        // Include any optimistic posts
         const combinedPosts = [...optimisticPosts, ...formattedPosts]
           .filter((post, index, self) => 
             index === self.findIndex(p => p.id === post.id)
@@ -101,6 +108,7 @@ export const usePosts = () => {
           
         setPosts(combinedPosts);
       } else {
+        // Use optimistic posts if no data
         setPosts(optimisticPosts);
       }
     } catch (error) {
@@ -112,9 +120,11 @@ export const usePosts = () => {
     }
   }, [optimisticPosts]);
   
+  // Add new post with optimistic updates
   const addNewPost = useCallback((post: any) => {
     console.log("Adding new optimistic post:", post);
     
+    // Create a complete post object
     const newOptimisticPost = {
       ...post,
       id: post.id || crypto.randomUUID(),
@@ -137,7 +147,9 @@ export const usePosts = () => {
       }
     };
     
+    // Add to optimistic posts collection
     setOptimisticPosts(prev => {
+      // Don't add duplicate posts
       if (prev.some(p => p.id === newOptimisticPost.id)) {
         return prev;
       }
@@ -145,16 +157,17 @@ export const usePosts = () => {
       return [newOptimisticPost, ...prev];
     });
     
+    // Auto-refresh after a short delay to get the actual post from the server
     setTimeout(() => {
       fetchPosts();
     }, 2000);
   }, [fetchPosts]);
   
+  // Load more posts
   const loadMore = useCallback(async () => {
     if (posts.length === 0 || loading) return;
     
     setLoading(true);
-    console.log("Loading more posts...");
     
     try {
       const lastPostDate = posts[posts.length - 1].createdAt;
@@ -169,8 +182,6 @@ export const usePosts = () => {
       if (moreError) throw moreError;
       
       if (moreData && moreData.length > 0) {
-        console.log(`Loaded ${moreData.length} additional posts`);
-        
         const morePosts = moreData.map(post => ({
           id: post.id,
           content: post.content,
@@ -195,21 +206,7 @@ export const usePosts = () => {
           }
         }));
         
-        setPosts(prev => {
-          const existingIds = new Set(prev.map(p => p.id));
-          const uniqueNewPosts = morePosts.filter(p => !existingIds.has(p.id));
-          
-          if (uniqueNewPosts.length === 0) {
-            toast.info('No more posts to load');
-            return prev;
-          }
-          
-          return [...prev, ...uniqueNewPosts];
-        });
-        
-        toast.success(`Loaded ${morePosts.length} more posts`);
-      } else {
-        toast.info('No more posts to load');
+        setPosts(prev => [...prev, ...morePosts]);
       }
     } catch (error) {
       console.error('Error loading more posts:', error);
@@ -219,16 +216,19 @@ export const usePosts = () => {
     }
   }, [posts, loading]);
   
+  // Setup realtime subscription
   useEffect(() => {
     if (!realtimeChannelRef.current) {
       realtimeChannelRef.current = enableRealtimeForTables();
     }
     
+    // Set up event listener for realtime updates
     const handleRealtimeUpdate = () => {
       console.log('Received realtime update, refreshing posts');
       fetchPosts();
     };
     
+    // Listen for "shoutouts" table changes
     const channel = supabase
       .channel('public-changes')
       .on('postgres_changes', { 
@@ -243,6 +243,7 @@ export const usePosts = () => {
     };
   }, [fetchPosts]);
   
+  // Initial data loading
   useEffect(() => {
     fetchUserLanguages();
     fetchPosts();
