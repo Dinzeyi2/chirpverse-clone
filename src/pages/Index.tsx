@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, Suspense, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
@@ -37,30 +38,47 @@ const Index = () => {
     
     console.log("Post created, adding to feed:", content, media);
     
-    // We'll manually trigger a refresh to get the new post
+    // Set a short timeout to allow the database to process the new post
     setTimeout(() => {
       refreshPosts();
-    }, 500);
-    
-    toast.success("Post created! It will appear in your feed shortly.");
+      toast.success("Post created! It will appear in your feed shortly.");
+    }, 300);
   };
 
   const handleRefresh = useCallback(() => {
+    // Only refresh if we're not already refreshing to prevent multiple calls
+    if (isRefreshing) return;
+    
     setIsRefreshing(true);
     console.log("Refreshing posts...");
     
     // Reset the feed key to force component remount
     setFeedKey(`feed-${Date.now()}`);
     
-    refreshPosts().finally(() => {
-      setTimeout(() => {
-        setIsRefreshing(false);
-        console.log("Refresh complete");
-      }, 500);
-    });
+    // Set a timeout to ensure we don't wait forever in case of errors
+    const timeoutId = setTimeout(() => {
+      setIsRefreshing(false);
+      if (!posts.length) {
+        toast.error('Refresh timed out. Please try again.');
+      }
+    }, 5000);
     
-    toast.info('Refreshing feed...');
-  }, [refreshPosts]);
+    refreshPosts()
+      .then(() => {
+        clearTimeout(timeoutId);
+        toast.success('Feed refreshed successfully!');
+      })
+      .catch((err) => {
+        console.error('Error refreshing posts:', err);
+        toast.error('Error refreshing feed. Please try again.');
+      })
+      .finally(() => {
+        setTimeout(() => {
+          setIsRefreshing(false);
+          console.log("Refresh complete");
+        }, 500);
+      });
+  }, [refreshPosts, isRefreshing, posts.length]);
 
   // Setup realtime subscription for posts table changes
   useEffect(() => {
@@ -69,12 +87,16 @@ const Index = () => {
     // Enable realtime for tables and get the channel
     const channel = enableRealtimeForTables();
     
-    // Initial fetch
-    refreshPosts();
+    // Initial fetch with a small delay to ensure the component is mounted
+    setTimeout(() => {
+      refreshPosts();
+    }, 100);
     
     return () => {
-      // Clean up subscription - fix the removeAllSubscriptions issue
-      channel.unsubscribe();
+      // Clean up subscription
+      if (channel) {
+        channel.unsubscribe();
+      }
     };
   }, [refreshPosts]);
 
