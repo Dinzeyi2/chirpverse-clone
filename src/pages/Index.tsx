@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, Suspense, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
@@ -12,7 +11,7 @@ import { useTheme } from '@/components/theme/theme-provider';
 import PostSkeleton from '@/components/feed/PostSkeleton';
 import { usePosts } from '@/hooks/use-posts';
 import { Progress } from '@/components/ui/progress';
-import { CreatePost } from '@/components/feed/CreatePost';
+import CreatePost from '@/components/feed/CreatePost';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 
 const Index = () => {
@@ -20,7 +19,6 @@ const Index = () => {
   const { user } = useAuth();
   const { theme } = useTheme();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  // Added a key for forcing rerender when new posts are added
   const [feedKey, setFeedKey] = useState<string>(`feed-${Date.now()}`);
   
   const { 
@@ -33,13 +31,11 @@ const Index = () => {
     userLanguages
   } = usePosts();
   
-  // IMPROVED: Better post creation handling with rerender trigger
   const handlePostCreated = (content: string, media?: {type: string, url: string}[]) => {
     if (!user) return;
     
     console.log("Post created, adding to feed:", content, media);
     
-    // Extract mentioned languages from the post content
     const extractLanguages = (content: string): string[] => {
       const mentionRegex = /@(\w+)/g;
       const matches = [...(content.match(mentionRegex) || [])];
@@ -72,13 +68,10 @@ const Index = () => {
       }
     };
     
-    // Add new post to the posts state
     addNewPost(newPost);
     
-    // Force a refresh of the component to ensure new post is displayed
     setFeedKey(`feed-${Date.now()}`);
     
-    // Force a refresh after a short delay to ensure server-side data is loaded
     setTimeout(() => {
       refreshPosts();
     }, 2000);
@@ -91,14 +84,12 @@ const Index = () => {
       setTimeout(() => {
         setIsRefreshing(false);
         console.log("Refresh complete");
-        // Force rerender of feed components after refresh
         setFeedKey(`feed-${Date.now()}`);
       }, 500);
     });
     toast.info('Refreshing feed...');
   }, [refreshPosts]);
 
-  // Auto-refresh on mount
   useEffect(() => {
     refreshPosts();
   }, [refreshPosts]);
@@ -154,7 +145,6 @@ const Index = () => {
         </div>
       </div>
       
-      {/* Inline create post component for better UX */}
       <div className="border-b border-neutral-800">
         <CreatePost onPostCreated={handlePostCreated} />
       </div>
@@ -202,13 +192,13 @@ const Index = () => {
                 <SwipeablePostView 
                   posts={posts} 
                   loading={loading} 
-                  key={`${feedKey}-swipeable-${posts.length}`} // Force re-render when feed key or posts change
+                  key={`${feedKey}-swipeable-${posts.length}`}
                 />
               ) : (
                 <PostList 
                   posts={posts} 
                   loading={loading} 
-                  key={`${feedKey}-list-${posts.length}`} // Force re-render when feed key or posts change
+                  key={`${feedKey}-list-${posts.length}`}
                 />
               )}
             </Suspense>
