@@ -18,6 +18,12 @@ export const usePosts = () => {
   
   const blueProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
 
+  const extractLanguagesFromContent = (content: string): string[] => {
+    const mentionRegex = /@(\w+)/g;
+    const matches = [...(content.match(mentionRegex) || [])];
+    return matches.map(match => match.substring(1).toLowerCase());
+  };
+
   const fetchUserLanguages = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -46,12 +52,6 @@ export const usePosts = () => {
     }
   }, []);
 
-  const extractLanguagesFromContent = (content: string): string[] => {
-    const mentionRegex = /@(\w+)/g;
-    const matches = [...(content.match(mentionRegex) || [])];
-    return matches.map(match => match.substring(1).toLowerCase());
-  };
-
   const fetchPosts = useCallback(async () => {
     try {
       if (abortControllerRef.current) {
@@ -63,23 +63,23 @@ export const usePosts = () => {
       
       console.log("Fetching posts...");
       
-      const { data: basicShoutoutData, error: basicShoutoutError } = await supabase
+      const { data: shoutoutData, error: shoutoutError } = await supabase
         .from('shoutouts')
         .select('id, content, created_at, user_id, media')
         .order('created_at', { ascending: false })
         .limit(15);
         
-      if (basicShoutoutError) {
-        console.error('Error fetching shoutouts:', basicShoutoutError);
+      if (shoutoutError) {
+        console.error('Error fetching shoutouts:', shoutoutError);
         setError('Could not load posts');
         setLoading(false);
         return;
       }
       
-      console.log(`Fetched ${basicShoutoutData?.length || 0} posts`);
+      console.log(`Fetched ${shoutoutData?.length || 0} posts`);
       
-      if (basicShoutoutData && basicShoutoutData.length > 0) {
-        const quickPosts = basicShoutoutData.map(post => ({
+      if (shoutoutData && shoutoutData.length > 0) {
+        const quickPosts = shoutoutData.map(post => ({
           id: post.id,
           content: post.content,
           createdAt: post.created_at,
@@ -107,7 +107,7 @@ export const usePosts = () => {
         setLoading(false);
         
         Promise.all(
-          basicShoutoutData.map(async (post) => {
+          shoutoutData.map(async (post) => {
             try {
               const [likesResult, commentsResult, savesResult] = await Promise.all([
                 supabase.from('likes').select('*', { count: 'exact', head: true }).eq('shoutout_id', post.id),
@@ -241,6 +241,7 @@ export const usePosts = () => {
         views: 0,
         userId: post.user_id,
         images: post.media,
+        languages: extractLanguagesFromContent(post.content),
         user: {
           id: post.user_id,
           name: 'Loading...',
@@ -336,9 +337,19 @@ export const usePosts = () => {
           async (payload) => {
             console.log('New post received via realtime:', payload);
             
+            if (!payload.new) {
+              console.error('Invalid payload received:', payload);
+              return;
+            }
+            
             const existingPost = posts.find(p => p.id === payload.new.id);
             if (existingPost) {
               console.log('Post already exists in state, not adding again');
+              return;
+            }
+            
+            if (!payload.new.id || !payload.new.content || !payload.new.created_at || !payload.new.user_id) {
+              console.error('Payload is missing required properties:', payload.new);
               return;
             }
             
