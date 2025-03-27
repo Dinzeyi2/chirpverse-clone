@@ -12,6 +12,8 @@ import { useTheme } from '@/components/theme/theme-provider';
 import PostSkeleton from '@/components/feed/PostSkeleton';
 import { usePosts } from '@/hooks/use-posts';
 import { Progress } from '@/components/ui/progress';
+import { CreatePost } from '@/components/feed/CreatePost';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 
 const Index = () => {
   const [feedView, setFeedView] = useState<'swipeable' | 'list'>('swipeable');
@@ -150,6 +152,11 @@ const Index = () => {
             </button>
           </div>
         </div>
+      </div>
+      
+      {/* Inline create post component for better UX */}
+      <div className="border-b border-neutral-800">
+        <CreatePost onPostCreated={handlePostCreated} />
       </div>
       
       {loading && !posts.length && (

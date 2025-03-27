@@ -59,31 +59,35 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     };
   }, [api]);
 
-  // FIXED: Remove JSON.stringify to prevent circular structure error
+  // IMPROVED: More efficient post changes detection
   useEffect(() => {
     // If posts have changed
-    if (posts.length > 0 && prevPostsRef.current !== posts) {
-      console.log("Posts changed, updating carousel");
+    if (posts.length > 0) {
+      console.log("Posts changed, checking if carousel update needed");
       
-      // Force carousel reset on significant changes to post array
+      const currentFirstPostId = posts[0]?.id;
+      const prevFirstPostId = prevPostsRef.current[0]?.id;
+      
+      // Force carousel reset when new posts are added or the array changes significantly
       if (
         posts.length !== prevPostsRef.current.length || 
-        (posts.length > 0 && prevPostsRef.current.length > 0 && posts[0]?.id !== prevPostsRef.current[0]?.id)
+        currentFirstPostId !== prevFirstPostId
       ) {
         console.log("Posts list significantly changed, forcing carousel refresh");
         
         // Generate new key to force carousel re-render
         setCarouselKey(`carousel-${Date.now()}`);
         
-        // Reset to first slide after a short delay to let the carousel reinitialize
+        // Reset to first slide immediately
         setTimeout(() => {
           if (api) {
             api.scrollTo(0);
             setCurrentIndex(0);
           }
-        }, 50);
+        }, 10);
       }
       
+      // Always update our reference to the current posts
       prevPostsRef.current = [...posts];
     }
   }, [posts, api]);
