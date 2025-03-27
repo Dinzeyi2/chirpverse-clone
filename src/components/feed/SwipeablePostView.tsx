@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import PostCard from './PostCard';
 import { Post } from '@/lib/data';
@@ -222,8 +223,10 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({
               <div className={cn(
                 "relative w-full transition-all duration-300 max-w-[350px] sm:max-w-[400px] mx-auto",
                 currentIndex === index 
-                  ? `${scale} ${opacity} z-20` 
-                  : "scale-90 opacity-70 z-10"
+                  ? `${scale} ${opacity} z-30` 
+                  : currentIndex > index 
+                    ? "scale-90 opacity-70 z-10" 
+                    : "scale-90 opacity-70 z-10"
               )}>
                 <div className="relative">
                   {post.actions && (
