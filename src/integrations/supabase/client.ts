@@ -14,6 +14,11 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     params: {
       eventsPerSecond: 10
     }
+  },
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
   }
 });
 
@@ -21,7 +26,10 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 export const enableRealtimeForTables = () => {
   console.log('Enabling realtime for all tables...');
   
-  supabase.channel('schema-db-changes')
+  // Create a channel with a unique name to avoid conflicts
+  const channelId = `schema-db-changes-${Date.now()}`;
+  
+  supabase.channel(channelId)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'shoutouts' }, (payload) => {
       console.log('Shoutout changes detected', payload);
     })
@@ -36,6 +44,9 @@ export const enableRealtimeForTables = () => {
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, (payload) => {
       console.log('Notification changes detected', payload);
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, (payload) => {
+      console.log('Comments changes detected', payload);
     })
     .subscribe((status) => {
       console.log(`Realtime connection status: ${status}`);

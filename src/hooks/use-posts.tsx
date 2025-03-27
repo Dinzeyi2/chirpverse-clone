@@ -18,7 +18,6 @@ export const usePosts = () => {
   
   const blueProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
 
-  // Fetch the current user's programming languages
   const fetchUserLanguages = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -60,7 +59,7 @@ export const usePosts = () => {
       
       const { data: basicShoutoutData, error: basicShoutoutError } = await supabase
         .from('shoutouts')
-        .select('id, content, created_at, user_id, media')
+        .select('id, content, created_at, user_id, media, languages')
         .order('created_at', { ascending: false })
         .limit(15);
         
@@ -95,7 +94,7 @@ export const usePosts = () => {
             followers: 0,
             following: 0,
           },
-          languages: extractLanguagesFromContent(post.content)
+          languages: post.languages || extractLanguagesFromContent(post.content)
         }));
         
         setPosts(quickPosts);
@@ -173,7 +172,6 @@ export const usePosts = () => {
     }
   }, []);
 
-  // Extract programming languages from post content
   const extractLanguagesFromContent = (content: string): string[] => {
     const mentionRegex = /@(\w+)/g;
     const matches = [...(content.match(mentionRegex) || [])];
@@ -207,7 +205,7 @@ export const usePosts = () => {
       return [postWithLanguages, ...prev];
     });
   }, []);
-  
+
   const loadMorePosts = useCallback(async () => {
     if (posts.length === 0) return;
     
@@ -320,13 +318,15 @@ export const usePosts = () => {
       setLoading(false);
     }
   }, [posts, processingIds]);
-  
+
   useEffect(() => {
     const setupRealtimeSubscription = () => {
       console.log('Setting up realtime subscription for posts');
       
+      const channelName = `public:shoutouts:${Date.now()}`;
+      
       const channel = supabase
-        .channel('public:shoutouts')
+        .channel(channelName)
         .on('postgres_changes', 
           { 
             event: 'INSERT', 
@@ -354,6 +354,7 @@ export const usePosts = () => {
               views: 0,
               userId: payload.new.user_id,
               images: payload.new.media,
+              languages: payload.new.languages || extractLanguagesFromContent(payload.new.content),
               user: {
                 id: payload.new.user_id,
                 name: 'Loading...',
@@ -421,8 +422,8 @@ export const usePosts = () => {
       console.log('Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
-  }, [posts]);
-  
+  }, []);
+
   useEffect(() => {
     let sortedPosts = [...posts];
     
@@ -466,7 +467,7 @@ export const usePosts = () => {
     
     setSortedPosts(sortedPosts);
   }, [posts, sortOption, userLanguages]);
-  
+
   useEffect(() => {
     fetchUserLanguages();
     fetchPosts();
@@ -477,7 +478,7 @@ export const usePosts = () => {
       }
     };
   }, [fetchPosts, fetchUserLanguages]);
-  
+
   return {
     posts: sortedPosts,
     loading,
