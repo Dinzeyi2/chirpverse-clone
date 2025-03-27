@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import PostCard from './PostCard';
 import { Post } from '@/lib/data';
 import { ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
@@ -32,6 +32,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   const { theme } = useTheme();
   const { isMobile, width } = useScreenSize();
   const [isInitialRender, setIsInitialRender] = useState(true);
+  const prevPostsRef = useRef<PostWithActions[]>([]);
 
   useEffect(() => {
     // Mark that we've completed initial render after a short timeout
@@ -56,6 +57,23 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
       api.off("select", onSelect);
     };
   }, [api]);
+
+  // Update when posts change
+  useEffect(() => {
+    // If posts have changed and we've already set up the carousel
+    if (api && posts.length > 0 && JSON.stringify(posts) !== JSON.stringify(prevPostsRef.current)) {
+      console.log("Posts changed, updating carousel");
+      // If a new post was added at the beginning, show it
+      if (posts.length > prevPostsRef.current.length && posts[0]?.id !== prevPostsRef.current[0]?.id) {
+        // Give the carousel a moment to update before changing slides
+        setTimeout(() => {
+          api.scrollTo(0);
+          setCurrentIndex(0);
+        }, 100);
+      }
+      prevPostsRef.current = posts;
+    }
+  }, [posts, api]);
 
   // Calculate post sizes based on screen width
   const getPostSizing = () => {
@@ -127,11 +145,12 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
           dragFree: false,
           containScroll: "trimSnaps"
         }}
+        key={`carousel-${posts.length}`} // Re-initialize when the number of posts changes
       >
         <CarouselContent className="mx-auto">
           {posts.map((post, index) => (
             <CarouselItem 
-              key={post.id} 
+              key={post.id || `temp-${index}`} 
               className={`basis-${basis} flex justify-center items-center pl-0`}
             >
               <div className={cn(

@@ -303,7 +303,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
             if (inDialog && dialogCloseRef.current) {
               dialogCloseRef.current.click();
             }
-          }, 3000);
+          }, 1000);
           
           return;
         }
