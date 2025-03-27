@@ -396,28 +396,7 @@ export const Sidebar = () => {
         </nav>
         
         <div className="mt-auto">
-          {user && (
-            <Dialog open={isPostDialogOpen} onOpenChange={setIsPostDialogOpen}>
-              <DialogTrigger asChild>
-                <Button 
-                  variant="outline"
-                  size={isCollapsed ? "icon" : "lg"}
-                  className={cn(
-                    "w-full font-bold bg-primary text-white hover:bg-primary/90 hover:text-white border-0", 
-                    isCollapsed ? "p-3" : "px-6 py-3 rounded-full"
-                  )}
-                >
-                  <PlusCircle size={24} />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className={cn(
-                "max-w-full w-full h-[100dvh] p-0 rounded-none bg-background border-border",
-                "sm:max-w-[600px] sm:h-auto sm:rounded-2xl"
-              )}>
-                <CreatePost onPostCreated={handlePostCreated} inDialog={true} />
-              </DialogContent>
-            </Dialog>
-          )}
+          
         </div>
       </div>
     </div>
