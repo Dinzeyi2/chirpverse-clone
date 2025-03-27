@@ -8,7 +8,6 @@ import { ThemeProvider } from "@/components/theme/theme-provider";
 import Index from "./pages/Index";
 import Profile from "./pages/Profile";
 import Explore from "./pages/Explore";
-import Notifications from "./pages/Notifications";
 import Bookmarks from "./pages/Bookmarks";
 import NotFound from "./pages/NotFound";
 import PostPage from "./pages/PostPage";
@@ -97,14 +96,6 @@ const AppContent = () => {
         element={
           <ProtectedRoute requireAuth={true}>
             <Profile />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/notifications" 
-        element={
-          <ProtectedRoute requireAuth={true}>
-            <Notifications />
           </ProtectedRoute>
         } 
       />

@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Home, Search, Bell, User, Bookmark, Settings, PlusCircle, LogOut, LogIn, Menu } from 'lucide-react';
+import { Home, Search, User, Bookmark, Settings, PlusCircle, LogOut, LogIn, Menu } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
@@ -18,9 +19,6 @@ export const Sidebar = () => {
   const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
-  const [lastVisitedNotifications, setLastVisitedNotifications] = useState<Date | null>(null);
-  
   const profilePath = '/profile';
   
   useEffect(() => {
@@ -30,81 +28,10 @@ export const Sidebar = () => {
       setIsCollapsed(false);
     }
   }, [isMobile]);
-
-  useEffect(() => {
-    if (location.pathname === '/notifications' && user) {
-      const now = new Date();
-      setLastVisitedNotifications(now);
-      setUnreadNotifications(0);
-      localStorage.setItem(`notifications_last_visited_${user.id}`, now.toISOString());
-    }
-  }, [location.pathname, user]);
-
-  useEffect(() => {
-    if (!user) return;
-    
-    const storedLastVisited = localStorage.getItem(`notifications_last_visited_${user.id}`);
-    if (storedLastVisited) {
-      setLastVisitedNotifications(new Date(storedLastVisited));
-    }
-    
-    const fetchUnreadCount = async () => {
-      if (location.pathname === '/notifications') {
-        setUnreadNotifications(0);
-        return;
-      }
-      
-      let query = supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('recipient_id', user.id)
-        .eq('is_read', false);
-      
-      if (lastVisitedNotifications) {
-        query = query.gt('created_at', lastVisitedNotifications.toISOString());
-      }
-        
-      const { count, error } = await query;
-        
-      if (error) {
-        console.error('Error fetching notification count:', error);
-        return;
-      }
-      
-      setUnreadNotifications(count || 0);
-    };
-    
-    fetchUnreadCount();
-    
-    const notificationsChannel = supabase
-      .channel('notifications-count')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'notifications',
-        filter: `recipient_id=eq.${user.id}`
-      }, () => {
-        fetchUnreadCount();
-      })
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'notifications',
-        filter: `recipient_id=eq.${user.id}`
-      }, () => {
-        fetchUnreadCount();
-      })
-      .subscribe();
-      
-    return () => {
-      supabase.removeChannel(notificationsChannel);
-    };
-  }, [user, location.pathname, lastVisitedNotifications]);
   
   const navigation = [
     { name: 'Home', icon: Home, href: '/' },
     { name: 'Explore', icon: Search, href: '/explore' },
-    { name: 'Notifications', icon: Bell, href: '/notifications', badge: unreadNotifications > 0 ? unreadNotifications : null },
     { name: 'Bookmarks', icon: Bookmark, href: '/bookmarks' },
     { name: 'Profile', icon: User, href: profilePath },
     { name: 'Settings', icon: Settings, href: '/settings' },
@@ -165,15 +92,6 @@ export const Sidebar = () => {
                 )}
               >
                 <item.icon size={24} className={isActive ? "text-primary" : "text-muted-foreground"} />
-                
-                {item.badge && item.badge > 0 && (
-                  <Badge 
-                    variant="default" 
-                    className="absolute -top-1 -right-1 bg-blue-500 text-white p-1 min-w-[18px] h-[18px] flex items-center justify-center text-xs rounded-full"
-                  >
-                    {item.badge > 99 ? '99+' : item.badge}
-                  </Badge>
-                )}
               </Link>
             );
           })}
@@ -236,18 +154,6 @@ export const Sidebar = () => {
                   )}
                 >
                   <item.icon size={24} className={isActive ? "text-primary" : "text-muted-foreground"} />
-                  
-                  {item.badge && (
-                    <Badge 
-                      variant="default" 
-                      className={cn(
-                        "ml-auto bg-blue-500 text-white p-1 min-w-[20px] h-[20px] flex items-center justify-center text-xs rounded-full"
-                      )}
-                    >
-                      {item.badge > 99 ? '99+' : item.badge}
-                    </Badge>
-                  )}
-                  
                   <span className="ml-4 font-heading tracking-wide text-lg uppercase">{item.name}</span>
                 </Link>
               );
@@ -346,18 +252,6 @@ export const Sidebar = () => {
                 )}
               >
                 <item.icon size={24} className={isActive ? "text-foreground" : "text-muted-foreground"} />
-                
-                {item.badge && (
-                  <Badge 
-                    variant="default" 
-                    className={cn(
-                      "bg-blue-500 text-white p-1 min-w-[20px] h-[20px] flex items-center justify-center text-xs rounded-full",
-                      isCollapsed ? "absolute -top-1 -right-1" : "ml-auto mr-2"
-                    )}
-                  >
-                    {item.badge > 99 ? '99+' : item.badge}
-                  </Badge>
-                )}
                 
                 {!isCollapsed && (
                   <span className="ml-4 font-heading tracking-wide text-lg uppercase">{item.name}</span>
