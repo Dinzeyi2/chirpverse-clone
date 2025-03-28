@@ -1,16 +1,10 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, enableRealtimeForTables } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Post, Comment } from '@/lib/data';
+import { PostEngagement } from '@/components/feed/PostList';
 
 export type SortOption = 'latest' | 'popular' | 'commented';
-
-interface PostEngagement {
-  postId: string;
-  comments: Comment[];
-  reactions: {emoji: string, count: number, reacted: boolean}[];
-}
 
 export const usePosts = () => {
   const [posts, setPosts] = useState<any[]>([]);
@@ -24,7 +18,6 @@ export const usePosts = () => {
   
   const blueProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
 
-  // Fetch user's languages for personalized feed
   const fetchUserLanguages = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -47,14 +40,12 @@ export const usePosts = () => {
     }
   }, []);
 
-  // Extract language mentions from post content
   const extractLanguagesFromContent = (content: string): string[] => {
     const mentionRegex = /@(\w+)/g;
     const matches = [...(content.match(mentionRegex) || [])];
     return matches.map(match => match.substring(1).toLowerCase());
   };
 
-  // Fetch comments for a specific post
   const fetchPostComments = useCallback(async (postId: string) => {
     try {
       const { data: commentsData, error: commentsError } = await supabase
@@ -65,14 +56,24 @@ export const usePosts = () => {
         
       if (commentsError) throw commentsError;
       
-      return commentsData || [];
+      const formattedComments: Comment[] = (commentsData || []).map(comment => ({
+        id: comment.id,
+        content: comment.content,
+        createdAt: comment.created_at,
+        userId: comment.user_id,
+        created_at: comment.created_at,
+        user_id: comment.user_id,
+        media: comment.media,
+        metadata: comment.metadata
+      }));
+      
+      return formattedComments;
     } catch (error) {
       console.error(`Error fetching comments for post ${postId}:`, error);
       return [];
     }
   }, []);
 
-  // Fetch reactions for a specific post
   const fetchPostReactions = useCallback(async (postId: string) => {
     try {
       const { data: user } = await supabase.auth.getUser();
@@ -85,7 +86,6 @@ export const usePosts = () => {
         
       if (reactionsError) throw reactionsError;
       
-      // Process reactions data
       const reactionCounts: Record<string, { count: number, reacted: boolean }> = {};
       
       if (reactionsData) {
@@ -118,12 +118,10 @@ export const usePosts = () => {
     }
   }, []);
 
-  // Load engagement data (comments and reactions) for all posts
   const loadEngagementData = useCallback(async (postIdsToUpdate?: string[]) => {
     try {
       const postsToProcess = postIdsToUpdate || posts.map(post => post.id);
       
-      // Process each post in parallel using Promise.all
       const engagementPromises = postsToProcess.map(async (postId) => {
         const [comments, reactions] = await Promise.all([
           fetchPostComments(postId),
@@ -134,12 +132,11 @@ export const usePosts = () => {
           postId,
           comments,
           reactions
-        };
+        } as PostEngagement;
       });
       
       const newEngagementData = await Promise.all(engagementPromises);
       
-      // Update the engagement data map
       setEngagementData(prevData => {
         const newMap = new Map(prevData);
         
@@ -154,7 +151,6 @@ export const usePosts = () => {
     }
   }, [posts, fetchPostComments, fetchPostReactions]);
 
-  // Main function to fetch posts
   const fetchPosts = useCallback(async () => {
     if (isRefreshingRef.current) {
       return;
@@ -180,7 +176,6 @@ export const usePosts = () => {
       
       if (shoutoutData && shoutoutData.length > 0) {
         const formattedPosts = shoutoutData.map(post => {
-          // Get display username from metadata if available, otherwise use a truncated user_id
           const metadata = post.metadata as Record<string, any> || {};
           const displayUsername = metadata.display_username || 
             (post.user_id ? post.user_id.substring(0, 8) : 'user');
@@ -198,7 +193,7 @@ export const usePosts = () => {
             userId: post.user_id,
             images: post.media,
             languages: extractLanguagesFromContent(post.content),
-            metadata: post.metadata, // Preserve the full metadata
+            metadata: post.metadata,
             user: {
               id: post.user_id,
               name: displayUsername,
@@ -221,7 +216,6 @@ export const usePosts = () => {
           
         setPosts(combinedPosts);
         
-        // Immediately load engagement data for new posts
         await loadEngagementData(combinedPosts.map(post => post.id));
       } else {
         setPosts(optimisticPosts);
@@ -268,7 +262,6 @@ export const usePosts = () => {
       return [newOptimisticPost, ...prev];
     });
     
-    // Set empty engagement data for the new post
     setEngagementData(prev => {
       const newMap = new Map(prev);
       newMap.set(newOptimisticPost.id, {
@@ -329,7 +322,6 @@ export const usePosts = () => {
         
         setPosts(prev => [...prev, ...morePosts]);
         
-        // Load engagement data for new posts
         await loadEngagementData(morePosts.map(post => post.id));
       }
     } catch (error) {
@@ -340,16 +332,12 @@ export const usePosts = () => {
     }
   }, [posts, loading, loadEngagementData]);
 
-  // Setup realtime subscriptions
   useEffect(() => {
-    // Set up realtime channel for posts
     if (!realtimeChannelRef.current) {
       realtimeChannelRef.current = enableRealtimeForTables();
     }
     
-    // Set up realtime subscriptions for comments and reactions
     const setupRealtimeSubscriptions = () => {
-      // Comments channel
       const commentsChannel = supabase
         .channel('comments-changes')
         .on('postgres_changes', { 
@@ -359,20 +347,23 @@ export const usePosts = () => {
         }, async (payload) => {
           console.log('Realtime comment update:', payload);
           
-          // Extract the post ID from the payload
-          const shoutoutId = payload.new?.shoutout_id || payload.old?.shoutout_id;
+          const shoutoutId = payload.new && 'shoutout_id' in payload.new 
+            ? payload.new.shoutout_id 
+            : payload.old && 'shoutout_id' in payload.old 
+              ? payload.old.shoutout_id 
+              : null;
           
           if (shoutoutId) {
-            // Update only the affected post's comments
             await loadEngagementData([shoutoutId]);
             
-            // Update the UI immediately for new comments
-            if (payload.eventType === 'INSERT') {
-              const newComment = {
+            if (payload.eventType === 'INSERT' && payload.new) {
+              const newComment: Comment = {
                 id: payload.new.id,
                 content: payload.new.content,
                 createdAt: payload.new.created_at,
                 userId: payload.new.user_id,
+                created_at: payload.new.created_at,
+                user_id: payload.new.user_id,
                 media: payload.new.media,
                 metadata: payload.new.metadata
               };
@@ -396,7 +387,6 @@ export const usePosts = () => {
         })
         .subscribe();
       
-      // Post reactions channel
       const reactionsChannel = supabase
         .channel('post-reactions-changes')
         .on('postgres_changes', { 
@@ -406,21 +396,22 @@ export const usePosts = () => {
         }, async (payload) => {
           console.log('Realtime reaction update:', payload);
           
-          // Extract the post ID from the payload
-          const postId = payload.new?.post_id || payload.old?.post_id;
+          const postId = payload.new && 'post_id' in payload.new 
+            ? payload.new.post_id 
+            : payload.old && 'post_id' in payload.old 
+              ? payload.old.post_id 
+              : null;
           
           if (postId) {
-            // Immediate UI update for reactions
             const { data: user } = await supabase.auth.getUser();
             const currentUserId = user.user?.id;
             
-            if (payload.eventType === 'INSERT') {
+            if (payload.eventType === 'INSERT' && payload.new) {
               setEngagementData(prev => {
                 const newMap = new Map(prev);
                 const postData = newMap.get(postId);
                 
                 if (postData) {
-                  // Check if emoji already exists
                   const existingReactionIndex = postData.reactions.findIndex(
                     r => r.emoji === payload.new.emoji
                   );
@@ -428,7 +419,6 @@ export const usePosts = () => {
                   let updatedReactions;
                   
                   if (existingReactionIndex >= 0) {
-                    // Update existing reaction
                     updatedReactions = [...postData.reactions];
                     updatedReactions[existingReactionIndex] = {
                       ...updatedReactions[existingReactionIndex],
@@ -436,7 +426,6 @@ export const usePosts = () => {
                       reacted: currentUserId === payload.new.user_id ? true : updatedReactions[existingReactionIndex].reacted
                     };
                   } else {
-                    // Add new reaction
                     updatedReactions = [
                       ...postData.reactions,
                       {
@@ -455,7 +444,7 @@ export const usePosts = () => {
                 
                 return newMap;
               });
-            } else if (payload.eventType === 'DELETE') {
+            } else if (payload.eventType === 'DELETE' && payload.old) {
               setEngagementData(prev => {
                 const newMap = new Map(prev);
                 const postData = newMap.get(postId);
@@ -482,13 +471,11 @@ export const usePosts = () => {
               });
             }
             
-            // Also fetch the updated data to ensure consistency
             await loadEngagementData([postId]);
           }
         })
         .subscribe();
         
-      // Comment reactions channel
       const commentReactionsChannel = supabase
         .channel('comment-reactions-changes')
         .on('postgres_changes', { 
@@ -498,12 +485,14 @@ export const usePosts = () => {
         }, async (payload) => {
           console.log('Realtime comment reaction update:', payload);
           
-          // For comment reactions, we need to find which post contains this comment
-          const commentId = payload.new?.comment_id || payload.old?.comment_id;
+          const commentId = payload.new && 'comment_id' in payload.new 
+            ? payload.new.comment_id 
+            : payload.old && 'comment_id' in payload.old 
+              ? payload.old.comment_id 
+              : null;
           
           if (commentId) {
             try {
-              // Find which post this comment belongs to
               const { data: commentData } = await supabase
                 .from('comments')
                 .select('shoutout_id')
@@ -511,7 +500,6 @@ export const usePosts = () => {
                 .single();
                 
               if (commentData?.shoutout_id) {
-                // Update engagement data for this post
                 await loadEngagementData([commentData.shoutout_id]);
               }
             } catch (error) {
@@ -521,7 +509,6 @@ export const usePosts = () => {
         })
         .subscribe();
       
-      // Clean up function
       return () => {
         supabase.removeChannel(commentsChannel);
         supabase.removeChannel(reactionsChannel);
@@ -531,12 +518,11 @@ export const usePosts = () => {
     
     const cleanup = setupRealtimeSubscriptions();
     
-    // Also set up a periodic refresh to ensure data consistency
     const refreshInterval = setInterval(() => {
       if (posts.length > 0) {
         loadEngagementData();
       }
-    }, 15000); // Refresh every 15 seconds
+    }, 15000);
     
     return () => {
       cleanup();
@@ -544,7 +530,6 @@ export const usePosts = () => {
     };
   }, [posts, loadEngagementData]);
 
-  // Initial data loading
   useEffect(() => {
     fetchUserLanguages();
     fetchPosts();

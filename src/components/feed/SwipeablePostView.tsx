@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import PostCard from './PostCard';
-import { Post } from '@/lib/data';
+import { Post, Comment } from '@/lib/data';
 import { ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/theme/theme-provider';
@@ -15,6 +14,7 @@ import {
 import type { CarouselApi } from "@/components/ui/carousel";
 import { useScreenSize } from '@/hooks/use-mobile';
 import PostSkeleton from './PostSkeleton';
+import { PostEngagement } from './PostList';
 
 interface PostWithActions extends Post {
   actions?: React.ReactNode;
@@ -24,9 +24,10 @@ interface PostWithActions extends Post {
 interface SwipeablePostViewProps {
   posts: PostWithActions[];
   loading?: boolean;
+  engagementData?: Map<string, PostEngagement>; // Add engagementData prop
 }
 
-const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = false }) => {
+const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = false, engagementData }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [api, setApi] = useState<CarouselApi | null>(null);
   const { theme } = useTheme();
@@ -36,7 +37,6 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   const [carouselKey, setCarouselKey] = useState<string>(`carousel-${Date.now()}`);
 
   useEffect(() => {
-    // Mark that we've completed initial render after a short timeout
     const timer = setTimeout(() => {
       setIsInitialRender(false);
     }, 500);
@@ -59,26 +59,21 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     };
   }, [api]);
 
-  // IMPROVED: More efficient post changes detection
   useEffect(() => {
-    // If posts have changed
     if (posts.length > 0) {
       console.log("Posts changed, checking if carousel update needed");
       
       const currentFirstPostId = posts[0]?.id;
       const prevFirstPostId = prevPostsRef.current[0]?.id;
       
-      // Force carousel reset when new posts are added or the array changes significantly
       if (
         posts.length !== prevPostsRef.current.length || 
         currentFirstPostId !== prevFirstPostId
       ) {
         console.log("Posts list significantly changed, forcing carousel refresh");
         
-        // Generate new key to force carousel re-render
         setCarouselKey(`carousel-${Date.now()}`);
         
-        // Reset to first slide immediately
         setTimeout(() => {
           if (api) {
             api.scrollTo(0);
@@ -87,35 +82,32 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
         }, 10);
       }
       
-      // Always update our reference to the current posts
       prevPostsRef.current = [...posts];
     }
   }, [posts, api]);
 
-  // Calculate post sizes based on screen width
   const getPostSizing = () => {
-    // For mobile devices, make posts smaller to show more of adjacent posts
     if (width <= 480) {
       return {
-        basis: "90%",          // Takes 90% of the container width on very small devices
-        scale: "scale-95",     // Base scale for current post
-        opacity: "opacity-100" // Full opacity for current post
+        basis: "90%",
+        scale: "scale-95",
+        opacity: "opacity-100"
       };
     } else if (width <= 768) {
       return {
-        basis: "85%",          // Takes 85% of the container width on mobile devices
-        scale: "scale-95",     // Base scale for current post
-        opacity: "opacity-100" // Full opacity for current post
+        basis: "85%",
+        scale: "scale-95",
+        opacity: "opacity-100"
       };
     } else if (width <= 1024) {
       return {
-        basis: "1/2",          // Takes half the container width on tablets
+        basis: "1/2",
         scale: "scale-100",
         opacity: "opacity-100"
       };
     } else {
       return {
-        basis: "1/3",          // Takes a third of the container width on desktops
+        basis: "1/3",
         scale: "scale-100",
         opacity: "opacity-100"
       };
@@ -124,7 +116,6 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
 
   const { basis, scale, opacity } = getPostSizing();
 
-  // Determine colors based on theme
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const mutedTextColor = theme === 'dark' ? 'text-neutral-400' : 'text-gray-500';
   const bgColor = theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100';
@@ -162,12 +153,12 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
           dragFree: false,
           containScroll: "trimSnaps"
         }}
-        key={carouselKey} // Dynamic key to force re-render when posts change
+        key={carouselKey}
       >
         <CarouselContent className="mx-auto">
           {posts.map((post, index) => (
             <CarouselItem 
-              key={`${post.id}-${index}`} // IMPROVED: Better key for more reliable renders
+              key={`${post.id}-${index}`}
               className={`basis-${basis} flex justify-center items-center pl-0`}
             >
               <div className={cn(

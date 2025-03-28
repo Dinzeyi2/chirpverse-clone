@@ -14,8 +14,8 @@ export interface User {
 export interface Comment {
   id: string;
   content: string;
-  createdAt: string;
-  userId: string;
+  createdAt: string; // Matches our frontend expected format
+  userId: string; // Matches our frontend expected format
   user?: User;
   media?: {
     type: string;
@@ -27,6 +27,9 @@ export interface Comment {
     reactions?: string[];
     [key: string]: any;
   };
+  // Add aliases for database field mappings
+  created_at?: string; // From database
+  user_id?: string; // From database
 }
 
 export interface Post {

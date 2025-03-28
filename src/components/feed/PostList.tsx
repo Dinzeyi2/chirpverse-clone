@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Post } from '@/lib/data';
+import { Post, Comment } from '@/lib/data';
 import { Inbox } from 'lucide-react';
 import PostCard from './PostCard';
 import PostSkeleton from './PostSkeleton';
@@ -10,15 +9,23 @@ interface PostWithActions extends Post {
   languages?: string[];
 }
 
+// Define the PostEngagement interface
+export interface PostEngagement {
+  postId: string;
+  comments: Comment[];
+  reactions: {emoji: string, count: number, reacted: boolean}[];
+}
+
 interface PostListProps {
   posts: PostWithActions[];
   loading?: boolean;
+  engagementData?: Map<string, PostEngagement>; // Add engagementData prop
 }
 
 // Standard profile image for all users - updated to the new blue smiley face
 const standardProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
 
-const PostList: React.FC<PostListProps> = ({ posts, loading = false }) => {
+const PostList: React.FC<PostListProps> = ({ posts, loading = false, engagementData }) => {
   if (loading) {
     return (
       <div className="p-4 space-y-6">
