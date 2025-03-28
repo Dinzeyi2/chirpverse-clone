@@ -5,9 +5,18 @@ import Comment from './Comment';
 
 interface CommentListProps {
   comments: CommentType[];
+  isLoading?: boolean;
 }
 
-const CommentList: React.FC<CommentListProps> = ({ comments }) => {
+const CommentList: React.FC<CommentListProps> = ({ comments, isLoading = false }) => {
+  if (isLoading) {
+    return (
+      <div className="py-6 text-center">
+        <p className="text-xGray font-medium">Loading comments...</p>
+      </div>
+    );
+  }
+
   if (!comments || comments.length === 0) {
     return (
       <div className="py-6 text-center">

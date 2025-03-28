@@ -44,6 +44,60 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
     return `blue${randomNum}`;
   };
 
+  // Add emoji reactions to a post
+  const addRandomEmojiReactions = async (postId: string) => {
+    try {
+      console.log('Adding random emoji reactions to post:', postId);
+      
+      // Common emoji reactions
+      const emojiOptions = ['👍', '❤️', '🔥', '👏', '😄', '🚀', '💯', '🙌', '👌', '😎'];
+      
+      // Generate 2-5 random emoji reactions
+      const numberOfReactions = Math.floor(Math.random() * 4) + 2;
+      const selectedEmojis = [];
+      
+      // Set up the fixed blue user ID for AI-generated content
+      const blue5146UserId = '513259a2-555a-4c73-8ce5-db537e33b546';
+      
+      for (let i = 0; i < numberOfReactions; i++) {
+        // Pick a random emoji that hasn't been selected yet
+        let emoji;
+        do {
+          emoji = emojiOptions[Math.floor(Math.random() * emojiOptions.length)];
+        } while (selectedEmojis.includes(emoji));
+        
+        selectedEmojis.push(emoji);
+        
+        // Generate 1-3 reactions for each emoji
+        const reactionCount = Math.floor(Math.random() * 3) + 1;
+        
+        for (let j = 0; j < reactionCount; j++) {
+          const { error } = await supabase
+            .from('post_reactions')
+            .insert({
+              post_id: String(postId),
+              user_id: blue5146UserId,
+              emoji: emoji
+            });
+            
+          if (error) {
+            console.error('Error adding emoji reaction:', error);
+          } else {
+            console.log(`Added emoji reaction ${emoji} to post ${postId}`);
+          }
+          
+          // Add a small delay between reactions
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+      
+      console.log(`Added ${selectedEmojis.length} types of emoji reactions to post ${postId}`);
+      
+    } catch (err) {
+      console.error('Error adding emoji reactions:', err);
+    }
+  };
+
   // Add AI comments to the generated post
   const addAIComments = async (postId: string, postContent: string, blueUserId: string) => {
     try {
@@ -55,11 +109,14 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       
       if (error) {
         console.error('Error generating AI comments:', error);
+        // Fallback to local comment generation if edge function fails
+        await addFallbackComments(postId, postContent, blueUserId);
         return;
       }
       
       if (!data?.comments || data.comments.length === 0) {
-        console.log('No AI comments were generated');
+        console.log('No AI comments were generated, using fallback');
+        await addFallbackComments(postId, postContent, blueUserId);
         return;
       }
       
@@ -98,6 +155,70 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       
     } catch (err) {
       console.error('Error adding AI comments:', err);
+      // Try fallback if main method fails
+      await addFallbackComments(postId, postContent, blueUserId);
+    }
+  };
+
+  // Fallback comment generation if the edge function fails
+  const addFallbackComments = async (postId: string, postContent: string, blueUserId: string) => {
+    try {
+      // Simple hardcoded fallback comments
+      const fallbackComments = [
+        "Have you tried clearing your cache?",
+        "I ran into this same issue last week. Try checking your console for errors.",
+        "Maybe there's a syntax error somewhere?",
+        "Works fine on my machine! 😅",
+        "Have you checked the documentation?",
+        "That's interesting. What version are you using?",
+        "I'd recommend checking Stack Overflow for similar issues.",
+        "Try updating to the latest version, it might be fixed already."
+      ];
+      
+      // Pick 2-4 random comments
+      const numberOfComments = Math.floor(Math.random() * 3) + 2;
+      const selectedComments = [];
+      
+      for (let i = 0; i < numberOfComments; i++) {
+        // Pick a random comment that hasn't been selected yet
+        let comment;
+        do {
+          comment = fallbackComments[Math.floor(Math.random() * fallbackComments.length)];
+        } while (selectedComments.includes(comment));
+        
+        selectedComments.push(comment);
+        
+        const displayUsername = generateRandomBlueUsername();
+        
+        // Add a small delay between comments
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 300));
+        
+        const { data: commentData, error: commentError } = await supabase
+          .from('comments')
+          .insert({
+            content: comment,
+            user_id: blueUserId,
+            shoutout_id: postId,
+            metadata: {
+              display_username: displayUsername,
+              is_ai_generated: true
+            }
+          })
+          .select('*')
+          .single();
+          
+        if (commentError) {
+          console.error('Error adding fallback comment:', commentError);
+          continue;
+        }
+        
+        console.log(`Added fallback comment from ${displayUsername}:`, commentData);
+      }
+      
+      toast.success(`${selectedComments.length} developers replied to the question!`);
+      
+    } catch (err) {
+      console.error('Error adding fallback comments:', err);
     }
   };
 
@@ -190,7 +311,11 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       
       // Generate and add AI comments to the post
       if (insertedPost?.id) {
+        // First add comments 
         await addAIComments(insertedPost.id, content, blue5146UserId);
+        
+        // Then add emoji reactions
+        await addRandomEmojiReactions(insertedPost.id);
       }
       
       // For frontend optimistic update - pass the generated content to parent
