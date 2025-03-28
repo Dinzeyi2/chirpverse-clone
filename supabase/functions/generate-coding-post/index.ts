@@ -42,8 +42,9 @@ serve(async (req) => {
         temperature: 0.9,
         max_tokens: 280,
         top_p: 0.95,
-        frequency_penalty: 0.7,
-        presence_penalty: 0.7
+        // Remove one of the penalties to fix the API error
+        frequency_penalty: 0.7
+        // Only using frequency_penalty, removing presence_penalty
       }),
     });
 
