@@ -13,17 +13,6 @@ interface GenerateAIPostProps {
 const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Generate a fake user ID for AI users with proper UUID format
-  const generateFakeUserId = () => {
-    return uuidv4();
-  };
-  
-  // Generate a display username in the "blue1234" format
-  const generateDisplayUsername = () => {
-    const randomDigits = Math.floor(1000 + Math.random() * 9000).toString();
-    return `blue${randomDigits}`;
-  };
-
   const generatePost = async () => {
     setIsGenerating(true);
     toast.info('Finding real coding issues from the web...');
@@ -44,11 +33,29 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       }
       
       if (data?.content) {
+        // Generate a unique username for the post
+        const displayUsername = `blue${Math.floor(1000 + Math.random() * 9000).toString()}`;
+        
+        // Insert the post directly into the database to ensure persistence
+        const { error: insertError } = await supabase
+          .from('shoutouts')
+          .insert({
+            content: data.content,
+            user_id: user.id,
+            metadata: {
+              display_username: displayUsername,
+              is_ai_generated: true
+            }
+          });
+          
+        if (insertError) {
+          console.error('Error inserting AI post:', insertError);
+          throw new Error('Failed to save the generated post to the database');
+        }
+        
         // For frontend optimistic update - pass the generated content to parent
         onPostGenerated(data.content);
         
-        // We no longer need to insert directly into the database
-        // The parent component will handle that through normal post creation flow
         toast.success('Real coding issue found and posted!');
       } else {
         throw new Error('No content was found');
