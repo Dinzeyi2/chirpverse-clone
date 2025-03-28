@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -32,6 +33,7 @@ const PostPage: React.FC = () => {
   const [post, setPost] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [commentAdded, setCommentAdded] = useState(false);
   
   const blueProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
   
@@ -182,14 +184,19 @@ const PostPage: React.FC = () => {
         filter: `shoutout_id=eq.${postId}`
       }, (payload) => {
         console.log('New comment received via realtime:', payload);
-        fetchPostAndComments();
+        // Don't refetch if we just added a comment to avoid duplication
+        if (!commentAdded) {
+          fetchPostAndComments();
+        } else {
+          setCommentAdded(false);
+        }
       })
       .subscribe();
       
     return () => {
       supabase.removeChannel(commentsChannel);
     };
-  }, [postId]);
+  }, [postId, commentAdded]);
   
   const formatTextWithLinks = (text: string) => {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -224,6 +231,9 @@ const PostPage: React.FC = () => {
     if (!user || !postId) return;
     
     try {
+      // Set flag to prevent duplicate comment issue
+      setCommentAdded(true);
+      
       const { data, error } = await supabase
         .from('comments')
         .insert({
@@ -275,6 +285,7 @@ const PostPage: React.FC = () => {
     } catch (error) {
       console.error('Error adding comment:', error);
       toast.error('Failed to add comment');
+      setCommentAdded(false); // Reset flag in case of error
     }
   };
   

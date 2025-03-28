@@ -153,10 +153,24 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
       })
       .subscribe();
       
+    // Subscribe to comment reactions changes
+    const reactionsChannel = supabase
+      .channel(`comment-reactions-${comment.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'comment_reactions',
+        filter: `comment_id=eq.${comment.id}`
+      }, () => {
+        fetchCommentReactions();
+      })
+      .subscribe();
+      
     return () => {
       supabase.removeChannel(bludifyChannel);
+      supabase.removeChannel(reactionsChannel);
     };
-  }, [comment.id, user, comment.metadata, reactions.length]);
+  }, [comment.id, user, comment.metadata]);
 
   const handleSave = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -271,6 +285,16 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
       
       if (existingReaction) {
         if (existingReaction.reacted) {
+          // User already reacted with this emoji, so remove it
+          const { error } = await supabase
+            .from('comment_reactions')
+            .delete()
+            .eq('comment_id', comment.id)
+            .eq('user_id', user.id)
+            .eq('emoji', selectedEmoji);
+            
+          if (error) throw error;
+          
           setReactions(prev => 
             prev.map(r => 
               r.emoji === selectedEmoji 
@@ -280,6 +304,17 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
           );
           toast.success(`Removed ${selectedEmoji} reaction`);
         } else {
+          // User hasn't reacted with this emoji yet, so add it
+          const { error } = await supabase
+            .from('comment_reactions')
+            .insert({
+              comment_id: comment.id,
+              user_id: user.id,
+              emoji: selectedEmoji
+            });
+            
+          if (error) throw error;
+          
           setReactions(prev => 
             prev.map(r => 
               r.emoji === selectedEmoji 
@@ -304,6 +339,17 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
           toast.success(`Added ${selectedEmoji} reaction`);
         }
       } else {
+        // This is a new emoji reaction
+        const { error } = await supabase
+          .from('comment_reactions')
+          .insert({
+            comment_id: comment.id,
+            user_id: user.id,
+            emoji: selectedEmoji
+          });
+          
+        if (error) throw error;
+        
         setReactions(prev => [...prev, { emoji: selectedEmoji, count: 1, reacted: true }]);
         
         if (comment.userId !== user.id) {
@@ -329,26 +375,64 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
     }
   };
 
-  const handleReactionClick = (emoji: string, e: React.MouseEvent) => {
+  const handleReactionClick = async (emoji: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    setReactions(prev => 
-      prev.map(r => 
-        r.emoji === emoji 
-          ? { 
-              ...r, 
-              count: r.reacted ? r.count - 1 : r.count + 1, 
-              reacted: !r.reacted 
-            } 
-          : r
-      ).filter(r => r.count > 0)
-    );
+    if (!user) {
+      toast.error('Please sign in to react to comments');
+      return;
+    }
     
-    const action = reactions.find(r => r.emoji === emoji)?.reacted 
-      ? 'Removed' 
-      : 'Added';
-    toast.success(`${action} ${emoji} reaction`);
+    try {
+      const isReacted = reactions.find(r => r.emoji === emoji)?.reacted;
+      
+      if (isReacted) {
+        // Remove reaction
+        const { error } = await supabase
+          .from('comment_reactions')
+          .delete()
+          .eq('comment_id', comment.id)
+          .eq('user_id', user.id)
+          .eq('emoji', emoji);
+          
+        if (error) throw error;
+        
+        setReactions(prev => 
+          prev.map(r => 
+            r.emoji === emoji 
+              ? { ...r, count: r.count - 1, reacted: false } 
+              : r
+          ).filter(r => r.count > 0)
+        );
+        
+        toast.success(`Removed ${emoji} reaction`);
+      } else {
+        // Add reaction
+        const { error } = await supabase
+          .from('comment_reactions')
+          .insert({
+            comment_id: comment.id,
+            user_id: user.id,
+            emoji: emoji
+          });
+          
+        if (error) throw error;
+        
+        setReactions(prev => 
+          prev.map(r => 
+            r.emoji === emoji 
+              ? { ...r, count: r.count + 1, reacted: true } 
+              : r
+            )
+        );
+        
+        toast.success(`Added ${emoji} reaction`);
+      }
+    } catch (error) {
+      console.error('Error toggling reaction:', error);
+      toast.error('Failed to update reaction');
+    }
   };
 
   const formatNumber = (num: number): string => {
