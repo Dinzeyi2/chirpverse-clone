@@ -124,6 +124,7 @@ export type Database = {
           created_at: string | null
           id: string
           media: Json | null
+          metadata: Json | null
           shoutout_id: string
           updated_at: string | null
           user_id: string
@@ -133,6 +134,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           media?: Json | null
+          metadata?: Json | null
           shoutout_id: string
           updated_at?: string | null
           user_id: string
@@ -142,6 +144,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           media?: Json | null
+          metadata?: Json | null
           shoutout_id?: string
           updated_at?: string | null
           user_id?: string
