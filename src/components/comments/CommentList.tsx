@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Comment as CommentType } from '@/lib/data';
 import Comment from './Comment';
@@ -9,14 +8,25 @@ interface CommentListProps {
 }
 
 const CommentList: React.FC<CommentListProps> = ({ comments, isLoading = false }) => {
-  // Deduplicate comments by ID
+  // Improved deduplication with consistent sorting to ensure stable order
   const uniqueComments = useMemo(() => {
-    const uniqueIds = new Set();
-    return comments.filter(comment => {
-      if (uniqueIds.has(comment.id)) return false;
-      uniqueIds.add(comment.id);
-      return true;
+    const uniqueMap = new Map<string, CommentType>();
+    
+    // Sort by creation date (newest first) before deduplication
+    // This ensures we keep the newest version of each comment
+    const sortedComments = [...comments].sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    
+    // Add to map (which automatically handles deduplication by ID)
+    sortedComments.forEach(comment => {
+      if (!uniqueMap.has(comment.id)) {
+        uniqueMap.set(comment.id, comment);
+      }
     });
+    
+    // Convert back to array and maintain sorted order
+    return Array.from(uniqueMap.values());
   }, [comments]);
 
   if (isLoading) {
