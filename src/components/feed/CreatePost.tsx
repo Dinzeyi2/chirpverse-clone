@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Image, X, Video, Code } from 'lucide-react';
 import Button from '@/components/common/Button';
@@ -78,6 +79,10 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
 
   const removeMedia = (index: number) => {
     setMediaFiles(prev => prev.filter((_, i) => i !== index));
+  };
+  
+  const removeCodeBlock = (index: number) => {
+    setCodeBlocks(prev => prev.filter((_, i) => i !== index));
   };
   
   const resetForm = () => {
@@ -167,49 +172,15 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     }
   };
   
-  useEffect(() => {
-    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
-    const extractedBlocks: {code: string, language: string}[] = [];
-    
-    let match;
-    while ((match = codeBlockRegex.exec(postContent)) !== null) {
-      const language = match[1] || 'plaintext';
-      const code = match[2];
-      extractedBlocks.push({ code, language });
-    }
-    
-    setCodeBlocks(extractedBlocks);
-  }, [postContent]);
-  
   const handleCodeInsert = (code: string, language: string) => {
-    const codeBlock = `\`\`\`${language}\n${code}\n\`\`\``;
-    
-    if (textareaRef.current) {
-      const startPos = textareaRef.current.selectionStart;
-      const endPos = textareaRef.current.selectionEnd;
-      
-      const newText = postContent.substring(0, startPos) + codeBlock + postContent.substring(endPos);
-      setPostContent(newText);
-      setCharCount(newText.length);
-      
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-      
-      setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.focus();
-          const newPosition = startPos + codeBlock.length;
-          textareaRef.current.setSelectionRange(newPosition, newPosition);
-        }
-      }, 0);
-    }
+    setCodeBlocks(prev => [...prev, { code, language }]);
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!postContent.trim() && mediaFiles.length === 0) {
-      toast.error('Please enter content or add media');
+    if (!postContent.trim() && mediaFiles.length === 0 && codeBlocks.length === 0) {
+      toast.error('Please enter content, add media, or add code');
       return;
     }
     
@@ -313,17 +284,31 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                 disabled={isLoading}
               />
               
-              {codeBlocks.map((block, index) => (
-                <CodeBlock 
-                  key={index}
-                  code={block.code}
-                  language={block.language}
-                  className="mt-3 mb-4"
-                />
-              ))}
+              {/* Code Blocks Section */}
+              {codeBlocks.length > 0 && (
+                <div className="mt-4 space-y-4">
+                  {codeBlocks.map((block, index) => (
+                    <div key={index} className="relative group">
+                      <CodeBlock 
+                        code={block.code}
+                        language={block.language}
+                        className="mt-2"
+                      />
+                      <button
+                        type="button"
+                        className="absolute top-2 right-2 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+                        onClick={() => removeCodeBlock(index)}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
               
+              {/* Media Files Section */}
               {mediaFiles.length > 0 && (
-                <div className="mt-2 mb-4 relative">
+                <div className="mt-4">
                   <div className={`grid ${mediaFiles.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-2 rounded-2xl overflow-hidden`}>
                     {mediaFiles.map((media, index) => (
                       <div key={index} className="relative rounded-2xl overflow-hidden group">
@@ -407,7 +392,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                 )}
                 <Button
                   type="submit"
-                  disabled={(!postContent.trim() && mediaFiles.length === 0) || isLoading}
+                  disabled={((!postContent.trim() && mediaFiles.length === 0) && codeBlocks.length === 0) || isLoading}
                   isLoading={isLoading}
                   className="rounded-full px-4"
                 >
