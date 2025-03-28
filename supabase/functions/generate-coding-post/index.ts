@@ -32,18 +32,18 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an AI that generates realistic posts about coding problems. Generate a post that sounds like a real programmer asking for help with a coding issue. Include code snippets if relevant. Only output the post content, nothing else.'
+            content: 'You are an AI that generates realistic posts about coding problems. Sound exactly like a real frustrated programmer asking for help. Use an authentic tone and include code snippets when relevant. Focus on common, relatable coding issues.'
           },
           {
             role: 'user',
-            content: 'Create a post about a common coding problem in one of these languages: JavaScript, Python, React, TypeScript, CSS, or HTML. Make it realistic, as if a real person is asking for help. Include relevant code and mention the programming language with an @ symbol (e.g., @JavaScript, @React). Keep it under 280 characters.'
+            content: 'Create a post about a real coding problem in JavaScript, Python, React, TypeScript, CSS, or HTML. Make it realistic, as if a real person is asking for help with a specific error or bug they encountered. Include relevant code snippets and mention the programming language with an @ symbol (e.g., @JavaScript, @React). Keep it under 280 characters.'
           }
         ],
-        temperature: 0.7,
+        temperature: 0.9,
         max_tokens: 280,
-        top_p: 0.9,
-        frequency_penalty: 0.5,
-        presence_penalty: 0.5
+        top_p: 0.95,
+        frequency_penalty: 0.7,
+        presence_penalty: 0.7
       }),
     });
 
