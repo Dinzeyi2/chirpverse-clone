@@ -26,7 +26,7 @@ export interface Comment {
     is_ai_generated?: boolean;
     reactions?: string[];
     [key: string]: any;
-  };
+  } | any; // Updated to accept any type from the database
   // Add aliases for database field mappings
   created_at?: string; // From database
   user_id?: string; // From database

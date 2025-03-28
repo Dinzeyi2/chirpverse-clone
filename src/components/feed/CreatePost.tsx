@@ -1,12 +1,13 @@
 
 import React, { useState, useRef } from 'react';
-import { Image, X, Video } from 'lucide-react';
+import { Image, X, Video, Code } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { toast } from 'sonner';
 import { DialogClose } from '@/components/ui/dialog';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import CodeEditorDialog from '@/components/code/CodeEditorDialog';
 
 interface CreatePostProps {
   onPostCreated?: (content: string, media?: {type: string, url: string}[]) => void;
@@ -18,6 +19,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const [charCount, setCharCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<{type: string, file: File, preview: string}[]>([]);
+  const [codeEditorOpen, setCodeEditorOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -48,6 +50,40 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
 
   const handleVideoClick = () => {
     videoInputRef.current?.click();
+  };
+
+  const handleCodeEditorClick = () => {
+    setCodeEditorOpen(true);
+  };
+
+  const handleCodeInsert = (code: string, language: string) => {
+    // Create a code block format to insert into the post
+    const codeBlock = `\`\`\`${language}\n${code}\n\`\`\``;
+    
+    // Insert at cursor position or append to the end
+    if (textareaRef.current) {
+      const cursorPos = textareaRef.current.selectionStart;
+      const textBefore = postContent.substring(0, cursorPos);
+      const textAfter = postContent.substring(cursorPos);
+      
+      const newContent = `${textBefore}\n${codeBlock}\n${textAfter}`;
+      
+      if (newContent.length <= maxChars) {
+        setPostContent(newContent);
+        setCharCount(newContent.length);
+      } else {
+        toast.error(`Adding code would exceed the ${maxChars} character limit`);
+      }
+    } else {
+      const newContent = `${postContent}\n${codeBlock}`;
+      
+      if (newContent.length <= maxChars) {
+        setPostContent(newContent);
+        setCharCount(newContent.length);
+      } else {
+        toast.error(`Adding code would exceed the ${maxChars} character limit`);
+      }
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -323,6 +359,14 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                 >
                   <Video size={20} />
                 </button>
+                <button 
+                  type="button"
+                  className="p-2 text-xBlue rounded-full hover:bg-xBlue/10 transition-colors"
+                  onClick={handleCodeEditorClick}
+                  disabled={isLoading}
+                >
+                  <Code size={20} />
+                </button>
               </div>
               
               <div className="flex items-center">
@@ -346,6 +390,13 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
           </form>
         </div>
       </div>
+      
+      {/* Code Editor Dialog */}
+      <CodeEditorDialog 
+        open={codeEditorOpen} 
+        onClose={() => setCodeEditorOpen(false)}
+        onSave={handleCodeInsert}
+      />
     </div>
   );
 };
