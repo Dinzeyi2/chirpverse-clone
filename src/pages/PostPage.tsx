@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -45,8 +44,10 @@ const PostPage: React.FC = () => {
         if (postData) {
           // Get the display username from metadata if available
           const metadata = postData.metadata || {};
-          const displayUsername = metadata.display_username || 
-            (postData.profiles?.user_id?.substring(0, 8) || 'user');
+          // Check if metadata is an object and has display_username property
+          const displayUsername = typeof metadata === 'object' && metadata !== null && 'display_username' in metadata
+            ? (metadata as { display_username?: string }).display_username
+            : (postData.profiles?.user_id?.substring(0, 8) || 'user');
           
           const formattedPost = {
             id: postData.id,
@@ -72,6 +73,7 @@ const PostPage: React.FC = () => {
           
           setPost(formattedPost);
           
+          // ... keep existing code (Promise.all for fetching likes, comments, etc.)
           Promise.all([
             supabase.from('likes').select('*', { count: 'exact' }).eq('shoutout_id', postId),
             supabase.from('comments').select('*', { count: 'exact' }).eq('shoutout_id', postId),
