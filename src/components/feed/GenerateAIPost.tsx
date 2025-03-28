@@ -85,7 +85,10 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
         }
       }
       
-      // Generate a unique username for the post
+      // Set the fixed user ID for blue5146 - make sure all AI posts belong to this specific user
+      const blue5146UserId = '513259a2-555a-4c73-8ce5-db537e33b546';
+      
+      // Generate a unique username that starts with "blue"
       const displayUsername = `blue${Math.floor(1000 + Math.random() * 9000).toString()}`;
       
       // Insert the post directly into the database to ensure persistence
@@ -93,9 +96,9 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
         .from('shoutouts')
         .insert({
           content: content,
-          user_id: user.id,
+          user_id: blue5146UserId, // Always use the fixed user ID for blue5146
           metadata: {
-            display_username: displayUsername,
+            display_username: 'blue5146', // Fixed display username
             is_ai_generated: true
           }
         });
@@ -130,7 +133,7 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       ) : (
         <Brain className="h-4 w-4" />
       )}
-      Find Developer Questions
+      Find Questions
     </Button>
   );
 };
