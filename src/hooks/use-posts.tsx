@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, enableRealtimeForTables } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -47,28 +48,44 @@ export const usePosts = () => {
     if (!postIds.length) return {};
     
     try {
+      // Use SQL query for comment counts instead of groupBy
       const { data: commentsData, error: commentError } = await supabase
         .from('comments')
-        .select('shoutout_id, count(*)')
+        .select('shoutout_id, count')
         .in('shoutout_id', postIds)
-        .groupBy('shoutout_id');
-        
+        .select('shoutout_id, count(*)')
+        .then(result => {
+          // Process the result
+          if (result.error) throw result.error;
+          return { data: result.data, error: null };
+        });
+      
       if (commentError) throw commentError;
       
+      // Use SQL query for reaction counts
       const { data: reactionsData, error: reactionsError } = await supabase
         .from('post_reactions')
-        .select('post_id, count(*)')
+        .select('post_id, count')
         .in('post_id', postIds)
-        .groupBy('post_id');
-        
+        .select('post_id, count(*)')
+        .then(result => {
+          if (result.error) throw result.error;
+          return { data: result.data, error: null };
+        });
+      
       if (reactionsError) throw reactionsError;
       
+      // Use SQL query for likes counts
       const { data: likesData, error: likesError } = await supabase
         .from('likes')
-        .select('shoutout_id, count(*)')
+        .select('shoutout_id, count')
         .in('shoutout_id', postIds)
-        .groupBy('shoutout_id');
-        
+        .select('shoutout_id, count(*)')
+        .then(result => {
+          if (result.error) throw result.error;
+          return { data: result.data, error: null };
+        });
+      
       if (likesError) throw likesError;
       
       const engagementMap: Record<string, { comments: number, reactions: number, likes: number }> = {};
