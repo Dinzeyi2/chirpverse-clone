@@ -13,6 +13,7 @@ export const usePosts = () => {
   const [optimisticPosts, setOptimisticPosts] = useState<any[]>([]);
   const isRefreshingRef = useRef(false);
   const realtimeChannelRef = useRef<any>(null);
+  const engagementDataCache = useRef<Record<string, any>>({});
   
   const blueProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
 
@@ -48,67 +49,133 @@ export const usePosts = () => {
     if (!postIds.length) return {};
     
     try {
-      // Fetch comment counts with raw SQL approach for better performance
+      console.log("Fetching engagement data for posts:", postIds);
+      
+      // Fetch comment counts - fixed query syntax
       const { data: commentsData, error: commentError } = await supabase
         .from('comments')
-        .select('shoutout_id, count(*)')
+        .select('shoutout_id, count')
         .in('shoutout_id', postIds)
-        .then(result => {
-          if (result.error) throw result.error;
-          return { data: result.data, error: null };
-        });
+        .select('shoutout_id, count(*)', { count: 'exact' });
       
-      if (commentError) throw commentError;
-      
-      // Fetch reaction counts with raw SQL approach
-      const { data: reactionsData, error: reactionsError } = await supabase
-        .from('post_reactions')
-        .select('post_id, count(*)')
-        .in('post_id', postIds)
-        .then(result => {
-          if (result.error) throw result.error;
-          return { data: result.data, error: null };
-        });
-      
-      if (reactionsError) throw reactionsError;
-      
-      // Fetch likes counts with raw SQL approach
-      const { data: likesData, error: likesError } = await supabase
-        .from('likes')
-        .select('shoutout_id, count(*)')
-        .in('shoutout_id', postIds)
-        .then(result => {
-          if (result.error) throw result.error;
-          return { data: result.data, error: null };
-        });
-      
-      if (likesError) throw likesError;
-      
-      const engagementMap: Record<string, { comments: number, reactions: number, likes: number }> = {};
-      
-      postIds.forEach(id => {
-        engagementMap[id] = { comments: 0, reactions: 0, likes: 0 };
-      });
-      
-      commentsData?.forEach((item: any) => {
-        if (item.shoutout_id && engagementMap[item.shoutout_id]) {
-          engagementMap[item.shoutout_id].comments = parseInt(item.count || '0', 10);
+      if (commentError) {
+        console.error("Comments count error:", commentError);
+        
+        // Fallback method for comments count
+        const commentsCountMap: Record<string, number> = {};
+        
+        for (const postId of postIds) {
+          const { count, error } = await supabase
+            .from('comments')
+            .select('*', { count: 'exact', head: true })
+            .eq('shoutout_id', postId);
+            
+          commentsCountMap[postId] = count || 0;
         }
-      });
-      
-      reactionsData?.forEach((item: any) => {
-        if (item.post_id && engagementMap[item.post_id]) {
-          engagementMap[item.post_id].reactions = parseInt(item.count || '0', 10);
+        
+        console.log("Fallback comments counts:", commentsCountMap);
+        
+        // Format data to match expected structure
+        const formattedCommentsData = Object.entries(commentsCountMap).map(([postId, count]) => ({
+          shoutout_id: postId,
+          count
+        }));
+        
+        // Fetch reaction counts - fixed query
+        const { data: reactionsData, error: reactionsError } = await supabase
+          .from('post_reactions')
+          .select('post_id, count(*)', { count: 'exact' })
+          .in('post_id', postIds);
+          
+        if (reactionsError) {
+          console.error("Reactions count error:", reactionsError);
         }
-      });
-      
-      likesData?.forEach((item: any) => {
-        if (item.shoutout_id && engagementMap[item.shoutout_id]) {
-          engagementMap[item.shoutout_id].likes = parseInt(item.count || '0', 10);
+        
+        // Fetch likes counts - fixed query
+        const { data: likesData, error: likesError } = await supabase
+          .from('likes')
+          .select('shoutout_id, count(*)', { count: 'exact' })
+          .in('shoutout_id', postIds);
+          
+        if (likesError) {
+          console.error("Likes count error:", likesError);
         }
-      });
-      
-      return engagementMap;
+        
+        const engagementMap: Record<string, { comments: number, reactions: number, likes: number }> = {};
+        
+        postIds.forEach(id => {
+          engagementMap[id] = { comments: 0, reactions: 0, likes: 0 };
+        });
+        
+        formattedCommentsData?.forEach((item: any) => {
+          if (item.shoutout_id) {
+            engagementMap[item.shoutout_id].comments = parseInt(item.count || '0', 10);
+          }
+        });
+        
+        reactionsData?.forEach((item: any) => {
+          if (item.post_id) {
+            engagementMap[item.post_id].reactions = parseInt(item.count || '0', 10);
+          }
+        });
+        
+        likesData?.forEach((item: any) => {
+          if (item.shoutout_id) {
+            engagementMap[item.shoutout_id].likes = parseInt(item.count || '0', 10);
+          }
+        });
+        
+        // Cache engagement data for instant access
+        Object.assign(engagementDataCache.current, engagementMap);
+        
+        return engagementMap;
+      } else {
+        // Continue with other queries if comments succeeded
+        // Fetch reaction counts - fixed query syntax
+        const { data: reactionsData, error: reactionsError } = await supabase
+          .from('post_reactions')
+          .select('post_id, count(*)', { count: 'exact' })
+          .in('post_id', postIds);
+        
+        if (reactionsError) console.error("Reactions error:", reactionsError);
+        
+        // Fetch likes counts - fixed query syntax
+        const { data: likesData, error: likesError } = await supabase
+          .from('likes')
+          .select('shoutout_id, count(*)', { count: 'exact' })
+          .in('shoutout_id', postIds);
+        
+        if (likesError) console.error("Likes error:", likesError);
+        
+        const engagementMap: Record<string, { comments: number, reactions: number, likes: number }> = {};
+        
+        postIds.forEach(id => {
+          engagementMap[id] = { comments: 0, reactions: 0, likes: 0 };
+        });
+        
+        commentsData?.forEach((item: any) => {
+          if (item.shoutout_id) {
+            engagementMap[item.shoutout_id].comments = parseInt(item.count || '0', 10);
+          }
+        });
+        
+        reactionsData?.forEach((item: any) => {
+          if (item.post_id) {
+            engagementMap[item.post_id].reactions = parseInt(item.count || '0', 10);
+          }
+        });
+        
+        likesData?.forEach((item: any) => {
+          if (item.shoutout_id) {
+            engagementMap[item.shoutout_id].likes = parseInt(item.count || '0', 10);
+          }
+        });
+        
+        // Cache engagement data for instant access
+        Object.assign(engagementDataCache.current, engagementMap);
+        
+        return engagementMap;
+      }
     } catch (error) {
       console.error('Error fetching post engagement data:', error);
       return {};
@@ -125,7 +192,7 @@ export const usePosts = () => {
     setError(null);
     
     try {
-      console.log("Fetching posts and engagements...");
+      console.log("Fetching posts...");
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
       
@@ -143,23 +210,27 @@ export const usePosts = () => {
       if (shoutoutData && shoutoutData.length > 0) {
         const postIds = shoutoutData.map(post => post.id);
         
-        // Immediately fetch engagement data
-        const engagementPromise = fetchPostEngagementData(postIds);
+        // Use cached engagement data for immediate display
+        const initialEngagementData = { ...engagementDataCache.current };
         
+        // Format posts with cached engagement data first for immediate display
         const formattedPosts = shoutoutData.map(post => {
           const metadata = post.metadata as Record<string, any> || {};
           const displayUsername = metadata.display_username || 
             (post.user_id ? post.user_id.substring(0, 8) : 'user');
           
+          // Use cached engagement data if available
+          const cachedEngagement = initialEngagementData[post.id] || { comments: 0, reactions: 0, likes: 0 };
+          
           return {
             id: post.id,
             content: post.content,
             createdAt: post.created_at,
-            likes: 0, // Will be updated with engagement data
-            comments: 0, // Will be updated with engagement data
+            likes: cachedEngagement.likes || 0,
+            comments: cachedEngagement.reactions || 0,
             saves: 0,
             reposts: 0,
-            replies: 0,
+            replies: cachedEngagement.comments || 0,
             views: 0,
             userId: post.user_id,
             images: post.media,
@@ -177,29 +248,36 @@ export const usePosts = () => {
           };
         });
         
-        // Wait for engagement data
-        const engagementData = await engagementPromise;
-        
-        const postsWithEngagement = formattedPosts.map(post => {
-          const engagement = engagementData[post.id] || { comments: 0, reactions: 0, likes: 0 };
-          return {
-            ...post,
-            likes: engagement.likes,
-            comments: engagement.reactions,
-            replies: engagement.comments
-          };
-        });
-        
         // Combine with optimistic posts and ensure no duplicates
-        const combinedPosts = [...optimisticPosts, ...postsWithEngagement]
+        const initialCombinedPosts = [...optimisticPosts, ...formattedPosts]
           .filter((post, index, self) => 
             index === self.findIndex(p => p.id === post.id)
           )
           .sort((a, b) => 
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
-          
-        setPosts(combinedPosts);
+        
+        // Update state immediately with what we have
+        setPosts(initialCombinedPosts);
+        
+        // Fetch fresh engagement data in the background
+        fetchPostEngagementData(postIds).then(engagementData => {
+          if (Object.keys(engagementData).length > 0) {
+            // Update posts with fresh engagement data
+            setPosts(currentPosts => {
+              return currentPosts.map(post => {
+                const freshEngagement = engagementData[post.id] || { comments: 0, reactions: 0, likes: 0 };
+                
+                return {
+                  ...post,
+                  likes: freshEngagement.likes || post.likes,
+                  comments: freshEngagement.reactions || post.comments,
+                  replies: freshEngagement.comments || post.replies
+                };
+              });
+            });
+          }
+        });
       } else {
         setPosts(optimisticPosts);
       }
@@ -271,21 +349,22 @@ export const usePosts = () => {
         // Get post IDs for engagement data
         const postIds = moreData.map(post => post.id);
         
-        // Immediately fetch engagement data for these posts
-        const engagementData = await fetchPostEngagementData(postIds);
+        // Use cached engagement data for immediate display
+        const cachedEngagementData = { ...engagementDataCache.current };
         
+        // Format posts with cached data for immediate display
         const morePosts = moreData.map(post => {
-          const engagement = engagementData[post.id] || { comments: 0, reactions: 0, likes: 0 };
+          const cachedEngagement = cachedEngagementData[post.id] || { comments: 0, reactions: 0, likes: 0 };
           
           return {
             id: post.id,
             content: post.content,
             createdAt: post.created_at,
-            likes: engagement.likes || 0,
-            comments: engagement.reactions || 0,
+            likes: cachedEngagement.likes || 0,
+            comments: cachedEngagement.reactions || 0,
             saves: 0,
             reposts: 0,
-            replies: engagement.comments || 0,
+            replies: cachedEngagement.comments || 0,
             views: 0,
             userId: post.user_id,
             images: post.media,
@@ -302,7 +381,28 @@ export const usePosts = () => {
           };
         });
         
+        // Update state immediately
         setPosts(prev => [...prev, ...morePosts]);
+        
+        // Fetch fresh engagement data in background
+        fetchPostEngagementData(postIds).then(freshEngagementData => {
+          if (Object.keys(freshEngagementData).length > 0) {
+            // Update with fresh data
+            setPosts(currentPosts => {
+              return currentPosts.map(post => {
+                const engagement = freshEngagementData[post.id];
+                if (!engagement) return post;
+                
+                return {
+                  ...post,
+                  likes: engagement.likes || post.likes,
+                  comments: engagement.reactions || post.comments,
+                  replies: engagement.comments || post.replies
+                };
+              });
+            });
+          }
+        });
       }
     } catch (error) {
       console.error('Error loading more posts:', error);
@@ -312,44 +412,82 @@ export const usePosts = () => {
     }
   }, [posts, loading]);
 
+  // Listen for realtime updates on relevant tables
   useEffect(() => {
     if (!realtimeChannelRef.current) {
       realtimeChannelRef.current = enableRealtimeForTables();
     }
     
-    const handleRealtimeUpdate = () => {
-      console.log('Received realtime update, refreshing posts');
-      fetchPosts();
+    // More aggressive realtime updates strategy
+    const handleRealtimeUpdate = (payload: any) => {
+      const { table } = payload;
+      console.log(`Realtime update from table: ${table}`, payload);
+      
+      // For engagement tables, immediately update engagement data cache
+      if (['comments', 'likes', 'post_reactions'].includes(table)) {
+        // For new comment or reaction, update the view immediately
+        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+          const postId = payload.new.shoutout_id || payload.new.post_id;
+          
+          if (postId) {
+            // Update UI immediately based on the type of engagement
+            setPosts(currentPosts => {
+              return currentPosts.map(post => {
+                if (post.id !== postId) return post;
+                
+                // Update the specific engagement counter
+                const updates: any = {};
+                
+                if (table === 'comments') {
+                  updates.replies = post.replies + 1;
+                } else if (table === 'likes') {
+                  updates.likes = post.likes + 1;
+                } else if (table === 'post_reactions') {
+                  updates.comments = post.comments + 1;
+                }
+                
+                return { ...post, ...updates };
+              });
+            });
+          }
+        }
+      }
+      
+      // Also do a full refresh in the background
+      if (!isRefreshingRef.current) {
+        fetchPosts();
+      }
     };
     
-    // Setup channel for more comprehensive table monitoring
+    // More specific channel subscriptions
     const channel = supabase
-      .channel('public-changes')
+      .channel('real-time-posts')
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
         table: 'shoutouts' 
-      }, handleRealtimeUpdate)
+      }, (payload) => handleRealtimeUpdate({...payload, table: 'shoutouts'}))
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'comments'
-      }, handleRealtimeUpdate)
+      }, (payload) => handleRealtimeUpdate({...payload, table: 'comments'}))
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'post_reactions'
-      }, handleRealtimeUpdate)
+      }, (payload) => handleRealtimeUpdate({...payload, table: 'post_reactions'}))
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'likes'
-      }, handleRealtimeUpdate)
+      }, (payload) => handleRealtimeUpdate({...payload, table: 'likes'}))
       .subscribe((status) => {
         console.log('Realtime subscription status:', status);
       });
     
     return () => {
+      console.log('Removing realtime subscription');
       supabase.removeChannel(channel);
     };
   }, [fetchPosts]);
@@ -359,11 +497,13 @@ export const usePosts = () => {
     fetchUserLanguages();
     fetchPosts();
     
-    // Setup interval for periodic refresh (fallback if realtime fails)
+    // More frequent refresh for better real-time experience
     const intervalId = setInterval(() => {
-      console.log('Periodic refresh triggered');
-      fetchPosts();
-    }, 30000); // 30 seconds refresh interval as fallback
+      if (!isRefreshingRef.current) {
+        console.log('Periodic refresh triggered');
+        fetchPosts();
+      }
+    }, 5000); // 5 seconds refresh interval as fallback
     
     return () => clearInterval(intervalId);
   }, [fetchUserLanguages, fetchPosts]);

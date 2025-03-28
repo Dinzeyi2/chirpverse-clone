@@ -89,16 +89,33 @@ const Index = () => {
       setTimeout(() => {
         setIsRefreshing(false);
         setFeedKey(`feed-${Date.now()}`);
-      }, 500);
+      }, 300); // Faster refresh animation
     });
     
     toast.info('Refreshing feed...');
   }, [refreshPosts]);
 
-  // Auto-refresh on initial load
+  // Auto-refresh on initial load and periodically
   useEffect(() => {
     refreshPosts();
+    
+    // Set up more frequent, lightweight refresh for real-time feel
+    const refreshInterval = setInterval(() => {
+      console.log("Auto-refreshing feed...");
+      refreshPosts();
+    }, 10000); // Every 10 seconds
+    
+    return () => clearInterval(refreshInterval);
   }, [refreshPosts]);
+
+  // Force refresh of the view whenever posts change
+  useEffect(() => {
+    if (posts.length > 0) {
+      // Create a new key to force components to re-render
+      setFeedKey(`feed-${Date.now()}-${posts.length}-${posts.reduce((acc, post) => 
+        acc + (post.likes || 0) + (post.replies || 0) + (post.comments || 0), 0)}`);
+    }
+  }, [posts]);
 
   // Theme-based styles
   const bgColor = theme === 'dark' ? 'bg-black' : 'bg-lightBeige';
@@ -209,13 +226,13 @@ const Index = () => {
                 <SwipeablePostView 
                   posts={posts} 
                   loading={loading} 
-                  key={`${feedKey}-swipeable-${posts.length}`}
+                  key={`${feedKey}-swipeable`}
                 />
               ) : (
                 <PostList 
                   posts={posts} 
                   loading={loading} 
-                  key={`${feedKey}-list-${posts.length}`}
+                  key={`${feedKey}-list`}
                 />
               )}
             </Suspense>

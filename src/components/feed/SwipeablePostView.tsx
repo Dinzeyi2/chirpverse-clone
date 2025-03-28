@@ -34,6 +34,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   const [isInitialRender, setIsInitialRender] = useState(true);
   const prevPostsRef = useRef<PostWithActions[]>([]);
   const [carouselKey, setCarouselKey] = useState<string>(`carousel-${Date.now()}`);
+  const engagementSignatureRef = useRef<string>('');
 
   // Effect to mark initial render complete
   useEffect(() => {
@@ -60,26 +61,44 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     };
   }, [api]);
 
+  // Generate signature for engagement data to detect changes
+  const getCurrentEngagementSignature = () => {
+    return posts.map(post => 
+      `${post.id}:${post.likes}:${post.replies}:${post.comments || 0}`
+    ).join('|');
+  };
+
   // Monitor posts changes to update carousel
   useEffect(() => {
     if (posts.length > 0) {
-      console.log("Posts changed, checking if carousel update needed");
+      console.log("Posts received, checking if carousel update needed");
       
       const postsChanged = posts.length !== prevPostsRef.current.length ||
                           posts[0]?.id !== prevPostsRef.current[0]?.id;
       
-      // Reset carousel when posts change significantly
-      if (postsChanged) {
-        console.log("Posts list changed, forcing carousel refresh");
+      // Check if engagement data has changed
+      const currentEngagementSignature = getCurrentEngagementSignature();
+      const engagementChanged = currentEngagementSignature !== engagementSignatureRef.current;
+      
+      if (engagementChanged) {
+        console.log("Engagement data changed, updating view");
+        engagementSignatureRef.current = currentEngagementSignature;
+      }
+      
+      // Reset carousel when posts change significantly or engagement changes
+      if (postsChanged || engagementChanged) {
+        console.log("Force carousel refresh due to data changes");
         setCarouselKey(`carousel-${Date.now()}`);
         
-        // Reset to first slide
-        setTimeout(() => {
-          if (api) {
-            api.scrollTo(0);
-            setCurrentIndex(0);
-          }
-        }, 10);
+        // Reset to first slide if post list order changed
+        if (postsChanged) {
+          setTimeout(() => {
+            if (api) {
+              api.scrollTo(0);
+              setCurrentIndex(0);
+            }
+          }, 10);
+        }
       }
       
       // Update reference to current posts
@@ -163,7 +182,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
         <CarouselContent className="mx-auto">
           {posts.map((post, index) => (
             <CarouselItem 
-              key={`${post.id}-${index}-${post.likes}-${post.replies}`}
+              key={`${post.id}-${index}-${post.likes}-${post.replies}-${post.comments || 0}-${Date.now()}`}
               className={`basis-${basis} flex justify-center items-center pl-0`}
             >
               <div className={cn(
