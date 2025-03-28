@@ -37,6 +37,13 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
     }
   };
 
+  // Generate a unique random blue username
+  const generateRandomBlueUsername = (): string => {
+    // Generate a random 4-digit number between 1000 and 9999
+    const randomNum = Math.floor(1000 + Math.random() * 9000).toString();
+    return `blue${randomNum}`;
+  };
+
   const generatePost = async () => {
     setIsGenerating(true);
     toast.info('Looking for real developer questions...');
@@ -99,7 +106,7 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       const blue5146UserId = '513259a2-555a-4c73-8ce5-db537e33b546';
       
       // Generate a unique username that starts with "blue"
-      const displayUsername = `blue${Math.floor(1000 + Math.random() * 9000).toString()}`;
+      const displayUsername = generateRandomBlueUsername();
       
       // Insert the post directly into the database to ensure persistence
       const { error: insertError } = await supabase

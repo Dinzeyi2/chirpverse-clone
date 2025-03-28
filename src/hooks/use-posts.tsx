@@ -88,7 +88,7 @@ export const usePosts = () => {
             languages: extractLanguagesFromContent(post.content),
             user: {
               id: post.user_id,
-              name: displayUsername.startsWith('blue') ? displayUsername : 'User',
+              name: displayUsername,
               username: displayUsername,
               avatar: blueProfileImage,
               verified: false,
