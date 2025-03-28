@@ -96,8 +96,9 @@ const PostPage: React.FC = () => {
             
             if (!commentsResponse.error && commentsResponse.data) {
               const formattedComments = commentsResponse.data.map(comment => {
-                // Handle comment metadata for display username
+                // Safely access comment metadata - handle as optional
                 const commentMetadata = comment.metadata || {};
+                // Always check if metadata is an object before trying to access its properties
                 const commentUsername = typeof commentMetadata === 'object' && commentMetadata !== null && 'display_username' in commentMetadata
                   ? (commentMetadata as { display_username?: string }).display_username
                   : comment.profiles.user_id?.substring(0, 8) || 'user';
@@ -110,7 +111,7 @@ const PostPage: React.FC = () => {
                   postId: comment.shoutout_id,
                   likes: 0,
                   media: comment.media || [],
-                  metadata: comment.metadata,
+                  metadata: comment.metadata || {}, // Ensure metadata is always at least an empty object
                   user: {
                     id: comment.profiles.id,
                     name: commentUsername,
@@ -199,6 +200,7 @@ const PostPage: React.FC = () => {
           postId: data.shoutout_id,
           likes: 0,
           media: data.media || [],
+          metadata: data.metadata || {}, // Ensure metadata is always at least an empty object
           user: {
             id: data.profiles.id,
             name: data.profiles.full_name || 'User',
