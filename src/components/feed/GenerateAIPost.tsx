@@ -64,8 +64,8 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       // Common emoji reactions
       const emojiOptions = ['👍', '❤️', '🔥', '👏', '😄', '🚀', '💯', '🙌', '👌', '😎'];
       
-      // Generate 2-5 random emoji reactions
-      const numberOfReactions = Math.floor(Math.random() * 4) + 2;
+      // Generate 7-29 random emoji reactions (as requested)
+      const numberOfReactions = Math.floor(Math.random() * 23) + 7; // 7 to 29 reactions
       const selectedEmojis = [];
       
       // Set up the fixed blue user ID for AI-generated content
@@ -114,21 +114,28 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
   const addAIComments = async (postId: string, postContent: string, blueUserId: string) => {
     try {
       console.log('Generating AI comments for post:', postId);
+      
+      // Generate between 10 to 38 comments as requested
+      const commentsToGenerate = Math.floor(Math.random() * 29) + 10; // 10 to 38 comments
+      
       // Call our edge function to generate AI comments
       const { data, error } = await supabase.functions.invoke('generate-ai-comment', {
-        body: { postContent }
+        body: { 
+          postContent,
+          commentsCount: commentsToGenerate  // Pass the desired comment count
+        }
       });
       
       if (error) {
         console.error('Error generating AI comments:', error);
         // Fallback to local comment generation if edge function fails
-        await addFallbackComments(postId, postContent, blueUserId);
+        await addFallbackComments(postId, postContent, blueUserId, commentsToGenerate);
         return;
       }
       
       if (!data?.comments || data.comments.length === 0) {
         console.log('No AI comments were generated, using fallback');
-        await addFallbackComments(postId, postContent, blueUserId);
+        await addFallbackComments(postId, postContent, blueUserId, commentsToGenerate);
         return;
       }
       
@@ -173,7 +180,7 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
     } catch (err) {
       console.error('Error adding AI comments:', err);
       // Try fallback if main method fails
-      await addFallbackComments(postId, postContent, blueUserId);
+      await addFallbackComments(postId, postContent, blueUserId, Math.floor(Math.random() * 29) + 10);
     }
   };
 
@@ -209,7 +216,7 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
   };
 
   // Fallback comment generation if the edge function fails
-  const addFallbackComments = async (postId: string, postContent: string, blueUserId: string) => {
+  const addFallbackComments = async (postId: string, postContent: string, blueUserId: string, commentCount = 24) => {
     try {
       // Simple hardcoded fallback comments
       const fallbackComments = [
@@ -220,11 +227,24 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
         "Have you checked the documentation?",
         "That's interesting. What version are you using?",
         "I'd recommend checking Stack Overflow for similar issues.",
-        "Try updating to the latest version, it might be fixed already."
+        "Try updating to the latest version, it might be fixed already.",
+        "Are all your dependencies up to date?",
+        "Could be a browser compatibility issue. Which browser are you using?",
+        "Did you try restarting your dev server?",
+        "I think this is a known bug in the latest release.",
+        "You might need to clear your browser cache and cookies.",
+        "This seems like an environment variable problem to me.",
+        "I had the same problem, turns out I misspelled a variable name!",
+        "Check your network tab for any failed requests.",
+        "Could be related to CORS settings on your server.",
+        "Are you using the correct API endpoint?",
+        "Double-check your authentication headers.",
+        "Make sure your backend is actually running.",
+        "I'd start by adding console logs to track the flow."
       ];
       
-      // Pick 2-4 random comments
-      const numberOfComments = Math.floor(Math.random() * 3) + 2;
+      // Pick random comments from the pool to reach the desired count
+      const numberOfComments = Math.min(commentCount, fallbackComments.length);
       const selectedComments = [];
       
       for (let i = 0; i < numberOfComments; i++) {

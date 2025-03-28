@@ -18,20 +18,22 @@ serve(async (req) => {
       throw new Error('PERPLEXITY_API_KEY is not set in Supabase secrets');
     }
 
-    const { postContent } = await req.json();
+    const { postContent, commentsCount = 3 } = await req.json();
     
     if (!postContent) {
       throw new Error('Post content is required');
     }
 
     console.log("Generating AI comment for post:", postContent.substring(0, 50) + "...");
+    console.log(`Requested comment count: ${commentsCount}`);
+    
+    // Ensure commentsCount is within reasonable limits
+    const actualCommentsCount = Math.min(Math.max(parseInt(commentsCount, 10) || 3, 1), 40);
     
     // Create a unique query with randomization factors
     const timestamp = new Date().toISOString();
     const randomSeed = Math.floor(Math.random() * 10000).toString();
     
-    // We'll generate 1-3 comments for the post
-    const commentsToGenerate = Math.floor(Math.random() * 3) + 2; // Ensuring at least 2 comments
     const comments = [];
     
     // Generate random blue usernames for comments
@@ -69,66 +71,129 @@ serve(async (req) => {
       return selectedEmojis;
     };
     
-    for (let i = 0; i < commentsToGenerate; i++) {
-      const uniqueQuery = `Generate a helpful, supportive reply to this coding question: "${postContent}". 
-      Make the reply sound like a real developer trying to help. Keep it under 200 characters.
-      Current time: ${timestamp}, Random seed: ${randomSeed}-${i}.
-      The comment should offer advice, ask clarifying questions, or share personal experience.`;
+    // Generate fallback comments when API can't handle all the requested comments
+    const generateFallbackComments = (count) => {
+      const fallbackResponses = [
+        "Have you tried clearing your cache?",
+        "I had the same issue last week, try checking the console logs.",
+        "This looks like a scope problem to me.",
+        "Works on my machine! 😅",
+        "Did you install all the dependencies?",
+        "Check your import statements, there might be a typo.",
+        "Have you tried turning it off and on again?",
+        "The documentation has a section on this exact problem.",
+        "Is your API key still valid?",
+        "Try a different browser, might be a compatibility issue.",
+        "Add some console.log statements to debug the flow.",
+        "Maybe it's a race condition? Try adding async/await.",
+        "This is definitely a CSS quirk, I've seen it before.",
+        "Your linter might be able to catch this error.",
+        "Check if you're using the latest package versions.",
+        "Are you sure your server is running?",
+        "Could be a caching issue, try hard-refreshing.",
+        "This is a known bug in the framework, there's a workaround.",
+        "I'd recommend using a different approach altogether.",
+        "Check your network tab for any failed requests."
+      ];
       
-      // Generate a unique username for this comment
-      const displayUsername = generateRandomBlueUsername();
-      
-      // Generate random emoji reactions for this comment
-      const randomEmojis = generateRandomEmojis();
-      
-      // Use Perplexity API to generate a realistic comment
-      const response = await fetch('https://api.perplexity.ai/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'llama-3.1-sonar-small-128k-online',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a helpful developer who comments on coding questions. Keep your responses conversational, helpful and concise. Always sound like a real person typing a quick reply on social media.'
-            },
-            {
-              role: 'user',
-              content: uniqueQuery
-            }
-          ],
-          temperature: 0.8,
-          max_tokens: 250,
-          top_p: 0.95,
-          frequency_penalty: 0.7
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Perplexity API error:", errorData);
-        throw new Error(`Perplexity API returned ${response.status}: ${JSON.stringify(errorData)}`);
+      const results = [];
+      for (let i = 0; i < count; i++) {
+        const randomIndex = Math.floor(Math.random() * fallbackResponses.length);
+        const displayUsername = generateRandomBlueUsername();
+        const randomEmojis = generateRandomEmojis();
+        
+        results.push({
+          content: fallbackResponses[randomIndex],
+          displayUsername: displayUsername,
+          reactions: randomEmojis
+        });
       }
-
-      const data = await response.json();
-      const generatedComment = data.choices[0].message.content.trim();
       
-      comments.push({
-        content: generatedComment,
-        displayUsername: displayUsername,
-        reactions: randomEmojis
-      });
+      return results;
+    };
+    
+    // We'll use a batch approach to handle many comments
+    // Generate up to 10 comments with API, then use fallbacks if more needed
+    const apiGenerationCount = Math.min(actualCommentsCount, 10);
+    const fallbackCount = actualCommentsCount - apiGenerationCount;
+    
+    // Generate comments with the API (up to apiGenerationCount)
+    for (let i = 0; i < apiGenerationCount; i++) {
+      try {
+        const uniqueQuery = `Generate a helpful, supportive reply to this coding question: "${postContent}". 
+        Make the reply sound like a real developer trying to help. Keep it under 200 characters.
+        Current time: ${timestamp}, Random seed: ${randomSeed}-${i}.
+        The comment should offer advice, ask clarifying questions, or share personal experience.`;
+        
+        // Generate a unique username for this comment
+        const displayUsername = generateRandomBlueUsername();
+        
+        // Generate random emoji reactions for this comment
+        const randomEmojis = generateRandomEmojis();
+        
+        // Use Perplexity API to generate a realistic comment
+        const response = await fetch('https://api.perplexity.ai/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'llama-3.1-sonar-small-128k-online',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a helpful developer who comments on coding questions. Keep your responses conversational, helpful and concise. Always sound like a real person typing a quick reply on social media.'
+              },
+              {
+                role: 'user',
+                content: uniqueQuery
+              }
+            ],
+            temperature: 0.8,
+            max_tokens: 250,
+            top_p: 0.95,
+            frequency_penalty: 0.7
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("Perplexity API error:", errorData);
+          throw new Error(`Perplexity API returned ${response.status}: ${JSON.stringify(errorData)}`);
+        }
+
+        const data = await response.json();
+        const generatedComment = data.choices[0].message.content.trim();
+        
+        comments.push({
+          content: generatedComment,
+          displayUsername: displayUsername,
+          reactions: randomEmojis
+        });
+      } catch (error) {
+        console.error(`Error generating comment ${i+1}:`, error);
+        // Add a fallback comment if API generation fails
+        const fallbackComment = generateFallbackComments(1)[0];
+        comments.push(fallbackComment);
+      }
       
       // Add a small delay between requests to avoid rate limiting
-      if (i < commentsToGenerate - 1) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+      if (i < apiGenerationCount - 1) {
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
     }
+    
+    // If we need more comments beyond what we got from the API, use fallbacks
+    if (fallbackCount > 0) {
+      const fallbackComments = generateFallbackComments(fallbackCount);
+      comments.push(...fallbackComments);
+    }
+    
+    // Shuffle the comments to mix API and fallback responses
+    const shuffledComments = comments.sort(() => Math.random() - 0.5);
 
-    return new Response(JSON.stringify({ comments }), {
+    return new Response(JSON.stringify({ comments: shuffledComments }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
