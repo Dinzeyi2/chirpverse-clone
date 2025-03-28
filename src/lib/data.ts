@@ -45,14 +45,14 @@ export interface Post {
   liked?: boolean;
   bookmarked?: boolean;
   isOwner?: boolean;
-  images?: Array<string | {type: string, url: string}>;
+  images?: Array<string | {type: string, url: string}> | any; // Updated to accept any type from the database
   codeBlocks?: {code: string, language: string}[];
   languages?: string[];
   metadata?: {
     display_username?: string;
     is_ai_generated?: boolean;
     [key: string]: any;
-  };
+  } | any; // Updated to accept any type from the database
   comments?: Comment[]; // Add comments to the Post interface
 }
 
