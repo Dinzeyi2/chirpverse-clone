@@ -95,24 +95,33 @@ const PostPage: React.FC = () => {
             }));
             
             if (!commentsResponse.error && commentsResponse.data) {
-              const formattedComments = commentsResponse.data.map(comment => ({
-                id: comment.id,
-                content: comment.content,
-                createdAt: comment.created_at,
-                userId: comment.user_id,
-                postId: comment.shoutout_id,
-                likes: 0,
-                media: comment.media || [],
-                user: {
-                  id: comment.profiles.id,
-                  name: comment.profiles.full_name || 'User',
-                  username: comment.profiles.user_id?.substring(0, 8) || 'user',
-                  avatar: blueProfileImage,
-                  verified: false,
-                  followers: 0,
-                  following: 0,
-                }
-              }));
+              const formattedComments = commentsResponse.data.map(comment => {
+                // Handle comment metadata for display username
+                const commentMetadata = comment.metadata || {};
+                const commentUsername = typeof commentMetadata === 'object' && commentMetadata !== null && 'display_username' in commentMetadata
+                  ? (commentMetadata as { display_username?: string }).display_username
+                  : comment.profiles.user_id?.substring(0, 8) || 'user';
+                
+                return {
+                  id: comment.id,
+                  content: comment.content,
+                  createdAt: comment.created_at,
+                  userId: comment.user_id,
+                  postId: comment.shoutout_id,
+                  likes: 0,
+                  media: comment.media || [],
+                  metadata: comment.metadata,
+                  user: {
+                    id: comment.profiles.id,
+                    name: commentUsername,
+                    username: commentUsername,
+                    avatar: blueProfileImage,
+                    verified: false,
+                    followers: 0,
+                    following: 0,
+                  }
+                };
+              });
               
               setComments(formattedComments);
             }

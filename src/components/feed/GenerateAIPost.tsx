@@ -44,6 +44,53 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
     return `blue${randomNum}`;
   };
 
+  // Add AI comments to the generated post
+  const addAIComments = async (postId: string, postContent: string, blueUserId: string) => {
+    try {
+      // Call our edge function to generate AI comments
+      const { data, error } = await supabase.functions.invoke('generate-ai-comment', {
+        body: { postContent }
+      });
+      
+      if (error) {
+        console.error('Error generating AI comments:', error);
+        return;
+      }
+      
+      if (!data?.comments || data.comments.length === 0) {
+        console.log('No AI comments were generated');
+        return;
+      }
+      
+      console.log('Generated AI comments:', data.comments);
+      
+      // Add each comment with a random AI username
+      for (const commentContent of data.comments) {
+        const displayUsername = generateRandomBlueUsername();
+        
+        // Add a small delay between comments to make them appear more natural
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 1000));
+        
+        await supabase.from('comments').insert({
+          content: commentContent,
+          user_id: blueUserId,  // Use the same blue user ID for consistency
+          shoutout_id: postId,
+          metadata: {
+            display_username: displayUsername,
+            is_ai_generated: true
+          }
+        });
+        
+        console.log(`Added AI comment from ${displayUsername}`);
+      }
+      
+      toast.success(`${data.comments.length} developers replied to the question!`);
+      
+    } catch (err) {
+      console.error('Error adding AI comments:', err);
+    }
+  };
+
   const generatePost = async () => {
     setIsGenerating(true);
     toast.info('Looking for real developer questions...');
@@ -111,7 +158,7 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       console.log(`Generated random username: ${displayUsername}`);
       
       // Insert the post directly into the database to ensure persistence
-      const { error: insertError } = await supabase
+      const { data: insertedPost, error: insertError } = await supabase
         .from('shoutouts')
         .insert({
           content: content,
@@ -120,11 +167,18 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
             display_username: displayUsername, // Random "blue" username for each post
             is_ai_generated: true
           }
-        });
+        })
+        .select('id')
+        .single();
         
       if (insertError) {
         console.error('Error inserting AI post:', insertError);
         throw new Error('Failed to save the generated post to the database');
+      }
+      
+      // Generate and add AI comments to the post
+      if (insertedPost?.id) {
+        addAIComments(insertedPost.id, content, blue5146UserId);
       }
       
       // For frontend optimistic update - pass the generated content to parent
@@ -135,7 +189,7 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       console.error('Error generating post:', error);
       toast.error(`Failed to generate post: ${error.message}`);
     } finally {
-      setIsGenerating(false); // Fix the typo here
+      setIsGenerating(false);
     }
   };
 

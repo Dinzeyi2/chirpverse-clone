@@ -21,6 +21,11 @@ export interface Comment {
     type: string;
     url: string;
   }[];
+  metadata?: {
+    display_username?: string;
+    is_ai_generated?: boolean;
+    [key: string]: any;
+  };
 }
 
 export interface Post {
