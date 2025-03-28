@@ -108,6 +108,8 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       // Generate a unique username that starts with "blue"
       const displayUsername = generateRandomBlueUsername();
       
+      console.log(`Generated random username: ${displayUsername}`);
+      
       // Insert the post directly into the database to ensure persistence
       const { error: insertError } = await supabase
         .from('shoutouts')
@@ -133,7 +135,7 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       console.error('Error generating post:', error);
       toast.error(`Failed to generate post: ${error.message}`);
     } finally {
-      setIsGenerating(false);
+      setIsResGenerating(false);
     }
   };
 

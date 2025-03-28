@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile, ThumbsUp } from 'lucide-react';
@@ -37,6 +38,22 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const hasMedia = post.images && post.images.length > 0;
   const isLightMode = theme === 'light';
 
+  // This function will get the display username, prioritizing the metadata field
+  const getDisplayUsername = () => {
+    // Check if post has metadata with display_username
+    if (post.metadata && post.metadata.display_username) {
+      return post.metadata.display_username;
+    }
+    
+    // Fallback to the user's display name
+    if (post.userId === currentUserId) {
+      return displayName;
+    }
+    
+    // Last fallback: privacy-preserving username
+    return getPrivacyName(post.userId);
+  };
+  
   const getPrivacyName = (userId: string) => {
     if (!userId || userId.length < 4) return "blue";
     const first2 = userId.substring(0, 2);
@@ -44,7 +61,8 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     return `blue${first2}${last2}`;
   };
   
-  const postAuthorName = getPrivacyName(post.userId);
+  // Get the appropriate username to display
+  const postAuthorName = getDisplayUsername();
 
   useEffect(() => {
     const getCurrentUserId = async () => {
@@ -524,7 +542,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               />
               <div className="flex items-center">
                 <span className="font-medium text-[#4285F4] mr-1 text-sm font-heading tracking-wide">
-                  {post.userId === currentUserId ? displayName : postAuthorName}
+                  {postAuthorName}
                 </span>
                 {post.user?.verified && (
                   <span className="text-xBlue">
@@ -611,7 +629,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             />
             <div className="flex items-center">
               <span className="font-medium text-[#4285F4] mr-1 text-sm font-heading tracking-wide">
-                {post.userId === currentUserId ? displayName : postAuthorName}
+                {postAuthorName}
               </span>
               {post.user?.verified && (
                 <span className="text-xBlue">

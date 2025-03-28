@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, enableRealtimeForTables } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -86,6 +87,7 @@ export const usePosts = () => {
             userId: post.user_id,
             images: post.media,
             languages: extractLanguagesFromContent(post.content),
+            metadata: post.metadata, // Preserve the full metadata
             user: {
               id: post.user_id,
               name: displayUsername,
