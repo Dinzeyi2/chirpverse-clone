@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, enableRealtimeForTables } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -70,8 +69,9 @@ export const usePosts = () => {
       if (shoutoutData && shoutoutData.length > 0) {
         const formattedPosts = shoutoutData.map(post => {
           // Get display username from metadata if available, otherwise use a truncated user_id
-          const displayUsername = post.metadata?.display_username || 
-            post.user_id?.substring(0, 8) || 'user';
+          const metadata = post.metadata as Record<string, any> || {};
+          const displayUsername = metadata.display_username || 
+            (post.user_id ? post.user_id.substring(0, 8) : 'user');
           
           return {
             id: post.id,
