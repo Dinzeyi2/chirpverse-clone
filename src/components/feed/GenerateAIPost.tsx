@@ -15,7 +15,7 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
 
   const generatePost = async () => {
     setIsGenerating(true);
-    toast.info('Finding real coding issues from the web...');
+    toast.info('Looking for real developer questions...');
     
     try {
       // Get current user to check authentication
@@ -56,7 +56,7 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
         // For frontend optimistic update - pass the generated content to parent
         onPostGenerated(data.content);
         
-        toast.success('Real coding issue found and posted!');
+        toast.success('Found a developer question and posted it!');
       } else {
         throw new Error('No content was found');
       }
@@ -81,7 +81,7 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       ) : (
         <Brain className="h-4 w-4" />
       )}
-      Find Real Coding Issues
+      Find Developer Questions
     </Button>
   );
 };

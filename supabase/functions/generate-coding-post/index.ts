@@ -32,14 +32,14 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a web crawler designed to find and extract real coding questions from StackOverflow, Reddit, GitHub issues, and other developer forums. Return the exact text of a real question you find, with the original code snippets intact. Include a language tag in the format @JavaScript, @Python, etc. Start with a bold title and preserve the original formatting.'
+            content: 'You are a web crawler that finds real coding questions from StackOverflow, Reddit, GitHub issues, and developer forums. When you find a question, rewrite it in a casual, conversational tone as if a real developer is asking for help. Remove any markdown formatting, headings, or special characters. Make it sound natural and informal, like someone typing a forum post. Always include a language tag like @JavaScript or @Python at the end of the question, not at the beginning.'
           },
           {
             role: 'user',
-            content: 'Search the web and find me a real coding problem that a developer has posted online in the last year. Look for problems about JavaScript, Python, React, TypeScript, CSS, or HTML. Format it exactly as it appeared with any code snippets, error messages, etc. Make sure to include the programming language as a tag (e.g., @JavaScript). Keep it under 280 characters if possible.'
+            content: 'Find a real coding problem from the web that a developer has posted online in the last year. Look for problems about JavaScript, Python, React, TypeScript, CSS, or HTML. Rewrite it to sound like a real person casually asking for help - use natural language, maybe some typos, and an informal tone. Make sure to include the programming language as a tag at the end (e.g., @JavaScript). Keep it under 280 characters if possible.'
           }
         ],
-        temperature: 0.2,
+        temperature: 0.7,
         max_tokens: 280,
         top_p: 0.9,
         frequency_penalty: 0.7
