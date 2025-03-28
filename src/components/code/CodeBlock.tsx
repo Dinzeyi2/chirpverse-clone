@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Copy, Check, ChevronDown, ChevronUp, FileCode } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -159,6 +160,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expand
   const [expanded, setExpanded] = useState(initialExpanded || inPost);
   const [fileName, setFileName] = useState(`${language}.${getFileExtension(language)}`);
   const [highlightedCode, setHighlightedCode] = useState<React.ReactNode[]>([]);
+  const codeContainerRef = useRef<HTMLDivElement>(null);
   
   const copyToClipboard = () => {
     navigator.clipboard.writeText(code).then(() => {
@@ -228,8 +230,8 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expand
 
   const lineNumbers = displayedCode.split('\n').map((_, i) => i + 1);
 
-  // Set max height based on context - much larger for published posts
-  const maxHeight = inPost ? 'max-h-screen' : expanded ? 'max-h-[80vh]' : 'max-h-[500px]';
+  // Updated max height logic for better scrolling
+  const maxHeight = inPost ? 'max-h-[600px]' : expanded ? 'max-h-[80vh]' : 'max-h-[500px]';
 
   return (
     <div className={cn(
@@ -268,31 +270,39 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expand
           </button>
         </div>
       </div>
-      <ScrollArea className={cn(maxHeight, "overflow-x-auto")}>
-        <div className="relative">
-          <div className="flex text-sm font-mono">
-            <div className="py-4 pl-4 pr-3 text-right select-none bg-[#1e1e1e] text-gray-500 border-r border-gray-700 min-w-[2.5rem]">
-              {lineNumbers.map((num) => (
-                <div key={num} className="leading-6 relative">
-                  {num}
-                </div>
-              ))}
-            </div>
-            <div className="overflow-x-auto w-full relative">
-              <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+      <div 
+        className={cn(
+          maxHeight, 
+          "overflow-hidden relative"
+        )}
+        ref={codeContainerRef}
+      >
+        <ScrollArea className="h-full overflow-auto">
+          <div className="relative h-full">
+            <div className="flex text-sm font-mono h-full">
+              <div className="py-4 pl-4 pr-3 text-right select-none bg-[#1e1e1e] text-gray-500 border-r border-gray-700 min-w-[2.5rem]">
                 {lineNumbers.map((num) => (
-                  <div key={num} className="h-6 border-b border-gray-800/20"></div>
+                  <div key={num} className="leading-6 relative">
+                    {num}
+                  </div>
                 ))}
               </div>
-              <pre className="py-4 pl-4 pr-8 font-mono whitespace-pre relative z-10 overflow-visible w-max min-w-full">
-                <code className="text-sm text-[#D4D4D4]">
-                  {highlightedCode}
-                </code>
-              </pre>
+              <div className="overflow-x-auto w-full relative">
+                <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+                  {lineNumbers.map((num) => (
+                    <div key={num} className="h-6 border-b border-gray-800/20"></div>
+                  ))}
+                </div>
+                <pre className="py-4 pl-4 pr-8 font-mono whitespace-pre relative z-10 overflow-visible w-max min-w-full">
+                  <code className="text-sm text-[#D4D4D4]">
+                    {highlightedCode}
+                  </code>
+                </pre>
+              </div>
             </div>
           </div>
-        </div>
-      </ScrollArea>
+        </ScrollArea>
+      </div>
     </div>
   );
 };
