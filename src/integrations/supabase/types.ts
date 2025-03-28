@@ -952,6 +952,7 @@ export type Database = {
           created_at: string
           id: string
           media: Json | null
+          metadata: Json | null
           quoted_shoutout_id: string | null
           updated_at: string
           user_id: string
@@ -961,6 +962,7 @@ export type Database = {
           created_at?: string
           id?: string
           media?: Json | null
+          metadata?: Json | null
           quoted_shoutout_id?: string | null
           updated_at?: string
           user_id: string
@@ -970,6 +972,7 @@ export type Database = {
           created_at?: string
           id?: string
           media?: Json | null
+          metadata?: Json | null
           quoted_shoutout_id?: string | null
           updated_at?: string
           user_id?: string
