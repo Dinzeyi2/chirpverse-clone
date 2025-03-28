@@ -15,13 +15,11 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
 
   // Generate a fake user ID for AI users with proper UUID format
   const generateFakeUserId = () => {
-    // Create a proper UUID for the database
     return uuidv4();
   };
   
   // Generate a display username in the "blue1234" format
   const generateDisplayUsername = () => {
-    // Generate random 4 digits
     const randomDigits = Math.floor(1000 + Math.random() * 9000).toString();
     return `blue${randomDigits}`;
   };
@@ -31,6 +29,13 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
     toast.info('Generating AI post...');
     
     try {
+      // Get current user to check authentication
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error("You need to be logged in to generate AI posts");
+      }
+      
       // Call our edge function to generate a post
       const { data, error } = await supabase.functions.invoke('generate-coding-post');
       
@@ -39,31 +44,15 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       }
       
       if (data?.content) {
-        // Create a proper UUID for the database
-        const fakeUserId = generateFakeUserId();
-        const displayUsername = generateDisplayUsername();
+        // We'll use the content in two ways:
+        // 1. For the backend - create an actual post in the database
+        // 2. For the frontend - show an optimistic update
         
-        // Create a new post in Supabase with the fake user ID
-        const postId = uuidv4();
-        const { error: postError } = await supabase
-          .from('shoutouts')
-          .insert({
-            id: postId,
-            content: data.content,
-            user_id: fakeUserId, // Use proper UUID
-            created_at: new Date().toISOString(),
-            metadata: {
-              display_username: displayUsername // Store the display username in metadata
-            }
-          });
-        
-        if (postError) {
-          console.error('Error creating post:', postError);
-          throw new Error(postError.message);
-        }
-        
-        // Pass the generated content to the parent component
+        // For frontend optimistic update - pass the generated content to parent
         onPostGenerated(data.content);
+        
+        // We no longer need to insert directly into the database
+        // The parent component will handle that through normal post creation flow
         toast.success('AI post generated successfully!');
       } else {
         throw new Error('No content was generated');

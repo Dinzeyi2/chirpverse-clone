@@ -42,7 +42,6 @@ serve(async (req) => {
         temperature: 0.9,
         max_tokens: 280,
         top_p: 0.95,
-        // Only using frequency_penalty, removing presence_penalty
         frequency_penalty: 0.7
       }),
     });
