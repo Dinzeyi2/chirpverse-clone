@@ -33,6 +33,127 @@ const LANGUAGE_TYPES: Record<string, string[]> = {
   // Add more languages as needed
 };
 
+// Function to tokenize code for syntax highlighting
+function tokenizeCode(code: string, language: string): SyntaxToken[] {
+  if (!code) return [];
+  
+  const tokens: SyntaxToken[] = [];
+  // Simplified tokenization logic
+  // This is a basic implementation - could be expanded for more accurate syntax highlighting
+
+  // Regular expressions for different token types
+  const patterns = {
+    string: /(["'`])(?:\\(?:\r\n|[\s\S])|(?!\1)[^\\\r\n])*\1/g,
+    comment: /\/\/.*|\/\*[\s\S]*?\*\//g,
+    number: /\b-?\d+(?:\.\d+)?(?:e[+-]?\d+)?\b/gi,
+    boolean: /\b(?:true|false)\b/g,
+    operator: /[+\-*/%=&|^~<>!?]+/g,
+    punctuation: /[{}[\];(),.:]/g,
+  };
+
+  // Process the code to identify tokens
+  let remainingCode = code;
+  
+  // First, handle comments to avoid interference with other token types
+  const commentMatches = [...remainingCode.matchAll(patterns.comment)];
+  for (const match of commentMatches) {
+    if (match.index !== undefined) {
+      // Add any text before the comment
+      if (match.index > 0) {
+        const beforeText = remainingCode.substring(0, match.index);
+        remainingCode = remainingCode.substring(0, match.index);
+        processRemainingText(beforeText);
+      }
+      
+      // Add the comment token
+      tokens.push({
+        text: match[0],
+        type: 'comment',
+        color: '#6A9955'  // Green for comments
+      });
+      
+      // Update remaining code
+      remainingCode = remainingCode.substring(match.index + match[0].length);
+    }
+  }
+  
+  // Process the rest of the code
+  processRemainingText(remainingCode);
+  
+  function processRemainingText(text: string) {
+    // Handle strings
+    text = processPattern(text, patterns.string, 'string', '#CE9178');  // Orange for strings
+    
+    // Handle numbers
+    text = processPattern(text, patterns.number, 'number', '#B5CEA8');  // Light green for numbers
+    
+    // Handle booleans
+    text = processPattern(text, patterns.boolean, 'boolean', '#569CD6');  // Blue for booleans
+    
+    // Handle operators
+    text = processPattern(text, patterns.operator, 'operator', '#D4D4D4');  // White for operators
+    
+    // Handle punctuation
+    text = processPattern(text, patterns.punctuation, 'punctuation', '#D4D4D4');  // White for punctuation
+    
+    // Handle keywords and types
+    const words = text.split(/\b/);
+    for (const word of words) {
+      if (!word.trim()) {
+        if (word) tokens.push({ text: word, type: 'plain', color: '#D4D4D4' });
+        continue;
+      }
+      
+      if (LANGUAGE_KEYWORDS[language]?.includes(word)) {
+        tokens.push({ text: word, type: 'keyword', color: '#569CD6' });  // Blue for keywords
+      } else if (LANGUAGE_TYPES[language]?.includes(word)) {
+        tokens.push({ text: word, type: 'type', color: '#4EC9B0' });  // Teal for types
+      } else {
+        // Check if it might be a function call
+        if (/^[a-zA-Z_$][a-zA-Z0-9_$]*(?=\s*\()/.test(word)) {
+          tokens.push({ text: word, type: 'function', color: '#DCDCAA' });  // Yellow for functions
+        } else {
+          tokens.push({ text: word, type: 'plain', color: '#D4D4D4' });  // Default color
+        }
+      }
+    }
+  }
+  
+  function processPattern(text: string, pattern: RegExp, type: SyntaxToken['type'], color: string): string {
+    let result = '';
+    let lastIndex = 0;
+    let match;
+    
+    pattern.lastIndex = 0;  // Reset regex state
+    
+    while ((match = pattern.exec(text)) !== null) {
+      if (match.index === undefined) continue;
+      
+      // Add text before the match
+      if (match.index > lastIndex) {
+        const beforeText = text.substring(lastIndex, match.index);
+        if (beforeText) {
+          tokens.push({ text: beforeText, type: 'plain', color: '#D4D4D4' });
+        }
+      }
+      
+      // Add the matched token
+      tokens.push({ text: match[0], type, color });
+      
+      lastIndex = match.index + match[0].length;
+    }
+    
+    // Add any remaining text
+    if (lastIndex < text.length) {
+      result = text.substring(lastIndex);
+    }
+    
+    return result;
+  }
+  
+  return tokens;
+}
+
 const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expanded: initialExpanded = false, inPost = false }) => {
   const [copied, setCopied] = useState(false);
   const [expanded, setExpanded] = useState(initialExpanded || inPost);
