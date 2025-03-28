@@ -13,11 +13,17 @@ interface GenerateAIPostProps {
 const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Generate a random user ID for AI users
+  // Generate a fake user ID for AI users with proper UUID format
   const generateFakeUserId = () => {
-    const randomId = uuidv4().substring(0, 8);
-    const lastFourDigits = randomId.substring(randomId.length - 4);
-    return `blue${lastFourDigits}`;
+    // Create a proper UUID for the database
+    return uuidv4();
+  };
+  
+  // Generate a display username in the "blue1234" format
+  const generateDisplayUsername = () => {
+    // Generate random 4 digits
+    const randomDigits = Math.floor(1000 + Math.random() * 9000).toString();
+    return `blue${randomDigits}`;
   };
 
   const generatePost = async () => {
@@ -33,8 +39,9 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       }
       
       if (data?.content) {
-        // Create fake user ID in the "blue1234" format
+        // Create a proper UUID for the database
         const fakeUserId = generateFakeUserId();
+        const displayUsername = generateDisplayUsername();
         
         // Create a new post in Supabase with the fake user ID
         const postId = uuidv4();
@@ -43,8 +50,11 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
           .insert({
             id: postId,
             content: data.content,
-            user_id: fakeUserId, // Use the generated fake user ID
-            created_at: new Date().toISOString()
+            user_id: fakeUserId, // Use proper UUID
+            created_at: new Date().toISOString(),
+            metadata: {
+              display_username: displayUsername // Store the display username in metadata
+            }
           });
         
         if (postError) {

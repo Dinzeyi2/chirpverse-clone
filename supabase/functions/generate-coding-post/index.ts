@@ -32,7 +32,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an AI that generates realistic posts about coding problems. Sound exactly like a real frustrated programmer asking for help. Use an authentic tone and include code snippets when relevant. Focus on common, relatable coding issues.'
+            content: 'You are an AI that generates realistic posts about coding problems. Sound exactly like a real frustrated programmer asking for help. Use an authentic tone and include code snippets when relevant. Focus on common, relatable coding issues that JavaScript, Python, React, TypeScript, CSS, or HTML developers face. Use language tags like @JavaScript, @React, etc.'
           },
           {
             role: 'user',
@@ -42,15 +42,15 @@ serve(async (req) => {
         temperature: 0.9,
         max_tokens: 280,
         top_p: 0.95,
-        // Remove one of the penalties to fix the API error
-        frequency_penalty: 0.7
         // Only using frequency_penalty, removing presence_penalty
+        frequency_penalty: 0.7
       }),
     });
 
     const data = await response.json();
     
     if (!response.ok) {
+      console.error("Perplexity API error:", data);
       throw new Error(`Perplexity API returned ${response.status}: ${JSON.stringify(data)}`);
     }
     
