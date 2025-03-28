@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -42,6 +43,11 @@ const PostPage: React.FC = () => {
         }
         
         if (postData) {
+          // Get the display username from metadata if available
+          const metadata = postData.metadata || {};
+          const displayUsername = metadata.display_username || 
+            (postData.profiles?.user_id?.substring(0, 8) || 'user');
+          
           const formattedPost = {
             id: postData.id,
             content: postData.content,
@@ -52,10 +58,11 @@ const PostPage: React.FC = () => {
             views: 0,
             userId: postData.user_id,
             images: postData.media,
+            metadata: postData.metadata, // Include metadata in the post object
             user: {
               id: postData.profiles.id,
-              name: postData.profiles.full_name || 'User',
-              username: postData.profiles.user_id?.substring(0, 8) || 'user',
+              name: displayUsername, // Use display_username from metadata
+              username: displayUsername, // Use display_username from metadata
               avatar: blueProfileImage,
               verified: false,
               followers: 0,
@@ -297,7 +304,7 @@ const PostPage: React.FC = () => {
               following: 0,
               verified: false,
             }}
-            postAuthorId={post.userId}
+            postAuthorId={post?.userId}
             onCommentAdded={handleCommentAdded}
           />
         )}
