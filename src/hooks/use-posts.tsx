@@ -180,6 +180,24 @@ export const usePosts = () => {
           const displayUsername = metadata.display_username || 
             (post.user_id ? post.user_id.substring(0, 8) : 'user');
           
+          const codeBlocks = post.media 
+            ? post.media
+                .filter((item: any) => item.type === 'code')
+                .map((item: any) => {
+                  try {
+                    const parsed = JSON.parse(item.url);
+                    return {
+                      code: parsed.code,
+                      language: parsed.language
+                    };
+                  } catch (e) {
+                    console.error("Failed to parse code block:", e);
+                    return null;
+                  }
+                })
+                .filter(Boolean)
+            : [];
+          
           return {
             id: post.id,
             content: post.content,
@@ -192,6 +210,7 @@ export const usePosts = () => {
             views: 0,
             userId: post.user_id,
             images: post.media,
+            codeBlocks: codeBlocks,
             languages: extractLanguagesFromContent(post.content),
             metadata: post.metadata,
             user: {
@@ -295,30 +314,51 @@ export const usePosts = () => {
       if (moreError) throw moreError;
       
       if (moreData && moreData.length > 0) {
-        const morePosts = moreData.map(post => ({
-          id: post.id,
-          content: post.content,
-          createdAt: post.created_at,
-          likes: 0,
-          comments: 0,
-          saves: 0,
-          reposts: 0,
-          replies: 0,
-          views: 0,
-          userId: post.user_id,
-          images: post.media,
-          languages: extractLanguagesFromContent(post.content),
-          metadata: post.metadata,
-          user: {
-            id: post.user_id,
-            name: 'User',
-            username: post.user_id?.substring(0, 8) || 'user',
-            avatar: blueProfileImage,
-            verified: false,
-            followers: 0,
-            following: 0,
-          }
-        }));
+        const morePosts = moreData.map(post => {
+          const codeBlocks = post.media 
+            ? post.media
+                .filter((item: any) => item.type === 'code')
+                .map((item: any) => {
+                  try {
+                    const parsed = JSON.parse(item.url);
+                    return {
+                      code: parsed.code,
+                      language: parsed.language
+                    };
+                  } catch (e) {
+                    console.error("Failed to parse code block:", e);
+                    return null;
+                  }
+                })
+                .filter(Boolean)
+            : [];
+          
+          return {
+            id: post.id,
+            content: post.content,
+            createdAt: post.created_at,
+            likes: 0,
+            comments: 0,
+            saves: 0,
+            reposts: 0,
+            replies: 0,
+            views: 0,
+            userId: post.user_id,
+            images: post.media,
+            codeBlocks: codeBlocks,
+            languages: extractLanguagesFromContent(post.content),
+            metadata: post.metadata,
+            user: {
+              id: post.user_id,
+              name: 'User',
+              username: post.user_id?.substring(0, 8) || 'user',
+              avatar: blueProfileImage,
+              verified: false,
+              followers: 0,
+              following: 0,
+            }
+          };
+        });
         
         setPosts(prev => [...prev, ...morePosts]);
         

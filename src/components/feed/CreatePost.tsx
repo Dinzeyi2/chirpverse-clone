@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Image, X, Video, Code } from 'lucide-react';
 import Button from '@/components/common/Button';
@@ -196,16 +195,16 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       
       if (onPostCreated) {
         const optimisticMedia = [
-          ...mediaFiles.map(file => ({
-            type: file.type,
-            url: file.preview
-          })),
           ...codeBlocks.map(block => ({
             type: 'code',
             url: JSON.stringify({
               code: block.code,
               language: block.language
             })
+          })),
+          ...mediaFiles.map(file => ({
+            type: file.type,
+            url: file.preview
           }))
         ];
         
@@ -222,14 +221,14 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       }
       
       const allMedia = [
-        ...mediaUrls,
         ...codeBlocks.map(block => ({
           type: 'code',
           url: JSON.stringify({
             code: block.code,
             language: block.language
           })
-        }))
+        })),
+        ...mediaUrls
       ];
       
       if (allMedia.length > 0) {
@@ -284,7 +283,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                 disabled={isLoading}
               />
               
-              {/* Code Blocks Section */}
               {codeBlocks.length > 0 && (
                 <div className="mt-4 space-y-4">
                   {codeBlocks.map((block, index) => (
@@ -306,7 +304,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                 </div>
               )}
               
-              {/* Media Files Section */}
               {mediaFiles.length > 0 && (
                 <div className="mt-4">
                   <div className={`grid ${mediaFiles.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-2 rounded-2xl overflow-hidden`}>

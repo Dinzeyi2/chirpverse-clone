@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile, ThumbsUp } from 'lucide-react';
@@ -36,32 +35,29 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const hasMedia = post.images && post.images.length > 0;
+  const hasCodeBlocks = post.codeBlocks && post.codeBlocks.length > 0;
+  const showMediaAtTop = hasMedia || hasCodeBlocks;
   const isLightMode = theme === 'light';
 
-  // This function will get the display username, prioritizing the metadata field
   const getDisplayUsername = () => {
-    // Check if post has metadata with display_username
     if (post.metadata && post.metadata.display_username) {
       return post.metadata.display_username;
     }
     
-    // Fallback to the user's display name
     if (post.userId === currentUserId) {
       return displayName;
     }
     
-    // Last fallback: privacy-preserving username
     return getPrivacyName(post.userId);
   };
-  
+
   const getPrivacyName = (userId: string) => {
     if (!userId || userId.length < 4) return "blue";
     const first2 = userId.substring(0, 2);
     const last2 = userId.substring(userId.length - 2);
     return `blue${first2}${last2}`;
   };
-  
-  // Get the appropriate username to display
+
   const postAuthorName = getDisplayUsername();
 
   useEffect(() => {
@@ -479,21 +475,41 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     }
   };
 
-  const renderCodeBlocks = () => {
-    if (!post.codeBlocks || post.codeBlocks.length === 0) return null;
+  const renderTopMedia = () => {
+    if (!showMediaAtTop) return null;
     
-    return (
-      <div className="mt-2">
-        {post.codeBlocks.map((codeBlock, index) => (
-          <CodeBlock 
-            key={index}
-            code={codeBlock.code}
-            language={codeBlock.language}
-            className="mb-2"
+    if (hasCodeBlocks) {
+      return (
+        <div className="w-full overflow-hidden">
+          {post.codeBlocks.map((codeBlock, index) => (
+            <CodeBlock 
+              key={index}
+              code={codeBlock.code}
+              language={codeBlock.language}
+              className="rounded-none border-0"
+            />
+          ))}
+        </div>
+      );
+    }
+    
+    if (hasMedia) {
+      return (
+        <div className={`w-full aspect-[4/3] relative overflow-hidden ${mediaBg}`}>
+          <img 
+            src={getImageUrl(post.images[0])} 
+            alt="Post content" 
+            className={cn(
+              "w-full h-full object-cover transition-all duration-500",
+              !isImageLoaded ? "scale-105 blur-sm" : "scale-100 blur-0"
+            )}
+            onLoad={() => setIsImageLoaded(true)}
           />
-        ))}
-      </div>
-    );
+        </div>
+      );
+    }
+    
+    return null;
   };
 
   const blueProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
@@ -506,32 +522,18 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         cardBg, 'backdrop-blur-sm',
         'transition-all duration-300 hover:shadow-xl hover:scale-[1.01]',
         cardBorder,
-        !hasMedia && 'flex flex-col justify-center'
+        !showMediaAtTop && 'flex flex-col justify-center'
       )}
     >
-      {hasMedia ? (
+      {showMediaAtTop ? (
         <div className="flex flex-col">
-          <div className={`w-full aspect-[4/3] relative overflow-hidden ${mediaBg}`}>
-            <img 
-              src={getImageUrl(post.images[0])} 
-              alt="Post content" 
-              className={cn(
-                "w-full h-full object-cover transition-all duration-500",
-                !isImageLoaded ? "scale-105 blur-sm" : "scale-100 blur-0"
-              )}
-              onLoad={() => setIsImageLoaded(true)}
-            />
-          </div>
+          {renderTopMedia()}
           
           <div className={contentBg}>
             <div className="p-3">
               <h2 className={`text-base font-bold ${textColor} leading-tight mb-1`}>
                 {formatTextWithLinks(post.content)}
               </h2>
-            
-              <div>
-                {renderCodeBlocks()}
-              </div>
             </div>
             
             <div className="flex items-center mt-1 px-3 pb-3">
@@ -559,7 +561,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           <p className={`text-xl ${textColor} font-medium mb-3`}>
             {formatTextWithLinks(post.content)}
           </p>
-          {renderCodeBlocks()}
         </div>
       )}
       
@@ -619,7 +620,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         </button>
       </div>
       
-      {!hasMedia && (
+      {!showMediaAtTop && (
         <div className={contentBg}>
           <div className="flex items-center p-3">
             <img 
