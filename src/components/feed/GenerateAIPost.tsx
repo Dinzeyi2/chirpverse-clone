@@ -26,7 +26,7 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
 
   const generatePost = async () => {
     setIsGenerating(true);
-    toast.info('Generating AI post...');
+    toast.info('Finding real coding issues from the web...');
     
     try {
       // Get current user to check authentication
@@ -36,7 +36,7 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
         throw new Error("You need to be logged in to generate AI posts");
       }
       
-      // Call our edge function to generate a post
+      // Call our edge function to generate a post with real content from the web
       const { data, error } = await supabase.functions.invoke('generate-coding-post');
       
       if (error) {
@@ -44,22 +44,18 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       }
       
       if (data?.content) {
-        // We'll use the content in two ways:
-        // 1. For the backend - create an actual post in the database
-        // 2. For the frontend - show an optimistic update
-        
         // For frontend optimistic update - pass the generated content to parent
         onPostGenerated(data.content);
         
         // We no longer need to insert directly into the database
         // The parent component will handle that through normal post creation flow
-        toast.success('AI post generated successfully!');
+        toast.success('Real coding issue found and posted!');
       } else {
-        throw new Error('No content was generated');
+        throw new Error('No content was found');
       }
     } catch (error) {
       console.error('Error generating post:', error);
-      toast.error('Failed to generate AI post. Please try again.');
+      toast.error('Failed to generate post. Please try again.');
     } finally {
       setIsGenerating(false);
     }
@@ -78,7 +74,7 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       ) : (
         <Brain className="h-4 w-4" />
       )}
-      Generate AI Post
+      Find Real Coding Issues
     </Button>
   );
 };

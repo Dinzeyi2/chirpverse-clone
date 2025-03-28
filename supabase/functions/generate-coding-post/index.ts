@@ -18,9 +18,9 @@ serve(async (req) => {
       throw new Error('PERPLEXITY_API_KEY is not set in Supabase secrets');
     }
 
-    console.log("Generating coding problem post with Perplexity API");
+    console.log("Fetching real coding problems from Perplexity API");
     
-    // Call Perplexity API to generate a coding problem post
+    // Use Perplexity API to search for real coding issues on the web
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
       headers: {
@@ -32,16 +32,16 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an AI that generates realistic posts about coding problems. Sound exactly like a real frustrated programmer asking for help. Use an authentic tone and include code snippets when relevant. Focus on common, relatable coding issues that JavaScript, Python, React, TypeScript, CSS, or HTML developers face. Use language tags like @JavaScript, @React, etc.'
+            content: 'You are a web crawler designed to find and extract real coding questions from StackOverflow, Reddit, GitHub issues, and other developer forums. Return the exact text of a real question you find, with the original code snippets intact. Include a language tag in the format @JavaScript, @Python, etc. Start with a bold title and preserve the original formatting.'
           },
           {
             role: 'user',
-            content: 'Create a post about a real coding problem in JavaScript, Python, React, TypeScript, CSS, or HTML. Make it realistic, as if a real person is asking for help with a specific error or bug they encountered. Include relevant code snippets and mention the programming language with an @ symbol (e.g., @JavaScript, @React). Keep it under 280 characters.'
+            content: 'Search the web and find me a real coding problem that a developer has posted online in the last year. Look for problems about JavaScript, Python, React, TypeScript, CSS, or HTML. Format it exactly as it appeared with any code snippets, error messages, etc. Make sure to include the programming language as a tag (e.g., @JavaScript). Keep it under 280 characters if possible.'
           }
         ],
-        temperature: 0.9,
+        temperature: 0.2,
         max_tokens: 280,
-        top_p: 0.95,
+        top_p: 0.9,
         frequency_penalty: 0.7
       }),
     });
@@ -54,7 +54,7 @@ serve(async (req) => {
     }
     
     const generatedContent = data.choices[0].message.content.trim();
-    console.log("Generated content:", generatedContent);
+    console.log("Generated content from real issues:", generatedContent);
     
     return new Response(JSON.stringify({ content: generatedContent }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
