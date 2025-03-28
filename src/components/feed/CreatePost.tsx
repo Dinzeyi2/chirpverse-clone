@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Image, X, Video, Code } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { toast } from 'sonner';
@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import CodeEditorDialog from '@/components/code/CodeEditorDialog';
+import CodeBlock from '@/components/code/CodeBlock';
 
 interface CreatePostProps {
   onPostCreated?: (content: string, media?: {type: string, url: string}[]) => void;
@@ -19,6 +20,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const [isLoading, setIsLoading] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<{type: string, file: File, preview: string}[]>([]);
   const [codeDialogOpen, setCodeDialogOpen] = useState(false);
+  const [codeBlocks, setCodeBlocks] = useState<{code: string, language: string}[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -82,6 +84,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     setPostContent('');
     setCharCount(0);
     setMediaFiles([]);
+    setCodeBlocks([]);
     setIsLoading(false);
     
     if (textareaRef.current) {
@@ -164,6 +167,20 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     }
   };
   
+  useEffect(() => {
+    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+    const extractedBlocks: {code: string, language: string}[] = [];
+    
+    let match;
+    while ((match = codeBlockRegex.exec(postContent)) !== null) {
+      const language = match[1] || 'plaintext';
+      const code = match[2];
+      extractedBlocks.push({ code, language });
+    }
+    
+    setCodeBlocks(extractedBlocks);
+  }, [postContent]);
+  
   const handleCodeInsert = (code: string, language: string) => {
     const codeBlock = `\`\`\`${language}\n${code}\n\`\`\``;
     
@@ -236,6 +253,19 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     }
   };
   
+  const getDisplayContent = () => {
+    if (codeBlocks.length === 0) {
+      return postContent;
+    }
+    
+    let displayContent = postContent;
+    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+    
+    displayContent = displayContent.replace(codeBlockRegex, '[Code Block]');
+    
+    return displayContent;
+  };
+  
   return (
     <div className={inDialog 
       ? isMobile 
@@ -269,11 +299,20 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                 ref={textareaRef}
                 className="w-full border-none text-xl focus:ring-0 resize-none placeholder:text-xGray/70 min-h-[120px] bg-transparent outline-none"
                 placeholder="What's happening? Use @language to tag a programming language"
-                value={postContent}
+                value={getDisplayContent()}
                 onChange={handleTextChange}
                 rows={isMobile && inDialog ? 10 : 3}
                 disabled={isLoading}
               />
+              
+              {codeBlocks.map((block, index) => (
+                <CodeBlock 
+                  key={index}
+                  code={block.code}
+                  language={block.language}
+                  className="mt-3 mb-4"
+                />
+              ))}
               
               {mediaFiles.length > 0 && (
                 <div className="mt-2 mb-4 relative">
