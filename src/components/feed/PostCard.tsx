@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MessageCircle, MoreHorizontal, CheckCircle, Bookmark, Smile, ThumbsUp } from 'lucide-react';
@@ -195,12 +196,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       }
     };
     
-    // Use the count from post if available, otherwise fetch it
-    if (post.replies && post.replies > 0) {
-      setReplyCount(post.replies);
-    } else {
-      fetchReplyCount();
-    }
+    fetchReplyCount();
     
     const commentsChannel = supabase
       .channel(`comments-${post.id}`)
@@ -225,15 +221,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     return () => {
       supabase.removeChannel(commentsChannel);
     };
-  }, [post.id, post.replies]);
-
-  // Modified to immediately display like count
-  useEffect(() => {
-    // If post already has likes count from parent, use it
-    if (post.likes !== undefined && post.likes > 0) {
-      setLikeCount(post.likes);
-    }
-  }, [post.likes]);
+  }, [post.id]);
 
   const handlePostClick = () => {
     navigate(`/post/${post.id}`);
