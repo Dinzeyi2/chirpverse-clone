@@ -9,6 +9,21 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 
+interface SupabaseComment {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+  shoutout_id: string;
+  media?: any;
+  profiles: any;
+  metadata?: {
+    display_username?: string;
+    is_ai_generated?: boolean;
+    [key: string]: any;
+  };
+}
+
 const PostPage: React.FC = () => {
   const { postId } = useParams<{ postId: string }>();
   const navigate = useNavigate();
@@ -42,9 +57,7 @@ const PostPage: React.FC = () => {
         }
         
         if (postData) {
-          // Get the display username from metadata if available
           const metadata = postData.metadata || {};
-          // Check if metadata is an object and has display_username property
           const displayUsername = typeof metadata === 'object' && metadata !== null && 'display_username' in metadata
             ? (metadata as { display_username?: string }).display_username
             : (postData.profiles?.user_id?.substring(0, 8) || 'user');
@@ -59,11 +72,11 @@ const PostPage: React.FC = () => {
             views: 0,
             userId: postData.user_id,
             images: postData.media,
-            metadata: postData.metadata, // Include metadata in the post object
+            metadata: postData.metadata,
             user: {
               id: postData.profiles.id,
-              name: displayUsername, // Use display_username from metadata
-              username: displayUsername, // Use display_username from metadata
+              name: displayUsername,
+              username: displayUsername,
               avatar: blueProfileImage,
               verified: false,
               followers: 0,
@@ -73,7 +86,6 @@ const PostPage: React.FC = () => {
           
           setPost(formattedPost);
           
-          // ... keep existing code (Promise.all for fetching likes, comments, etc.)
           Promise.all([
             supabase.from('likes').select('*', { count: 'exact' }).eq('shoutout_id', postId),
             supabase.from('comments').select('*', { count: 'exact' }).eq('shoutout_id', postId),
@@ -95,10 +107,8 @@ const PostPage: React.FC = () => {
             }));
             
             if (!commentsResponse.error && commentsResponse.data) {
-              const formattedComments = commentsResponse.data.map(comment => {
-                // Safely access comment metadata - handle as optional
+              const formattedComments = commentsResponse.data.map((comment: SupabaseComment) => {
                 const commentMetadata = comment.metadata || {};
-                // Always check if metadata is an object before trying to access its properties
                 const commentUsername = typeof commentMetadata === 'object' && commentMetadata !== null && 'display_username' in commentMetadata
                   ? (commentMetadata as { display_username?: string }).display_username
                   : comment.profiles.user_id?.substring(0, 8) || 'user';
@@ -111,7 +121,7 @@ const PostPage: React.FC = () => {
                   postId: comment.shoutout_id,
                   likes: 0,
                   media: comment.media || [],
-                  metadata: comment.metadata || {}, // Ensure metadata is always at least an empty object
+                  metadata: comment.metadata || {},
                   user: {
                     id: comment.profiles.id,
                     name: commentUsername,
@@ -192,19 +202,21 @@ const PostPage: React.FC = () => {
       if (error) throw error;
       
       if (data) {
+        const commentData = data as unknown as SupabaseComment;
+        
         const newComment = {
-          id: data.id,
-          content: data.content,
-          createdAt: data.created_at,
-          userId: data.user_id,
-          postId: data.shoutout_id,
+          id: commentData.id,
+          content: commentData.content,
+          createdAt: commentData.created_at,
+          userId: commentData.user_id,
+          postId: commentData.shoutout_id,
           likes: 0,
-          media: data.media || [],
-          metadata: data.metadata || {}, // Ensure metadata is always at least an empty object
+          media: commentData.media || [],
+          metadata: commentData.metadata || {},
           user: {
-            id: data.profiles.id,
-            name: data.profiles.full_name || 'User',
-            username: data.profiles.user_id?.substring(0, 8) || 'user',
+            id: commentData.profiles.id,
+            name: commentData.profiles.full_name || 'User',
+            username: commentData.profiles.user_id?.substring(0, 8) || 'user',
             avatar: blueProfileImage,
             verified: false,
             followers: 0,
