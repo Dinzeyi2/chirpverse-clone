@@ -50,8 +50,9 @@ serve(async (req) => {
         temperature: 0.9,
         max_tokens: 280,
         top_p: 0.95,
+        // Remove one of these penalties - can't use both
         frequency_penalty: 0.7,
-        presence_penalty: 0.7
+        // presence_penalty: 0.7  // Removed this line to fix the error
       }),
     });
 

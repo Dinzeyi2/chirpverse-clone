@@ -53,33 +53,43 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       let attempts = 0;
       let content = null;
       let isDuplicate = false;
+      let errorMessage = null;
       
       while (attempts < 3 && !content) {
         attempts++;
         
-        // Call our edge function to generate a post with real content from the web
-        const { data, error } = await supabase.functions.invoke('generate-coding-post');
-        
-        if (error) {
-          throw new Error(error.message);
-        }
-        
-        if (data?.content) {
-          // Check if this content is a duplicate
-          isDuplicate = await checkForDuplicateContent(data.content);
+        try {
+          // Call our edge function to generate a post with real content from the web
+          const { data, error } = await supabase.functions.invoke('generate-coding-post');
           
-          if (!isDuplicate) {
-            content = data.content;
-          } else {
-            console.log('Duplicate content found, trying again...');
-            continue;
+          if (error) {
+            errorMessage = error.message;
+            console.error('Error from edge function:', error);
+            continue; // Try again on error
           }
+          
+          if (data?.content) {
+            // Check if this content is a duplicate
+            isDuplicate = await checkForDuplicateContent(data.content);
+            
+            if (!isDuplicate) {
+              content = data.content;
+            } else {
+              console.log('Duplicate content found, trying again...');
+              continue;
+            }
+          }
+        } catch (err) {
+          console.error('Error during attempt:', err);
+          errorMessage = err.message;
         }
       }
       
       if (!content) {
         if (isDuplicate) {
           throw new Error('Could not generate a unique post after multiple attempts');
+        } else if (errorMessage) {
+          throw new Error(`API error: ${errorMessage}`);
         } else {
           throw new Error('No content was generated');
         }
