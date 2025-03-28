@@ -13,6 +13,30 @@ interface GenerateAIPostProps {
 const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
   const [isGenerating, setIsGenerating] = useState(false);
 
+  const checkForDuplicateContent = async (content: string): Promise<boolean> => {
+    try {
+      // Check last 50 posts to see if this content already exists
+      const { data: existingPosts, error } = await supabase
+        .from('shoutouts')
+        .select('content')
+        .order('created_at', { ascending: false })
+        .limit(50);
+        
+      if (error) {
+        console.error('Error checking for duplicate content:', error);
+        return false;
+      }
+      
+      // Check if the content already exists
+      return existingPosts.some(post => 
+        post.content.toLowerCase().trim() === content.toLowerCase().trim()
+      );
+    } catch (error) {
+      console.error('Error in duplicate check:', error);
+      return false;
+    }
+  };
+
   const generatePost = async () => {
     setIsGenerating(true);
     toast.info('Looking for real developer questions...');
@@ -25,44 +49,69 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
         throw new Error("You need to be logged in to generate AI posts");
       }
       
-      // Call our edge function to generate a post with real content from the web
-      const { data, error } = await supabase.functions.invoke('generate-coding-post');
+      // Try up to 3 times to get a unique post
+      let attempts = 0;
+      let content = null;
+      let isDuplicate = false;
       
-      if (error) {
-        throw new Error(error.message);
-      }
-      
-      if (data?.content) {
-        // Generate a unique username for the post
-        const displayUsername = `blue${Math.floor(1000 + Math.random() * 9000).toString()}`;
+      while (attempts < 3 && !content) {
+        attempts++;
         
-        // Insert the post directly into the database to ensure persistence
-        const { error: insertError } = await supabase
-          .from('shoutouts')
-          .insert({
-            content: data.content,
-            user_id: user.id,
-            metadata: {
-              display_username: displayUsername,
-              is_ai_generated: true
-            }
-          });
-          
-        if (insertError) {
-          console.error('Error inserting AI post:', insertError);
-          throw new Error('Failed to save the generated post to the database');
+        // Call our edge function to generate a post with real content from the web
+        const { data, error } = await supabase.functions.invoke('generate-coding-post');
+        
+        if (error) {
+          throw new Error(error.message);
         }
         
-        // For frontend optimistic update - pass the generated content to parent
-        onPostGenerated(data.content);
-        
-        toast.success('Found a developer question and posted it!');
-      } else {
-        throw new Error('No content was found');
+        if (data?.content) {
+          // Check if this content is a duplicate
+          isDuplicate = await checkForDuplicateContent(data.content);
+          
+          if (!isDuplicate) {
+            content = data.content;
+          } else {
+            console.log('Duplicate content found, trying again...');
+            continue;
+          }
+        }
       }
+      
+      if (!content) {
+        if (isDuplicate) {
+          throw new Error('Could not generate a unique post after multiple attempts');
+        } else {
+          throw new Error('No content was generated');
+        }
+      }
+      
+      // Generate a unique username for the post
+      const displayUsername = `blue${Math.floor(1000 + Math.random() * 9000).toString()}`;
+      
+      // Insert the post directly into the database to ensure persistence
+      const { error: insertError } = await supabase
+        .from('shoutouts')
+        .insert({
+          content: content,
+          user_id: user.id,
+          metadata: {
+            display_username: displayUsername,
+            is_ai_generated: true
+          }
+        });
+        
+      if (insertError) {
+        console.error('Error inserting AI post:', insertError);
+        throw new Error('Failed to save the generated post to the database');
+      }
+      
+      // For frontend optimistic update - pass the generated content to parent
+      onPostGenerated(content);
+      
+      toast.success('Found a developer question and posted it!');
     } catch (error) {
       console.error('Error generating post:', error);
-      toast.error('Failed to generate post. Please try again.');
+      toast.error(`Failed to generate post: ${error.message}`);
     } finally {
       setIsGenerating(false);
     }
