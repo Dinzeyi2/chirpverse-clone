@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import PostCard from './PostCard';
 import { Post } from '@/lib/data';
@@ -19,6 +18,7 @@ import PostSkeleton from './PostSkeleton';
 interface PostWithActions extends Post {
   actions?: React.ReactNode;
   languages?: string[];
+  comments?: number;
 }
 
 interface SwipeablePostViewProps {
@@ -36,7 +36,6 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   const [carouselKey, setCarouselKey] = useState<string>(`carousel-${Date.now()}`);
   const engagementSignatureRef = useRef<string>('');
 
-  // Effect to mark initial render complete
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsInitialRender(false);
@@ -45,7 +44,6 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     return () => clearTimeout(timer);
   }, []);
 
-  // Set up API event listeners
   useEffect(() => {
     if (!api) {
       return;
@@ -61,14 +59,12 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     };
   }, [api]);
 
-  // Generate signature for engagement data to detect changes
   const getCurrentEngagementSignature = () => {
     return posts.map(post => 
       `${post.id}:${post.likes}:${post.replies}:${post.comments || 0}`
     ).join('|');
   };
 
-  // Monitor posts changes to update carousel
   useEffect(() => {
     if (posts.length > 0) {
       console.log("Posts received, checking if carousel update needed");
@@ -76,7 +72,6 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
       const postsChanged = posts.length !== prevPostsRef.current.length ||
                           posts[0]?.id !== prevPostsRef.current[0]?.id;
       
-      // Check if engagement data has changed
       const currentEngagementSignature = getCurrentEngagementSignature();
       const engagementChanged = currentEngagementSignature !== engagementSignatureRef.current;
       
@@ -85,12 +80,10 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
         engagementSignatureRef.current = currentEngagementSignature;
       }
       
-      // Reset carousel when posts change significantly or engagement changes
       if (postsChanged || engagementChanged) {
         console.log("Force carousel refresh due to data changes");
         setCarouselKey(`carousel-${Date.now()}`);
         
-        // Reset to first slide if post list order changed
         if (postsChanged) {
           setTimeout(() => {
             if (api) {
@@ -101,12 +94,10 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
         }
       }
       
-      // Update reference to current posts
       prevPostsRef.current = [...posts];
     }
   }, [posts, api]);
 
-  // Calculate post sizing based on screen width
   const getPostSizing = () => {
     if (width <= 480) {
       return {
@@ -137,13 +128,11 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
 
   const { basis, scale, opacity } = getPostSizing();
 
-  // Theme-specific colors
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const mutedTextColor = theme === 'dark' ? 'text-neutral-400' : 'text-gray-500';
   const bgColor = theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100';
   const navBgColor = theme === 'dark' ? 'bg-black/40 hover:bg-black/60 text-white' : 'bg-gray-700/40 hover:bg-gray-700/60 text-white';
 
-  // Show loading state only on initial render
   if (loading && isInitialRender) {
     return (
       <div className="p-4 space-y-6">
@@ -152,7 +141,6 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     );
   }
 
-  // Show empty state when no posts
   if (posts.length === 0 && !loading) {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4 text-center">

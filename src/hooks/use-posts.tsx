@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, enableRealtimeForTables } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -54,9 +53,8 @@ export const usePosts = () => {
       // Fetch comment counts - fixed query syntax
       const { data: commentsData, error: commentError } = await supabase
         .from('comments')
-        .select('shoutout_id, count')
-        .in('shoutout_id', postIds)
-        .select('shoutout_id, count(*)', { count: 'exact' });
+        .select('shoutout_id, count(*)')
+        .in('shoutout_id', postIds);
       
       if (commentError) {
         console.error("Comments count error:", commentError);
