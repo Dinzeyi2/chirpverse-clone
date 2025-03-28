@@ -35,8 +35,8 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   const prevPostsRef = useRef<PostWithActions[]>([]);
   const [carouselKey, setCarouselKey] = useState<string>(`carousel-${Date.now()}`);
 
+  // Effect to mark initial render complete
   useEffect(() => {
-    // Mark that we've completed initial render after a short timeout
     const timer = setTimeout(() => {
       setIsInitialRender(false);
     }, 500);
@@ -44,6 +44,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     return () => clearTimeout(timer);
   }, []);
 
+  // Set up API event listeners
   useEffect(() => {
     if (!api) {
       return;
@@ -59,26 +60,20 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     };
   }, [api]);
 
-  // IMPROVED: More efficient post changes detection
+  // Monitor posts changes to update carousel
   useEffect(() => {
-    // If posts have changed
     if (posts.length > 0) {
       console.log("Posts changed, checking if carousel update needed");
       
-      const currentFirstPostId = posts[0]?.id;
-      const prevFirstPostId = prevPostsRef.current[0]?.id;
+      const postsChanged = posts.length !== prevPostsRef.current.length ||
+                          posts[0]?.id !== prevPostsRef.current[0]?.id;
       
-      // Force carousel reset when new posts are added or the array changes significantly
-      if (
-        posts.length !== prevPostsRef.current.length || 
-        currentFirstPostId !== prevFirstPostId
-      ) {
-        console.log("Posts list significantly changed, forcing carousel refresh");
-        
-        // Generate new key to force carousel re-render
+      // Reset carousel when posts change significantly
+      if (postsChanged) {
+        console.log("Posts list changed, forcing carousel refresh");
         setCarouselKey(`carousel-${Date.now()}`);
         
-        // Reset to first slide immediately
+        // Reset to first slide
         setTimeout(() => {
           if (api) {
             api.scrollTo(0);
@@ -87,35 +82,34 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
         }, 10);
       }
       
-      // Always update our reference to the current posts
+      // Update reference to current posts
       prevPostsRef.current = [...posts];
     }
   }, [posts, api]);
 
-  // Calculate post sizes based on screen width
+  // Calculate post sizing based on screen width
   const getPostSizing = () => {
-    // For mobile devices, make posts smaller to show more of adjacent posts
     if (width <= 480) {
       return {
-        basis: "90%",          // Takes 90% of the container width on very small devices
-        scale: "scale-95",     // Base scale for current post
-        opacity: "opacity-100" // Full opacity for current post
+        basis: "90%",
+        scale: "scale-95",
+        opacity: "opacity-100"
       };
     } else if (width <= 768) {
       return {
-        basis: "85%",          // Takes 85% of the container width on mobile devices
-        scale: "scale-95",     // Base scale for current post
-        opacity: "opacity-100" // Full opacity for current post
+        basis: "85%",
+        scale: "scale-95",
+        opacity: "opacity-100"
       };
     } else if (width <= 1024) {
       return {
-        basis: "1/2",          // Takes half the container width on tablets
+        basis: "1/2",
         scale: "scale-100",
         opacity: "opacity-100"
       };
     } else {
       return {
-        basis: "1/3",          // Takes a third of the container width on desktops
+        basis: "1/3",
         scale: "scale-100",
         opacity: "opacity-100"
       };
@@ -124,12 +118,13 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
 
   const { basis, scale, opacity } = getPostSizing();
 
-  // Determine colors based on theme
+  // Theme-specific colors
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const mutedTextColor = theme === 'dark' ? 'text-neutral-400' : 'text-gray-500';
   const bgColor = theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100';
   const navBgColor = theme === 'dark' ? 'bg-black/40 hover:bg-black/60 text-white' : 'bg-gray-700/40 hover:bg-gray-700/60 text-white';
 
+  // Show loading state only on initial render
   if (loading && isInitialRender) {
     return (
       <div className="p-4 space-y-6">
@@ -138,6 +133,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     );
   }
 
+  // Show empty state when no posts
   if (posts.length === 0 && !loading) {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
@@ -162,12 +158,12 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
           dragFree: false,
           containScroll: "trimSnaps"
         }}
-        key={carouselKey} // Dynamic key to force re-render when posts change
+        key={carouselKey}
       >
         <CarouselContent className="mx-auto">
           {posts.map((post, index) => (
             <CarouselItem 
-              key={`${post.id}-${index}`} // IMPROVED: Better key for more reliable renders
+              key={`${post.id}-${index}-${post.likes}-${post.comments}`}
               className={`basis-${basis} flex justify-center items-center pl-0`}
             >
               <div className={cn(

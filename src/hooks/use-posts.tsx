@@ -48,26 +48,23 @@ export const usePosts = () => {
     if (!postIds.length) return {};
     
     try {
-      // Use SQL query for comment counts instead of groupBy
+      // Fetch comment counts with raw SQL approach for better performance
       const { data: commentsData, error: commentError } = await supabase
         .from('comments')
-        .select('shoutout_id, count')
-        .in('shoutout_id', postIds)
         .select('shoutout_id, count(*)')
+        .in('shoutout_id', postIds)
         .then(result => {
-          // Process the result
           if (result.error) throw result.error;
           return { data: result.data, error: null };
         });
       
       if (commentError) throw commentError;
       
-      // Use SQL query for reaction counts
+      // Fetch reaction counts with raw SQL approach
       const { data: reactionsData, error: reactionsError } = await supabase
         .from('post_reactions')
-        .select('post_id, count')
-        .in('post_id', postIds)
         .select('post_id, count(*)')
+        .in('post_id', postIds)
         .then(result => {
           if (result.error) throw result.error;
           return { data: result.data, error: null };
@@ -75,12 +72,11 @@ export const usePosts = () => {
       
       if (reactionsError) throw reactionsError;
       
-      // Use SQL query for likes counts
+      // Fetch likes counts with raw SQL approach
       const { data: likesData, error: likesError } = await supabase
         .from('likes')
-        .select('shoutout_id, count')
-        .in('shoutout_id', postIds)
         .select('shoutout_id, count(*)')
+        .in('shoutout_id', postIds)
         .then(result => {
           if (result.error) throw result.error;
           return { data: result.data, error: null };
@@ -129,9 +125,11 @@ export const usePosts = () => {
     setError(null);
     
     try {
+      console.log("Fetching posts and engagements...");
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
       
+      // Fetch posts data
       const { data: shoutoutData, error: shoutoutError } = await supabase
         .from('shoutouts')
         .select('id, content, created_at, user_id, media, metadata')
@@ -145,6 +143,7 @@ export const usePosts = () => {
       if (shoutoutData && shoutoutData.length > 0) {
         const postIds = shoutoutData.map(post => post.id);
         
+        // Immediately fetch engagement data
         const engagementPromise = fetchPostEngagementData(postIds);
         
         const formattedPosts = shoutoutData.map(post => {
@@ -156,8 +155,8 @@ export const usePosts = () => {
             id: post.id,
             content: post.content,
             createdAt: post.created_at,
-            likes: 0,
-            comments: 0,
+            likes: 0, // Will be updated with engagement data
+            comments: 0, // Will be updated with engagement data
             saves: 0,
             reposts: 0,
             replies: 0,
@@ -178,6 +177,7 @@ export const usePosts = () => {
           };
         });
         
+        // Wait for engagement data
         const engagementData = await engagementPromise;
         
         const postsWithEngagement = formattedPosts.map(post => {
@@ -190,6 +190,7 @@ export const usePosts = () => {
           };
         });
         
+        // Combine with optimistic posts and ensure no duplicates
         const combinedPosts = [...optimisticPosts, ...postsWithEngagement]
           .filter((post, index, self) => 
             index === self.findIndex(p => p.id === post.id)
@@ -246,7 +247,7 @@ export const usePosts = () => {
     
     setTimeout(() => {
       fetchPosts();
-    }, 2000);
+    }, 500); // Reduced wait time for faster update
   }, [fetchPosts]);
 
   const loadMore = useCallback(async () => {
@@ -267,29 +268,39 @@ export const usePosts = () => {
       if (moreError) throw moreError;
       
       if (moreData && moreData.length > 0) {
-        const morePosts = moreData.map(post => ({
-          id: post.id,
-          content: post.content,
-          createdAt: post.created_at,
-          likes: 0,
-          comments: 0,
-          saves: 0,
-          reposts: 0,
-          replies: 0,
-          views: 0,
-          userId: post.user_id,
-          images: post.media,
-          languages: extractLanguagesFromContent(post.content),
-          user: {
-            id: post.user_id,
-            name: 'User',
-            username: post.user_id?.substring(0, 8) || 'user',
-            avatar: blueProfileImage,
-            verified: false,
-            followers: 0,
-            following: 0,
-          }
-        }));
+        // Get post IDs for engagement data
+        const postIds = moreData.map(post => post.id);
+        
+        // Immediately fetch engagement data for these posts
+        const engagementData = await fetchPostEngagementData(postIds);
+        
+        const morePosts = moreData.map(post => {
+          const engagement = engagementData[post.id] || { comments: 0, reactions: 0, likes: 0 };
+          
+          return {
+            id: post.id,
+            content: post.content,
+            createdAt: post.created_at,
+            likes: engagement.likes || 0,
+            comments: engagement.reactions || 0,
+            saves: 0,
+            reposts: 0,
+            replies: engagement.comments || 0,
+            views: 0,
+            userId: post.user_id,
+            images: post.media,
+            languages: extractLanguagesFromContent(post.content),
+            user: {
+              id: post.user_id,
+              name: 'User',
+              username: post.user_id?.substring(0, 8) || 'user',
+              avatar: blueProfileImage,
+              verified: false,
+              followers: 0,
+              following: 0,
+            }
+          };
+        });
         
         setPosts(prev => [...prev, ...morePosts]);
       }
@@ -311,6 +322,7 @@ export const usePosts = () => {
       fetchPosts();
     };
     
+    // Setup channel for more comprehensive table monitoring
     const channel = supabase
       .channel('public-changes')
       .on('postgres_changes', { 
@@ -333,16 +345,27 @@ export const usePosts = () => {
         schema: 'public',
         table: 'likes'
       }, handleRealtimeUpdate)
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
     
     return () => {
       supabase.removeChannel(channel);
     };
   }, [fetchPosts]);
 
+  // Initial data loading
   useEffect(() => {
     fetchUserLanguages();
     fetchPosts();
+    
+    // Setup interval for periodic refresh (fallback if realtime fails)
+    const intervalId = setInterval(() => {
+      console.log('Periodic refresh triggered');
+      fetchPosts();
+    }, 30000); // 30 seconds refresh interval as fallback
+    
+    return () => clearInterval(intervalId);
   }, [fetchUserLanguages, fetchPosts]);
 
   return {
