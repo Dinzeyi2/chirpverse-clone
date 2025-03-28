@@ -33,10 +33,30 @@ const PostPage: React.FC = () => {
   const [post, setPost] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [pendingComment, setPendingComment] = useState<{id: string} | null>(null);
+  const [processedCommentIds, setProcessedCommentIds] = useState<Set<string>>(new Set());
   
   const commentsChannelRef = useRef<any>(null);
   const blueProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
+  
+  // Helper function to deduplicate comments
+  const addUniqueComment = (newComment: any, existingComments: any[]) => {
+    // If we've already processed this comment ID, don't add it again
+    if (processedCommentIds.has(newComment.id)) {
+      return existingComments;
+    }
+    
+    // Add this ID to our processed set
+    setProcessedCommentIds(prev => new Set(prev).add(newComment.id));
+    
+    // Check if the comment already exists in our array
+    const commentExists = existingComments.some(c => c.id === newComment.id);
+    if (commentExists) {
+      return existingComments;
+    }
+    
+    // Add the new comment
+    return [newComment, ...existingComments];
+  };
   
   useEffect(() => {
     const fetchPostAndComments = async () => {
@@ -123,45 +143,54 @@ const PostPage: React.FC = () => {
             }));
             
             if (commentsData && commentsData.length > 0) {
-              const formattedComments = commentsData.map((comment: any) => {
-                const typedComment = comment as SupabaseComment;
-                const commentMetadata = typedComment.metadata || {};
-                
-                const commentUsername = typeof commentMetadata === 'object' && 
-                  commentMetadata !== null && 
-                  'display_username' in commentMetadata
-                    ? commentMetadata.display_username
-                    : typedComment.profiles?.user_id?.substring(0, 8) || 'user';
-                
-                console.log(`Processing comment from: ${commentUsername}`);
-                
-                return {
-                  id: typedComment.id,
-                  content: typedComment.content,
-                  createdAt: typedComment.created_at,
-                  userId: typedComment.user_id,
-                  postId: typedComment.shoutout_id,
-                  likes: 0,
-                  media: typedComment.media || [],
-                  metadata: typedComment.metadata || {},
-                  user: {
-                    id: typedComment.profiles?.id || typedComment.user_id,
-                    name: commentUsername,
-                    username: commentUsername,
-                    avatar: blueProfileImage,
-                    verified: false,
-                    followers: 0,
-                    following: 0,
-                  }
-                };
-              });
+              // Reset the processed IDs when fetching initial data
+              setProcessedCommentIds(new Set());
+              const uniqueCommentIds = new Set();
               
-              // Filter out any duplicate comments
-              const uniqueComments = formattedComments.filter((comment, index, self) => 
-                index === self.findIndex(c => c.id === comment.id)
-              );
+              const formattedComments = commentsData
+                .filter(comment => {
+                  // Deduplicate comments by ID during initial load
+                  if (uniqueCommentIds.has(comment.id)) return false;
+                  uniqueCommentIds.add(comment.id);
+                  return true;
+                })
+                .map((comment: any) => {
+                  const typedComment = comment as SupabaseComment;
+                  const commentMetadata = typedComment.metadata || {};
+                  
+                  const commentUsername = typeof commentMetadata === 'object' && 
+                    commentMetadata !== null && 
+                    'display_username' in commentMetadata
+                      ? commentMetadata.display_username
+                      : typedComment.profiles?.user_id?.substring(0, 8) || 'user';
+                  
+                  console.log(`Processing comment from: ${commentUsername}`);
+                  
+                  // Mark this comment ID as processed
+                  setProcessedCommentIds(prev => new Set(prev).add(typedComment.id));
+                  
+                  return {
+                    id: typedComment.id,
+                    content: typedComment.content,
+                    createdAt: typedComment.created_at,
+                    userId: typedComment.user_id,
+                    postId: typedComment.shoutout_id,
+                    likes: 0,
+                    media: typedComment.media || [],
+                    metadata: typedComment.metadata || {},
+                    user: {
+                      id: typedComment.profiles?.id || typedComment.user_id,
+                      name: commentUsername,
+                      username: commentUsername,
+                      avatar: blueProfileImage,
+                      verified: false,
+                      followers: 0,
+                      following: 0,
+                    }
+                  };
+                });
               
-              setComments(uniqueComments);
+              setComments(formattedComments);
             } else {
               console.log('No comments found for this post');
               setComments([]);
@@ -197,10 +226,9 @@ const PostPage: React.FC = () => {
       }, (payload) => {
         console.log('New comment received via realtime:', payload);
         
-        // Don't refetch if we just added this comment ourselves
-        if (pendingComment && pendingComment.id === payload.new.id) {
-          console.log('Ignoring own comment received via realtime');
-          setPendingComment(null);
+        // Don't add the comment if we've already processed it
+        if (processedCommentIds.has(payload.new.id)) {
+          console.log('Ignoring duplicate comment received via realtime');
           return;
         }
         
@@ -241,7 +269,8 @@ const PostPage: React.FC = () => {
               }
             };
             
-            setComments(prev => [formattedComment, ...prev]);
+            // Use our helper function to add this comment only if it's unique
+            setComments(prev => addUniqueComment(formattedComment, prev));
             
             // Update post reply count
             setPost(prev => ({
@@ -335,11 +364,11 @@ const PostPage: React.FC = () => {
           }
         };
         
-        // Track this comment to avoid duplication when it comes back via realtime
-        setPendingComment({ id: commentData.id });
+        // Pre-mark this comment ID as processed to avoid duplicates from the realtime subscription
+        setProcessedCommentIds(prev => new Set(prev).add(commentData.id));
         
-        // Add the comment to the top of the list
-        setComments(prevComments => [newComment, ...prevComments]);
+        // Add the comment to our list using the deduplication helper
+        setComments(prev => addUniqueComment(newComment, prev));
         
         // Update the reply count for the post
         setPost(prevPost => ({

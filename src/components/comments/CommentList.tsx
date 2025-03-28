@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Comment as CommentType } from '@/lib/data';
 import Comment from './Comment';
 
@@ -9,6 +9,16 @@ interface CommentListProps {
 }
 
 const CommentList: React.FC<CommentListProps> = ({ comments, isLoading = false }) => {
+  // Deduplicate comments by ID
+  const uniqueComments = useMemo(() => {
+    const uniqueIds = new Set();
+    return comments.filter(comment => {
+      if (uniqueIds.has(comment.id)) return false;
+      uniqueIds.add(comment.id);
+      return true;
+    });
+  }, [comments]);
+
   if (isLoading) {
     return (
       <div className="py-6 text-center">
@@ -17,7 +27,7 @@ const CommentList: React.FC<CommentListProps> = ({ comments, isLoading = false }
     );
   }
 
-  if (!comments || comments.length === 0) {
+  if (!uniqueComments || uniqueComments.length === 0) {
     return (
       <div className="py-6 text-center">
         <p className="text-xGray font-medium">No comments yet</p>
@@ -28,7 +38,7 @@ const CommentList: React.FC<CommentListProps> = ({ comments, isLoading = false }
 
   return (
     <div className="divide-y divide-xExtraLightGray">
-      {comments.map(comment => (
+      {uniqueComments.map(comment => (
         <Comment key={comment.id} comment={comment} />
       ))}
     </div>
