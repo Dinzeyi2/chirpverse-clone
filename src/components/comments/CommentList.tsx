@@ -8,7 +8,7 @@ interface CommentListProps {
 }
 
 const CommentList: React.FC<CommentListProps> = ({ comments }) => {
-  if (comments.length === 0) {
+  if (!comments || comments.length === 0) {
     return (
       <div className="py-6 text-center">
         <p className="text-xGray font-medium">No comments yet</p>
@@ -18,7 +18,7 @@ const CommentList: React.FC<CommentListProps> = ({ comments }) => {
   }
 
   return (
-    <div className="divide-y divide-xExtraLightGray max-h-[400px] overflow-y-auto">
+    <div className="divide-y divide-xExtraLightGray">
       {comments.map(comment => (
         <Comment key={comment.id} comment={comment} />
       ))}

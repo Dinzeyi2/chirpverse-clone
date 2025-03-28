@@ -41,6 +41,7 @@ const PostPage: React.FC = () => {
       
       try {
         setLoading(true);
+        console.log('Fetching post data for ID:', postId);
         
         const { data: postData, error: postError } = await supabase
           .from('shoutouts')
@@ -86,19 +87,31 @@ const PostPage: React.FC = () => {
           
           setPost(formattedPost);
           
+          console.log('Fetching comments for post:', postId);
+          
+          const { data: commentsData, error: commentsError } = await supabase
+            .from('comments')
+            .select(`
+              *,
+              profiles:user_id (*)
+            `)
+            .eq('shoutout_id', postId)
+            .order('created_at', { ascending: false });
+            
+          if (commentsError) {
+            console.error('Error fetching comments:', commentsError);
+          } else {
+            console.log('Found comments:', commentsData?.length || 0);
+          }
+          
           Promise.all([
             supabase.from('likes').select('*', { count: 'exact' }).eq('shoutout_id', postId),
-            supabase.from('comments').select('*', { count: 'exact' }).eq('shoutout_id', postId),
-            supabase.from('comments')
-              .select(`
-                *,
-                profiles:user_id (*)
-              `)
-              .eq('shoutout_id', postId)
-              .order('created_at', { ascending: false })
-          ]).then(([likesResponse, commentsCountResponse, commentsResponse]) => {
+            supabase.from('comments').select('*', { count: 'exact' }).eq('shoutout_id', postId)
+          ]).then(([likesResponse, commentsCountResponse]) => {
             const likesCount = likesResponse.count || 0;
             const commentsCount = commentsCountResponse.count || 0;
+            
+            console.log(`Post has ${likesCount} likes and ${commentsCount} comments`);
             
             setPost(prev => ({
               ...prev,
@@ -106,24 +119,30 @@ const PostPage: React.FC = () => {
               replies: commentsCount
             }));
             
-            if (!commentsResponse.error && commentsResponse.data) {
-              const formattedComments = commentsResponse.data.map((comment: SupabaseComment) => {
-                const commentMetadata = comment.metadata || {};
-                const commentUsername = typeof commentMetadata === 'object' && commentMetadata !== null && 'display_username' in commentMetadata
-                  ? (commentMetadata as { display_username?: string }).display_username
-                  : comment.profiles.user_id?.substring(0, 8) || 'user';
+            if (commentsData && commentsData.length > 0) {
+              const formattedComments = commentsData.map((comment: any) => {
+                const typedComment = comment as SupabaseComment;
+                const commentMetadata = typedComment.metadata || {};
+                
+                const commentUsername = typeof commentMetadata === 'object' && 
+                  commentMetadata !== null && 
+                  'display_username' in commentMetadata
+                    ? commentMetadata.display_username
+                    : typedComment.profiles?.user_id?.substring(0, 8) || 'user';
+                
+                console.log(`Processing comment from: ${commentUsername}`);
                 
                 return {
-                  id: comment.id,
-                  content: comment.content,
-                  createdAt: comment.created_at,
-                  userId: comment.user_id,
-                  postId: comment.shoutout_id,
+                  id: typedComment.id,
+                  content: typedComment.content,
+                  createdAt: typedComment.created_at,
+                  userId: typedComment.user_id,
+                  postId: typedComment.shoutout_id,
                   likes: 0,
-                  media: comment.media || [],
-                  metadata: comment.metadata || {},
+                  media: typedComment.media || [],
+                  metadata: typedComment.metadata || {},
                   user: {
-                    id: comment.profiles.id,
+                    id: typedComment.profiles?.id || typedComment.user_id,
                     name: commentUsername,
                     username: commentUsername,
                     avatar: blueProfileImage,
@@ -135,6 +154,9 @@ const PostPage: React.FC = () => {
               });
               
               setComments(formattedComments);
+            } else {
+              console.log('No comments found for this post');
+              setComments([]);
             }
           }).catch((error) => {
             console.error('Error fetching additional data:', error);
@@ -150,6 +172,23 @@ const PostPage: React.FC = () => {
     };
     
     fetchPostAndComments();
+    
+    const commentsChannel = supabase
+      .channel('comments-changes')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'comments',
+        filter: `shoutout_id=eq.${postId}`
+      }, (payload) => {
+        console.log('New comment received via realtime:', payload);
+        fetchPostAndComments();
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(commentsChannel);
+    };
   }, [postId]);
   
   const formatTextWithLinks = (text: string) => {
@@ -314,7 +353,7 @@ const PostPage: React.FC = () => {
       </div>
       
       <div className="border-b border-xExtraLightGray">
-        <PostCard post={post} />
+        {post && <PostCard post={post} />}
       </div>
       
       <div className="comment-container">

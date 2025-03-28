@@ -47,6 +47,7 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
   // Add AI comments to the generated post
   const addAIComments = async (postId: string, postContent: string, blueUserId: string) => {
     try {
+      console.log('Generating AI comments for post:', postId);
       // Call our edge function to generate AI comments
       const { data, error } = await supabase.functions.invoke('generate-ai-comment', {
         body: { postContent }
@@ -69,19 +70,28 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
         const displayUsername = generateRandomBlueUsername();
         
         // Add a small delay between comments to make them appear more natural
-        await new Promise(resolve => setTimeout(resolve, Math.random() * 1000));
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 500));
         
-        await supabase.from('comments').insert({
-          content: commentContent,
-          user_id: blueUserId,  // Use the same blue user ID for consistency
-          shoutout_id: postId,
-          metadata: {
-            display_username: displayUsername,
-            is_ai_generated: true
-          }
-        });
+        const { data: commentData, error: commentError } = await supabase
+          .from('comments')
+          .insert({
+            content: commentContent,
+            user_id: blueUserId,  // Use the same blue user ID for consistency
+            shoutout_id: postId,
+            metadata: {
+              display_username: displayUsername,
+              is_ai_generated: true
+            }
+          })
+          .select('*')
+          .single();
+          
+        if (commentError) {
+          console.error('Error adding AI comment:', commentError);
+          continue;
+        }
         
-        console.log(`Added AI comment from ${displayUsername}`);
+        console.log(`Added AI comment from ${displayUsername}:`, commentData);
       }
       
       toast.success(`${data.comments.length} developers replied to the question!`);
@@ -176,9 +186,11 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
         throw new Error('Failed to save the generated post to the database');
       }
       
+      console.log('Successfully inserted AI post:', insertedPost);
+      
       // Generate and add AI comments to the post
       if (insertedPost?.id) {
-        addAIComments(insertedPost.id, content, blue5146UserId);
+        await addAIComments(insertedPost.id, content, blue5146UserId);
       }
       
       // For frontend optimistic update - pass the generated content to parent
