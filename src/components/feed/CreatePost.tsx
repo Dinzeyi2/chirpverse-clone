@@ -224,10 +224,19 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       const optimisticPostId = crypto.randomUUID();
       
       if (onPostCreated) {
-        const optimisticMedia = mediaFiles.map(file => ({
-          type: file.type,
-          url: file.preview
-        }));
+        const optimisticMedia = [
+          ...mediaFiles.map(file => ({
+            type: file.type,
+            url: file.preview
+          })),
+          ...codeBlocks.map(block => ({
+            type: 'code',
+            url: JSON.stringify({
+              code: block.code,
+              language: block.language
+            })
+          }))
+        ];
         
         onPostCreated(postContent, optimisticMedia);
       }
@@ -236,12 +245,24 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       
       const postId = await createPost();
       
+      let mediaUrls: {type: string, url: string}[] = [];
       if (mediaFiles.length > 0) {
-        const mediaUrls = await uploadMedia(postId);
-        
-        if (mediaUrls.length > 0) {
-          await updatePostWithMedia(postId, mediaUrls);
-        }
+        mediaUrls = await uploadMedia(postId);
+      }
+      
+      const allMedia = [
+        ...mediaUrls,
+        ...codeBlocks.map(block => ({
+          type: 'code',
+          url: JSON.stringify({
+            code: block.code,
+            language: block.language
+          })
+        }))
+      ];
+      
+      if (allMedia.length > 0) {
+        await updatePostWithMedia(postId, allMedia);
       }
       
       toast.success('Post sent successfully!');
