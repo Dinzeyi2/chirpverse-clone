@@ -274,19 +274,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     }
   };
   
-  const getDisplayContent = () => {
-    if (codeBlocks.length === 0) {
-      return postContent;
-    }
-    
-    let displayContent = postContent;
-    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
-    
-    displayContent = displayContent.replace(codeBlockRegex, '[Code Block]');
-    
-    return displayContent;
-  };
-  
   return (
     <div className={inDialog 
       ? isMobile 
@@ -320,7 +307,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                 ref={textareaRef}
                 className="w-full border-none text-xl focus:ring-0 resize-none placeholder:text-xGray/70 min-h-[120px] bg-transparent outline-none"
                 placeholder="What's happening? Use @language to tag a programming language"
-                value={getDisplayContent()}
+                value={postContent}
                 onChange={handleTextChange}
                 rows={isMobile && inDialog ? 10 : 3}
                 disabled={isLoading}
