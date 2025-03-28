@@ -98,7 +98,7 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
           content: content,
           user_id: blue5146UserId, // Always use the fixed user ID for blue5146
           metadata: {
-            display_username: 'blue5146', // Fixed display username
+            display_username: displayUsername, // Random "blue" username for each post
             is_ai_generated: true
           }
         });
