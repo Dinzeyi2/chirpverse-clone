@@ -1,6 +1,5 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { Image, X, Video, Code, Check, Copy, ChevronDown, ChevronUp, FileCode } from 'lucide-react';
+import { Copy, Check, ChevronDown, ChevronUp, FileCode } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -36,7 +35,7 @@ const LANGUAGE_TYPES: Record<string, string[]> = {
 
 const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expanded: initialExpanded = false, inPost = false }) => {
   const [copied, setCopied] = useState(false);
-  const [expanded, setExpanded] = useState(initialExpanded);
+  const [expanded, setExpanded] = useState(initialExpanded || inPost);
   const [fileName, setFileName] = useState(`${language}.${getFileExtension(language)}`);
   const [highlightedCode, setHighlightedCode] = useState<React.ReactNode[]>([]);
   
@@ -54,7 +53,6 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expand
 
   // Tokenize code for syntax highlighting
   useEffect(() => {
-    const tokens = tokenizeCode(displayedCode, language);
     const codeLines = displayedCode.split('\n');
     
     const highlighted = codeLines.map((line, lineIndex) => {
@@ -95,194 +93,6 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expand
     }
   }
 
-  // Tokenize code for syntax highlighting
-  const tokenizeCode = (input: string, lang: string): SyntaxToken[] => {
-    const tokens: SyntaxToken[] = [];
-    if (!input) return tokens;
-
-    // Use the language-specific rules
-    const keywords = LANGUAGE_KEYWORDS[lang] || LANGUAGE_KEYWORDS.javascript;
-    const types = LANGUAGE_TYPES[lang] || LANGUAGE_TYPES.javascript;
-
-    // Split the input by various delimiters while preserving them
-    let currentToken = '';
-    let inString = false;
-    let stringDelimiter = '';
-    let inComment = false;
-    let inMultilineComment = false;
-
-    for (let i = 0; i < input.length; i++) {
-      const char = input[i];
-      const nextChar = i < input.length - 1 ? input[i + 1] : '';
-
-      // Handle comments
-      if (!inString && !inComment && !inMultilineComment && char === '/' && nextChar === '/') {
-        if (currentToken) {
-          tokens.push({ text: currentToken, type: 'plain', color: '#D4D4D4' });
-          currentToken = '';
-        }
-        inComment = true;
-        currentToken += char;
-        continue;
-      }
-
-      if (!inString && !inComment && !inMultilineComment && char === '/' && nextChar === '*') {
-        if (currentToken) {
-          tokens.push({ text: currentToken, type: 'plain', color: '#D4D4D4' });
-          currentToken = '';
-        }
-        inMultilineComment = true;
-        currentToken += char;
-        continue;
-      }
-
-      if (inComment && (char === '\n' || i === input.length - 1)) {
-        currentToken += char;
-        tokens.push({ text: currentToken, type: 'comment', color: '#6A9955' });
-        currentToken = '';
-        inComment = false;
-        continue;
-      }
-
-      if (inMultilineComment && char === '*' && nextChar === '/') {
-        currentToken += char + nextChar;
-        i++; // Skip next char
-        tokens.push({ text: currentToken, type: 'comment', color: '#6A9955' });
-        currentToken = '';
-        inMultilineComment = false;
-        continue;
-      }
-
-      if (inComment || inMultilineComment) {
-        currentToken += char;
-        continue;
-      }
-
-      // Handle strings
-      if (!inString && (char === '"' || char === "'" || char === '`')) {
-        if (currentToken) {
-          if (keywords.includes(currentToken)) {
-            tokens.push({ text: currentToken, type: 'keyword', color: '#569CD6' });
-          } else if (types.includes(currentToken)) {
-            tokens.push({ text: currentToken, type: 'type', color: '#4EC9B0' });
-          } else if (/^[0-9]+(\.[0-9]+)?$/.test(currentToken)) {
-            tokens.push({ text: currentToken, type: 'number', color: '#B5CEA8' });
-          } else if (currentToken === 'true' || currentToken === 'false') {
-            tokens.push({ text: currentToken, type: 'boolean', color: '#569CD6' });
-          } else if (/^[A-Z][A-Za-z0-9]*$/.test(currentToken)) {
-            tokens.push({ text: currentToken, type: 'type', color: '#4EC9B0' });
-          } else if (i < input.length - 1 && input[i + 1] === '(') {
-            tokens.push({ text: currentToken, type: 'function', color: '#DCDCAA' });
-          } else {
-            tokens.push({ text: currentToken, type: 'variable', color: '#9CDCFE' });
-          }
-          currentToken = '';
-        }
-        inString = true;
-        stringDelimiter = char;
-        currentToken += char;
-        continue;
-      }
-
-      if (inString && char === stringDelimiter && input[i - 1] !== '\\') {
-        currentToken += char;
-        tokens.push({ text: currentToken, type: 'string', color: '#CE9178' });
-        currentToken = '';
-        inString = false;
-        continue;
-      }
-
-      if (inString) {
-        currentToken += char;
-        continue;
-      }
-
-      // Handle operators and punctuation
-      if (/[+\-*/%=&|^~<>!?:;,.(){}[\]]/.test(char)) {
-        if (currentToken) {
-          if (keywords.includes(currentToken)) {
-            tokens.push({ text: currentToken, type: 'keyword', color: '#569CD6' });
-          } else if (currentToken === 'import' || currentToken === 'export' || currentToken === 'from' || currentToken === 'as') {
-            tokens.push({ text: currentToken, type: 'keyword', color: '#C586C0' });
-          } else if (types.includes(currentToken)) {
-            tokens.push({ text: currentToken, type: 'type', color: '#4EC9B0' });
-          } else if (/^[0-9]+(\.[0-9]+)?$/.test(currentToken)) {
-            tokens.push({ text: currentToken, type: 'number', color: '#B5CEA8' });
-          } else if (currentToken === 'true' || currentToken === 'false') {
-            tokens.push({ text: currentToken, type: 'boolean', color: '#569CD6' });
-          } else if (/^[A-Z][A-Za-z0-9]*$/.test(currentToken)) {
-            tokens.push({ text: currentToken, type: 'type', color: '#4EC9B0' });
-          } else if (i < input.length - 1 && input[i + 1] === '(') {
-            tokens.push({ text: currentToken, type: 'function', color: '#DCDCAA' });
-          } else {
-            tokens.push({ text: currentToken, type: 'variable', color: '#9CDCFE' });
-          }
-          currentToken = '';
-        }
-        tokens.push({ text: char, type: 'punctuation', color: '#D4D4D4' });
-        continue;
-      }
-
-      // Handle whitespace
-      if (/\s/.test(char)) {
-        if (currentToken) {
-          if (keywords.includes(currentToken)) {
-            tokens.push({ text: currentToken, type: 'keyword', color: '#569CD6' });
-          } else if (currentToken === 'import' || currentToken === 'export' || currentToken === 'from' || currentToken === 'as') {
-            tokens.push({ text: currentToken, type: 'keyword', color: '#C586C0' });
-          } else if (types.includes(currentToken)) {
-            tokens.push({ text: currentToken, type: 'type', color: '#4EC9B0' });
-          } else if (/^[0-9]+(\.[0-9]+)?$/.test(currentToken)) {
-            tokens.push({ text: currentToken, type: 'number', color: '#B5CEA8' });
-          } else if (currentToken === 'true' || currentToken === 'false') {
-            tokens.push({ text: currentToken, type: 'boolean', color: '#569CD6' });
-          } else if (/^[A-Z][A-Za-z0-9]*$/.test(currentToken)) {
-            tokens.push({ text: currentToken, type: 'type', color: '#4EC9B0' });
-          } else if (i < input.length - 1 && input[i + 1] === '(') {
-            tokens.push({ text: currentToken, type: 'function', color: '#DCDCAA' });
-          } else {
-            tokens.push({ text: currentToken, type: 'variable', color: '#9CDCFE' });
-          }
-          currentToken = '';
-        }
-        tokens.push({ text: char, type: 'plain', color: '#D4D4D4' });
-        continue;
-      }
-
-      // Collect characters for next token
-      currentToken += char;
-    }
-
-    // Don't forget the last token
-    if (currentToken) {
-      if (inComment || inMultilineComment) {
-        tokens.push({ text: currentToken, type: 'comment', color: '#6A9955' });
-      } else if (inString) {
-        tokens.push({ text: currentToken, type: 'string', color: '#CE9178' });
-      } else if (keywords.includes(currentToken)) {
-        tokens.push({ text: currentToken, type: 'keyword', color: '#569CD6' });
-      } else if (currentToken === 'import' || currentToken === 'export' || currentToken === 'from' || currentToken === 'as') {
-        tokens.push({ text: currentToken, type: 'keyword', color: '#C586C0' });
-      } else if (types.includes(currentToken)) {
-        tokens.push({ text: currentToken, type: 'type', color: '#4EC9B0' });
-      } else if (/^[0-9]+(\.[0-9]+)?$/.test(currentToken)) {
-        tokens.push({ text: currentToken, type: 'number', color: '#B5CEA8' });
-      } else if (currentToken === 'true' || currentToken === 'false') {
-        tokens.push({ text: currentToken, type: 'boolean', color: '#569CD6' });
-      } else if (/^[A-Z][A-Za-z0-9]*$/.test(currentToken)) {
-        tokens.push({ text: currentToken, type: 'type', color: '#4EC9B0' });
-      } else if (currentToken.startsWith('DEFAULT')) {
-        tokens.push({ text: currentToken, type: 'variable', color: '#4FC1FF' });
-      } else if (currentToken.startsWith('hsl')) {
-        tokens.push({ text: currentToken, type: 'function', color: '#DCDCAA' });
-      } else {
-        tokens.push({ text: currentToken, type: 'variable', color: '#9CDCFE' });
-      }
-    }
-
-    return tokens;
-  };
-
   function tokenizeLine(line: string, lang: string): JSX.Element[] {
     if (!line) return [<span key={0}>&nbsp;</span>];
     
@@ -297,14 +107,14 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expand
 
   const lineNumbers = displayedCode.split('\n').map((_, i) => i + 1);
 
-  // Adjust max height based on context - make inPost view larger to show more content
-  const maxHeight = inPost ? 'max-h-[800px]' : expanded ? 'max-h-[80vh]' : 'max-h-[500px]';
+  // Set max height based on context - much larger for published posts
+  const maxHeight = inPost ? 'max-h-screen' : expanded ? 'max-h-[80vh]' : 'max-h-[500px]';
 
   return (
     <div className={cn(
       "my-2 overflow-hidden border border-gray-700 bg-[#1e1e1e]",
       "shadow-sm relative",
-      inPost && "w-full",
+      inPost ? "w-full" : "",
       className
     )}>
       <div className="flex items-center justify-between px-4 py-2 bg-[#252526] border-b border-gray-700 sticky top-0 z-10">
@@ -313,7 +123,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expand
           <span className="font-medium">{fileName}</span>
         </div>
         <div className="flex items-center space-x-2">
-          {hasLongCode && (
+          {hasLongCode && !inPost && (
             <button 
               onClick={(e) => {
                 e.stopPropagation();
@@ -337,7 +147,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expand
           </button>
         </div>
       </div>
-      <ScrollArea className={maxHeight}>
+      <ScrollArea className={cn(maxHeight, "overflow-x-auto")}>
         <div className="relative">
           <div className="flex text-sm font-mono">
             <div className="py-4 pl-4 pr-3 text-right select-none bg-[#1e1e1e] text-gray-500 border-r border-gray-700 min-w-[2.5rem]">
@@ -353,7 +163,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expand
                   <div key={num} className="h-6 border-b border-gray-800/20"></div>
                 ))}
               </div>
-              <pre className="py-4 pl-4 pr-4 font-mono whitespace-pre relative z-10 overflow-visible">
+              <pre className="py-4 pl-4 pr-8 font-mono whitespace-pre relative z-10 overflow-visible w-max min-w-full">
                 <code className="text-sm text-[#D4D4D4]">
                   {highlightedCode}
                 </code>
