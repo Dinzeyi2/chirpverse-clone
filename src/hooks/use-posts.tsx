@@ -44,6 +44,75 @@ export const usePosts = () => {
     return matches.map(match => match.substring(1).toLowerCase());
   };
 
+  // New function to fetch engagement data for a post
+  const fetchPostEngagementData = async (postIds: string[]) => {
+    if (!postIds.length) return {};
+    
+    try {
+      // Batch fetch all comments counts
+      const { data: commentsData, error: commentError } = await supabase
+        .from('comments')
+        .select('shoutout_id, count')
+        .in('shoutout_id', postIds)
+        .select('shoutout_id', { count: 'exact', foreignTable: 'comments' })
+        .group('shoutout_id');
+        
+      if (commentError) throw commentError;
+      
+      // Batch fetch all reactions
+      const { data: reactionsData, error: reactionsError } = await supabase
+        .from('post_reactions')
+        .select('post_id, count')
+        .in('post_id', postIds)
+        .select('post_id', { count: 'exact', foreignTable: 'post_reactions' })
+        .group('post_id');
+        
+      if (reactionsError) throw reactionsError;
+      
+      // Batch fetch all likes
+      const { data: likesData, error: likesError } = await supabase
+        .from('likes')
+        .select('shoutout_id, count')
+        .in('shoutout_id', postIds)
+        .select('shoutout_id', { count: 'exact', foreignTable: 'likes' })
+        .group('shoutout_id');
+        
+      if (likesError) throw likesError;
+      
+      // Create a map of post IDs to engagement counts
+      const engagementMap: Record<string, { comments: number, reactions: number, likes: number }> = {};
+      
+      // Initialize engagement counts for all posts
+      postIds.forEach(id => {
+        engagementMap[id] = { comments: 0, reactions: 0, likes: 0 };
+      });
+      
+      // Fill in actual counts from data
+      commentsData?.forEach((item: any) => {
+        if (item.shoutout_id && engagementMap[item.shoutout_id]) {
+          engagementMap[item.shoutout_id].comments = parseInt(item.count || '0', 10);
+        }
+      });
+      
+      reactionsData?.forEach((item: any) => {
+        if (item.post_id && engagementMap[item.post_id]) {
+          engagementMap[item.post_id].reactions = parseInt(item.count || '0', 10);
+        }
+      });
+      
+      likesData?.forEach((item: any) => {
+        if (item.shoutout_id && engagementMap[item.shoutout_id]) {
+          engagementMap[item.shoutout_id].likes = parseInt(item.count || '0', 10);
+        }
+      });
+      
+      return engagementMap;
+    } catch (error) {
+      console.error('Error fetching post engagement data:', error);
+      return {};
+    }
+  };
+
   const fetchPosts = useCallback(async () => {
     if (isRefreshingRef.current) {
       return;
@@ -68,6 +137,13 @@ export const usePosts = () => {
       if (shoutoutError) throw shoutoutError;
       
       if (shoutoutData && shoutoutData.length > 0) {
+        // Get all post IDs for engagement data fetching
+        const postIds = shoutoutData.map(post => post.id);
+        
+        // Fetch engagement data in parallel with processing posts
+        const engagementPromise = fetchPostEngagementData(postIds);
+        
+        // Process posts while engagement data is being fetched
         const formattedPosts = shoutoutData.map(post => {
           // Get display username from metadata if available, otherwise use a truncated user_id
           const metadata = post.metadata as Record<string, any> || {};
@@ -78,11 +154,11 @@ export const usePosts = () => {
             id: post.id,
             content: post.content,
             createdAt: post.created_at,
-            likes: 0,
-            comments: 0,
+            likes: 0, // Will be updated with actual data
+            comments: 0, // Will be updated with actual data
             saves: 0,
             reposts: 0,
-            replies: 0,
+            replies: 0, // Will be updated with actual data
             views: 0,
             userId: post.user_id,
             images: post.media,
@@ -100,7 +176,22 @@ export const usePosts = () => {
           };
         });
         
-        const combinedPosts = [...optimisticPosts, ...formattedPosts]
+        // Wait for engagement data and update posts
+        const engagementData = await engagementPromise;
+        
+        // Update posts with engagement data
+        const postsWithEngagement = formattedPosts.map(post => {
+          const engagement = engagementData[post.id] || { comments: 0, reactions: 0, likes: 0 };
+          return {
+            ...post,
+            likes: engagement.likes,
+            comments: engagement.reactions, // Using reactions count for comments display
+            replies: engagement.comments // Using comments count for replies
+          };
+        });
+        
+        // Combine with optimistic posts
+        const combinedPosts = [...optimisticPosts, ...postsWithEngagement]
           .filter((post, index, self) => 
             index === self.findIndex(p => p.id === post.id)
           )
@@ -227,6 +318,21 @@ export const usePosts = () => {
         event: '*', 
         schema: 'public', 
         table: 'shoutouts' 
+      }, handleRealtimeUpdate)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'comments'
+      }, handleRealtimeUpdate)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'post_reactions'
+      }, handleRealtimeUpdate)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'likes'
       }, handleRealtimeUpdate)
       .subscribe();
     
