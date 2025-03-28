@@ -1,12 +1,12 @@
-
 import React, { useState, useRef } from 'react';
-import { Image, X, Video } from 'lucide-react';
+import { Image, X, Video, Code } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { toast } from 'sonner';
 import { DialogClose } from '@/components/ui/dialog';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import CodeEditorDialog from '@/components/code/CodeEditorDialog';
 
 interface CreatePostProps {
   onPostCreated?: (content: string, media?: {type: string, url: string}[]) => void;
@@ -18,6 +18,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const [charCount, setCharCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<{type: string, file: File, preview: string}[]>([]);
+  const [codeDialogOpen, setCodeDialogOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -34,7 +35,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       setPostContent(text);
       setCharCount(text.length);
       
-      // Auto resize textarea
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
         textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
@@ -57,7 +57,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     const file = files[0];
     const fileType = file.type.split('/')[0];
     
-    // Handle image and video files
     if (fileType === 'image' || fileType === 'video') {
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -95,7 +94,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   };
   
   const createPost = async () => {
-    // Simple direct post creation without media handling
     try {
       const { data, error } = await supabase
         .from('shoutouts')
@@ -166,6 +164,30 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     }
   };
   
+  const handleCodeInsert = (code: string, language: string) => {
+    const codeBlock = `\`\`\`${language}\n${code}\n\`\`\``;
+    
+    if (textareaRef.current) {
+      const startPos = textareaRef.current.selectionStart;
+      const endPos = textareaRef.current.selectionEnd;
+      
+      const newText = postContent.substring(0, startPos) + codeBlock + postContent.substring(endPos);
+      setPostContent(newText);
+      setCharCount(newText.length);
+      
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          const newPosition = startPos + codeBlock.length;
+          textareaRef.current.setSelectionRange(newPosition, newPosition);
+        }
+      }, 0);
+    }
+  };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -182,7 +204,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     setIsLoading(true);
     
     try {
-      // Create optimistic post for UI
       const optimisticPostId = crypto.randomUUID();
       
       if (onPostCreated) {
@@ -194,17 +215,13 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         onPostCreated(postContent, optimisticMedia);
       }
       
-      // Reset form immediately for better UX
       resetForm();
       
-      // Create the actual post
       const postId = await createPost();
       
-      // Upload media in the background
       if (mediaFiles.length > 0) {
         const mediaUrls = await uploadMedia(postId);
         
-        // Update post with media URLs
         if (mediaUrls.length > 0) {
           await updatePostWithMedia(postId, mediaUrls);
         }
@@ -323,6 +340,14 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                 >
                   <Video size={20} />
                 </button>
+                <button 
+                  type="button"
+                  className="p-2 text-xBlue rounded-full hover:bg-xBlue/10 transition-colors"
+                  onClick={() => setCodeDialogOpen(true)}
+                  disabled={isLoading}
+                >
+                  <Code size={20} />
+                </button>
               </div>
               
               <div className="flex items-center">
@@ -346,6 +371,12 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
           </form>
         </div>
       </div>
+      
+      <CodeEditorDialog
+        open={codeDialogOpen}
+        onClose={() => setCodeDialogOpen(false)}
+        onSave={handleCodeInsert}
+      />
     </div>
   );
 };
