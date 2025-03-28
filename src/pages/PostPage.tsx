@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
@@ -33,8 +33,9 @@ const PostPage: React.FC = () => {
   const [post, setPost] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [commentAdded, setCommentAdded] = useState(false);
+  const [pendingComment, setPendingComment] = useState<{id: string} | null>(null);
   
+  const commentsChannelRef = useRef<any>(null);
   const blueProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
   
   useEffect(() => {
@@ -155,7 +156,12 @@ const PostPage: React.FC = () => {
                 };
               });
               
-              setComments(formattedComments);
+              // Filter out any duplicate comments
+              const uniqueComments = formattedComments.filter((comment, index, self) => 
+                index === self.findIndex(c => c.id === comment.id)
+              );
+              
+              setComments(uniqueComments);
             } else {
               console.log('No comments found for this post');
               setComments([]);
@@ -175,7 +181,13 @@ const PostPage: React.FC = () => {
     
     fetchPostAndComments();
     
-    const commentsChannel = supabase
+    // Clean up existing channel if it exists
+    if (commentsChannelRef.current) {
+      supabase.removeChannel(commentsChannelRef.current);
+    }
+    
+    // Set up new realtime listener for comments
+    commentsChannelRef.current = supabase
       .channel('comments-changes')
       .on('postgres_changes', {
         event: 'INSERT',
@@ -184,19 +196,68 @@ const PostPage: React.FC = () => {
         filter: `shoutout_id=eq.${postId}`
       }, (payload) => {
         console.log('New comment received via realtime:', payload);
-        // Don't refetch if we just added a comment to avoid duplication
-        if (!commentAdded) {
-          fetchPostAndComments();
-        } else {
-          setCommentAdded(false);
+        
+        // Don't refetch if we just added this comment ourselves
+        if (pendingComment && pendingComment.id === payload.new.id) {
+          console.log('Ignoring own comment received via realtime');
+          setPendingComment(null);
+          return;
         }
+        
+        // Add the new comment to the list without refetching everything
+        const newComment = payload.new as any;
+        
+        // Fetch the user profile for this comment
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', newComment.user_id)
+          .single()
+          .then(({ data: profileData }) => {
+            const commentMetadata = newComment.metadata || {};
+            const commentUsername = typeof commentMetadata === 'object' && 
+              commentMetadata !== null && 
+              'display_username' in commentMetadata
+                ? commentMetadata.display_username
+                : newComment.user_id?.substring(0, 8) || 'user';
+            
+            const formattedComment = {
+              id: newComment.id,
+              content: newComment.content,
+              createdAt: newComment.created_at,
+              userId: newComment.user_id,
+              postId: newComment.shoutout_id,
+              likes: 0,
+              media: newComment.media || [],
+              metadata: newComment.metadata || {},
+              user: {
+                id: profileData?.id || newComment.user_id,
+                name: commentUsername,
+                username: commentUsername,
+                avatar: blueProfileImage,
+                verified: false,
+                followers: 0,
+                following: 0,
+              }
+            };
+            
+            setComments(prev => [formattedComment, ...prev]);
+            
+            // Update post reply count
+            setPost(prev => ({
+              ...prev,
+              replies: (prev?.replies || 0) + 1
+            }));
+          });
       })
       .subscribe();
       
     return () => {
-      supabase.removeChannel(commentsChannel);
+      if (commentsChannelRef.current) {
+        supabase.removeChannel(commentsChannelRef.current);
+      }
     };
-  }, [postId, commentAdded]);
+  }, [postId]);
   
   const formatTextWithLinks = (text: string) => {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -231,17 +292,17 @@ const PostPage: React.FC = () => {
     if (!user || !postId) return;
     
     try {
-      // Set flag to prevent duplicate comment issue
-      setCommentAdded(true);
+      const newCommentData = {
+        content,
+        user_id: user.id,
+        shoutout_id: postId,
+        media: media || null
+      };
       
+      // Insert the comment
       const { data, error } = await supabase
         .from('comments')
-        .insert({
-          content,
-          user_id: user.id,
-          shoutout_id: postId,
-          media: media || null
-        })
+        .insert(newCommentData)
         .select(`
           *,
           profiles:user_id (*)
@@ -253,6 +314,7 @@ const PostPage: React.FC = () => {
       if (data) {
         const commentData = data as unknown as SupabaseComment;
         
+        // Create a formatted comment object
         const newComment = {
           id: commentData.id,
           content: commentData.content,
@@ -273,8 +335,13 @@ const PostPage: React.FC = () => {
           }
         };
         
+        // Track this comment to avoid duplication when it comes back via realtime
+        setPendingComment({ id: commentData.id });
+        
+        // Add the comment to the top of the list
         setComments(prevComments => [newComment, ...prevComments]);
         
+        // Update the reply count for the post
         setPost(prevPost => ({
           ...prevPost,
           replies: (prevPost?.replies || 0) + 1
@@ -285,7 +352,6 @@ const PostPage: React.FC = () => {
     } catch (error) {
       console.error('Error adding comment:', error);
       toast.error('Failed to add comment');
-      setCommentAdded(false); // Reset flag in case of error
     }
   };
   
