@@ -19,15 +19,16 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   },
   realtime: {
     params: {
-      eventsPerSecond: 5
+      eventsPerSecond: 10 // Increased from 5 to 10 for more responsive updates
     }
   }
 });
 
-// Simple realtime activation
+// Improved realtime activation with proper error handling
 export const enableRealtimeForTables = () => {
   try {
-    const channel = supabase.channel('public:shoutouts')
+    // Subscribe to all relevant tables for engagement data
+    const channel = supabase.channel('public:realtime')
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
@@ -35,7 +36,30 @@ export const enableRealtimeForTables = () => {
       }, (payload) => {
         console.log('Shoutout change detected:', payload);
       })
-      .subscribe();
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'comments' 
+      }, (payload) => {
+        console.log('Comment change detected:', payload);
+      })
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'post_reactions' 
+      }, (payload) => {
+        console.log('Reaction change detected:', payload);
+      })
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'comment_reactions' 
+      }, (payload) => {
+        console.log('Comment reaction change detected:', payload);
+      })
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
       
     return channel;
   } catch (err) {

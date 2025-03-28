@@ -50,6 +50,7 @@ export interface Post {
     is_ai_generated?: boolean;
     [key: string]: any;
   };
+  comments?: Comment[]; // Add comments to the Post interface
 }
 
 export function formatDate(dateStr: string): string {

@@ -30,7 +30,8 @@ const Index = () => {
     refresh: refreshPosts,
     loadMore,
     addNewPost,
-    userLanguages
+    userLanguages,
+    engagementData
   } = usePosts();
   
   // Handle post creation
@@ -209,12 +210,14 @@ const Index = () => {
                 <SwipeablePostView 
                   posts={posts} 
                   loading={loading} 
+                  engagementData={engagementData}
                   key={`${feedKey}-swipeable-${posts.length}`}
                 />
               ) : (
                 <PostList 
                   posts={posts} 
                   loading={loading} 
+                  engagementData={engagementData}
                   key={`${feedKey}-list-${posts.length}`}
                 />
               )}
