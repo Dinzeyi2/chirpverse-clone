@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import SwipeablePostView from '@/components/feed/SwipeablePostView';
@@ -6,6 +5,7 @@ import { Search, ArrowLeft, Loader2 } from 'lucide-react';
 import { Post } from '@/lib/data';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import PostList from '@/components/feed/PostList';
 
 const Explore = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -15,7 +15,7 @@ const Explore = () => {
   const [searchResults, setSearchResults] = useState<Post[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
-
+  
   const getRelatedPosts = (topicName: string): Post[] => {
     return [
       {
@@ -120,7 +120,7 @@ const Explore = () => {
       }
     ];
   };
-
+  
   const handleTopicClick = (topic: string) => {
     setSelectedTopic(topic);
     setShowingTopicView(true);
@@ -146,37 +146,99 @@ const Explore = () => {
     setShowSearchResults(true);
     
     try {
-      // In a real implementation, this would search through the database
-      // For this demo, we'll create mock results based on the search query
-      setTimeout(() => {
-        const mockResults: Post[] = Array(5).fill(null).map((_, index) => ({
-          id: `search-${index}`,
-          content: `Post about "${searchQuery}" - result #${index + 1}`,
-          createdAt: new Date(Date.now() - index * 3600000).toISOString(),
-          likes: Math.floor(Math.random() * 1000),
-          reposts: Math.floor(Math.random() * 500),
-          replies: Math.floor(Math.random() * 200),
-          views: Math.floor(Math.random() * 10000),
-          userId: `user-${index}`,
-          user: {
-            id: `user-${index}`,
-            username: `user${index + 1}`,
-            email: `user${index+1}@example.com`,
-            avatar: `https://i.pravatar.cc/150?img=${(index % 10) + 1}`,
-            verified: index % 3 === 0,
-            name: `User ${index + 1}`,
-            followers: Math.floor(Math.random() * 10000),
-            following: Math.floor(Math.random() * 1000)
-          }
-        }));
-        
-        setSearchResults(mockResults);
-        setIsSearching(false);
-      }, 800); // Simulate network delay
+      // Search for posts containing the search query in their content
+      const { data: postsData, error: postsError } = await supabase
+        .from('shoutouts')
+        .select('id, content, created_at, user_id, media, metadata')
+        .ilike('content', `%${searchQuery}%`)
+        .order('created_at', { ascending: false })
+        .limit(10);
       
+      if (postsError) throw postsError;
+      
+      if (postsData && postsData.length > 0) {
+        // Format the posts data
+        const formattedPosts: Post[] = postsData.map(post => {
+          const metadata = post.metadata as Record<string, any> || {};
+          const displayUsername = metadata.display_username || 
+            (post.user_id ? post.user_id.substring(0, 8) : 'user');
+          
+          return {
+            id: post.id,
+            content: post.content,
+            createdAt: post.created_at,
+            likes: 0,
+            replies: 0,
+            reposts: 0,
+            views: 0,
+            userId: post.user_id,
+            images: post.media,
+            metadata: post.metadata,
+            user: {
+              id: post.user_id,
+              name: displayUsername,
+              username: displayUsername,
+              avatar: "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
+              verified: false,
+              email: '',
+              followers: 0,
+              following: 0
+            }
+          };
+        });
+        
+        setSearchResults(formattedPosts);
+      } else {
+        // If no exact matches, search for similar posts
+        const { data: similarPostsData, error: similarPostsError } = await supabase
+          .from('shoutouts')
+          .select('id, content, created_at, user_id, media, metadata')
+          .order('created_at', { ascending: false })
+          .limit(10);
+        
+        if (similarPostsError) throw similarPostsError;
+        
+        if (similarPostsData && similarPostsData.length > 0) {
+          // Format the similar posts data
+          const formattedSimilarPosts: Post[] = similarPostsData.map(post => {
+            const metadata = post.metadata as Record<string, any> || {};
+            const displayUsername = metadata.display_username || 
+              (post.user_id ? post.user_id.substring(0, 8) : 'user');
+            
+            return {
+              id: post.id,
+              content: post.content,
+              createdAt: post.created_at,
+              likes: 0,
+              replies: 0,
+              reposts: 0,
+              views: 0,
+              userId: post.user_id,
+              images: post.media,
+              metadata: post.metadata,
+              user: {
+                id: post.user_id,
+                name: displayUsername,
+                username: displayUsername,
+                avatar: "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
+                verified: false,
+                email: '',
+                followers: 0,
+                following: 0
+              }
+            };
+          });
+          
+          setSearchResults(formattedSimilarPosts);
+        } else {
+          setSearchResults([]);
+        }
+      }
     } catch (error) {
       console.error('Search error:', error);
       toast.error('Failed to search. Please try again.');
+      setSearchResults([]);
+    } finally {
       setIsSearching(false);
     }
   };
@@ -208,8 +270,6 @@ const Explore = () => {
             </div>
           </form>
         </div>
-        
-        
       </div>
       
       {showSearchResults ? (
@@ -230,7 +290,7 @@ const Explore = () => {
               <Loader2 className="h-8 w-8 animate-spin text-xBlue" />
             </div>
           ) : searchResults.length > 0 ? (
-            <SwipeablePostView posts={searchResults} />
+            <PostList posts={searchResults} />
           ) : (
             <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
               <h2 className="text-xl font-bold mb-2">No results found</h2>
