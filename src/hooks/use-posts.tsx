@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, enableRealtimeForTables } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -180,9 +181,9 @@ export const usePosts = () => {
           const displayUsername = metadata.display_username || 
             (post.user_id ? post.user_id.substring(0, 8) : 'user');
           
-          const codeBlocks = post.media 
+          const codeBlocks = Array.isArray(post.media) 
             ? post.media
-                .filter((item: any) => item.type === 'code')
+                .filter((item: any) => item && typeof item === 'object' && item.type === 'code')
                 .map((item: any) => {
                   try {
                     const parsed = JSON.parse(item.url);
@@ -315,9 +316,9 @@ export const usePosts = () => {
       
       if (moreData && moreData.length > 0) {
         const morePosts = moreData.map(post => {
-          const codeBlocks = post.media 
+          const codeBlocks = Array.isArray(post.media) 
             ? post.media
-                .filter((item: any) => item.type === 'code')
+                .filter((item: any) => item && typeof item === 'object' && item.type === 'code')
                 .map((item: any) => {
                   try {
                     const parsed = JSON.parse(item.url);
