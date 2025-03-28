@@ -72,24 +72,18 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
         const reactionCount = Math.floor(Math.random() * 3) + 1;
         
         for (let j = 0; j < reactionCount; j++) {
-          try {
-            const { error } = await supabase
-              .from('post_reactions')
-              .insert({
-                post_id: String(postId),
-                user_id: blue5146UserId,
-                emoji: emoji
-              });
-              
-            if (error) {
-              if (error.code !== '23505') { // Skip duplicate key errors
-                console.error('Error adding emoji reaction:', error);
-              }
-            } else {
-              console.log(`Added emoji reaction ${emoji} to post ${postId}`);
-            }
-          } catch (err) {
-            console.error('Error in reaction insert:', err);
+          const { error } = await supabase
+            .from('post_reactions')
+            .insert({
+              post_id: String(postId),
+              user_id: blue5146UserId,
+              emoji: emoji
+            });
+            
+          if (error) {
+            console.error('Error adding emoji reaction:', error);
+          } else {
+            console.log(`Added emoji reaction ${emoji} to post ${postId}`);
           }
           
           // Add a small delay between reactions
