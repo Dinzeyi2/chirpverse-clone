@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Check, Copy, ChevronDown, ChevronUp, FileCode } from 'lucide-react';
+import { Image, X, Video, Code, Check, Copy, ChevronDown, ChevronUp, FileCode } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -297,11 +297,11 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className }) => {
 
   return (
     <div className={cn(
-      "my-4 rounded-lg overflow-hidden border border-gray-700 bg-[#1e1e1e]",
-      "shadow-sm",
+      "my-2 overflow-hidden border border-gray-700 bg-[#1e1e1e]",
+      "shadow-sm relative",
       className
     )}>
-      <div className="flex items-center justify-between px-4 py-2 bg-[#252526] border-b border-gray-700">
+      <div className="flex items-center justify-between px-4 py-2 bg-[#252526] border-b border-gray-700 sticky top-0 z-10">
         <div className="flex items-center text-sm text-gray-300">
           <FileCode size={16} className="mr-2 text-gray-400" />
           <span className="font-medium">{fileName}</span>
@@ -309,7 +309,10 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className }) => {
         <div className="flex items-center space-x-2">
           {hasLongCode && (
             <button 
-              onClick={() => setExpanded(!expanded)} 
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded(!expanded);
+              }} 
               className="p-1 text-gray-400 hover:text-gray-200"
               aria-label={expanded ? "Collapse code" : "Expand code"}
             >
@@ -317,7 +320,10 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className }) => {
             </button>
           )}
           <button 
-            onClick={copyToClipboard} 
+            onClick={(e) => {
+              e.stopPropagation();
+              copyToClipboard();
+            }} 
             className="p-1 text-gray-400 hover:text-gray-200"
             aria-label="Copy code"
           >
@@ -325,7 +331,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className }) => {
           </button>
         </div>
       </div>
-      <ScrollArea className={expanded ? 'h-[80vh]' : 'max-h-[400px]'}>
+      <ScrollArea className={expanded ? 'max-h-[80vh]' : 'max-h-[500px]'}>
         <div className="relative">
           <div className="flex text-sm font-mono">
             <div className="py-4 pl-4 pr-3 text-right select-none bg-[#1e1e1e] text-gray-500 border-r border-gray-700 min-w-[2.5rem]">

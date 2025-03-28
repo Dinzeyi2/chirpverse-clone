@@ -480,13 +480,13 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     
     if (hasCodeBlocks) {
       return (
-        <div className="w-full overflow-hidden">
+        <div className="w-full overflow-hidden rounded-t-xl">
           {post.codeBlocks.map((codeBlock, index) => (
             <CodeBlock 
               key={index}
               code={codeBlock.code}
               language={codeBlock.language}
-              className="rounded-none border-0"
+              className="border-0 rounded-none"
             />
           ))}
         </div>
@@ -495,7 +495,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     
     if (hasMedia) {
       return (
-        <div className={`w-full aspect-[4/3] relative overflow-hidden ${mediaBg}`}>
+        <div className={`w-full aspect-[4/3] relative overflow-hidden ${mediaBg} rounded-t-xl`}>
           <img 
             src={getImageUrl(post.images[0])} 
             alt="Post content" 
@@ -561,6 +561,18 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           <p className={`text-xl ${textColor} font-medium mb-3`}>
             {formatTextWithLinks(post.content)}
           </p>
+          
+          {post.codeBlocks && post.codeBlocks.length > 0 && (
+            <div className="mt-3 w-full overflow-hidden">
+              {post.codeBlocks.map((codeBlock, index) => (
+                <CodeBlock 
+                  key={index}
+                  code={codeBlock.code}
+                  language={codeBlock.language}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
       
