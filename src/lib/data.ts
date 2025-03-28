@@ -39,6 +39,11 @@ export interface Post {
   images?: Array<string | {type: string, url: string}>;
   codeBlocks?: {code: string, language: string}[];
   languages?: string[];
+  metadata?: {
+    display_username?: string;
+    is_ai_generated?: boolean;
+    [key: string]: any;
+  };
 }
 
 export function formatDate(dateStr: string): string {

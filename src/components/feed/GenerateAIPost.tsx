@@ -135,7 +135,7 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       console.error('Error generating post:', error);
       toast.error(`Failed to generate post: ${error.message}`);
     } finally {
-      setIsResGenerating(false);
+      setIsGenerating(false); // Fix the typo here
     }
   };
 
