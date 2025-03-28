@@ -20,7 +20,7 @@ export interface Comment {
   media?: {
     type: string;
     url: string;
-  }[];
+  }[] | any; // Updated to accept any type from the database
   metadata?: {
     display_username?: string;
     is_ai_generated?: boolean;
