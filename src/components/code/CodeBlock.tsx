@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Image, X, Video, Code, Check, Copy, ChevronDown, ChevronUp, FileCode } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -8,6 +7,8 @@ interface CodeBlockProps {
   code: string;
   language: string;
   className?: string;
+  expanded?: boolean;
+  inPost?: boolean;
 }
 
 interface SyntaxToken {
@@ -32,9 +33,9 @@ const LANGUAGE_TYPES: Record<string, string[]> = {
   // Add more languages as needed
 };
 
-const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className }) => {
+const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expanded: initialExpanded = false, inPost = false }) => {
   const [copied, setCopied] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(initialExpanded);
   const [fileName, setFileName] = useState(`${language}.${getFileExtension(language)}`);
   const [highlightedCode, setHighlightedCode] = useState<React.ReactNode[]>([]);
   
@@ -46,7 +47,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className }) => {
   };
 
   const hasLongCode = code.split('\n').length > 10;
-  const displayedCode = !expanded && hasLongCode 
+  const displayedCode = !expanded && hasLongCode && !inPost
     ? code.split('\n').slice(0, 10).join('\n') + '\n// ...'
     : code;
 
@@ -295,10 +296,13 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className }) => {
 
   const lineNumbers = displayedCode.split('\n').map((_, i) => i + 1);
 
+  const maxHeight = inPost ? 'max-h-[600px]' : expanded ? 'max-h-[80vh]' : 'max-h-[500px]';
+
   return (
     <div className={cn(
       "my-2 overflow-hidden border border-gray-700 bg-[#1e1e1e]",
       "shadow-sm relative",
+      inPost && "w-full",
       className
     )}>
       <div className="flex items-center justify-between px-4 py-2 bg-[#252526] border-b border-gray-700 sticky top-0 z-10">
@@ -331,7 +335,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className }) => {
           </button>
         </div>
       </div>
-      <ScrollArea className={expanded ? 'max-h-[80vh]' : 'max-h-[500px]'}>
+      <ScrollArea className={maxHeight}>
         <div className="relative">
           <div className="flex text-sm font-mono">
             <div className="py-4 pl-4 pr-3 text-right select-none bg-[#1e1e1e] text-gray-500 border-r border-gray-700 min-w-[2.5rem]">

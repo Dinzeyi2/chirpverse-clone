@@ -487,6 +487,8 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               code={codeBlock.code}
               language={codeBlock.language}
               className="border-0 rounded-none"
+              expanded={true}
+              inPost={true}
             />
           ))}
         </div>
@@ -569,6 +571,8 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                   key={index}
                   code={codeBlock.code}
                   language={codeBlock.language}
+                  expanded={true}
+                  inPost={true}
                 />
               ))}
             </div>
