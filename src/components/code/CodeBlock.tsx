@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Image, X, Video, Code, Check, Copy, ChevronDown, ChevronUp, FileCode } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -296,7 +297,8 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expand
 
   const lineNumbers = displayedCode.split('\n').map((_, i) => i + 1);
 
-  const maxHeight = inPost ? 'max-h-[600px]' : expanded ? 'max-h-[80vh]' : 'max-h-[500px]';
+  // Adjust max height based on context - make inPost view larger to show more content
+  const maxHeight = inPost ? 'max-h-[800px]' : expanded ? 'max-h-[80vh]' : 'max-h-[500px]';
 
   return (
     <div className={cn(
@@ -351,7 +353,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expand
                   <div key={num} className="h-6 border-b border-gray-800/20"></div>
                 ))}
               </div>
-              <pre className="py-4 pl-4 pr-4 font-mono whitespace-pre relative z-10">
+              <pre className="py-4 pl-4 pr-4 font-mono whitespace-pre relative z-10 overflow-visible">
                 <code className="text-sm text-[#D4D4D4]">
                   {highlightedCode}
                 </code>
