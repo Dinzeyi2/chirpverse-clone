@@ -163,7 +163,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
         <CarouselContent className="mx-auto">
           {posts.map((post, index) => (
             <CarouselItem 
-              key={`${post.id}-${index}-${post.likes}-${post.comments}`}
+              key={`${post.id}-${index}-${post.likes}-${post.replies}`}
               className={`basis-${basis} flex justify-center items-center pl-0`}
             >
               <div className={cn(
