@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bookmark, MoreHorizontal, CheckCircle, Smile, Flame } from 'lucide-react';
@@ -28,6 +29,20 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
   const [isBludified, setIsBludified] = useState(false);
   const [bludifyCount, setBludifyCount] = useState(0);
 
+  // Get the display username from metadata if available
+  const getDisplayUsername = () => {
+    if (comment.metadata && typeof comment.metadata === 'object' && comment.metadata.display_username) {
+      return comment.metadata.display_username;
+    }
+    
+    if (comment.userId === user?.id) {
+      return displayName;
+    }
+    
+    // Fallback to privacy name
+    return getPrivacyName(comment.userId);
+  };
+  
   const getPrivacyName = (userId: string) => {
     if (!userId || userId.length < 4) return "blue";
     const first2 = userId.substring(0, 2);
@@ -35,9 +50,22 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
     return `blue${first2}${last2}`;
   };
   
-  const commentAuthorName = getPrivacyName(comment.userId);
+  const commentAuthorName = getDisplayUsername();
 
   useEffect(() => {
+    // Initial setup for metadata reactions
+    if (comment.metadata && typeof comment.metadata === 'object' && Array.isArray(comment.metadata.reactions)) {
+      const initialReactions = comment.metadata.reactions.map(emoji => ({
+        emoji,
+        count: Math.floor(Math.random() * 5) + 1, // Random count between 1-5
+        reacted: false
+      }));
+      
+      if (initialReactions.length > 0) {
+        setReactions(initialReactions);
+      }
+    }
+    
     const checkBludifyStatus = async () => {
       try {
         if (!user) return;
@@ -64,7 +92,54 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
       }
     };
     
+    const fetchCommentReactions = async () => {
+      try {
+        // Check if we already have reactions from metadata
+        if (reactions.length > 0) return;
+        
+        const { data, error } = await supabase
+          .from('comment_reactions')
+          .select('emoji, user_id')
+          .eq('comment_id', comment.id);
+          
+        if (error) {
+          console.error('Error fetching comment reactions:', error);
+          return;
+        }
+        
+        if (data && data.length > 0) {
+          const reactionCounts: Record<string, { count: number, reacted: boolean }> = {};
+          
+          data.forEach((reaction) => {
+            if (!reactionCounts[reaction.emoji]) {
+              reactionCounts[reaction.emoji] = {
+                count: 0,
+                reacted: false
+              };
+            }
+            
+            reactionCounts[reaction.emoji].count += 1;
+            
+            if (user && reaction.user_id === user.id) {
+              reactionCounts[reaction.emoji].reacted = true;
+            }
+          });
+          
+          const formattedReactions: EmojiReaction[] = Object.entries(reactionCounts).map(([emoji, data]) => ({
+            emoji,
+            count: data.count,
+            reacted: data.reacted
+          }));
+          
+          setReactions(formattedReactions);
+        }
+      } catch (error) {
+        console.error('Error in fetchCommentReactions:', error);
+      }
+    };
+    
     checkBludifyStatus();
+    fetchCommentReactions();
 
     const bludifyChannel = supabase
       .channel(`comment-bludifies-${comment.id}`)
@@ -81,7 +156,7 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
     return () => {
       supabase.removeChannel(bludifyChannel);
     };
-  }, [comment.id, user]);
+  }, [comment.id, user, comment.metadata, reactions.length]);
 
   const handleSave = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -287,6 +362,7 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
   };
 
   const currentUserDisplayName = displayName || 'blue';
+  const blueProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
 
   return (
     <div className="p-4 border-b border-xExtraLightGray hover:bg-black/[0.02] transition-colors">
@@ -297,7 +373,7 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
             className="block cursor-pointer"
           >
             <img 
-              src={comment.user?.avatar} 
+              src={comment.user?.avatar || blueProfileImage} 
               alt={commentAuthorName} 
               className="w-10 h-10 rounded-full object-cover"
             />
@@ -310,7 +386,7 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
               className="font-bold hover:underline mr-1 truncate cursor-pointer text-[#4285F4] font-heading tracking-wide"
               onClick={() => navigate(`/profile/${comment.userId}`)}
             >
-              {comment.userId === user?.id ? currentUserDisplayName : commentAuthorName}
+              {commentAuthorName}
             </div>
             
             {comment.user?.verified && (
@@ -319,7 +395,7 @@ const Comment: React.FC<CommentProps> = ({ comment }) => {
               </span>
             )}
             
-            <span className="text-xGray truncate">@{comment.userId === user?.id ? currentUserDisplayName : commentAuthorName}</span>
+            <span className="text-xGray truncate">@{commentAuthorName}</span>
             <span className="text-xGray mx-1">·</span>
             <span className="text-xGray">{formatDate(comment.createdAt)}</span>
             

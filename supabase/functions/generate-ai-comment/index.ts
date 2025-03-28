@@ -31,14 +31,55 @@ serve(async (req) => {
     const randomSeed = Math.floor(Math.random() * 10000).toString();
     
     // We'll generate 1-3 comments for the post
-    const commentsToGenerate = Math.floor(Math.random() * 3) + 1;
+    const commentsToGenerate = Math.floor(Math.random() * 3) + 2; // Ensuring at least 2 comments
     const comments = [];
+    
+    // Generate random blue usernames for comments
+    const generateRandomBlueUsername = () => {
+      // List of potential words to make the username feel more natural
+      const adjectives = ['cool', 'super', 'awesome', 'coding', 'dev', 'tech', 'data', 'web', 'pro', 'smart'];
+      const nouns = ['coder', 'dev', 'builder', 'creator', 'ninja', 'guru', 'hacker', 'wizard', 'expert', 'geek'];
+      
+      // 50% chance to use a word-based username, 50% chance to use a number-based one
+      if (Math.random() > 0.5) {
+        const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+        const noun = nouns[Math.floor(Math.random() * nouns.length)];
+        const num = Math.floor(Math.random() * 1000);
+        return `blue${adj}${noun}${num}`;
+      } else {
+        // Generate a random 3-5 digit number
+        const randomNum = Math.floor(1000 + Math.random() * 90000).toString();
+        return `blue${randomNum}`;
+      }
+    };
+    
+    // Generate some random emojis for each comment
+    const generateRandomEmojis = () => {
+      const emojis = ['👍', '❤️', '🔥', '🚀', '✨', '💯', '👏', '🙌', '😊', '👌', '🤔', '💡', '👨‍💻', '💪', '🎯'];
+      const emojiCount = Math.floor(Math.random() * 3) + 1; // 1-3 emojis
+      const selectedEmojis = [];
+      
+      for (let i = 0; i < emojiCount; i++) {
+        const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+        if (!selectedEmojis.includes(emoji)) {
+          selectedEmojis.push(emoji);
+        }
+      }
+      
+      return selectedEmojis;
+    };
     
     for (let i = 0; i < commentsToGenerate; i++) {
       const uniqueQuery = `Generate a helpful, supportive reply to this coding question: "${postContent}". 
       Make the reply sound like a real developer trying to help. Keep it under 200 characters.
       Current time: ${timestamp}, Random seed: ${randomSeed}-${i}.
       The comment should offer advice, ask clarifying questions, or share personal experience.`;
+      
+      // Generate a unique username for this comment
+      const displayUsername = generateRandomBlueUsername();
+      
+      // Generate random emoji reactions for this comment
+      const randomEmojis = generateRandomEmojis();
       
       // Use Perplexity API to generate a realistic comment
       const response = await fetch('https://api.perplexity.ai/chat/completions', {
@@ -74,7 +115,12 @@ serve(async (req) => {
 
       const data = await response.json();
       const generatedComment = data.choices[0].message.content.trim();
-      comments.push(generatedComment);
+      
+      comments.push({
+        content: generatedComment,
+        displayUsername: displayUsername,
+        reactions: randomEmojis
+      });
       
       // Add a small delay between requests to avoid rate limiting
       if (i < commentsToGenerate - 1) {

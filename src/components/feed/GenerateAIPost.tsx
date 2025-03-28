@@ -39,9 +39,21 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
 
   // Generate a unique random blue username
   const generateRandomBlueUsername = (): string => {
-    // Generate a random 4-digit number between 1000 and 9999
-    const randomNum = Math.floor(1000 + Math.random() * 9000).toString();
-    return `blue${randomNum}`;
+    // List of potential words to make the username feel more natural
+    const adjectives = ['cool', 'super', 'awesome', 'coding', 'dev', 'tech', 'data', 'web', 'pro', 'smart'];
+    const nouns = ['coder', 'dev', 'builder', 'creator', 'ninja', 'guru', 'hacker', 'wizard', 'expert', 'geek'];
+    
+    // 50% chance to use a word-based username, 50% chance to use a number-based one
+    if (Math.random() > 0.5) {
+      const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+      const noun = nouns[Math.floor(Math.random() * nouns.length)];
+      const num = Math.floor(Math.random() * 1000);
+      return `blue${adj}${noun}${num}`;
+    } else {
+      // Generate a random 3-5 digit number
+      const randomNum = Math.floor(1000 + Math.random() * 90000).toString();
+      return `blue${randomNum}`;
+    }
   };
 
   // Add emoji reactions to a post
@@ -122,22 +134,21 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       
       console.log('Generated AI comments:', data.comments);
       
-      // Add each comment with a random AI username
-      for (const commentContent of data.comments) {
-        const displayUsername = generateRandomBlueUsername();
-        
+      // Add each comment with a random AI username and its reactions
+      for (const commentData of data.comments) {
         // Add a small delay between comments to make them appear more natural
         await new Promise(resolve => setTimeout(resolve, Math.random() * 500));
         
-        const { data: commentData, error: commentError } = await supabase
+        const { data: commentData_, error: commentError } = await supabase
           .from('comments')
           .insert({
-            content: commentContent,
+            content: commentData.content,
             user_id: blueUserId,  // Use the same blue user ID for consistency
             shoutout_id: postId,
             metadata: {
-              display_username: displayUsername,
-              is_ai_generated: true
+              display_username: commentData.displayUsername,
+              is_ai_generated: true,
+              reactions: commentData.reactions
             }
           })
           .select('*')
@@ -148,7 +159,13 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
           continue;
         }
         
-        console.log(`Added AI comment from ${displayUsername}:`, commentData);
+        console.log(`Added AI comment from ${commentData.displayUsername}:`, commentData_);
+        
+        // Add a slight delay before adding reactions to this comment
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Add reactions to this comment
+        await addCommentReactions(commentData_.id, blueUserId, commentData.reactions);
       }
       
       toast.success(`${data.comments.length} developers replied to the question!`);
@@ -157,6 +174,37 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       console.error('Error adding AI comments:', err);
       // Try fallback if main method fails
       await addFallbackComments(postId, postContent, blueUserId);
+    }
+  };
+
+  // Add emoji reactions to a comment
+  const addCommentReactions = async (commentId: string, userId: string, emojis: string[]) => {
+    try {
+      for (const emoji of emojis) {
+        // Add 1-3 reactions for each emoji
+        const reactionCount = Math.floor(Math.random() * 3) + 1;
+        
+        for (let i = 0; i < reactionCount; i++) {
+          const { error } = await supabase
+            .from('comment_reactions')
+            .insert({
+              comment_id: commentId,
+              user_id: userId,
+              emoji: emoji
+            });
+            
+          if (error) {
+            console.error(`Error adding ${emoji} reaction to comment:`, error);
+          } else {
+            console.log(`Added ${emoji} reaction to comment ${commentId}`);
+          }
+          
+          // Add a small delay between reactions
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+    } catch (err) {
+      console.error('Error adding comment reactions:', err);
     }
   };
 
@@ -190,6 +238,9 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
         
         const displayUsername = generateRandomBlueUsername();
         
+        // Generate random emoji reactions for this comment
+        const randomEmojis = ['👍', '❤️', '🔥', '🚀', '🙌'].sort(() => Math.random() - 0.5).slice(0, Math.floor(Math.random() * 3) + 1);
+        
         // Add a small delay between comments
         await new Promise(resolve => setTimeout(resolve, Math.random() * 300));
         
@@ -201,7 +252,8 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
             shoutout_id: postId,
             metadata: {
               display_username: displayUsername,
-              is_ai_generated: true
+              is_ai_generated: true,
+              reactions: randomEmojis
             }
           })
           .select('*')
@@ -213,6 +265,12 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
         }
         
         console.log(`Added fallback comment from ${displayUsername}:`, commentData);
+        
+        // Add a slight delay before adding reactions to this comment
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Add reactions to this comment
+        await addCommentReactions(commentData.id, blueUserId, randomEmojis);
       }
       
       toast.success(`${selectedComments.length} developers replied to the question!`);

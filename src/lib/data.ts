@@ -24,6 +24,7 @@ export interface Comment {
   metadata?: {
     display_username?: string;
     is_ai_generated?: boolean;
+    reactions?: string[];
     [key: string]: any;
   };
 }
