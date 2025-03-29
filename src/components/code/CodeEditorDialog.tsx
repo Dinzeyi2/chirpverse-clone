@@ -482,6 +482,7 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
           <div 
             ref={lineNumbersRef}
             className="w-[50px] bg-[#1e1e1e] text-right text-xs text-gray-500 select-none border-r border-gray-800 overflow-hidden"
+            style={{ minHeight: `${MAX_LINES * 24}px` }}
           >
             <div className="h-full overflow-y-hidden pl-2 pr-3">
               {lineNumbers.map(num => (
@@ -494,7 +495,7 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
           
           <div className="flex-1 relative overflow-hidden">
             <ScrollArea className="h-full max-h-[calc(90vh-120px)] relative">
-              <div className="relative">
+              <div className="relative" style={{ minHeight: `${MAX_LINES * 24}px` }}>
                 <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
                   {lineNumbers.map((_, i) => (
                     <div key={i} className="h-6 border-b border-gray-800/20"></div>
@@ -517,7 +518,7 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
                   maxLength={10000}
                 />
                 
-                <pre className="font-mono text-sm p-2 text-gray-300 whitespace-pre-wrap break-all min-h-[400px] relative z-0">
+                <pre className="font-mono text-sm p-2 text-gray-300 whitespace-pre-wrap break-all min-h-[400px] relative z-0" style={{ minHeight: `${MAX_LINES * 24}px` }}>
                   {highlightedCode.length > 0 ? highlightedCode : <span className="text-gray-500">{`// Write your code here... (Max ${MAX_LINES} lines)`}</span>}
                 </pre>
               </div>
