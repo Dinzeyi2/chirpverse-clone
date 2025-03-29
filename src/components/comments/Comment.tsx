@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -71,7 +70,9 @@ interface Reply {
   }[];
   likes: number;
   liked_by_user: boolean;
-  metadata?: any;
+  metadata?: {
+    [key: string]: any;
+  };
 }
 
 const Comment: React.FC<CommentProps> = ({ 
@@ -123,7 +124,7 @@ const Comment: React.FC<CommentProps> = ({
       if (error) throw error;
       
       if (data && data.length > 0) {
-        const formattedReplies = data.map(reply => {
+        const formattedReplies: Reply[] = data.map(reply => {
           const metadata = reply.metadata || {};
           return {
             id: reply.id,
@@ -131,15 +132,19 @@ const Comment: React.FC<CommentProps> = ({
             created_at: reply.created_at,
             user: {
               id: reply.user_id,
-              username: metadata.display_username || reply.user_id.substring(0, 8),
+              username: typeof metadata === 'object' && metadata !== null && 'display_username' in metadata ? 
+                String(metadata.display_username) : 
+                reply.user_id.substring(0, 8),
               avatar: "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
-              full_name: metadata.display_username || reply.user_id.substring(0, 8),
+              full_name: typeof metadata === 'object' && metadata !== null && 'display_username' in metadata ? 
+                String(metadata.display_username) : 
+                reply.user_id.substring(0, 8),
               verified: false
             },
-            media: reply.media || [],
+            media: Array.isArray(reply.media) ? reply.media : [],
             likes: 0,
             liked_by_user: false,
-            metadata: reply.metadata
+            metadata: typeof metadata === 'object' ? metadata : {}
           };
         });
         
@@ -157,7 +162,6 @@ const Comment: React.FC<CommentProps> = ({
     }
   };
   
-  // Subscribe to new replies
   useEffect(() => {
     if (!postId || !comment.id) return;
     
@@ -487,10 +491,8 @@ const Comment: React.FC<CommentProps> = ({
       return;
     }
     
-    // Toggle reply form
     setIsReplying(!isReplying);
     
-    // If we're showing the reply form, also show any existing replies
     if (!isReplying && !showReplies) {
       setShowReplies(true);
       fetchReplies();
@@ -525,7 +527,6 @@ const Comment: React.FC<CommentProps> = ({
   
   const handleCommentAdded = () => {
     setIsReplying(false);
-    // Refetch replies after a new reply is added
     fetchReplies();
   };
   
@@ -538,8 +539,6 @@ const Comment: React.FC<CommentProps> = ({
     }
   };
   
-  // If the comment has a parent_id and it's not explicitly marked as a nested reply,
-  // then don't render it (it will be rendered as part of the parent comment's replies)
   if (comment.metadata?.parent_id && !isNestedReply) {
     return null;
   }
@@ -549,7 +548,6 @@ const Comment: React.FC<CommentProps> = ({
       ref={commentRef}
       className={`p-4 border-b border-xExtraLightGray transition-colors hover:bg-gray-50/5 ${isNestedReply ? 'pl-8 border-l border-xExtraLightGray ml-8' : ''}`}
     >
-      {/* Display if this is a reply */}
       {comment.metadata?.reply_to && (
         <div className="mb-1 text-xs text-gray-500">
           <span>Replying to </span>
@@ -720,7 +718,6 @@ const Comment: React.FC<CommentProps> = ({
             </div>
           )}
           
-          {/* Toggle replies button - only if there are replies */}
           {replyCount > 0 && (
             <button 
               onClick={toggleReplies}
@@ -731,7 +728,6 @@ const Comment: React.FC<CommentProps> = ({
             </button>
           )}
           
-          {/* Reply form */}
           {isReplying && currentUser && postId && (
             <CommentForm 
               currentUser={currentUser}
@@ -749,7 +745,6 @@ const Comment: React.FC<CommentProps> = ({
             />
           )}
           
-          {/* Show replies */}
           {showReplies && (
             <div className="mt-2">
               {loadingReplies ? (

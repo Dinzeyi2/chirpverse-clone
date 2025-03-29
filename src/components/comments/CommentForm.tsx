@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -204,6 +203,7 @@ const CommentForm: React.FC<CommentFormProps> = ({
     }
   };
 
+  // Fix: Changed onSubmit to onSave to match CodeEditorDialog component's prop name
   const handleCodeSubmit = (code: string, language: string) => {
     // Create a new media item for the code
     const codeMedia = {
