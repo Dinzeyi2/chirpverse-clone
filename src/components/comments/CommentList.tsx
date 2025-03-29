@@ -7,9 +7,17 @@ interface CommentListProps {
   comments: CommentType[];
   isLoading?: boolean;
   onReplyClick?: (commentId: string, username: string) => void;
+  postId?: string; // Add postId prop
+  currentUser?: any; // Add currentUser prop
 }
 
-const CommentList: React.FC<CommentListProps> = ({ comments, isLoading = false, onReplyClick }) => {
+const CommentList: React.FC<CommentListProps> = ({ 
+  comments, 
+  isLoading = false, 
+  onReplyClick,
+  postId,
+  currentUser
+}) => {
   // Improved deduplication with consistent sorting to ensure stable order
   const uniqueComments = useMemo(() => {
     const uniqueMap = new Map<string, CommentType>();
@@ -63,7 +71,8 @@ const CommentList: React.FC<CommentListProps> = ({ comments, isLoading = false, 
     },
     media: comment.media || [],
     likes: comment.likes || 0,
-    liked_by_user: comment.liked_by_user || false
+    liked_by_user: comment.liked_by_user || false,
+    metadata: comment.metadata || {}
   }));
 
   return (
@@ -72,7 +81,9 @@ const CommentList: React.FC<CommentListProps> = ({ comments, isLoading = false, 
         <Comment 
           key={comment.id} 
           comment={comment}
-          onReplyClick={onReplyClick} 
+          onReplyClick={onReplyClick}
+          postId={postId} 
+          currentUser={currentUser}
         />
       ))}
     </div>

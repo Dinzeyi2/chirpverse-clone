@@ -1,7 +1,8 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { MoreHorizontal, Save, Smile, Check, MessageCircle, Reply } from 'lucide-react';
+import { MoreHorizontal, Save, Smile, Check, MessageCircle, Reply, ChevronDown, ChevronUp } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -9,8 +10,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import CodeBlock from '@/components/code/CodeBlock';
-import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
+import EmojiPicker, { EmojiClickData, Theme as EmojiPickerTheme } from "emoji-picker-react";
 import { useTheme } from '@/components/theme/theme-provider';
+import CommentForm from './CommentForm';
 
 interface CommentProps {
   comment: {
@@ -30,9 +32,20 @@ interface CommentProps {
     }[];
     likes: number;
     liked_by_user: boolean;
+    metadata?: {
+      reply_to?: {
+        comment_id: string;
+        username: string;
+      },
+      parent_id?: string;
+      [key: string]: any;
+    };
   };
   onDelete?: () => void;
   onReplyClick?: (commentId: string, username: string) => void;
+  isNestedReply?: boolean;
+  postId?: string;
+  currentUser?: any;
 }
 
 interface CommentReaction {
@@ -41,7 +54,34 @@ interface CommentReaction {
   reacted: boolean;
 }
 
-const Comment: React.FC<CommentProps> = ({ comment, onDelete, onReplyClick }) => {
+interface Reply {
+  id: string;
+  content: string;
+  created_at: string;
+  user: {
+    id: string;
+    username: string;
+    avatar: string;
+    full_name: string;
+    verified: boolean;
+  };
+  media?: {
+    type: string;
+    url: string;
+  }[];
+  likes: number;
+  liked_by_user: boolean;
+  metadata?: any;
+}
+
+const Comment: React.FC<CommentProps> = ({ 
+  comment, 
+  onDelete, 
+  onReplyClick,
+  isNestedReply = false,
+  postId,
+  currentUser
+}) => {
   const [isLiked, setIsLiked] = useState(comment.liked_by_user);
   const [likeCount, setLikeCount] = useState(comment.likes);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -49,11 +89,114 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete, onReplyClick }) =>
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [reactions, setReactions] = useState<CommentReaction[]>([]);
+  const [isReplying, setIsReplying] = useState(false);
+  const [showReplies, setShowReplies] = useState(false);
+  const [replies, setReplies] = useState<Reply[]>([]);
+  const [replyCount, setReplyCount] = useState(0);
+  const [loadingReplies, setLoadingReplies] = useState(false);
+  
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
   const commentRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
+  
+  const fetchReplies = async () => {
+    if (!postId || !comment.id) return;
+    
+    try {
+      setLoadingReplies(true);
+      const { data, error } = await supabase
+        .from('comments')
+        .select(`
+          id,
+          content,
+          created_at,
+          user_id,
+          media,
+          metadata
+        `)
+        .eq('shoutout_id', postId)
+        .eq('metadata->parent_id', comment.id)
+        .order('created_at', { ascending: true });
+        
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const formattedReplies = data.map(reply => {
+          const metadata = reply.metadata || {};
+          return {
+            id: reply.id,
+            content: reply.content,
+            created_at: reply.created_at,
+            user: {
+              id: reply.user_id,
+              username: metadata.display_username || reply.user_id.substring(0, 8),
+              avatar: "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
+              full_name: metadata.display_username || reply.user_id.substring(0, 8),
+              verified: false
+            },
+            media: reply.media || [],
+            likes: 0,
+            liked_by_user: false,
+            metadata: reply.metadata
+          };
+        });
+        
+        setReplies(formattedReplies);
+      }
+    } catch (error) {
+      console.error('Error fetching replies:', error);
+      toast({
+        title: "Failed to load replies",
+        description: "There was an error fetching replies",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingReplies(false);
+    }
+  };
+  
+  // Subscribe to new replies
+  useEffect(() => {
+    if (!postId || !comment.id) return;
+    
+    const countReplies = async () => {
+      try {
+        const { data, error, count } = await supabase
+          .from('comments')
+          .select('id', { count: 'exact' })
+          .eq('shoutout_id', postId)
+          .eq('metadata->parent_id', comment.id);
+          
+        if (error) throw error;
+        setReplyCount(count || 0);
+      } catch (error) {
+        console.error('Error counting replies:', error);
+      }
+    };
+    
+    countReplies();
+    
+    const repliesChannel = supabase
+      .channel(`replies-${comment.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'comments',
+        filter: `metadata->parent_id=eq.${comment.id}`
+      }, () => {
+        countReplies();
+        if (showReplies) {
+          fetchReplies();
+        }
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(repliesChannel);
+    };
+  }, [comment.id, postId, showReplies]);
   
   useEffect(() => {
     if (!user) return;
@@ -335,8 +478,22 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete, onReplyClick }) =>
   };
   
   const handleReplyClick = () => {
-    if (onReplyClick) {
-      onReplyClick(comment.id, comment.user.username);
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to reply",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Toggle reply form
+    setIsReplying(!isReplying);
+    
+    // If we're showing the reply form, also show any existing replies
+    if (!isReplying && !showReplies) {
+      setShowReplies(true);
+      fetchReplies();
     }
   };
   
@@ -366,11 +523,40 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete, onReplyClick }) =>
     }
   }, [comment.id]);
   
+  const handleCommentAdded = () => {
+    setIsReplying(false);
+    // Refetch replies after a new reply is added
+    fetchReplies();
+  };
+  
+  const toggleReplies = () => {
+    const newShowReplies = !showReplies;
+    setShowReplies(newShowReplies);
+    
+    if (newShowReplies && replies.length === 0) {
+      fetchReplies();
+    }
+  };
+  
+  // If the comment has a parent_id and it's not explicitly marked as a nested reply,
+  // then don't render it (it will be rendered as part of the parent comment's replies)
+  if (comment.metadata?.parent_id && !isNestedReply) {
+    return null;
+  }
+  
   return (
     <div 
       ref={commentRef}
-      className="p-4 border-b border-xExtraLightGray transition-colors hover:bg-gray-50/5"
+      className={`p-4 border-b border-xExtraLightGray transition-colors hover:bg-gray-50/5 ${isNestedReply ? 'pl-8 border-l border-xExtraLightGray ml-8' : ''}`}
     >
+      {/* Display if this is a reply */}
+      {comment.metadata?.reply_to && (
+        <div className="mb-1 text-xs text-gray-500">
+          <span>Replying to </span>
+          <span className="text-xBlue">@{comment.metadata.reply_to.username}</span>
+        </div>
+      )}
+      
       <div className="flex gap-3">
         <Avatar className="h-10 w-10">
           <AvatarImage src={comment.user.avatar} alt={comment.user.username} />
@@ -493,7 +679,7 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete, onReplyClick }) =>
                   skinTonesDisabled
                   width={280}
                   height={350}
-                  theme={(theme === 'dark' ? 'dark' : 'light') as Theme}
+                  theme={(theme === 'dark' ? 'dark' : 'light') as EmojiPickerTheme}
                 />
               </PopoverContent>
             </Popover>
@@ -502,8 +688,8 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete, onReplyClick }) =>
               className="flex items-center gap-1 text-gray-500 hover:text-blue-600 transition-colors"
               onClick={handleReplyClick}
             >
-              <MessageCircle className="h-4 w-4" />
-              <span className="text-xs">Reply</span>
+              <Reply className="h-4 w-4" />
+              <span className="text-xs">Reply{replyCount > 0 && ` (${replyCount})`}</span>
             </button>
             
             <button 
@@ -531,6 +717,64 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete, onReplyClick }) =>
                   <span>{reaction.count}</span>
                 </button>
               ))}
+            </div>
+          )}
+          
+          {/* Toggle replies button - only if there are replies */}
+          {replyCount > 0 && (
+            <button 
+              onClick={toggleReplies}
+              className="mt-2 text-xs text-gray-500 hover:text-blue-500 flex items-center gap-1"
+            >
+              {showReplies ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              {showReplies ? 'Hide replies' : `Show ${replyCount} ${replyCount === 1 ? 'reply' : 'replies'}`}
+            </button>
+          )}
+          
+          {/* Reply form */}
+          {isReplying && currentUser && postId && (
+            <CommentForm 
+              currentUser={currentUser}
+              postAuthorId={postId}
+              onCommentAdded={handleCommentAdded}
+              replyToMetadata={{
+                reply_to: {
+                  comment_id: comment.id,
+                  username: comment.user.username
+                }
+              }}
+              placeholderText={`Reply to @${comment.user.username}...`}
+              parentId={comment.id}
+              isReply={true}
+            />
+          )}
+          
+          {/* Show replies */}
+          {showReplies && (
+            <div className="mt-2">
+              {loadingReplies ? (
+                <div className="flex justify-center py-2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-xBlue"></div>
+                </div>
+              ) : (
+                replies.length > 0 ? (
+                  <div className="space-y-2">
+                    {replies.map(reply => (
+                      <Comment 
+                        key={reply.id} 
+                        comment={reply} 
+                        isNestedReply 
+                        postId={postId}
+                        currentUser={currentUser}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-2 text-xs text-gray-500">
+                    No replies yet
+                  </div>
+                )
+              )}
             </div>
           )}
         </div>
