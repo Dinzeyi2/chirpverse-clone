@@ -42,6 +42,7 @@ const PostPage: React.FC = () => {
     
     const uniqueNewComments = newComments.filter(comment => {
       if (processedCommentIdsRef.current.has(comment.id)) {
+        console.log('Duplicate comment filtered:', comment.id);
         return false;
       }
       
@@ -89,7 +90,7 @@ const PostPage: React.FC = () => {
   };
   
   useEffect(() => {
-    processedCommentIdsRef.current = new Set();
+    processedCommentIdsRef.current.clear();
     
     const fetchPostAndComments = async () => {
       if (!postId) return;
@@ -265,49 +266,11 @@ const PostPage: React.FC = () => {
   const handleCommentAdded = async (content: string, media?: {type: string, url: string}[]) => {
     if (!user || !postId) return;
     
-    try {
-      const newCommentData = {
-        content,
-        user_id: user.id,
-        shoutout_id: postId,
-        media: media || null
-      };
-      
-      const { data, error } = await supabase
-        .from('comments')
-        .insert(newCommentData)
-        .select(`
-          *,
-          profiles:user_id (*)
-        `)
-        .single();
-        
-      if (error) throw error;
-      
-      if (data) {
-        const commentData = data as unknown as SupabaseComment;
-        const formattedComment = formatComment(commentData);
-        
-        processedCommentIdsRef.current.add(formattedComment.id);
-        
-        setComments(prevComments => {
-          if (prevComments.some(c => c.id === formattedComment.id)) {
-            return prevComments;
-          }
-          return [formattedComment, ...prevComments];
-        });
-        
-        setPost(prevPost => ({
-          ...prevPost,
-          replies: (prevPost?.replies || 0) + 1
-        }));
-        
-        toast.success('Comment added successfully');
-      }
-    } catch (error) {
-      console.error('Error adding comment:', error);
-      toast.error('Failed to add comment');
-    }
+    // We don't need to manually insert the comment here because the realtime
+    // subscription will handle it. This function is mainly for optimistic updates
+    // or additional actions.
+    
+    // The comment has already been added to the database in the CommentForm component
   };
   
   const formatTextWithLinks = (text: string) => {
@@ -434,7 +397,7 @@ const PostPage: React.FC = () => {
           />
         )}
         
-        <CommentList comments={comments} />
+        <CommentList comments={comments} isLoading={loading} />
       </div>
     </AppLayout>
   );
