@@ -1,418 +1,297 @@
+
 import React, { useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { Smile, PaperclipIcon, Code } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { Image, Video, Code } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import CodeEditorDialog from '@/components/code/CodeEditorDialog';
-import CodeBlock from '@/components/code/CodeBlock';
+import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
+
+interface User {
+  id: string;
+  name: string;
+  username: string;
+  avatar: string;
+  followers: number;
+  following: number;
+  verified: boolean;
+}
 
 interface CommentFormProps {
-  onCommentAdded?: (content: string, media?: {type: string, url: string}[]) => void;
-  postAuthorId?: string;
-  // We don't need postId since we're using useParams to get it
-  currentUser?: {
-    id: string;
-    name: string;
-    username: string;
-    avatar: string;
-    followers: number;
-    following: number;
-    verified: boolean;
+  currentUser: User;
+  postAuthorId: string;
+  onCommentAdded: (content: string, media?: {type: string, url: string}[]) => void;
+  replyToMetadata?: {
+    reply_to: {
+      comment_id: string;
+      username: string;
+    }
   };
+  placeholderText?: string;
 }
 
-interface CodeSnippet {
-  code: string;
-  language: string;
-}
-
-const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId, currentUser }) => {
-  const { postId } = useParams();
+const CommentForm: React.FC<CommentFormProps> = ({ 
+  currentUser, 
+  postAuthorId, 
+  onCommentAdded, 
+  replyToMetadata,
+  placeholderText = 'Add a comment...' 
+}) => {
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedMedia, setSelectedMedia] = useState<{type: string, url: string}[]>([]);
-  const [codeSnippets, setCodeSnippets] = useState<CodeSnippet[]>([]);
+  const [media, setMedia] = useState<{type: string, url: string}[]>([]);
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const [isCodeDialogOpen, setIsCodeDialogOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [isCodeEditorOpen, setIsCodeEditorOpen] = useState(false);
-  const isProcessingRef = useRef(false);
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Prevent duplicate submissions
-    if (isProcessingRef.current || isSubmitting) {
-      return;
-    }
-    
-    if (!comment.trim() && selectedMedia.length === 0 && codeSnippets.length === 0) {
-      toast({
-        title: "Error",
-        description: "Comment cannot be empty",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (!user) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to comment",
-        variant: "destructive",
-      });
-      navigate('/auth');
-      return;
-    }
-    
-    setIsSubmitting(true);
-    isProcessingRef.current = true;
+
+  const handleEmojiClick = (emojiData: EmojiClickData) => {
+    setComment(prev => prev + emojiData.emoji);
+    setEmojiPickerOpen(false);
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
     
     try {
-      let mediaUrls: {type: string, url: string}[] = [...selectedMedia];
+      const file = files[0];
       
-      // Add code snippets as special media items
-      if (codeSnippets.length > 0) {
-        codeSnippets.forEach(snippet => {
-          mediaUrls.push({
-            type: 'code',
-            url: JSON.stringify({
-              code: snippet.code,
-              language: snippet.language
-            })
-          });
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        toast({
+          title: "File too large",
+          description: "Please upload files smaller than 10MB",
+          variant: "destructive",
         });
+        return;
       }
+
+      setIsSubmitting(true);
       
-      // Add comment to database
-      const { data, error } = await supabase
-        .from('comments')
-        .insert({
-          content: comment.trim(),
-          user_id: user.id,
-          shoutout_id: postId,
-          media: mediaUrls.length > 0 ? mediaUrls : null
-        })
-        .select('*')
-        .single();
+      // Create a unique file path
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const filePath = `comments/${currentUser.id}/${fileName}`;
+      
+      const { error: uploadError, data } = await supabase.storage
+        .from('media')
+        .upload(filePath, file);
         
-      if (error) throw error;
-      
-      // Create notification for post author if not the same user
-      if (postAuthorId && postAuthorId !== user.id) {
-        await supabase
-          .from('notifications')
-          .insert({
-            type: 'reply',
-            content: 'replied to your post',
-            recipient_id: postAuthorId,
-            sender_id: user.id,
-            metadata: {
-              post_id: postId,
-              post_excerpt: comment.substring(0, 50) + (comment.length > 50 ? '...' : '')
-            }
-          });
+      if (uploadError) {
+        throw uploadError;
       }
       
+      const { data: { publicUrl } } = supabase.storage
+        .from('media')
+        .getPublicUrl(filePath);
+        
+      // Determine media type
+      let mediaType = 'file';
+      if (file.type.startsWith('image/')) {
+        mediaType = 'image';
+      } else if (file.type.startsWith('video/')) {
+        mediaType = 'video';
+      }
+      
+      setMedia(prev => [...prev, { type: mediaType, url: publicUrl }]);
+      
       toast({
-        title: "Success",
-        description: "Comment added successfully",
+        title: "File uploaded",
+        description: "Your file has been attached to the comment",
       });
-      
-      // Only call onCommentAdded ONCE with the data from the database response
-      if (onCommentAdded && data) {
-        onCommentAdded(data.content, mediaUrls);
-      }
-      
-      setComment('');
-      setSelectedMedia([]);
-      setCodeSnippets([]);
-    } catch (error: any) {
-      console.error('Error submitting comment:', error);
+    } catch (error) {
+      console.error('Error uploading file:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to submit comment",
+        title: "Upload failed",
+        description: "There was an error uploading your file",
         variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
-      // Add a small delay before allowing another submission
-      setTimeout(() => {
-        isProcessingRef.current = false;
-      }, 1000);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
-  
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    const file = files[0];
-    
-    // Validate file type and size
-    if (!file.type.startsWith('image/')) {
+    if (!comment.trim() && media.length === 0) {
       toast({
-        title: "Error",
-        description: "Only image files are allowed",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      toast({
-        title: "Error",
-        description: "Image size should be less than 5MB",
+        title: "Empty comment",
+        description: "Please add some text or media to your comment",
         variant: "destructive",
       });
       return;
     }
     
     try {
-      const filename = `${Date.now()}-${file.name}`;
-      const { data, error } = await supabase.storage
+      setIsSubmitting(true);
+      
+      // Prepare metadata
+      const metadata = {
+        display_username: currentUser.username,
+        ...(replyToMetadata || {})
+      };
+      
+      // Add comment to database
+      const { error, data } = await supabase
         .from('comments')
-        .upload(filename, file);
+        .insert({
+          content: comment,
+          user_id: currentUser.id,
+          shoutout_id: postAuthorId,
+          media: media.length > 0 ? media : null,
+          metadata
+        });
         
       if (error) throw error;
       
-      const { data: { publicUrl } } = supabase.storage
-        .from('comments')
-        .getPublicUrl(filename);
-        
-      setSelectedMedia([...selectedMedia, {type: 'image', url: publicUrl}]);
+      setComment('');
+      setMedia([]);
+      
+      // Notify parent component
+      onCommentAdded(comment, media);
       
       toast({
-        title: "Success",
-        description: "Image uploaded successfully",
+        title: "Comment added",
+        description: "Your comment has been posted successfully"
       });
-    } catch (error: any) {
-      console.error('Error uploading image:', error);
+    } catch (error) {
+      console.error('Error posting comment:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to upload image",
+        title: "Failed to post comment",
+        description: "There was an error posting your comment",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
-  
-  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+
+  const handleCodeSubmit = (code: string, language: string) => {
+    // Create a new media item for the code
+    const codeMedia = {
+      type: 'code',
+      url: JSON.stringify({ code, language })
+    };
     
-    const file = files[0];
+    setMedia(prev => [...prev, codeMedia]);
+    setIsCodeDialogOpen(false);
     
-    // Validate file type and size
-    if (!file.type.startsWith('video/')) {
-      toast({
-        title: "Error",
-        description: "Only video files are allowed",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (file.size > 20 * 1024 * 1024) { // 20MB limit
-      toast({
-        title: "Error",
-        description: "Video size should be less than 20MB",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    try {
-      const filename = `${Date.now()}-${file.name}`;
-      const { data, error } = await supabase.storage
-        .from('comments')
-        .upload(filename, file);
-        
-      if (error) throw error;
-      
-      const { data: { publicUrl } } = supabase.storage
-        .from('comments')
-        .getPublicUrl(filename);
-        
-      setSelectedMedia([...selectedMedia, {type: 'video', url: publicUrl}]);
-      
-      toast({
-        title: "Success",
-        description: "Video uploaded successfully",
-      });
-    } catch (error: any) {
-      console.error('Error uploading video:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to upload video",
-        variant: "destructive",
-      });
-    }
+    toast({
+      title: "Code snippet added",
+      description: `Added ${language} code snippet to your comment`
+    });
   };
-  
-  const handleCodeSave = (code: string, language: string) => {
-    setCodeSnippets([...codeSnippets, { code, language }]);
+
+  const removeMedia = (index: number) => {
+    setMedia(prev => prev.filter((_, i) => i !== index));
   };
-  
-  const removeCodeSnippet = (index: number) => {
-    setCodeSnippets(codeSnippets.filter((_, i) => i !== index));
-  };
-  
-  if (!user) {
-    return (
-      <div className="p-4 border-t border-xExtraLightGray">
-        <div className="flex flex-col items-center justify-center gap-3 py-4">
-          <p className="text-center text-gray-600 dark:text-gray-400">
-            You need to be logged in to comment on this post
-          </p>
-          <Button 
-            onClick={() => navigate('/auth')}
-            className="bg-xBlue hover:bg-blue-600"
-          >
-            Sign in to comment
-          </Button>
-        </div>
-      </div>
-    );
-  }
-  
-  const displayUser = currentUser || (user && {
-    id: user.id,
-    name: user.user_metadata?.full_name || 'User',
-    username: user.user_metadata?.username || user.id.substring(0, 8),
-    avatar: user.user_metadata?.avatar_url || 'https://i.pravatar.cc/150?img=2',
-    followers: 0,
-    following: 0,
-    verified: false,
-  });
-  
+
   return (
-    <form onSubmit={handleSubmit} className="p-4 border-t border-xExtraLightGray">
-      <div className="flex items-start gap-3">
-        <div className="flex-shrink-0">
-          {displayUser && (
-            <img 
-              src={displayUser.avatar} 
-              alt="Your avatar" 
-              className="w-10 h-10 rounded-full object-cover"
-            />
-          )}
-        </div>
+    <div className="p-4 border-b border-xExtraLightGray">
+      <div className="flex gap-3">
+        <Avatar className="h-10 w-10">
+          <AvatarImage src={currentUser.avatar} alt={currentUser.username} />
+          <AvatarFallback>{currentUser.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+        </Avatar>
+        
         <div className="flex-1">
-          <textarea
-            placeholder="Add a comment..."
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            className="w-full p-3 border border-xExtraLightGray rounded-lg focus:outline-none focus:ring-2 focus:ring-xBlue/50 resize-none bg-transparent text-sm"
-            rows={3}
-          />
-          
-          {/* Preview media if any */}
-          {selectedMedia.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {selectedMedia.map((media, index) => (
-                <div key={index} className="relative">
-                  {media.type === 'image' ? (
-                    <img src={media.url} alt="Uploaded" className="w-20 h-20 object-cover rounded-md" />
-                  ) : (
-                    <video src={media.url} className="w-20 h-20 object-cover rounded-md" controls />
-                  )}
-                  <button
-                    type="button"
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center"
-                    onClick={() => {
-                      setSelectedMedia(selectedMedia.filter((_, i) => i !== index));
-                    }}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          
-          {/* Preview code snippets if any */}
-          {codeSnippets.length > 0 && (
-            <div className="mt-2 space-y-2">
-              {codeSnippets.map((snippet, index) => (
-                <div key={index} className="relative">
-                  <CodeBlock 
-                    code={snippet.code} 
-                    language={snippet.language} 
-                    expanded={false}
-                  />
-                  <button
-                    type="button"
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center"
-                    onClick={() => removeCodeSnippet(index)}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          
-          <div className="flex items-center justify-between mt-2">
-            <div className="flex items-center gap-2">
-              {/* Image upload */}
-              <label className="cursor-pointer text-xBlue hover:text-xBlue/80">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  disabled={isSubmitting}
-                />
-                <Image size={20} />
-              </label>
-              
-              {/* Video upload */}
-              <label className="cursor-pointer text-xBlue hover:text-xBlue/80">
-                <input
-                  type="file"
-                  accept="video/*"
-                  onChange={handleVideoUpload}
-                  className="hidden"
-                  disabled={isSubmitting}
-                />
-                <Video size={20} />
-              </label>
-              
-              {/* Code Editor Button */}
-              <button
-                type="button"
-                className="text-xBlue hover:text-xBlue/80"
-                onClick={() => setIsCodeEditorOpen(true)}
-                disabled={isSubmitting}
-              >
-                <Code size={20} />
-              </button>
-            </div>
+          <form onSubmit={handleSubmit}>
+            <textarea
+              className="w-full p-2 bg-transparent border border-xExtraLightGray rounded-lg focus:outline-none focus:ring-1 focus:ring-xBlue resize-none min-h-[80px]"
+              placeholder={placeholderText}
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              disabled={isSubmitting}
+            />
             
-            <Button 
-              type="submit" 
-              disabled={isSubmitting || (
-                !comment.trim() && 
-                selectedMedia.length === 0 && 
-                codeSnippets.length === 0
-              )} 
-              className="bg-xBlue hover:bg-xBlue/90 text-white font-medium px-4 py-2 rounded-full disabled:opacity-50"
-            >
-              {isSubmitting ? 'Posting...' : 'Reply'}
-            </Button>
-          </div>
+            {media.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {media.map((item, index) => (
+                  <div key={index} className="relative group">
+                    {item.type === 'image' && (
+                      <img src={item.url} alt="Attachment" className="h-20 w-20 object-cover rounded-md" />
+                    )}
+                    {item.type === 'video' && (
+                      <video src={item.url} className="h-20 w-20 object-cover rounded-md" />
+                    )}
+                    {item.type === 'code' && (
+                      <div className="h-20 w-20 bg-gray-800 text-gray-200 rounded-md flex items-center justify-center overflow-hidden">
+                        <Code size={24} />
+                      </div>
+                    )}
+                    {item.type === 'file' && (
+                      <div className="h-20 w-20 bg-gray-100 dark:bg-gray-800 rounded-md flex items-center justify-center">
+                        <PaperclipIcon size={24} />
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => removeMedia(index)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <div className="mt-2 flex justify-between">
+              <div className="flex gap-2">
+                <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                      <Smile className="h-5 w-5 text-gray-500" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0 border-none">
+                    <EmojiPicker onEmojiClick={handleEmojiClick} width={300} height={400} />
+                  </PopoverContent>
+                </Popover>
+                
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => fileInputRef.current?.click()}>
+                  <PaperclipIcon className="h-5 w-5 text-gray-500" />
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    className="hidden"
+                    accept="image/*,video/*,.pdf,.doc,.docx"
+                    disabled={isSubmitting}
+                  />
+                </Button>
+                
+                <Dialog open={isCodeDialogOpen} onOpenChange={setIsCodeDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                      <Code className="h-5 w-5 text-gray-500" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[70vw] max-h-[85vh] overflow-y-auto">
+                    <CodeEditorDialog onSubmit={handleCodeSubmit} />
+                  </DialogContent>
+                </Dialog>
+              </div>
+              
+              <Button
+                type="submit"
+                disabled={(!comment.trim() && media.length === 0) || isSubmitting}
+                className="bg-xBlue hover:bg-blue-600 text-white px-4 rounded-full"
+              >
+                {isSubmitting ? 'Posting...' : 'Post'}
+              </Button>
+            </div>
+          </form>
         </div>
       </div>
-      
-      {/* Code Editor Dialog */}
-      <CodeEditorDialog
-        open={isCodeEditorOpen}
-        onClose={() => setIsCodeEditorOpen(false)}
-        onSave={handleCodeSave}
-      />
-    </form>
+    </div>
   );
 };
 

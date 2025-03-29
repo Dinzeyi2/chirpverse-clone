@@ -20,6 +20,10 @@ interface SupabaseComment {
   metadata?: {
     display_username?: string;
     is_ai_generated?: boolean;
+    reply_to?: {
+      comment_id: string;
+      username: string;
+    };
     [key: string]: any;
   };
 }
@@ -32,6 +36,7 @@ const PostPage: React.FC = () => {
   const [post, setPost] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [replyingTo, setReplyingTo] = useState<{commentId: string, username: string} | null>(null);
   
   const processedCommentIdsRef = useRef<Set<string>>(new Set());
   const commentsChannelRef = useRef<any>(null);
@@ -269,8 +274,19 @@ const PostPage: React.FC = () => {
     // We don't need to manually insert the comment here because the realtime
     // subscription will handle it. This function is mainly for optimistic updates
     // or additional actions.
-    
-    // The comment has already been added to the database in the CommentForm component
+  };
+
+  const handleReplyToComment = (commentId: string, username: string) => {
+    setReplyingTo({ commentId, username });
+    // Scroll to comment form
+    const commentFormElement = document.querySelector('.comment-form');
+    if (commentFormElement) {
+      commentFormElement.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const clearReplyingTo = () => {
+    setReplyingTo(null);
   };
   
   const formatTextWithLinks = (text: string) => {
@@ -382,22 +398,49 @@ const PostPage: React.FC = () => {
       
       <div className="comment-container">
         {user && (
-          <CommentForm 
-            currentUser={{
-              id: user.id,
-              name: user.user_metadata?.full_name || 'User',
-              username: user.user_metadata?.username || user.id.substring(0, 8),
-              avatar: blueProfileImage,
-              followers: 0,
-              following: 0,
-              verified: false,
-            }}
-            postAuthorId={post?.userId}
-            onCommentAdded={handleCommentAdded}
-          />
+          <div className="comment-form">
+            {replyingTo && (
+              <div className="flex items-center justify-between px-4 py-2 bg-gray-100/10 dark:bg-gray-800/20 border-b border-xExtraLightGray">
+                <div className="flex items-center gap-1">
+                  <span className="text-sm">Replying to</span>
+                  <span className="text-sm font-semibold text-xBlue">@{replyingTo.username}</span>
+                </div>
+                <button 
+                  onClick={clearReplyingTo}
+                  className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+            <CommentForm 
+              currentUser={{
+                id: user.id,
+                name: user.user_metadata?.full_name || 'User',
+                username: user.user_metadata?.username || user.id.substring(0, 8),
+                avatar: blueProfileImage,
+                followers: 0,
+                following: 0,
+                verified: false,
+              }}
+              postAuthorId={post?.userId}
+              onCommentAdded={handleCommentAdded}
+              replyToMetadata={replyingTo ? {
+                reply_to: {
+                  comment_id: replyingTo.commentId,
+                  username: replyingTo.username
+                }
+              } : undefined}
+              placeholderText={replyingTo ? `Reply to @${replyingTo.username}...` : undefined}
+            />
+          </div>
         )}
         
-        <CommentList comments={comments} isLoading={loading} />
+        <CommentList 
+          comments={comments} 
+          isLoading={loading} 
+          onReplyClick={handleReplyToComment} 
+        />
       </div>
     </AppLayout>
   );

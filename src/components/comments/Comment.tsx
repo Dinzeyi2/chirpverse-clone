@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { MoreHorizontal, Save, Smile, Check } from 'lucide-react';
+import { MoreHorizontal, Save, Smile, Check, MessageCircle, Reply } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,7 @@ interface CommentProps {
     liked_by_user: boolean;
   };
   onDelete?: () => void;
+  onReplyClick?: (commentId: string, username: string) => void;
 }
 
 interface CommentReaction {
@@ -40,7 +41,7 @@ interface CommentReaction {
   reacted: boolean;
 }
 
-const Comment: React.FC<CommentProps> = ({ comment, onDelete }) => {
+const Comment: React.FC<CommentProps> = ({ comment, onDelete, onReplyClick }) => {
   const [isLiked, setIsLiked] = useState(comment.liked_by_user);
   const [likeCount, setLikeCount] = useState(comment.likes);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -54,7 +55,6 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete }) => {
   const commentRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
   
-  // Check if comment is saved
   useEffect(() => {
     if (!user) return;
     
@@ -76,7 +76,6 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete }) => {
     checkSavedStatus();
   }, [comment.id, user]);
   
-  // Fetch comment reactions
   useEffect(() => {
     const fetchCommentReactions = async () => {
       try {
@@ -120,7 +119,6 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete }) => {
     
     fetchCommentReactions();
     
-    // Listen for realtime changes to reactions
     const reactionsChannel = supabase
       .channel(`comment-reactions-${comment.id}`)
       .on('postgres_changes', {
@@ -150,7 +148,6 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete }) => {
       }
       
       if (isSaved) {
-        // Remove from saved
         const { error } = await supabase
           .from('saved_comments')
           .delete()
@@ -165,7 +162,6 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete }) => {
           description: "Comment removed from your saved items",
         });
       } else {
-        // Add to saved
         const { error } = await supabase
           .from('saved_comments')
           .insert({
@@ -206,7 +202,6 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete }) => {
       const existingReaction = reactions.find(r => r.emoji === emoji && r.reacted);
       
       if (existingReaction) {
-        // Remove reaction
         const { error } = await supabase
           .from('comment_reactions')
           .delete()
@@ -221,7 +216,6 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete }) => {
           description: `Removed ${emoji} reaction`,
         });
       } else {
-        // Add reaction
         const { error } = await supabase
           .from('comment_reactions')
           .insert({
@@ -263,7 +257,6 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete }) => {
       const existingReaction = reactions.find(r => r.emoji === emoji && r.reacted);
       
       if (existingReaction) {
-        // Remove reaction
         const { error } = await supabase
           .from('comment_reactions')
           .delete()
@@ -278,7 +271,6 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete }) => {
           description: `Removed ${emoji} reaction`,
         });
       } else {
-        // Add reaction
         const { error } = await supabase
           .from('comment_reactions')
           .insert({
@@ -342,8 +334,13 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete }) => {
     }
   };
   
+  const handleReplyClick = () => {
+    if (onReplyClick) {
+      onReplyClick(comment.id, comment.user.username);
+    }
+  };
+  
   const copyCommentLink = () => {
-    // Create a URL that points to this specific comment
     const url = `${window.location.origin}/post/${window.location.pathname.split('/').pop()}#comment-${comment.id}`;
     navigator.clipboard.writeText(url).then(() => {
       setIsCopied(true);
@@ -355,12 +352,10 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete }) => {
     });
   };
   
-  // Set an ID for the comment element to enable direct linking
   useEffect(() => {
     if (commentRef.current) {
       commentRef.current.id = `comment-${comment.id}`;
       
-      // Check if this comment is being directly linked to
       if (window.location.hash === `#comment-${comment.id}`) {
         commentRef.current.scrollIntoView({ behavior: 'smooth' });
         commentRef.current.classList.add('highlight-comment');
@@ -441,7 +436,6 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete }) => {
             {comment.content}
           </div>
           
-          {/* Render media content */}
           {comment.media && comment.media.length > 0 && (
             <div className="mt-3 space-y-3">
               {comment.media.map((media, index) => {
@@ -505,6 +499,14 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete }) => {
             </Popover>
             
             <button 
+              className="flex items-center gap-1 text-gray-500 hover:text-blue-600 transition-colors"
+              onClick={handleReplyClick}
+            >
+              <MessageCircle className="h-4 w-4" />
+              <span className="text-xs">Reply</span>
+            </button>
+            
+            <button 
               className={`flex items-center gap-1 ${isSaved ? 'text-blue-500' : 'text-gray-500'} hover:text-blue-600 transition-colors`}
               onClick={handleSave}
             >
@@ -513,7 +515,6 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete }) => {
             </button>
           </div>
           
-          {/* Display reactions */}
           {reactions.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {reactions.map((reaction, index) => (

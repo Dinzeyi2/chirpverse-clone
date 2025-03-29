@@ -6,9 +6,10 @@ import Comment from './Comment';
 interface CommentListProps {
   comments: CommentType[];
   isLoading?: boolean;
+  onReplyClick?: (commentId: string, username: string) => void;
 }
 
-const CommentList: React.FC<CommentListProps> = ({ comments, isLoading = false }) => {
+const CommentList: React.FC<CommentListProps> = ({ comments, isLoading = false, onReplyClick }) => {
   // Improved deduplication with consistent sorting to ensure stable order
   const uniqueComments = useMemo(() => {
     const uniqueMap = new Map<string, CommentType>();
@@ -61,14 +62,18 @@ const CommentList: React.FC<CommentListProps> = ({ comments, isLoading = false }
       verified: comment.user?.verified || false
     },
     media: comment.media || [],
-    likes: comment.likes || 0, // Ensure likes always has a default value
-    liked_by_user: comment.liked_by_user || false // Ensure liked_by_user always has a default value
+    likes: comment.likes || 0,
+    liked_by_user: comment.liked_by_user || false
   }));
 
   return (
     <div className="divide-y divide-xExtraLightGray">
       {formattedComments.map(comment => (
-        <Comment key={comment.id} comment={comment} />
+        <Comment 
+          key={comment.id} 
+          comment={comment}
+          onReplyClick={onReplyClick} 
+        />
       ))}
     </div>
   );
