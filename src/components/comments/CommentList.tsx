@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { Comment as CommentType } from '@/lib/data';
 import Comment from './Comment';
@@ -15,7 +16,8 @@ const CommentList: React.FC<CommentListProps> = ({ comments, isLoading = false }
     // Sort by creation date (newest first) before deduplication
     // This ensures we keep the newest version of each comment
     const sortedComments = [...comments].sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      new Date(b.createdAt || b.created_at || '').getTime() - 
+      new Date(a.createdAt || a.created_at || '').getTime()
     );
     
     // Add to map (which automatically handles deduplication by ID)
@@ -46,9 +48,26 @@ const CommentList: React.FC<CommentListProps> = ({ comments, isLoading = false }
     );
   }
 
+  // Format comments to match what the Comment component expects
+  const formattedComments = uniqueComments.map(comment => ({
+    id: comment.id,
+    content: comment.content,
+    created_at: comment.createdAt || comment.created_at || new Date().toISOString(),
+    user: {
+      id: comment.userId || comment.user_id || '',
+      username: comment.user?.username || 'user',
+      avatar: comment.user?.avatar || '',
+      full_name: comment.user?.name || 'User',
+      verified: comment.user?.verified || false
+    },
+    media: comment.media || [],
+    likes: 0, // Default likes value
+    liked_by_user: false // Default liked_by_user value
+  }));
+
   return (
     <div className="divide-y divide-xExtraLightGray">
-      {uniqueComments.map(comment => (
+      {formattedComments.map(comment => (
         <Comment key={comment.id} comment={comment} />
       ))}
     </div>
