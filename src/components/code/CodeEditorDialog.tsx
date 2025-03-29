@@ -73,9 +73,9 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
   const [isComposing, setIsComposing] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const [highlightedCode, setHighlightedCode] = useState<React.ReactNode[]>([]);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const editorHeight = MAX_LINES * LINE_HEIGHT;
-
   const lineNumbers = Array.from({ length: MAX_LINES }, (_, i) => i + 1);
 
   const handleSave = () => {
@@ -129,6 +129,10 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
   const handleTextareaScroll = () => {
     if (textareaRef.current && lineNumbersRef.current) {
       lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
+      
+      if (scrollAreaRef.current) {
+        scrollAreaRef.current.scrollTop = textareaRef.current.scrollTop;
+      }
     }
   };
 
@@ -257,8 +261,6 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
             tokens.push({ text: currentToken, type: 'boolean', color: '#569CD6' });
           } else if (/^[A-Z][A-Za-z0-9]*$/.test(currentToken)) {
             tokens.push({ text: currentToken, type: 'type', color: '#4EC9B0' });
-          } else if (i < input.length - 1 && input[i + 1] === '(') {
-            tokens.push({ text: currentToken, type: 'function', color: '#DCDCAA' });
           } else {
             tokens.push({ text: currentToken, type: 'variable', color: '#9CDCFE' });
           }
@@ -482,10 +484,10 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
         <div className="flex flex-1 overflow-hidden relative">
           <div 
             ref={lineNumbersRef}
-            className="w-[50px] bg-[#1e1e1e] text-right text-xs text-gray-500 select-none border-r border-gray-800 overflow-hidden"
-            style={{ height: `${editorHeight}px`, minHeight: `${editorHeight}px` }}
+            className="w-[50px] bg-[#1e1e1e] text-right text-xs text-gray-500 select-none border-r border-gray-800 overflow-y-auto"
+            style={{ height: `${editorHeight}px` }}
           >
-            <div className="h-full overflow-y-hidden pl-2 pr-3">
+            <div className="h-full pl-2 pr-3">
               {lineNumbers.map(num => (
                 <div key={num} className="h-[24px] leading-[24px] relative">
                   {num}
@@ -495,7 +497,11 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
           </div>
           
           <div className="flex-1 relative overflow-hidden">
-            <ScrollArea className="h-full max-h-[calc(90vh-120px)] relative">
+            <div 
+              ref={scrollAreaRef}
+              className="h-full relative overflow-y-auto"
+              style={{ maxHeight: 'calc(90vh - 120px)' }}
+            >
               <div 
                 className="relative" 
                 style={{ height: `${editorHeight}px`, minHeight: `${editorHeight}px` }}
@@ -521,7 +527,6 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
                   style={{ 
                     caretColor: 'white', 
                     height: `${editorHeight}px`, 
-                    minHeight: `${editorHeight}px`,
                     lineHeight: `${LINE_HEIGHT}px`,
                   }}
                   maxLength={10000}
@@ -531,14 +536,13 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
                   className="font-mono text-sm p-2 text-gray-300 whitespace-pre-wrap break-all relative z-0"
                   style={{ 
                     height: `${editorHeight}px`, 
-                    minHeight: `${editorHeight}px`,
                     lineHeight: `${LINE_HEIGHT}px`,
                   }}
                 >
                   {highlightedCode.length > 0 ? highlightedCode : <span className="text-gray-500">{`// Write your code here... (Max ${MAX_LINES} lines)`}</span>}
                 </pre>
               </div>
-            </ScrollArea>
+            </div>
           </div>
         </div>
 
