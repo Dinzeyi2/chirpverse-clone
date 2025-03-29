@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -19,6 +18,8 @@ interface SyntaxToken {
   type: 'keyword' | 'string' | 'number' | 'boolean' | 'comment' | 'punctuation' | 'operator' | 'variable' | 'function' | 'type' | 'regex' | 'plain';
   color: string;
 }
+
+const MAX_LINES = 30;
 
 const LANGUAGE_OPTIONS = [
   { value: 'javascript', label: 'JavaScript' },
@@ -71,7 +72,6 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
   const [isComposing, setIsComposing] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const [highlightedCode, setHighlightedCode] = useState<React.ReactNode[]>([]);
-  const MAX_LINES = 30;
 
   const handleSave = () => {
     onSave(code, language);
@@ -328,7 +328,6 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
       return;
     }
 
-    // Fix: Separate condition for auto-pairing quotes vs brackets
     if (e.key === '"' || e.key === "'" || e.key === '`') {
       if (selectionStart === selectionEnd) {
         e.preventDefault();
@@ -343,7 +342,6 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
         }, 0);
       }
     } else if (e.key === '(' || e.key === '{' || e.key === '[') {
-      // Handle brackets separately
       if (selectionStart === selectionEnd) {
         e.preventDefault();
         
@@ -442,9 +440,7 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
     setHighlightedCode(highlighted);
   }, [code, language]);
 
-  const lineNumbers = code.split('\n').length > MAX_LINES 
-    ? Array.from({ length: MAX_LINES }, (_, i) => i + 1)
-    : code.split('\n').map((_, i) => i + 1);
+  const lineNumbers = Array.from({ length: MAX_LINES }, (_, i) => i + 1);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -500,7 +496,7 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
             <ScrollArea className="h-full max-h-[calc(90vh-120px)] relative">
               <div className="relative">
                 <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-                  {Array.from({ length: Math.min(lineNumbers.length, MAX_LINES) }, (_, i) => (
+                  {lineNumbers.map((_, i) => (
                     <div key={i} className="h-6 border-b border-gray-800/20"></div>
                   ))}
                 </div>
@@ -517,7 +513,7 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
                   className="absolute top-0 left-0 w-full h-full font-mono text-sm p-2 bg-transparent text-transparent caret-white resize-none outline-none border-none overflow-auto z-10"
                   placeholder={`// Write your code here... (Max ${MAX_LINES} lines)`}
                   spellCheck="false"
-                  style={{ caretColor: 'white' }}
+                  style={{ caretColor: 'white', minHeight: `${MAX_LINES * 24}px` }}
                   maxLength={10000}
                 />
                 
