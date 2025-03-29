@@ -275,7 +275,11 @@ const CommentForm: React.FC<CommentFormProps> = ({
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-[70vw] max-h-[85vh] overflow-y-auto">
-                    <CodeEditorDialog onSubmit={handleCodeSubmit} />
+                    <CodeEditorDialog 
+                      open={isCodeDialogOpen} 
+                      onClose={() => setIsCodeDialogOpen(false)} 
+                      onSave={handleCodeSubmit} 
+                    />
                   </DialogContent>
                 </Dialog>
               </div>
