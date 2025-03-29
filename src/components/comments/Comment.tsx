@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import CodeBlock from '@/components/code/CodeBlock';
-import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
+import EmojiPicker, { EmojiClickData, Theme as EmojiPickerTheme } from "emoji-picker-react";
 import { useTheme } from '@/components/theme/theme-provider';
 
 interface CommentProps {
@@ -260,7 +260,7 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete }) => {
                   skinTonesDisabled
                   width={280}
                   height={350}
-                  theme={theme === 'dark' ? 'dark' : 'light' as Theme}
+                  theme={(theme === 'dark' ? 'dark' : 'light') as EmojiPickerTheme}
                 />
               </PopoverContent>
             </Popover>
