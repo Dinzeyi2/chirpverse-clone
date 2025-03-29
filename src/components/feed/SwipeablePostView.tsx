@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import PostCard from './PostCard';
 import { Post, Comment } from '@/lib/data';
@@ -172,7 +173,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
               >
                 <div className={cn(
                   "relative w-full transition-all duration-300 max-w-[350px] sm:max-w-[400px] mx-auto",
-                  hasCode ? "sm:max-w-[550px] md:max-w-[650px]" : "",
+                  hasCode ? "sm:max-w-[650px] md:max-w-[750px]" : "",
                   currentIndex === index 
                     ? `${scale} ${opacity} z-20` 
                     : "scale-90 opacity-70 z-10"
