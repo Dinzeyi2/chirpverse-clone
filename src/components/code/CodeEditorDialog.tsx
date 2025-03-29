@@ -20,6 +20,7 @@ interface SyntaxToken {
 }
 
 const MAX_LINES = 30;
+const LINE_HEIGHT = 24;
 
 const LANGUAGE_OPTIONS = [
   { value: 'javascript', label: 'JavaScript' },
@@ -72,6 +73,10 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
   const [isComposing, setIsComposing] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const [highlightedCode, setHighlightedCode] = useState<React.ReactNode[]>([]);
+
+  const editorHeight = MAX_LINES * LINE_HEIGHT;
+
+  const lineNumbers = Array.from({ length: MAX_LINES }, (_, i) => i + 1);
 
   const handleSave = () => {
     onSave(code, language);
@@ -277,8 +282,6 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
             tokens.push({ text: currentToken, type: 'boolean', color: '#569CD6' });
           } else if (/^[A-Z][A-Za-z0-9]*$/.test(currentToken)) {
             tokens.push({ text: currentToken, type: 'type', color: '#4EC9B0' });
-          } else if (i < input.length - 1 && input[i + 1] === '(') {
-            tokens.push({ text: currentToken, type: 'function', color: '#DCDCAA' });
           } else {
             tokens.push({ text: currentToken, type: 'variable', color: '#9CDCFE' });
           }
@@ -440,8 +443,6 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
     setHighlightedCode(highlighted);
   }, [code, language]);
 
-  const lineNumbers = Array.from({ length: MAX_LINES }, (_, i) => i + 1);
-
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden bg-[#1e1e1e] text-white border-gray-800">
@@ -482,11 +483,11 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
           <div 
             ref={lineNumbersRef}
             className="w-[50px] bg-[#1e1e1e] text-right text-xs text-gray-500 select-none border-r border-gray-800 overflow-hidden"
-            style={{ minHeight: `${MAX_LINES * 24}px` }}
+            style={{ height: `${editorHeight}px`, minHeight: `${editorHeight}px` }}
           >
             <div className="h-full overflow-y-hidden pl-2 pr-3">
               {lineNumbers.map(num => (
-                <div key={num} className="leading-6 relative">
+                <div key={num} className="h-[24px] leading-[24px] relative">
                   {num}
                 </div>
               ))}
@@ -495,10 +496,13 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
           
           <div className="flex-1 relative overflow-hidden">
             <ScrollArea className="h-full max-h-[calc(90vh-120px)] relative">
-              <div className="relative" style={{ minHeight: `${MAX_LINES * 24}px` }}>
+              <div 
+                className="relative" 
+                style={{ height: `${editorHeight}px`, minHeight: `${editorHeight}px` }}
+              >
                 <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
                   {lineNumbers.map((_, i) => (
-                    <div key={i} className="h-6 border-b border-gray-800/20"></div>
+                    <div key={i} className="h-[24px] leading-[24px] border-b border-gray-800/20"></div>
                   ))}
                 </div>
                 
@@ -514,11 +518,23 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
                   className="absolute top-0 left-0 w-full h-full font-mono text-sm p-2 bg-transparent text-transparent caret-white resize-none outline-none border-none overflow-auto z-10"
                   placeholder={`// Write your code here... (Max ${MAX_LINES} lines)`}
                   spellCheck="false"
-                  style={{ caretColor: 'white', minHeight: `${MAX_LINES * 24}px` }}
+                  style={{ 
+                    caretColor: 'white', 
+                    height: `${editorHeight}px`, 
+                    minHeight: `${editorHeight}px`,
+                    lineHeight: `${LINE_HEIGHT}px`,
+                  }}
                   maxLength={10000}
                 />
                 
-                <pre className="font-mono text-sm p-2 text-gray-300 whitespace-pre-wrap break-all min-h-[400px] relative z-0" style={{ minHeight: `${MAX_LINES * 24}px` }}>
+                <pre 
+                  className="font-mono text-sm p-2 text-gray-300 whitespace-pre-wrap break-all relative z-0"
+                  style={{ 
+                    height: `${editorHeight}px`, 
+                    minHeight: `${editorHeight}px`,
+                    lineHeight: `${LINE_HEIGHT}px`,
+                  }}
+                >
                   {highlightedCode.length > 0 ? highlightedCode : <span className="text-gray-500">{`// Write your code here... (Max ${MAX_LINES} lines)`}</span>}
                 </pre>
               </div>
