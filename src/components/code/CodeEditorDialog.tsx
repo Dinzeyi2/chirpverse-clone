@@ -1,8 +1,8 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Copy, FileCode } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from "sonner";
@@ -73,6 +73,7 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
   const [isComposing, setIsComposing] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const [highlightedCode, setHighlightedCode] = useState<React.ReactNode[]>([]);
+  const highlightedCodeRef = useRef<HTMLPreElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const editorHeight = MAX_LINES * LINE_HEIGHT;
@@ -127,11 +128,20 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
   }, [fileName, language]);
 
   const handleTextareaScroll = () => {
-    if (textareaRef.current && lineNumbersRef.current) {
-      lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
+    if (textareaRef.current) {
+      const scrollTop = textareaRef.current.scrollTop;
+      
+      // Synchronize all scrollable elements
+      if (lineNumbersRef.current) {
+        lineNumbersRef.current.scrollTop = scrollTop;
+      }
       
       if (scrollAreaRef.current) {
-        scrollAreaRef.current.scrollTop = textareaRef.current.scrollTop;
+        scrollAreaRef.current.scrollTop = scrollTop;
+      }
+      
+      if (highlightedCodeRef.current) {
+        highlightedCodeRef.current.scrollTop = scrollTop;
       }
     }
   };
@@ -481,7 +491,7 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
           </div>
         </div>
         
-        <div className="flex flex-1 overflow-hidden relative">
+        <div className="flex flex-1 overflow-hidden relative" style={{ maxHeight: 'calc(90vh - 120px)' }}>
           <div 
             ref={lineNumbersRef}
             className="w-[50px] bg-[#1e1e1e] text-right text-xs text-gray-500 select-none border-r border-gray-800 overflow-y-auto"
@@ -504,7 +514,7 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
             >
               <div 
                 className="relative" 
-                style={{ height: `${editorHeight}px`, minHeight: `${editorHeight}px` }}
+                style={{ height: `${editorHeight}px` }}
               >
                 <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
                   {lineNumbers.map((_, i) => (
@@ -533,6 +543,7 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
                 />
                 
                 <pre 
+                  ref={highlightedCodeRef}
                   className="font-mono text-sm p-2 text-gray-300 whitespace-pre-wrap break-all relative z-0"
                   style={{ 
                     height: `${editorHeight}px`, 
