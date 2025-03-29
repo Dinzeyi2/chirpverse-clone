@@ -230,8 +230,18 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expand
 
   const lineNumbers = displayedCode.split('\n').map((_, i) => i + 1);
 
-  // Updated max height logic for better scrolling
-  const maxHeight = inPost ? 'max-h-[600px]' : expanded ? 'max-h-[80vh]' : 'max-h-[500px]';
+  // Calculate appropriate max height with better values for different contexts
+  const calculateMaxHeight = () => {
+    if (inPost) {
+      return 'max-h-[70vh]'; // More space for post view
+    } else if (expanded) {
+      return 'max-h-[70vh]'; // More space when expanded
+    } else {
+      return 'max-h-[400px]'; // Default compact view
+    }
+  };
+
+  const maxHeight = calculateMaxHeight();
 
   return (
     <div className={cn(
@@ -270,31 +280,33 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expand
           </button>
         </div>
       </div>
+      
+      {/* Fixed wrapper div with proper overflow and sizing */}
       <div 
-        className={cn(
-          maxHeight, 
-          "overflow-hidden relative"
-        )}
+        className={cn(maxHeight, "relative overflow-hidden")}
         ref={codeContainerRef}
       >
-        <ScrollArea className="h-full overflow-auto">
-          <div className="relative h-full">
-            <div className="flex text-sm font-mono h-full">
-              <div className="py-4 pl-4 pr-3 text-right select-none bg-[#1e1e1e] text-gray-500 border-r border-gray-700 min-w-[2.5rem]">
+        {/* ScrollArea takes full height and handles both vertical and horizontal scroll */}
+        <ScrollArea className="h-full w-full">
+          <div className="min-w-full h-auto">
+            <div className="flex text-sm font-mono">
+              {/* Line numbers column */}
+              <div className="py-4 pl-4 pr-3 text-right select-none bg-[#1e1e1e] text-gray-500 border-r border-gray-700 min-w-[2.5rem] flex-shrink-0">
                 {lineNumbers.map((num) => (
                   <div key={num} className="leading-6 relative">
                     {num}
                   </div>
                 ))}
               </div>
-              <div className="overflow-x-auto w-full relative">
+              {/* Code content column - now properly configured for scrolling */}
+              <div className="w-full overflow-visible relative flex-grow">
                 <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
                   {lineNumbers.map((num) => (
                     <div key={num} className="h-6 border-b border-gray-800/20"></div>
                   ))}
                 </div>
-                <pre className="py-4 pl-4 pr-8 font-mono whitespace-pre relative z-10 overflow-visible w-max min-w-full">
-                  <code className="text-sm text-[#D4D4D4]">
+                <pre className="py-4 pl-4 pr-10 font-mono whitespace-pre relative z-10 overflow-visible w-full">
+                  <code className="text-sm text-[#D4D4D4] block min-w-full">
                     {highlightedCode}
                   </code>
                 </pre>
