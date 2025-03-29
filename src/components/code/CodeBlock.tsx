@@ -281,14 +281,14 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expand
         </div>
       </div>
       
-      {/* Fixed wrapper div with proper overflow and sizing */}
+      {/* Wrapper div with proper overflow handling */}
       <div 
         className={cn(maxHeight, "relative overflow-hidden")}
         ref={codeContainerRef}
       >
-        {/* ScrollArea takes full height and handles both vertical and horizontal scroll */}
-        <ScrollArea className="h-full w-full">
-          <div className="min-w-full h-auto">
+        {/* Improved ScrollArea for both vertical and horizontal scrolling */}
+        <ScrollArea className="h-full w-full" orientation="both">
+          <div className="min-w-max">
             <div className="flex text-sm font-mono">
               {/* Line numbers column */}
               <div className="py-4 pl-4 pr-3 text-right select-none bg-[#1e1e1e] text-gray-500 border-r border-gray-700 min-w-[2.5rem] flex-shrink-0">
@@ -298,15 +298,15 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expand
                   </div>
                 ))}
               </div>
-              {/* Code content column - now properly configured for scrolling */}
-              <div className="w-full overflow-visible relative flex-grow">
+              {/* Code content column with correct overflow handling */}
+              <div className="relative flex-grow">
                 <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
                   {lineNumbers.map((num) => (
                     <div key={num} className="h-6 border-b border-gray-800/20"></div>
                   ))}
                 </div>
-                <pre className="py-4 pl-4 pr-10 font-mono whitespace-pre relative z-10 overflow-visible w-full">
-                  <code className="text-sm text-[#D4D4D4] block min-w-full">
+                <pre className="py-4 pl-4 pr-10 font-mono whitespace-pre relative z-10">
+                  <code className="text-sm text-[#D4D4D4] block">
                     {highlightedCode}
                   </code>
                 </pre>
