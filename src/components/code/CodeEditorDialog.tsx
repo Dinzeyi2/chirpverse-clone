@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -74,8 +73,8 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
   const editorRef = useRef<HTMLDivElement>(null);
   const [highlightedCode, setHighlightedCode] = useState<React.ReactNode[]>([]);
   const highlightedCodeRef = useRef<HTMLPreElement>(null);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-
+  const editorContainerRef = useRef<HTMLDivElement>(null);
+  
   const editorHeight = MAX_LINES * LINE_HEIGHT;
   const lineNumbers = Array.from({ length: MAX_LINES }, (_, i) => i + 1);
 
@@ -127,22 +126,24 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
     }
   }, [fileName, language]);
 
+  const handleScroll = (scrollTop: number) => {
+    if (lineNumbersRef.current) {
+      lineNumbersRef.current.scrollTop = scrollTop;
+    }
+    
+    if (textareaRef.current) {
+      textareaRef.current.scrollTop = scrollTop;
+    }
+    
+    if (highlightedCodeRef.current) {
+      highlightedCodeRef.current.scrollTop = scrollTop;
+    }
+  };
+
   const handleTextareaScroll = () => {
     if (textareaRef.current) {
       const scrollTop = textareaRef.current.scrollTop;
-      
-      // Synchronize all scrollable elements
-      if (lineNumbersRef.current) {
-        lineNumbersRef.current.scrollTop = scrollTop;
-      }
-      
-      if (scrollAreaRef.current) {
-        scrollAreaRef.current.scrollTop = scrollTop;
-      }
-      
-      if (highlightedCodeRef.current) {
-        highlightedCodeRef.current.scrollTop = scrollTop;
-      }
+      handleScroll(scrollTop);
     }
   };
 
@@ -455,9 +456,19 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
     setHighlightedCode(highlighted);
   }, [code, language]);
 
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => {
+        if (lineNumbersRef.current) lineNumbersRef.current.scrollTop = 0;
+        if (textareaRef.current) textareaRef.current.scrollTop = 0;
+        if (highlightedCodeRef.current) highlightedCodeRef.current.scrollTop = 0;
+      }, 100);
+    }
+  }, [open]);
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden bg-[#1e1e1e] text-white border-gray-800">
+      <DialogContent className="sm:max-w-[800px] flex flex-col p-0 gap-0 overflow-hidden bg-[#1e1e1e] text-white border-gray-800">
         <DialogTitle className="sr-only">Code Editor</DialogTitle>
         <DialogDescription className="sr-only">Edit your code snippet</DialogDescription>
         
@@ -491,13 +502,18 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
           </div>
         </div>
         
-        <div className="flex flex-1 overflow-hidden relative" style={{ maxHeight: 'calc(90vh - 120px)' }}>
+        <div 
+          ref={editorContainerRef}
+          className="flex-1 overflow-hidden flex relative"
+          style={{ height: `${editorHeight}px`, maxHeight: `${editorHeight}px` }}
+        >
           <div 
             ref={lineNumbersRef}
             className="w-[50px] bg-[#1e1e1e] text-right text-xs text-gray-500 select-none border-r border-gray-800 overflow-y-auto"
-            style={{ height: `${editorHeight}px` }}
+            style={{ height: '100%' }}
+            onScroll={(e) => handleScroll(e.currentTarget.scrollTop)}
           >
-            <div className="h-full pl-2 pr-3">
+            <div className="pl-2 pr-3">
               {lineNumbers.map(num => (
                 <div key={num} className="h-[24px] leading-[24px] relative">
                   {num}
@@ -507,52 +523,41 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
           </div>
           
           <div className="flex-1 relative overflow-hidden">
-            <div 
-              ref={scrollAreaRef}
-              className="h-full relative overflow-y-auto"
-              style={{ maxHeight: 'calc(90vh - 120px)' }}
-            >
-              <div 
-                className="relative" 
-                style={{ height: `${editorHeight}px` }}
-              >
-                <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-                  {lineNumbers.map((_, i) => (
-                    <div key={i} className="h-[24px] leading-[24px] border-b border-gray-800/20"></div>
-                  ))}
-                </div>
-                
-                <textarea
-                  ref={textareaRef}
-                  value={code}
-                  onChange={handleTextareaChange}
-                  onScroll={handleTextareaScroll}
-                  onSelect={handleSelectionChange}
-                  onKeyDown={handleKeyDown}
-                  onCompositionStart={() => setIsComposing(true)}
-                  onCompositionEnd={() => setIsComposing(false)}
-                  className="absolute top-0 left-0 w-full h-full font-mono text-sm p-2 bg-transparent text-transparent caret-white resize-none outline-none border-none overflow-auto z-10"
-                  placeholder={`// Write your code here... (Max ${MAX_LINES} lines)`}
-                  spellCheck="false"
-                  style={{ 
-                    caretColor: 'white', 
-                    height: `${editorHeight}px`, 
-                    lineHeight: `${LINE_HEIGHT}px`,
-                  }}
-                  maxLength={10000}
-                />
-                
-                <pre 
-                  ref={highlightedCodeRef}
-                  className="font-mono text-sm p-2 text-gray-300 whitespace-pre-wrap break-all relative z-0"
-                  style={{ 
-                    height: `${editorHeight}px`, 
-                    lineHeight: `${LINE_HEIGHT}px`,
-                  }}
-                >
-                  {highlightedCode.length > 0 ? highlightedCode : <span className="text-gray-500">{`// Write your code here... (Max ${MAX_LINES} lines)`}</span>}
-                </pre>
+            <div className="relative h-full">
+              <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+                {lineNumbers.map((_, i) => (
+                  <div key={i} className="h-[24px] leading-[24px] border-b border-gray-800/20"></div>
+                ))}
               </div>
+              
+              <textarea
+                ref={textareaRef}
+                value={code}
+                onChange={handleTextareaChange}
+                onScroll={handleTextareaScroll}
+                onSelect={handleSelectionChange}
+                onKeyDown={handleKeyDown}
+                onCompositionStart={() => setIsComposing(true)}
+                onCompositionEnd={() => setIsComposing(false)}
+                className="absolute top-0 left-0 w-full h-full font-mono text-sm p-2 bg-transparent text-transparent caret-white resize-none outline-none border-none overflow-auto z-10"
+                placeholder={`// Write your code here... (Max ${MAX_LINES} lines)`}
+                spellCheck="false"
+                style={{ 
+                  caretColor: 'white', 
+                  lineHeight: `${LINE_HEIGHT}px`,
+                }}
+              />
+              
+              <pre 
+                ref={highlightedCodeRef}
+                className="font-mono text-sm p-2 text-gray-300 whitespace-pre-wrap break-all h-full overflow-auto"
+                style={{ 
+                  lineHeight: `${LINE_HEIGHT}px`,
+                }}
+                onScroll={(e) => handleScroll(e.currentTarget.scrollTop)}
+              >
+                {highlightedCode.length > 0 ? highlightedCode : <span className="text-gray-500">{`// Write your code here... (Max ${MAX_LINES} lines)`}</span>}
+              </pre>
             </div>
           </div>
         </div>
