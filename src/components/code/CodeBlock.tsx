@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Copy, Check, ChevronDown, ChevronUp, FileCode } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
 
 interface CodeBlockProps {
   code: string;
@@ -133,11 +134,23 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expand
   const [fileName, setFileName] = useState(`${language}.${getFileExtension(language)}`);
   const [highlightedCode, setHighlightedCode] = useState<React.ReactNode[]>([]);
   const codeContainerRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
   
   const copyToClipboard = () => {
     navigator.clipboard.writeText(code).then(() => {
       setCopied(true);
+      toast({
+        title: "Copied!",
+        description: "Code copied to clipboard",
+      });
       setTimeout(() => setCopied(false), 2000);
+    }).catch(error => {
+      console.error('Error copying to clipboard:', error);
+      toast({
+        title: "Error",
+        description: "Failed to copy code",
+        variant: "destructive",
+      });
     });
   };
 
@@ -246,6 +259,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expand
             }} 
             className="p-1 text-gray-400 hover:text-gray-200"
             aria-label="Copy code"
+            title="Copy code to clipboard"
           >
             {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
           </button>
