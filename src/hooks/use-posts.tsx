@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, enableRealtimeForTables } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -226,7 +225,11 @@ export const usePosts = () => {
           };
         });
         
-        const combinedPosts = [...optimisticPosts, ...formattedPosts]
+        const filteredPosts = formattedPosts.filter(post => 
+          !optimisticPosts.some(p => p.isDeleted && p.id === post.id)
+        );
+        
+        const combinedPosts = [...optimisticPosts.filter(p => !p.isDeleted), ...filteredPosts]
           .filter((post, index, self) => 
             index === self.findIndex(p => p.id === post.id)
           )
@@ -238,7 +241,7 @@ export const usePosts = () => {
         
         await loadEngagementData(combinedPosts.map(post => post.id));
       } else {
-        setPosts(optimisticPosts);
+        setPosts(optimisticPosts.filter(p => !p.isDeleted));
       }
     } catch (error) {
       console.error('Error fetching posts:', error);
@@ -372,6 +375,33 @@ export const usePosts = () => {
       setLoading(false);
     }
   }, [posts, loading, loadEngagementData]);
+
+  const markPostAsDeleted = useCallback((postId: string) => {
+    console.log("Marking post as deleted:", postId);
+    
+    setOptimisticPosts(prev => {
+      const existingPostIndex = prev.findIndex(p => p.id === postId);
+      
+      if (existingPostIndex >= 0) {
+        const updatedPosts = [...prev];
+        updatedPosts[existingPostIndex] = {
+          ...updatedPosts[existingPostIndex],
+          isDeleted: true
+        };
+        return updatedPosts;
+      } else {
+        return [...prev, { id: postId, isDeleted: true, createdAt: new Date().toISOString() }];
+      }
+    });
+    
+    setPosts(currentPosts => currentPosts.filter(post => post.id !== postId));
+    
+    setEngagementData(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(postId);
+      return newMap;
+    });
+  }, []);
 
   useEffect(() => {
     if (!realtimeChannelRef.current) {
@@ -576,6 +606,20 @@ export const usePosts = () => {
     fetchPosts();
   }, [fetchUserLanguages, fetchPosts]);
 
+  useEffect(() => {
+    const handlePostDeleted = (event: CustomEvent) => {
+      if (event.detail && event.detail.postId) {
+        markPostAsDeleted(event.detail.postId);
+      }
+    };
+    
+    document.addEventListener('post-deleted', handlePostDeleted as EventListener);
+    
+    return () => {
+      document.removeEventListener('post-deleted', handlePostDeleted as EventListener);
+    };
+  }, [posts, loadEngagementData, markPostAsDeleted]);
+
   return {
     posts,
     loading,
@@ -584,6 +628,7 @@ export const usePosts = () => {
     loadMore,
     addNewPost,
     userLanguages,
-    engagementData
+    engagementData,
+    markPostAsDeleted
   };
 };

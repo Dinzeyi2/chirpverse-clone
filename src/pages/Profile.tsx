@@ -37,6 +37,7 @@ const Profile = () => {
     replies: 0,
     reactions: 0
   });
+  const [displayPosts, setDisplayPosts] = useState<Post[]>([]);
   
   const postsPerPage = 10;
   
@@ -327,6 +328,7 @@ const Profile = () => {
         }));
         
         setPosts(formattedPosts);
+        setDisplayPosts(formattedPosts);
       } catch (err) {
         console.error('Error in fetchPosts:', err);
         toast.error('Failed to load posts');
@@ -416,10 +418,27 @@ const Profile = () => {
     }
   };
 
-  const handlePostDeleted = async () => {
-    setPostsPage(1);
+  const handlePostDeleted = async (deletedPostId: string) => {
+    console.log('Post deleted in Profile:', deletedPostId);
+    setDisplayPosts(currentPosts => 
+      currentPosts.filter(post => post.id !== deletedPostId)
+    );
     await fetchUserStats();
   };
+
+  useEffect(() => {
+    const handlePostDeletedEvent = (event: CustomEvent) => {
+      if (event.detail && event.detail.postId) {
+        handlePostDeleted(event.detail.postId);
+      }
+    };
+    
+    document.addEventListener('post-deleted', handlePostDeletedEvent as EventListener);
+    
+    return () => {
+      document.removeEventListener('post-deleted', handlePostDeletedEvent as EventListener);
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -460,7 +479,7 @@ const Profile = () => {
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
             </div>
-          ) : posts.length === 0 ? (
+          ) : displayPosts.length === 0 ? (
             <div className="text-center py-10">
               <p className={cn(
                 isLightMode ? "text-gray-600" : "text-gray-500"
@@ -468,13 +487,13 @@ const Profile = () => {
             </div>
           ) : (
             <SwipeablePostView 
-              posts={posts.map(post => ({
+              posts={displayPosts.map(post => ({
                 ...post,
                 actions: (
                   <PostActionMenu
                     postId={post.id}
                     isOwner={post.userId === user?.id}
-                    onPostDeleted={handlePostDeleted}
+                    onPostDeleted={() => handlePostDeleted(post.id)}
                   />
                 )
               }))} 
