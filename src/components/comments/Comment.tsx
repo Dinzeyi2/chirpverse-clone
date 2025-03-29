@@ -1,614 +1,289 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { Bookmark, MoreHorizontal, CheckCircle, Smile, Flame } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Comment as CommentType, formatDate } from '@/lib/data';
-import { toast } from 'sonner';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
+import { MoreHorizontal, Heart, MessageSquare, Repeat, Send, Check } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client';
+import CodeBlock from '@/components/code/CodeBlock';
 
 interface CommentProps {
-  comment: CommentType;
+  comment: {
+    id: string;
+    content: string;
+    created_at: string;
+    user: {
+      id: string;
+      username: string;
+      avatar: string;
+      full_name: string;
+      verified: boolean;
+    };
+    media?: {
+      type: string;
+      url: string;
+    }[];
+    likes: number;
+    liked_by_user: boolean;
+  };
+  onDelete?: () => void;
 }
 
-interface EmojiReaction {
-  emoji: string;
-  count: number;
-  reacted: boolean;
-}
-
-const Comment: React.FC<CommentProps> = ({ comment }) => {
+const Comment: React.FC<CommentProps> = ({ comment, onDelete }) => {
+  const [isLiked, setIsLiked] = useState(comment.liked_by_user);
+  const [likeCount, setLikeCount] = useState(comment.likes);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+  const { toast } = useToast();
   const navigate = useNavigate();
-  const { user, displayName } = useAuth();
-  const [savedToBookmarks, setSavedToBookmarks] = useState(false);
-  const [reactions, setReactions] = useState<EmojiReaction[]>([]);
-  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
-  const [isBludified, setIsBludified] = useState(false);
-  const [bludifyCount, setBludifyCount] = useState(0);
-
-  // Get the display username from metadata if available
-  const getDisplayUsername = () => {
-    if (comment.metadata && typeof comment.metadata === 'object' && comment.metadata.display_username) {
-      return comment.metadata.display_username;
-    }
-    
-    if (comment.userId === user?.id) {
-      return displayName;
-    }
-    
-    // Fallback to privacy name
-    return getPrivacyName(comment.userId);
-  };
+  const { user } = useAuth();
+  const commentRef = useRef<HTMLDivElement>(null);
   
-  const getPrivacyName = (userId: string) => {
-    if (!userId || userId.length < 4) return "blue";
-    const first2 = userId.substring(0, 2);
-    const last2 = userId.substring(userId.length - 2);
-    return `blue${first2}${last2}`;
-  };
-  
-  const commentAuthorName = getDisplayUsername();
-
-  useEffect(() => {
-    // Initial setup for metadata reactions
-    if (comment.metadata && typeof comment.metadata === 'object' && Array.isArray(comment.metadata.reactions)) {
-      const initialReactions = comment.metadata.reactions.map(emoji => ({
-        emoji,
-        count: Math.floor(Math.random() * 5) + 1, // Random count between 1-5
-        reacted: false
-      }));
-      
-      if (initialReactions.length > 0) {
-        setReactions(initialReactions);
-      }
-    }
-    
-    const checkBludifyStatus = async () => {
-      try {
-        if (!user) return;
-        
-        const { data } = await supabase
-          .from('post_bludifies')
-          .select('*')
-          .eq('post_id', String(comment.id))
-          .eq('user_id', user.id)
-          .maybeSingle();
-        
-        if (data) {
-          setIsBludified(true);
-        }
-        
-        const { count } = await supabase
-          .from('post_bludifies')
-          .select('*', { count: 'exact', head: true })
-          .eq('post_id', String(comment.id));
-          
-        if (count !== null) setBludifyCount(count);
-      } catch (error) {
-        console.log('Bludify check error:', error);
-      }
-    };
-    
-    const fetchCommentReactions = async () => {
-      try {
-        // Check if we already have reactions from metadata
-        if (reactions.length > 0) return;
-        
-        const { data, error } = await supabase
-          .from('comment_reactions')
-          .select('emoji, user_id')
-          .eq('comment_id', comment.id);
-          
-        if (error) {
-          console.error('Error fetching comment reactions:', error);
-          return;
-        }
-        
-        if (data && data.length > 0) {
-          const reactionCounts: Record<string, { count: number, reacted: boolean }> = {};
-          
-          data.forEach((reaction) => {
-            if (!reactionCounts[reaction.emoji]) {
-              reactionCounts[reaction.emoji] = {
-                count: 0,
-                reacted: false
-              };
-            }
-            
-            reactionCounts[reaction.emoji].count += 1;
-            
-            if (user && reaction.user_id === user.id) {
-              reactionCounts[reaction.emoji].reacted = true;
-            }
-          });
-          
-          const formattedReactions: EmojiReaction[] = Object.entries(reactionCounts).map(([emoji, data]) => ({
-            emoji,
-            count: data.count,
-            reacted: data.reacted
-          }));
-          
-          setReactions(formattedReactions);
-        }
-      } catch (error) {
-        console.error('Error in fetchCommentReactions:', error);
-      }
-    };
-    
-    checkBludifyStatus();
-    fetchCommentReactions();
-
-    const bludifyChannel = supabase
-      .channel(`comment-bludifies-${comment.id}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'post_bludifies',
-        filter: `post_id=eq.${String(comment.id)}`
-      }, () => {
-        checkBludifyStatus();
-      })
-      .subscribe();
-      
-    // Subscribe to comment reactions changes
-    const reactionsChannel = supabase
-      .channel(`comment-reactions-${comment.id}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'comment_reactions',
-        filter: `comment_id=eq.${comment.id}`
-      }, () => {
-        fetchCommentReactions();
-      })
-      .subscribe();
-      
-    return () => {
-      supabase.removeChannel(bludifyChannel);
-      supabase.removeChannel(reactionsChannel);
-    };
-  }, [comment.id, user, comment.metadata]);
-
-  const handleSave = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    try {
-      if (!user) {
-        toast.error('Please sign in to bookmark comments');
-        return;
-      }
-      
-      if (savedToBookmarks) {
-        setSavedToBookmarks(false);
-        toast.success('Removed from bookmarks');
-      } else {
-        setSavedToBookmarks(true);
-        
-        if (comment.userId !== user.id) {
-          await supabase.from('notifications').insert({
-            type: 'bookmark',
-            content: 'bookmarked your comment',
-            recipient_id: comment.userId,
-            sender_id: user.id,
-            metadata: {
-              post_id: comment.id,
-              post_excerpt: comment.content.substring(0, 50) + (comment.content.length > 50 ? '...' : '')
-            }
-          });
-        }
-        
-        toast.success('Saved to bookmarks');
-      }
-    } catch (error) {
-      console.error('Error handling bookmark:', error);
-      toast.error('Failed to update bookmark status');
-    }
-  };
-
-  const handleBludify = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    try {
-      if (!user) {
-        toast.error('Please sign in to bludify this comment');
-        return;
-      }
-      
-      if (isBludified) {
-        const { error } = await supabase
-          .from('post_bludifies')
-          .delete()
-          .eq('post_id', String(comment.id))
-          .eq('user_id', user.id);
-        
-        if (error) throw error;
-        setIsBludified(false);
-        setBludifyCount(prev => Math.max(0, prev - 1));
-        toast.success('Bludify removed');
-      } else {
-        const { error } = await supabase
-          .from('post_bludifies')
-          .insert({
-            post_id: String(comment.id),
-            user_id: user.id
-          });
-        
-        if (error) throw error;
-        setIsBludified(true);
-        setBludifyCount(prev => prev + 1);
-        
-        if (comment.userId !== user.id) {
-          await supabase.from('notifications').insert({
-            type: 'reaction',
-            content: 'bludified your comment',
-            recipient_id: comment.userId,
-            sender_id: user.id,
-            metadata: {
-              post_id: comment.id, 
-              post_excerpt: comment.content.substring(0, 50) + (comment.content.length > 50 ? '...' : '')
-            }
-          });
-        }
-        
-        toast.success('Comment bludified! This was useful');
-      }
-    } catch (error) {
-      console.error('Error toggling bludify:', error);
-      toast.error('Failed to update bludify. Please sign in.');
-    }
-  };
-
-  const handleEmojiPickerOpen = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setEmojiPickerOpen(!emojiPickerOpen);
-  };
-
-  const handleEmojiSelect = async (emojiData: EmojiClickData, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const selectedEmoji = emojiData.emoji;
-    
-    try {
-      if (!user) {
-        toast.error('Please sign in to react to comments');
-        return;
-      }
-      
-      const existingReaction = reactions.find(reaction => reaction.emoji === selectedEmoji);
-      
-      if (existingReaction) {
-        if (existingReaction.reacted) {
-          // User already reacted with this emoji, so remove it
-          const { error } = await supabase
-            .from('comment_reactions')
-            .delete()
-            .eq('comment_id', comment.id)
-            .eq('user_id', user.id)
-            .eq('emoji', selectedEmoji);
-            
-          if (error) throw error;
-          
-          setReactions(prev => 
-            prev.map(r => 
-              r.emoji === selectedEmoji 
-                ? { ...r, count: r.count - 1, reacted: false } 
-                : r
-            ).filter(r => r.count > 0)
-          );
-          toast.success(`Removed ${selectedEmoji} reaction`);
-        } else {
-          // User hasn't reacted with this emoji yet, so add it
-          const { error } = await supabase
-            .from('comment_reactions')
-            .insert({
-              comment_id: comment.id,
-              user_id: user.id,
-              emoji: selectedEmoji
-            });
-            
-          if (error) throw error;
-          
-          setReactions(prev => 
-            prev.map(r => 
-              r.emoji === selectedEmoji 
-                ? { ...r, count: r.count + 1, reacted: true } 
-                : r
-            )
-          );
-          
-          if (comment.userId !== user.id) {
-            await supabase.from('notifications').insert({
-              type: 'reaction',
-              content: `reacted with ${selectedEmoji} to your comment`,
-              recipient_id: comment.userId,
-              sender_id: user.id,
-              metadata: {
-                post_id: comment.id,
-                post_excerpt: comment.content.substring(0, 50) + (comment.content.length > 50 ? '...' : '')
-              }
-            });
-          }
-          
-          toast.success(`Added ${selectedEmoji} reaction`);
-        }
-      } else {
-        // This is a new emoji reaction
-        const { error } = await supabase
-          .from('comment_reactions')
-          .insert({
-            comment_id: comment.id,
-            user_id: user.id,
-            emoji: selectedEmoji
-          });
-          
-        if (error) throw error;
-        
-        setReactions(prev => [...prev, { emoji: selectedEmoji, count: 1, reacted: true }]);
-        
-        if (comment.userId !== user.id) {
-          await supabase.from('notifications').insert({
-            type: 'reaction',
-            content: `reacted with ${selectedEmoji} to your comment`,
-            recipient_id: comment.userId,
-            sender_id: user.id,
-            metadata: {
-              post_id: comment.id,
-              post_excerpt: comment.content.substring(0, 50) + (comment.content.length > 50 ? '...' : '')
-            }
-          });
-        }
-        
-        toast.success(`Added ${selectedEmoji} reaction`);
-      }
-      
-      setEmojiPickerOpen(false);
-    } catch (error) {
-      console.error('Error handling emoji reaction:', error);
-      toast.error('Failed to update reaction');
-    }
-  };
-
-  const handleReactionClick = async (emoji: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
+  const handleLike = async () => {
     if (!user) {
-      toast.error('Please sign in to react to comments');
+      toast({
+        title: "Error",
+        description: "You must be logged in to like a comment",
+        variant: "destructive",
+      });
+      navigate('/auth');
       return;
     }
     
     try {
-      const isReacted = reactions.find(r => r.emoji === emoji)?.reacted;
+      const newLikeStatus = !isLiked;
       
-      if (isReacted) {
-        // Remove reaction
-        const { error } = await supabase
-          .from('comment_reactions')
-          .delete()
-          .eq('comment_id', comment.id)
-          .eq('user_id', user.id)
-          .eq('emoji', emoji);
-          
-        if (error) throw error;
-        
-        setReactions(prev => 
-          prev.map(r => 
-            r.emoji === emoji 
-              ? { ...r, count: r.count - 1, reacted: false } 
-              : r
-          ).filter(r => r.count > 0)
-        );
-        
-        toast.success(`Removed ${emoji} reaction`);
-      } else {
-        // Add reaction
-        const { error } = await supabase
-          .from('comment_reactions')
+      if (newLikeStatus) {
+        // Add like
+        await supabase
+          .from('comment_likes')
           .insert({
             comment_id: comment.id,
-            user_id: user.id,
-            emoji: emoji
+            user_id: user.id
           });
-          
-        if (error) throw error;
         
-        setReactions(prev => 
-          prev.map(r => 
-            r.emoji === emoji 
-              ? { ...r, count: r.count + 1, reacted: true } 
-              : r
-            )
-        );
+        setLikeCount(prev => prev + 1);
+      } else {
+        // Remove like
+        await supabase
+          .from('comment_likes')
+          .delete()
+          .eq('comment_id', comment.id)
+          .eq('user_id', user.id);
         
-        toast.success(`Added ${emoji} reaction`);
+        setLikeCount(prev => Math.max(0, prev - 1));
       }
+      
+      setIsLiked(newLikeStatus);
     } catch (error) {
-      console.error('Error toggling reaction:', error);
-      toast.error('Failed to update reaction');
+      console.error('Error toggling like:', error);
+      toast({
+        title: "Error",
+        description: "Failed to like comment",
+        variant: "destructive",
+      });
     }
   };
-
-  const formatNumber = (num: number): string => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + 'M';
+  
+  const handleDelete = async () => {
+    if (!user || user.id !== comment.user.id) {
+      toast({
+        title: "Error",
+        description: "You can only delete your own comments",
+        variant: "destructive",
+      });
+      return;
     }
-    if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'K';
+    
+    setIsDeleting(true);
+    
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .delete()
+        .eq('id', comment.id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: "Comment deleted successfully",
+      });
+      
+      if (onDelete) onDelete();
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete comment",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
     }
-    return num.toString();
   };
-
-  const currentUserDisplayName = displayName || 'blue';
-  const blueProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
-
+  
+  const copyCommentLink = () => {
+    // Create a URL that points to this specific comment
+    const url = `${window.location.origin}/post/${window.location.pathname.split('/').pop()}#comment-${comment.id}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setIsCopied(true);
+      toast({
+        title: "Copied!",
+        description: "Comment link copied to clipboard",
+      });
+      setTimeout(() => setIsCopied(false), 2000);
+    });
+  };
+  
+  // Set an ID for the comment element to enable direct linking
+  useEffect(() => {
+    if (commentRef.current) {
+      commentRef.current.id = `comment-${comment.id}`;
+      
+      // Check if this comment is being directly linked to
+      if (window.location.hash === `#comment-${comment.id}`) {
+        commentRef.current.scrollIntoView({ behavior: 'smooth' });
+        commentRef.current.classList.add('highlight-comment');
+        setTimeout(() => {
+          commentRef.current?.classList.remove('highlight-comment');
+        }, 2000);
+      }
+    }
+  }, [comment.id]);
+  
   return (
-    <div className="p-4 border-b border-xExtraLightGray hover:bg-black/[0.02] transition-colors">
-      <div className="flex">
-        <div className="mr-3 flex-shrink-0">
-          <div
-            onClick={() => navigate(`/profile/${comment.userId}`)}
-            className="block cursor-pointer"
-          >
-            <img 
-              src={comment.user?.avatar || blueProfileImage} 
-              alt={commentAuthorName} 
-              className="w-10 h-10 rounded-full object-cover"
-            />
-          </div>
-        </div>
+    <div 
+      ref={commentRef}
+      className="p-4 border-b border-xExtraLightGray transition-colors hover:bg-gray-50/5"
+    >
+      <div className="flex gap-3">
+        <Avatar className="h-10 w-10">
+          <AvatarImage src={comment.user.avatar} alt={comment.user.username} />
+          <AvatarFallback>{comment.user.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+        </Avatar>
         
         <div className="flex-1 min-w-0">
-          <div className="flex items-center mb-1">
-            <div 
-              className="font-bold hover:underline mr-1 truncate cursor-pointer text-[#4285F4] font-heading tracking-wide"
-              onClick={() => navigate(`/profile/${comment.userId}`)}
-            >
-              {commentAuthorName}
-            </div>
-            
-            {comment.user?.verified && (
-              <span className="text-xBlue mr-1">
-                <CheckCircle size={14} className="fill-xBlue text-white" />
-              </span>
-            )}
-            
-            <span className="text-xGray truncate">@{commentAuthorName}</span>
-            <span className="text-xGray mx-1">·</span>
-            <span className="text-xGray">{formatDate(comment.createdAt)}</span>
-            
-            <button 
-              className="ml-auto text-xGray hover:text-xBlue hover:bg-xBlue/10 rounded-full p-1.5 transition-colors"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                toast.info('More options');
-              }}
-            >
-              <MoreHorizontal size={14} />
-            </button>
-          </div>
-          
-          <div className="mb-2">
-            <p className="whitespace-pre-line text-sm">{comment.content}</p>
-          </div>
-          
-          {comment.media && comment.media.length > 0 && (
-            <div className="mt-2 mb-3 relative">
-              <div className={`grid ${comment.media.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-2 rounded-lg overflow-hidden`}>
-                {comment.media.map((media, index) => (
-                  <div key={index} className="relative rounded-lg overflow-hidden">
-                    {media.type === 'image' ? (
-                      <img 
-                        src={media.url} 
-                        alt={`Media ${index}`}
-                        className="w-full h-48 object-cover rounded-lg"
-                      />
-                    ) : (
-                      <video 
-                        src={media.url} 
-                        className="w-full h-48 object-cover rounded-lg" 
-                        controls
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {reactions.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-3">
-              {reactions.map((reaction, index) => (
-                <button
-                  key={index}
-                  onClick={(e) => handleReactionClick(reaction.emoji, e)}
-                  className={cn(
-                    "flex items-center gap-1 px-2 py-1 rounded-full text-sm border transition-colors",
-                    reaction.reacted 
-                      ? "bg-blue-50 border-blue-200 text-blue-600" 
-                      : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
-                  )}
-                >
-                  <span>{reaction.emoji}</span>
-                  <span>{reaction.count}</span>
-                </button>
-              ))}
-            </div>
-          )}
-          
-          <div className="flex items-center mt-2 justify-between text-xGray">
-            <button 
-              className={cn(
-                "flex items-center group",
-                isBludified && "text-blue-500"
-              )}
-              onClick={handleBludify}
-            >
-              <div className={cn(
-                "p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors",
-                isBludified && "text-blue-500"
-              )}>
-                <Flame size={18} className={cn(
-                  isBludified && "fill-current"
-                )} />
-                {bludifyCount > 0 && (
-                  <span className="ml-1 text-xs">{formatNumber(bludifyCount)}</span>
+          <div className="flex justify-between items-start">
+            <div>
+              <div className="flex items-center gap-1">
+                <span className="font-semibold text-sm hover:underline" onClick={() => navigate(`/profile/${comment.user.username}`)}>
+                  {comment.user.full_name || comment.user.username}
+                </span>
+                {comment.user.verified && (
+                  <svg className="h-4 w-4 text-xBlue" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                  </svg>
                 )}
+                <span className="text-gray-500 text-sm">@{comment.user.username}</span>
+                <span className="text-gray-500 text-xs">·</span>
+                <span className="text-gray-500 text-xs">
+                  {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                </span>
               </div>
-            </button>
-
-            <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
+            </div>
+            
+            <Popover>
               <PopoverTrigger asChild>
-                <button 
-                  className="flex items-center group"
-                  onClick={handleEmojiPickerOpen}
-                >
-                  <div className="p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
-                    <Smile size={18} />
-                  </div>
-                </button>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
               </PopoverTrigger>
-              <PopoverContent 
-                className="p-0 border-none shadow-xl"
-                side="top"
-                onPointerDownOutside={(e) => {
-                  if (e.target instanceof HTMLElement && 
-                      (e.target.closest('.emoji-picker-react') || 
-                       e.target.classList.contains('emoji-picker-react'))) {
-                    e.preventDefault();
-                  }
-                }}
-              >
-                <EmojiPicker
-                  onEmojiClick={(emojiData, event) => handleEmojiSelect(emojiData, event as unknown as React.MouseEvent)}
-                  searchDisabled
-                  skinTonesDisabled
-                  width={300}
-                  height={400}
-                />
+              <PopoverContent className="w-56 p-0" align="end">
+                <div className="p-1">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-sm"
+                    onClick={copyCommentLink}
+                  >
+                    {isCopied ? <Check className="mr-2 h-4 w-4" /> : <Send className="mr-2 h-4 w-4" />}
+                    {isCopied ? 'Copied!' : 'Copy link'}
+                  </Button>
+                  
+                  {user && user.id === comment.user.id && (
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50/10 text-sm"
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      {isDeleting ? 'Deleting...' : 'Delete'}
+                    </Button>
+                  )}
+                </div>
               </PopoverContent>
             </Popover>
-            
+          </div>
+          
+          <div className="mt-1 text-sm whitespace-pre-wrap break-words">
+            {comment.content}
+          </div>
+          
+          {/* Render media content */}
+          {comment.media && comment.media.length > 0 && (
+            <div className="mt-3 space-y-3">
+              {comment.media.map((media, index) => {
+                if (media.type === 'image') {
+                  return (
+                    <img 
+                      key={index}
+                      src={media.url} 
+                      alt="Comment attachment" 
+                      className="rounded-lg max-h-80 w-auto" 
+                      onClick={() => window.open(media.url, '_blank')}
+                    />
+                  );
+                } else if (media.type === 'video') {
+                  return (
+                    <video 
+                      key={index}
+                      src={media.url} 
+                      controls 
+                      className="rounded-lg max-h-80 w-auto"
+                    />
+                  );
+                } else if (media.type === 'code') {
+                  try {
+                    const codeData = JSON.parse(media.url);
+                    return (
+                      <CodeBlock 
+                        key={index}
+                        code={codeData.code}
+                        language={codeData.language}
+                        inPost={true}
+                      />
+                    );
+                  } catch (e) {
+                    return null;
+                  }
+                }
+                return null;
+              })}
+            </div>
+          )}
+          
+          <div className="mt-3 flex items-center gap-6">
             <button 
-              className={cn(
-                "flex items-center group",
-                savedToBookmarks && "text-blue-500"
-              )}
-              onClick={handleSave}
+              className={`flex items-center gap-1 ${isLiked ? 'text-red-500' : 'text-gray-500'} hover:text-red-600 transition-colors`}
+              onClick={handleLike}
             >
-              <div className={cn(
-                "p-2 rounded-full group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors",
-                savedToBookmarks && "text-blue-500"
-              )}>
-                <Bookmark size={18} className={savedToBookmarks ? "fill-current" : ""} />
-              </div>
+              <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
+              <span className="text-xs">{likeCount > 0 ? likeCount : ''}</span>
+            </button>
+            
+            <button className="flex items-center gap-1 text-gray-500 hover:text-xBlue transition-colors">
+              <MessageSquare className="h-4 w-4" />
+            </button>
+            
+            <button className="flex items-center gap-1 text-gray-500 hover:text-green-500 transition-colors">
+              <Repeat className="h-4 w-4" />
             </button>
           </div>
         </div>

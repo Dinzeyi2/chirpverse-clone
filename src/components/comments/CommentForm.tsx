@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,8 +5,8 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Image, Video, Code } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import CodeEditorDialog from '@/components/code/CodeEditorDialog';
+import CodeBlock from '@/components/code/CodeBlock';
 
 interface CommentFormProps {
   onCommentAdded?: (content: string, media?: {type: string, url: string}[]) => void;
@@ -24,11 +23,17 @@ interface CommentFormProps {
   };
 }
 
+interface CodeSnippet {
+  code: string;
+  language: string;
+}
+
 const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId, currentUser }) => {
   const { postId } = useParams();
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<{type: string, url: string}[]>([]);
+  const [codeSnippets, setCodeSnippets] = useState<CodeSnippet[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -37,7 +42,7 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId,
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!comment.trim() && selectedMedia.length === 0) {
+    if (!comment.trim() && selectedMedia.length === 0 && codeSnippets.length === 0) {
       toast({
         title: "Error",
         description: "Comment cannot be empty",
@@ -59,11 +64,19 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId,
     setIsSubmitting(true);
     
     try {
-      let mediaUrls: {type: string, url: string}[] = [];
+      let mediaUrls: {type: string, url: string}[] = [...selectedMedia];
       
-      // Upload any media files first
-      if (selectedMedia.length > 0) {
-        mediaUrls = selectedMedia;
+      // Add code snippets as special media items
+      if (codeSnippets.length > 0) {
+        codeSnippets.forEach(snippet => {
+          mediaUrls.push({
+            type: 'code',
+            url: JSON.stringify({
+              code: snippet.code,
+              language: snippet.language
+            })
+          });
+        });
       }
       
       // Add comment to database
@@ -106,6 +119,7 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId,
       
       setComment('');
       setSelectedMedia([]);
+      setCodeSnippets([]);
     } catch (error: any) {
       console.error('Error submitting comment:', error);
       toast({
@@ -225,11 +239,13 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId,
   };
   
   const handleCodeSave = (code: string, language: string) => {
-    const formattedCode = `\`\`\`${language}\n${code}\n\`\`\``;
-    setComment(prev => prev + formattedCode);
+    setCodeSnippets([...codeSnippets, { code, language }]);
   };
   
-  // If user is not logged in, show login prompt
+  const removeCodeSnippet = (index: number) => {
+    setCodeSnippets(codeSnippets.filter((_, i) => i !== index));
+  };
+  
   if (!user) {
     return (
       <div className="p-4 border-t border-xExtraLightGray">
@@ -248,7 +264,6 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId,
     );
   }
   
-  // Use either the passed currentUser or the user from auth context
   const displayUser = currentUser || (user && {
     id: user.id,
     name: user.user_metadata?.full_name || 'User',
@@ -304,6 +319,28 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId,
             </div>
           )}
           
+          {/* Preview code snippets if any */}
+          {codeSnippets.length > 0 && (
+            <div className="mt-2 space-y-2">
+              {codeSnippets.map((snippet, index) => (
+                <div key={index} className="relative">
+                  <CodeBlock 
+                    code={snippet.code} 
+                    language={snippet.language} 
+                    expanded={false}
+                  />
+                  <button
+                    type="button"
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center"
+                    onClick={() => removeCodeSnippet(index)}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          
           <div className="flex items-center justify-between mt-2">
             <div className="flex items-center gap-2">
               {/* Image upload */}
@@ -340,7 +377,11 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId,
             
             <Button 
               type="submit" 
-              disabled={isSubmitting || (!comment.trim() && selectedMedia.length === 0)} 
+              disabled={isSubmitting || (
+                !comment.trim() && 
+                selectedMedia.length === 0 && 
+                codeSnippets.length === 0
+              )} 
               className="bg-xBlue hover:bg-xBlue/90 text-white font-medium px-4 py-2 rounded-full disabled:opacity-50"
             >
               {isSubmitting ? 'Posting...' : 'Reply'}
