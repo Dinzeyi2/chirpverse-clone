@@ -10,8 +10,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import CodeBlock from '@/components/code/CodeBlock';
-import EmojiPicker, { EmojiClickData, Theme as EmojiPickerTheme } from "emoji-picker-react";
+import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import { useTheme } from '@/components/theme/theme-provider';
+
+type EmojiPickerTheme = "light" | "dark" | "auto";
 
 interface CommentProps {
   comment: {
@@ -62,7 +64,7 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete }) => {
     const checkSavedStatus = async () => {
       try {
         const { data } = await supabase
-          .from('comment_saves')
+          .from('saved_comments')
           .select('*')
           .eq('comment_id', comment.id)
           .eq('user_id', user.id)
@@ -153,7 +155,7 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete }) => {
       if (isSaved) {
         // Remove from saved
         const { error } = await supabase
-          .from('comment_saves')
+          .from('saved_comments')
           .delete()
           .eq('comment_id', comment.id)
           .eq('user_id', user.id);
@@ -168,7 +170,7 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete }) => {
       } else {
         // Add to saved
         const { error } = await supabase
-          .from('comment_saves')
+          .from('saved_comments')
           .insert({
             comment_id: comment.id,
             user_id: user.id
