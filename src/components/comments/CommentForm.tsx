@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -38,15 +38,9 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId,
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isCodeEditorOpen, setIsCodeEditorOpen] = useState(false);
-  const isProcessingRef = useRef(false);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Prevent duplicate submissions
-    if (isProcessingRef.current || isSubmitting) {
-      return;
-    }
     
     if (!comment.trim() && selectedMedia.length === 0 && codeSnippets.length === 0) {
       toast({
@@ -68,7 +62,6 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId,
     }
     
     setIsSubmitting(true);
-    isProcessingRef.current = true;
     
     try {
       let mediaUrls: {type: string, url: string}[] = [...selectedMedia];
@@ -95,7 +88,7 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId,
           shoutout_id: postId,
           media: mediaUrls.length > 0 ? mediaUrls : null
         })
-        .select('*')
+        .select()
         .single();
         
       if (error) throw error;
@@ -121,10 +114,8 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId,
         description: "Comment added successfully",
       });
       
-      // Only call onCommentAdded ONCE with the data from the database response
-      if (onCommentAdded && data) {
-        onCommentAdded(data.content, mediaUrls);
-      }
+      // Call onCommentAdded with the comment content and media
+      if (onCommentAdded) onCommentAdded(comment.trim(), mediaUrls);
       
       setComment('');
       setSelectedMedia([]);
@@ -138,10 +129,6 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId,
       });
     } finally {
       setIsSubmitting(false);
-      // Add a small delay before allowing another submission
-      setTimeout(() => {
-        isProcessingRef.current = false;
-      }, 1000);
     }
   };
   
@@ -363,7 +350,6 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId,
                   accept="image/*"
                   onChange={handleImageUpload}
                   className="hidden"
-                  disabled={isSubmitting}
                 />
                 <Image size={20} />
               </label>
@@ -375,7 +361,6 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId,
                   accept="video/*"
                   onChange={handleVideoUpload}
                   className="hidden"
-                  disabled={isSubmitting}
                 />
                 <Video size={20} />
               </label>
@@ -385,7 +370,6 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId,
                 type="button"
                 className="text-xBlue hover:text-xBlue/80"
                 onClick={() => setIsCodeEditorOpen(true)}
-                disabled={isSubmitting}
               >
                 <Code size={20} />
               </button>

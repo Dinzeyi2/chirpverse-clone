@@ -61,8 +61,8 @@ const CommentList: React.FC<CommentListProps> = ({ comments, isLoading = false }
       verified: comment.user?.verified || false
     },
     media: comment.media || [],
-    likes: comment.likes || 0, // Ensure likes always has a default value
-    liked_by_user: comment.liked_by_user || false // Ensure liked_by_user always has a default value
+    likes: 0, // Default likes value
+    liked_by_user: false // Default liked_by_user value
   }));
 
   return (
