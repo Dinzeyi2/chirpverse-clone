@@ -121,6 +121,12 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   const bgColor = theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100';
   const navBgColor = theme === 'dark' ? 'bg-black/40 hover:bg-black/60 text-white' : 'bg-gray-700/40 hover:bg-gray-700/60 text-white';
 
+  const hasCodeContent = (post: PostWithActions) => {
+    return post.images && post.images.some(img => 
+      typeof img !== 'string' && img.type === 'code'
+    );
+  };
+
   if (loading && isInitialRender) {
     return (
       <div className="p-4 space-y-6">
@@ -156,28 +162,33 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
         key={carouselKey}
       >
         <CarouselContent className="mx-auto">
-          {posts.map((post, index) => (
-            <CarouselItem 
-              key={`${post.id}-${index}`}
-              className={`basis-${basis} flex justify-center items-center pl-0`}
-            >
-              <div className={cn(
-                "relative w-full transition-all duration-300 max-w-[350px] sm:max-w-[400px] mx-auto",
-                currentIndex === index 
-                  ? `${scale} ${opacity} z-20` 
-                  : "scale-90 opacity-70 z-10"
-              )}>
-                <div className="relative">
-                  {post.actions && (
-                    <div className="absolute top-3 right-3 z-30">
-                      {post.actions}
-                    </div>
-                  )}
-                  <PostCard post={post} />
+          {posts.map((post, index) => {
+            const hasCode = hasCodeContent(post);
+            
+            return (
+              <CarouselItem 
+                key={`${post.id}-${index}`}
+                className={`basis-${basis} flex justify-center items-center pl-0`}
+              >
+                <div className={cn(
+                  "relative w-full transition-all duration-300 max-w-[350px] sm:max-w-[400px] mx-auto",
+                  hasCode ? "sm:max-w-[550px] md:max-w-[650px]" : "",
+                  currentIndex === index 
+                    ? `${scale} ${opacity} z-20` 
+                    : "scale-90 opacity-70 z-10"
+                )}>
+                  <div className="relative">
+                    {post.actions && (
+                      <div className="absolute top-3 right-3 z-30">
+                        {post.actions}
+                      </div>
+                    )}
+                    <PostCard post={post} />
+                  </div>
                 </div>
-              </div>
-            </CarouselItem>
-          ))}
+              </CarouselItem>
+            );
+          })}
         </CarouselContent>
         
         {posts.length > 1 && (

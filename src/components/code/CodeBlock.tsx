@@ -202,7 +202,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expand
 
   const calculateMaxHeight = () => {
     if (inPost) {
-      return 'max-h-[70vh]';
+      return 'max-h-[500px]';
     } else if (expanded) {
       return 'max-h-[70vh]';
     } else {
@@ -270,8 +270,8 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expand
                     <div key={num} className="h-6 border-b border-gray-800/20"></div>
                   ))}
                 </div>
-                <pre className="py-4 pl-4 pr-10 font-mono whitespace-pre relative z-10">
-                  <code className="text-sm text-[#D4D4D4] block">
+                <pre className="py-4 pl-4 pr-10 overflow-x-auto font-mono text-sm whitespace-pre relative z-10">
+                  <code className="text-[#D4D4D4] block min-w-max">
                     {highlightedCode}
                   </code>
                 </pre>
