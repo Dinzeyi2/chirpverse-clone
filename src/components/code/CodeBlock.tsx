@@ -1,8 +1,7 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Copy, Check, ChevronDown, ChevronUp, FileCode } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 interface CodeBlockProps {
   code: string;
@@ -18,31 +17,23 @@ interface SyntaxToken {
   color: string;
 }
 
-// Language-specific keywords for syntax highlighting
 const LANGUAGE_KEYWORDS: Record<string, string[]> = {
   javascript: ['const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'class', 'import', 'export', 'from', 'async', 'await', 'try', 'catch', 'throw', 'new', 'this', 'super'],
   typescript: ['const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'class', 'import', 'export', 'from', 'async', 'await', 'try', 'catch', 'throw', 'new', 'this', 'super', 'interface', 'type', 'enum', 'namespace', 'implements', 'extends'],
   python: ['def', 'class', 'import', 'from', 'if', 'elif', 'else', 'try', 'except', 'finally', 'for', 'while', 'return', 'and', 'or', 'not', 'in', 'is', 'lambda', 'with', 'as', 'assert', 'break', 'continue', 'global', 'pass'],
   java: ['public', 'private', 'protected', 'class', 'interface', 'enum', 'extends', 'implements', 'import', 'package', 'static', 'final', 'void', 'return', 'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'break', 'continue', 'try', 'catch', 'throw', 'throws', 'new', 'this', 'super'],
-  // Add more languages as needed
 };
 
-// Built-in types for each language
 const LANGUAGE_TYPES: Record<string, string[]> = {
   javascript: ['Array', 'Object', 'String', 'Number', 'Boolean', 'Function', 'Promise', 'Map', 'Set', 'Date', 'RegExp', 'Error'],
   typescript: ['string', 'number', 'boolean', 'any', 'void', 'null', 'undefined', 'never', 'unknown', 'Array', 'Record', 'Promise', 'Map', 'Set', 'Date', 'Partial', 'Required', 'Pick', 'Omit', 'Exclude', 'Extract', 'NonNullable', 'ReturnType'],
-  // Add more languages as needed
 };
 
-// Function to tokenize code for syntax highlighting
 function tokenizeCode(code: string, language: string): SyntaxToken[] {
   if (!code) return [];
   
   const tokens: SyntaxToken[] = [];
-  // Simplified tokenization logic
-  // This is a basic implementation - could be expanded for more accurate syntax highlighting
-
-  // Regular expressions for different token types
+  
   const patterns = {
     string: /(["'`])(?:\\(?:\r\n|[\s\S])|(?!\1)[^\\\r\n])*\1/g,
     comment: /\/\/.*|\/\*[\s\S]*?\*\//g,
@@ -52,52 +43,36 @@ function tokenizeCode(code: string, language: string): SyntaxToken[] {
     punctuation: /[{}[\];(),.:]/g,
   };
 
-  // Process the code to identify tokens
   let remainingCode = code;
   
-  // First, handle comments to avoid interference with other token types
   const commentMatches = [...remainingCode.matchAll(patterns.comment)];
   for (const match of commentMatches) {
     if (match.index !== undefined) {
-      // Add any text before the comment
       if (match.index > 0) {
         const beforeText = remainingCode.substring(0, match.index);
         remainingCode = remainingCode.substring(0, match.index);
         processRemainingText(beforeText);
       }
       
-      // Add the comment token
       tokens.push({
         text: match[0],
         type: 'comment',
-        color: '#6A9955'  // Green for comments
+        color: '#6A9955'
       });
       
-      // Update remaining code
       remainingCode = remainingCode.substring(match.index + match[0].length);
     }
   }
   
-  // Process the rest of the code
   processRemainingText(remainingCode);
   
   function processRemainingText(text: string) {
-    // Handle strings
-    text = processPattern(text, patterns.string, 'string', '#CE9178');  // Orange for strings
+    text = processPattern(text, patterns.string, 'string', '#CE9178');
+    text = processPattern(text, patterns.number, 'number', '#B5CEA8');
+    text = processPattern(text, patterns.boolean, 'boolean', '#569CD6');
+    text = processPattern(text, patterns.operator, 'operator', '#D4D4D4');
+    text = processPattern(text, patterns.punctuation, 'punctuation', '#D4D4D4');
     
-    // Handle numbers
-    text = processPattern(text, patterns.number, 'number', '#B5CEA8');  // Light green for numbers
-    
-    // Handle booleans
-    text = processPattern(text, patterns.boolean, 'boolean', '#569CD6');  // Blue for booleans
-    
-    // Handle operators
-    text = processPattern(text, patterns.operator, 'operator', '#D4D4D4');  // White for operators
-    
-    // Handle punctuation
-    text = processPattern(text, patterns.punctuation, 'punctuation', '#D4D4D4');  // White for punctuation
-    
-    // Handle keywords and types
     const words = text.split(/\b/);
     for (const word of words) {
       if (!word.trim()) {
@@ -106,15 +81,14 @@ function tokenizeCode(code: string, language: string): SyntaxToken[] {
       }
       
       if (LANGUAGE_KEYWORDS[language]?.includes(word)) {
-        tokens.push({ text: word, type: 'keyword', color: '#569CD6' });  // Blue for keywords
+        tokens.push({ text: word, type: 'keyword', color: '#569CD6' });
       } else if (LANGUAGE_TYPES[language]?.includes(word)) {
-        tokens.push({ text: word, type: 'type', color: '#4EC9B0' });  // Teal for types
+        tokens.push({ text: word, type: 'type', color: '#4EC9B0' });
       } else {
-        // Check if it might be a function call
         if (/^[a-zA-Z_$][a-zA-Z0-9_$]*(?=\s*\()/.test(word)) {
-          tokens.push({ text: word, type: 'function', color: '#DCDCAA' });  // Yellow for functions
+          tokens.push({ text: word, type: 'function', color: '#DCDCAA' });
         } else {
-          tokens.push({ text: word, type: 'plain', color: '#D4D4D4' });  // Default color
+          tokens.push({ text: word, type: 'plain', color: '#D4D4D4' });
         }
       }
     }
@@ -125,12 +99,11 @@ function tokenizeCode(code: string, language: string): SyntaxToken[] {
     let lastIndex = 0;
     let match;
     
-    pattern.lastIndex = 0;  // Reset regex state
+    pattern.lastIndex = 0;
     
     while ((match = pattern.exec(text)) !== null) {
       if (match.index === undefined) continue;
       
-      // Add text before the match
       if (match.index > lastIndex) {
         const beforeText = text.substring(lastIndex, match.index);
         if (beforeText) {
@@ -138,13 +111,11 @@ function tokenizeCode(code: string, language: string): SyntaxToken[] {
         }
       }
       
-      // Add the matched token
       tokens.push({ text: match[0], type, color });
       
       lastIndex = match.index + match[0].length;
     }
     
-    // Add any remaining text
     if (lastIndex < text.length) {
       result = text.substring(lastIndex);
     }
@@ -174,7 +145,6 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expand
     ? code.split('\n').slice(0, 10).join('\n') + '\n// ...'
     : code;
 
-  // Tokenize code for syntax highlighting
   useEffect(() => {
     const codeLines = displayedCode.split('\n');
     
@@ -230,14 +200,13 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expand
 
   const lineNumbers = displayedCode.split('\n').map((_, i) => i + 1);
 
-  // Calculate appropriate max height with better values for different contexts
   const calculateMaxHeight = () => {
     if (inPost) {
-      return 'max-h-[70vh]'; // More space for post view
+      return 'max-h-[70vh]';
     } else if (expanded) {
-      return 'max-h-[70vh]'; // More space when expanded
+      return 'max-h-[70vh]';
     } else {
-      return 'max-h-[400px]'; // Default compact view
+      return 'max-h-[400px]';
     }
   };
 
@@ -281,16 +250,13 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expand
         </div>
       </div>
       
-      {/* Wrapper div with proper overflow handling */}
       <div 
         className={cn(maxHeight, "relative overflow-hidden")}
         ref={codeContainerRef}
       >
-        {/* Improved ScrollArea for both vertical and horizontal scrolling */}
-        <ScrollArea className="h-full w-full" orientation="both">
+        <ScrollArea className="h-full w-full">
           <div className="min-w-max">
             <div className="flex text-sm font-mono">
-              {/* Line numbers column */}
               <div className="py-4 pl-4 pr-3 text-right select-none bg-[#1e1e1e] text-gray-500 border-r border-gray-700 min-w-[2.5rem] flex-shrink-0">
                 {lineNumbers.map((num) => (
                   <div key={num} className="leading-6 relative">
@@ -298,7 +264,6 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expand
                   </div>
                 ))}
               </div>
-              {/* Code content column with correct overflow handling */}
               <div className="relative flex-grow">
                 <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
                   {lineNumbers.map((num) => (
@@ -313,6 +278,8 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, className, expand
               </div>
             </div>
           </div>
+          <ScrollBar orientation="horizontal" />
+          <ScrollBar orientation="vertical" />
         </ScrollArea>
       </div>
     </div>
