@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Post, Comment } from '@/lib/data';
 import { Inbox } from 'lucide-react';
 import PostCard from './PostCard';
@@ -26,6 +27,27 @@ interface PostListProps {
 const standardProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
 
 const PostList: React.FC<PostListProps> = ({ posts, loading = false, engagementData }) => {
+  const [displayPosts, setDisplayPosts] = useState<PostWithActions[]>([]);
+
+  useEffect(() => {
+    // Initialize displayPosts with the provided posts
+    setDisplayPosts(posts);
+    
+    // Listen for post deletion events
+    const handlePostDeleted = (event: CustomEvent) => {
+      const deletedPostId = event.detail.postId;
+      setDisplayPosts(currentPosts => 
+        currentPosts.filter(post => post.id !== deletedPostId)
+      );
+    };
+    
+    document.addEventListener('post-deleted', handlePostDeleted as EventListener);
+    
+    return () => {
+      document.removeEventListener('post-deleted', handlePostDeleted as EventListener);
+    };
+  }, [posts]);
+
   if (loading) {
     return (
       <div className="p-4 space-y-6">
@@ -34,7 +56,7 @@ const PostList: React.FC<PostListProps> = ({ posts, loading = false, engagementD
     );
   }
 
-  if (posts.length === 0) {
+  if (displayPosts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
         <div className="w-16 h-16 mb-4 text-neutral-500">
@@ -47,7 +69,7 @@ const PostList: React.FC<PostListProps> = ({ posts, loading = false, engagementD
   }
 
   // Ensure all posts use the standard profile image
-  const postsWithStandardAvatar = posts.map(post => ({
+  const postsWithStandardAvatar = displayPosts.map(post => ({
     ...post,
     user: {
       ...post.user,

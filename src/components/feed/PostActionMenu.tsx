@@ -51,9 +51,17 @@ const PostActionMenu: React.FC<PostActionMenuProps> = ({
       setIsDeleteDialogOpen(false);
       setIsMenuOpen(false);
       
+      // Ensure the callback is always called after successful deletion
       if (onPostDeleted) {
         onPostDeleted();
       }
+      
+      // Broadcast this deletion through a custom event that any component can listen for
+      const deleteEvent = new CustomEvent('post-deleted', { 
+        detail: { postId },
+        bubbles: true,
+      });
+      document.dispatchEvent(deleteEvent);
     } catch (error: any) {
       console.error('Error deleting post:', error);
       toast.error('Failed to delete post');

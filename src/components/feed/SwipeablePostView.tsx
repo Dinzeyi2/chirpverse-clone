@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import PostCard from './PostCard';
 import { Post, Comment } from '@/lib/data';
@@ -36,14 +35,24 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
   const [isInitialRender, setIsInitialRender] = useState(true);
   const prevPostsRef = useRef<PostWithActions[]>([]);
   const [carouselKey, setCarouselKey] = useState<string>(`carousel-${Date.now()}`);
+  const [displayPosts, setDisplayPosts] = useState<PostWithActions[]>([]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsInitialRender(false);
-    }, 500);
+    setDisplayPosts(posts);
     
-    return () => clearTimeout(timer);
-  }, []);
+    const handlePostDeleted = (event: CustomEvent) => {
+      const deletedPostId = event.detail.postId;
+      setDisplayPosts(currentPosts => 
+        currentPosts.filter(post => post.id !== deletedPostId)
+      );
+    };
+    
+    document.addEventListener('post-deleted', handlePostDeleted as EventListener);
+    
+    return () => {
+      document.removeEventListener('post-deleted', handlePostDeleted as EventListener);
+    };
+  }, [posts]);
 
   useEffect(() => {
     if (!api) {
@@ -136,7 +145,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
     );
   }
 
-  if (posts.length === 0 && !loading) {
+  if (displayPosts.length === 0 && !loading) {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
         <div className={`w-16 h-16 mb-4 ${mutedTextColor}`}>
@@ -163,7 +172,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
         key={carouselKey}
       >
         <CarouselContent className="mx-auto">
-          {posts.map((post, index) => {
+          {displayPosts.map((post, index) => {
             const hasCode = hasCodeContent(post);
             
             return (
@@ -192,7 +201,7 @@ const SwipeablePostView: React.FC<SwipeablePostViewProps> = ({ posts, loading = 
           })}
         </CarouselContent>
         
-        {posts.length > 1 && (
+        {displayPosts.length > 1 && (
           <>
             <button 
               onClick={() => api?.scrollPrev()} 
