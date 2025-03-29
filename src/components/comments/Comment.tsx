@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { MoreHorizontal, Heart, MessageSquare, Repeat, Send, Check } from 'lucide-react';
+import { MoreHorizontal, Save, Smile, Check } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import CodeBlock from '@/components/code/CodeBlock';
+import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
+import { useTheme } from '@/components/theme/theme-provider';
 
 interface CommentProps {
   comment: {
@@ -38,55 +40,29 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete }) => {
   const [likeCount, setLikeCount] = useState(comment.likes);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
   const commentRef = useRef<HTMLDivElement>(null);
+  const { theme } = useTheme();
   
-  const handleLike = async () => {
-    if (!user) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to like a comment",
-        variant: "destructive",
-      });
-      navigate('/auth');
-      return;
-    }
-    
-    try {
-      const newLikeStatus = !isLiked;
-      
-      if (newLikeStatus) {
-        // Add like
-        await supabase
-          .from('comment_likes')
-          .insert({
-            comment_id: comment.id,
-            user_id: user.id
-          });
-        
-        setLikeCount(prev => prev + 1);
-      } else {
-        // Remove like
-        await supabase
-          .from('comment_likes')
-          .delete()
-          .eq('comment_id', comment.id)
-          .eq('user_id', user.id);
-        
-        setLikeCount(prev => Math.max(0, prev - 1));
-      }
-      
-      setIsLiked(newLikeStatus);
-    } catch (error) {
-      console.error('Error toggling like:', error);
-      toast({
-        title: "Error",
-        description: "Failed to like comment",
-        variant: "destructive",
-      });
-    }
+  const handleSave = () => {
+    setIsSaved(!isSaved);
+    toast({
+      title: isSaved ? "Removed from saved" : "Saved to collection",
+      description: isSaved ? "Comment removed from your saved items" : "Comment added to your saved items",
+    });
+  };
+  
+  const handleEmojiSelect = (emojiData: EmojiClickData) => {
+    const emoji = emojiData.emoji;
+    toast({
+      title: "Reaction added",
+      description: `You reacted with ${emoji}`,
+    });
+    setEmojiPickerOpen(false);
   };
   
   const handleDelete = async () => {
@@ -200,7 +176,7 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete }) => {
                     className="w-full justify-start text-sm"
                     onClick={copyCommentLink}
                   >
-                    {isCopied ? <Check className="mr-2 h-4 w-4" /> : <Send className="mr-2 h-4 w-4" />}
+                    {isCopied ? <Check className="mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
                     {isCopied ? 'Copied!' : 'Copy link'}
                   </Button>
                   
@@ -270,20 +246,31 @@ const Comment: React.FC<CommentProps> = ({ comment, onDelete }) => {
           )}
           
           <div className="mt-3 flex items-center gap-6">
+            <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
+              <PopoverTrigger asChild>
+                <button className="flex items-center gap-1 text-gray-500 hover:text-blue-500 transition-colors">
+                  <Smile className="h-4 w-4" />
+                  <span className="text-xs">React</span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="p-0 border-none">
+                <EmojiPicker
+                  onEmojiClick={handleEmojiSelect}
+                  searchDisabled
+                  skinTonesDisabled
+                  width={280}
+                  height={350}
+                  theme={theme === 'dark' ? 'dark' : 'light' as Theme}
+                />
+              </PopoverContent>
+            </Popover>
+            
             <button 
-              className={`flex items-center gap-1 ${isLiked ? 'text-red-500' : 'text-gray-500'} hover:text-red-600 transition-colors`}
-              onClick={handleLike}
+              className={`flex items-center gap-1 ${isSaved ? 'text-blue-500' : 'text-gray-500'} hover:text-blue-600 transition-colors`}
+              onClick={handleSave}
             >
-              <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
-              <span className="text-xs">{likeCount > 0 ? likeCount : ''}</span>
-            </button>
-            
-            <button className="flex items-center gap-1 text-gray-500 hover:text-xBlue transition-colors">
-              <MessageSquare className="h-4 w-4" />
-            </button>
-            
-            <button className="flex items-center gap-1 text-gray-500 hover:text-green-500 transition-colors">
-              <Repeat className="h-4 w-4" />
+              <Save className={`h-4 w-4 ${isSaved ? 'fill-current' : ''}`} />
+              <span className="text-xs">Save</span>
             </button>
           </div>
         </div>
