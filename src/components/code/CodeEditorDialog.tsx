@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -327,8 +328,23 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
       return;
     }
 
-    if (e.key === '(' || e.key === '{' || e.key === '[' || e.key === '"' || e.key === "'" || e.key === '`') {
-      if (selectionStart === selectionEnd && (e.key === '"' || e.key === "'" || e.key === '`')) {
+    // Fix: Separate condition for auto-pairing quotes vs brackets
+    if (e.key === '"' || e.key === "'" || e.key === '`') {
+      if (selectionStart === selectionEnd) {
+        e.preventDefault();
+        const newValue = value.substring(0, selectionStart) + e.key + e.key + value.substring(selectionEnd);
+        setCode(newValue);
+        
+        setTimeout(() => {
+          if (textareaRef.current) {
+            textareaRef.current.selectionStart = selectionStart + 1;
+            textareaRef.current.selectionEnd = selectionStart + 1;
+          }
+        }, 0);
+      }
+    } else if (e.key === '(' || e.key === '{' || e.key === '[') {
+      // Handle brackets separately
+      if (selectionStart === selectionEnd) {
         e.preventDefault();
         
         let closingChar = '';
