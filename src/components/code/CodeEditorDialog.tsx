@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Copy, FileCode } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from "sonner";
 
 interface CodeEditorDialogProps {
   open: boolean;
@@ -43,20 +43,16 @@ const LANGUAGE_OPTIONS = [
   { value: 'plaintext', label: 'Plain Text' },
 ];
 
-// Language-specific keywords for syntax highlighting
 const LANGUAGE_KEYWORDS: Record<string, string[]> = {
   javascript: ['const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'class', 'import', 'export', 'from', 'async', 'await', 'try', 'catch', 'throw', 'new', 'this', 'super'],
   typescript: ['const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'class', 'import', 'export', 'from', 'async', 'await', 'try', 'catch', 'throw', 'new', 'this', 'super', 'interface', 'type', 'enum', 'namespace', 'implements', 'extends'],
   python: ['def', 'class', 'import', 'from', 'if', 'elif', 'else', 'try', 'except', 'finally', 'for', 'while', 'return', 'and', 'or', 'not', 'in', 'is', 'lambda', 'with', 'as', 'assert', 'break', 'continue', 'global', 'pass'],
   java: ['public', 'private', 'protected', 'class', 'interface', 'enum', 'extends', 'implements', 'import', 'package', 'static', 'final', 'void', 'return', 'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'break', 'continue', 'try', 'catch', 'throw', 'throws', 'new', 'this', 'super'],
-  // Add more languages as needed
 };
 
-// Built-in types for each language
 const LANGUAGE_TYPES: Record<string, string[]> = {
   javascript: ['Array', 'Object', 'String', 'Number', 'Boolean', 'Function', 'Promise', 'Map', 'Set', 'Date', 'RegExp', 'Error'],
   typescript: ['string', 'number', 'boolean', 'any', 'void', 'null', 'undefined', 'never', 'unknown', 'Array', 'Record', 'Promise', 'Map', 'Set', 'Date', 'Partial', 'Required', 'Pick', 'Omit', 'Exclude', 'Extract', 'NonNullable', 'ReturnType'],
-  // Add more languages as needed
 };
 
 const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
@@ -74,6 +70,7 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
   const [isComposing, setIsComposing] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const [highlightedCode, setHighlightedCode] = useState<React.ReactNode[]>([]);
+  const MAX_LINES = 30;
 
   const handleSave = () => {
     onSave(code, language);
@@ -123,14 +120,12 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
     }
   }, [fileName, language]);
 
-  // Handle text area scrolling and sync line numbers
   const handleTextareaScroll = () => {
     if (textareaRef.current && lineNumbersRef.current) {
       lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
     }
   };
 
-  // Handle cursor position and selection changes
   const handleSelectionChange = () => {
     if (textareaRef.current) {
       setCursorPosition(textareaRef.current.selectionStart);
@@ -145,16 +140,13 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
     }
   };
 
-  // Tokenize code for syntax highlighting
   const tokenizeCode = (input: string, lang: string): SyntaxToken[] => {
     const tokens: SyntaxToken[] = [];
     if (!input) return tokens;
 
-    // Use the language-specific rules
     const keywords = LANGUAGE_KEYWORDS[lang] || LANGUAGE_KEYWORDS.javascript;
     const types = LANGUAGE_TYPES[lang] || LANGUAGE_TYPES.javascript;
 
-    // Split the input by various delimiters while preserving them
     let currentToken = '';
     let inString = false;
     let stringDelimiter = '';
@@ -165,7 +157,6 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
       const char = input[i];
       const nextChar = i < input.length - 1 ? input[i + 1] : '';
 
-      // Handle comments
       if (!inString && !inComment && !inMultilineComment && char === '/' && nextChar === '/') {
         if (currentToken) {
           tokens.push({ text: currentToken, type: 'plain', color: '#D4D4D4' });
@@ -208,7 +199,6 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
         continue;
       }
 
-      // Handle strings
       if (!inString && (char === '"' || char === "'" || char === '`')) {
         if (currentToken) {
           if (keywords.includes(currentToken)) {
@@ -247,7 +237,6 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
         continue;
       }
 
-      // Handle operators and punctuation
       if (/[+\-*/%=&|^~<>!?:;,.(){}[\]]/.test(char)) {
         if (currentToken) {
           if (keywords.includes(currentToken)) {
@@ -273,7 +262,6 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
         continue;
       }
 
-      // Handle whitespace
       if (/\s/.test(char)) {
         if (currentToken) {
           if (keywords.includes(currentToken)) {
@@ -299,11 +287,9 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
         continue;
       }
 
-      // Collect characters for next token
       currentToken += char;
     }
 
-    // Don't forget the last token
     if (currentToken) {
       if (inComment || inMultilineComment) {
         tokens.push({ text: currentToken, type: 'comment', color: '#6A9955' });
@@ -329,18 +315,20 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
     return tokens;
   };
 
-  // Auto-close brackets and quotes
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (isComposing) return;
 
     const textarea = e.currentTarget;
     const { selectionStart, selectionEnd, value } = textarea;
     
-    // Auto-close brackets and quotes
+    if (e.key === 'Enter' && value.split('\n').length >= MAX_LINES) {
+      e.preventDefault();
+      toast.warning(`Maximum ${MAX_LINES} lines of code allowed`);
+      return;
+    }
+
     if (e.key === '(' || e.key === '{' || e.key === '[' || e.key === '"' || e.key === "'" || e.key === '`') {
-      // Check if we're in a position where auto-closing makes sense
-      const charAfter = value.charAt(selectionStart);
-      if (selectionStart === selectionEnd && (charAfter === '' || /\s|\)|\}|\]|,|;/.test(charAfter))) {
+      if (selectionStart === selectionEnd && (e.key === '"' || e.key === "'" || e.key === '`')) {
         e.preventDefault();
         
         let closingChar = '';
@@ -354,7 +342,6 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
         const newValue = value.substring(0, selectionStart) + e.key + closingChar + value.substring(selectionEnd);
         setCode(newValue);
         
-        // Set cursor position between the brackets
         setTimeout(() => {
           if (textareaRef.current) {
             textareaRef.current.selectionStart = selectionStart + 1;
@@ -363,18 +350,15 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
         }, 0);
       }
     }
-    
-    // Handle tab key for indentation
+
     if (e.key === 'Tab') {
       e.preventDefault();
       const indent = '  ';
       
       if (selectionStart === selectionEnd) {
-        // Simple tab insertion
         const newValue = value.substring(0, selectionStart) + indent + value.substring(selectionEnd);
         setCode(newValue);
         
-        // Set cursor position after indentation
         setTimeout(() => {
           if (textareaRef.current) {
             textareaRef.current.selectionStart = selectionStart + indent.length;
@@ -382,7 +366,6 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
           }
         }, 0);
       } else {
-        // Multi-line indentation
         const startLine = value.substring(0, selectionStart).lastIndexOf('\n') + 1;
         let endLinePos = selectionEnd + value.substring(selectionEnd).indexOf('\n');
         if (endLinePos === -1) endLinePos = value.length;
@@ -391,14 +374,12 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
         const lines = selectedText.split('\n');
         
         if (!e.shiftKey) {
-          // Add indentation
           const indentedLines = lines.map(line => indent + line);
           const newText = indentedLines.join('\n');
           
           const newValue = value.substring(0, startLine) + newText + value.substring(endLinePos);
           setCode(newValue);
           
-          // Adjust selection
           setTimeout(() => {
             if (textareaRef.current) {
               textareaRef.current.selectionStart = startLine;
@@ -406,14 +387,12 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
             }
           }, 0);
         } else {
-          // Remove indentation
           const unindentedLines = lines.map(line => line.startsWith(indent) ? line.substring(indent.length) : line);
           const newText = unindentedLines.join('\n');
           
           const newValue = value.substring(0, startLine) + newText + value.substring(endLinePos);
           setCode(newValue);
           
-          // Adjust selection
           setTimeout(() => {
             if (textareaRef.current) {
               textareaRef.current.selectionStart = startLine;
@@ -426,10 +405,17 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
   };
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setCode(e.target.value);
+    const newValue = e.target.value;
+    const lineCount = newValue.split('\n').length;
+    
+    if (lineCount > MAX_LINES) {
+      setCode(newValue.split('\n').slice(0, MAX_LINES).join('\n'));
+      toast.warning(`Maximum ${MAX_LINES} lines of code allowed`);
+    } else {
+      setCode(newValue);
+    }
   };
 
-  // Render code with syntax highlighting
   useEffect(() => {
     const tokens = tokenizeCode(code, language);
     const highlighted = tokens.map((token, i) => (
@@ -440,7 +426,9 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
     setHighlightedCode(highlighted);
   }, [code, language]);
 
-  const lineNumbers = code.split('\n').map((_, i) => i + 1);
+  const lineNumbers = code.split('\n').length > MAX_LINES 
+    ? Array.from({ length: MAX_LINES }, (_, i) => i + 1)
+    : code.split('\n').map((_, i) => i + 1);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -495,14 +483,12 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
           <div className="flex-1 relative overflow-hidden">
             <ScrollArea className="h-full max-h-[calc(90vh-120px)] relative">
               <div className="relative">
-                {/* Guidelines for each line */}
                 <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-                  {lineNumbers.map((_, i) => (
+                  {Array.from({ length: Math.min(lineNumbers.length, MAX_LINES) }, (_, i) => (
                     <div key={i} className="h-6 border-b border-gray-800/20"></div>
                   ))}
                 </div>
                 
-                {/* Hidden textarea for actual editing */}
                 <textarea
                   ref={textareaRef}
                   value={code}
@@ -513,14 +499,14 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
                   onCompositionStart={() => setIsComposing(true)}
                   onCompositionEnd={() => setIsComposing(false)}
                   className="absolute top-0 left-0 w-full h-full font-mono text-sm p-2 bg-transparent text-transparent caret-white resize-none outline-none border-none overflow-auto z-10"
-                  placeholder="// Write your code here..."
+                  placeholder={`// Write your code here... (Max ${MAX_LINES} lines)`}
                   spellCheck="false"
                   style={{ caretColor: 'white' }}
+                  maxLength={10000}
                 />
                 
-                {/* Styled div for showing highlighted code */}
                 <pre className="font-mono text-sm p-2 text-gray-300 whitespace-pre-wrap break-all min-h-[400px] relative z-0">
-                  {highlightedCode.length > 0 ? highlightedCode : <span className="text-gray-500">// Write your code here...</span>}
+                  {highlightedCode.length > 0 ? highlightedCode : <span className="text-gray-500">{`// Write your code here... (Max ${MAX_LINES} lines)`}</span>}
                 </pre>
               </div>
             </ScrollArea>
