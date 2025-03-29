@@ -88,7 +88,7 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId,
           shoutout_id: postId,
           media: mediaUrls.length > 0 ? mediaUrls : null
         })
-        .select()
+        .select('*')
         .single();
         
       if (error) throw error;
@@ -114,8 +114,12 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId,
         description: "Comment added successfully",
       });
       
-      // Call onCommentAdded with the comment content and media
-      if (onCommentAdded) onCommentAdded(comment.trim(), mediaUrls);
+      // Only call onCommentAdded ONCE with the data from the database response
+      // to avoid duplicate comments
+      if (onCommentAdded && data) {
+        // Only pass the data once to prevent duplicates
+        onCommentAdded(data.content, mediaUrls);
+      }
       
       setComment('');
       setSelectedMedia([]);

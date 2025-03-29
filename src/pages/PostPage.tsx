@@ -241,7 +241,12 @@ const PostPage: React.FC = () => {
         
         processedCommentIdsRef.current.add(formattedComment.id);
         
-        setComments(prevComments => [formattedComment, ...prevComments]);
+        setComments(prevComments => {
+          if (prevComments.some(c => c.id === formattedComment.id)) {
+            return prevComments;
+          }
+          return [formattedComment, ...prevComments];
+        });
         
         setPost(prev => ({
           ...prev,
@@ -285,7 +290,12 @@ const PostPage: React.FC = () => {
         
         processedCommentIdsRef.current.add(formattedComment.id);
         
-        setComments(prevComments => [formattedComment, ...prevComments]);
+        setComments(prevComments => {
+          if (prevComments.some(c => c.id === formattedComment.id)) {
+            return prevComments;
+          }
+          return [formattedComment, ...prevComments];
+        });
         
         setPost(prevPost => ({
           ...prevPost,
