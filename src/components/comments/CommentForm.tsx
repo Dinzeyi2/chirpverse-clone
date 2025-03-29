@@ -1,13 +1,12 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Image, Video, Smile } from 'lucide-react';
-import EmojiPicker from 'emoji-picker-react';
+import { Image, Video, Code } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import CodeEditorDialog from '@/components/code/CodeEditorDialog';
 
 interface CommentFormProps {
   onCommentAdded?: (content: string, media?: {type: string, url: string}[]) => void;
@@ -32,6 +31,7 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId,
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [isCodeEditorOpen, setIsCodeEditorOpen] = useState(false);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -223,8 +223,9 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId,
     }
   };
   
-  const handleEmojiClick = (emojiData: any) => {
-    setComment(prev => prev + emojiData.emoji);
+  const handleCodeSave = (code: string, language: string) => {
+    const formattedCode = `\`\`\`${language}\n${code}\n\`\`\``;
+    setComment(prev => prev + formattedCode);
   };
   
   // If user is not logged in, show login prompt
@@ -326,20 +327,14 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId,
                 <Video size={20} />
               </label>
               
-              {/* Emoji picker */}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    className="text-xBlue hover:text-xBlue/80"
-                  >
-                    <Smile size={20} />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0 border-none" align="start">
-                  <EmojiPicker onEmojiClick={handleEmojiClick} />
-                </PopoverContent>
-              </Popover>
+              {/* Code Editor Button */}
+              <button
+                type="button"
+                className="text-xBlue hover:text-xBlue/80"
+                onClick={() => setIsCodeEditorOpen(true)}
+              >
+                <Code size={20} />
+              </button>
             </div>
             
             <Button 
@@ -352,6 +347,13 @@ const CommentForm: React.FC<CommentFormProps> = ({ onCommentAdded, postAuthorId,
           </div>
         </div>
       </div>
+      
+      {/* Code Editor Dialog */}
+      <CodeEditorDialog
+        open={isCodeEditorOpen}
+        onClose={() => setIsCodeEditorOpen(false)}
+        onSave={handleCodeSave}
+      />
     </form>
   );
 };
