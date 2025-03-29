@@ -30,6 +30,8 @@ export interface Comment {
   // Add aliases for database field mappings
   created_at?: string; // From database
   user_id?: string; // From database
+  likes?: number; // Adding the missing property
+  liked_by_user?: boolean; // Adding the missing property
 }
 
 export interface Post {
