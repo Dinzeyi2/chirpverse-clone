@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -663,7 +664,10 @@ const Comment: React.FC<CommentProps> = ({
                                 </PopoverTrigger>
                                 <PopoverContent className="p-0 border-none">
                                   <EmojiPicker
-                                    onEmojiClick={(emojiData) => handleEmojiSelect(emojiData)}
+                                    onEmojiClick={(emojiData) => {
+                                      // Create a separate handler for reply reactions
+                                      handleReplyEmojiSelect(emojiData, reply.id);
+                                    }}
                                     searchDisabled
                                     skinTonesDisabled
                                     width={280}
@@ -675,7 +679,7 @@ const Comment: React.FC<CommentProps> = ({
                               
                               <button 
                                 className={`flex items-center gap-1 text-xs ${isSaved ? 'text-blue-500' : 'text-gray-500'} hover:text-blue-600 transition-colors`}
-                                onClick={handleSave}
+                                onClick={() => handleReplySave(reply.id)}
                               >
                                 <Save className={`h-3 w-3 ${isSaved ? 'fill-current' : ''}`} />
                                 <span>Save</span>
@@ -694,6 +698,138 @@ const Comment: React.FC<CommentProps> = ({
       </div>
     </div>
   );
+  
+  // New helper functions for reply reactions and saves
+  function handleReplyEmojiSelect(emojiData: EmojiClickData, replyId: string) {
+    try {
+      if (!user) {
+        toast({
+          title: "Sign in required",
+          description: "Please sign in to react to replies",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const emoji = emojiData.emoji;
+      
+      // First check if the user has already reacted with this emoji to this reply
+      supabase
+        .from('comment_reactions')
+        .select('*')
+        .eq('comment_id', replyId)
+        .eq('user_id', user.id)
+        .eq('emoji', emoji)
+        .then(({ data, error }) => {
+          if (error) throw error;
+          
+          if (data && data.length > 0) {
+            // User has already reacted with this emoji, so delete it
+            supabase
+              .from('comment_reactions')
+              .delete()
+              .eq('comment_id', replyId)
+              .eq('user_id', user.id)
+              .eq('emoji', emoji)
+              .then(({ error: deleteError }) => {
+                if (deleteError) throw deleteError;
+                
+                toast({
+                  title: "Reaction removed",
+                  description: `Removed ${emoji} reaction`,
+                });
+              });
+          } else {
+            // User hasn't reacted with this emoji yet, so add it
+            supabase
+              .from('comment_reactions')
+              .insert({
+                comment_id: replyId,
+                user_id: user.id,
+                emoji: emoji
+              })
+              .then(({ error: insertError }) => {
+                if (insertError) throw insertError;
+                
+                toast({
+                  title: "Reaction added",
+                  description: `You reacted with ${emoji}`,
+                });
+              });
+          }
+        });
+    } catch (error) {
+      console.error('Error handling reply reaction:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update reaction",
+        variant: "destructive",
+      });
+    }
+  }
+  
+  function handleReplySave(replyId: string) {
+    try {
+      if (!user) {
+        toast({
+          title: "Sign in required",
+          description: "Please sign in to save replies",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // First check if the user has already saved this reply
+      supabase
+        .from('saved_comments')
+        .select('*')
+        .eq('comment_id', replyId)
+        .eq('user_id', user.id)
+        .then(({ data, error }) => {
+          if (error) throw error;
+          
+          if (data && data.length > 0) {
+            // User has already saved this reply, so delete it
+            supabase
+              .from('saved_comments')
+              .delete()
+              .eq('comment_id', replyId)
+              .eq('user_id', user.id)
+              .then(({ error: deleteError }) => {
+                if (deleteError) throw deleteError;
+                
+                toast({
+                  title: "Removed from saved",
+                  description: "Reply removed from your saved items",
+                });
+              });
+          } else {
+            // User hasn't saved this reply yet, so add it
+            supabase
+              .from('saved_comments')
+              .insert({
+                comment_id: replyId,
+                user_id: user.id
+              })
+              .then(({ error: insertError }) => {
+                if (insertError) throw insertError;
+                
+                toast({
+                  title: "Saved to collection",
+                  description: "Reply added to your saved items",
+                });
+              });
+          }
+        });
+    } catch (error) {
+      console.error('Error toggling save status for reply:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update save status",
+        variant: "destructive",
+      });
+    }
+  }
 };
 
 export default Comment;
