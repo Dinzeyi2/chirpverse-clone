@@ -1,8 +1,7 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { MoreHorizontal, Save, Smile, Check, MessageCircle, Reply as ReplyIcon, ChevronDown, ChevronUp } from 'lucide-react';
+import { MoreHorizontal, Save, Smile, Check, MessageCircle, Reply as ReplyIcon, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -559,9 +558,7 @@ const Comment: React.FC<CommentProps> = ({
                       onClick={handleDelete}
                       disabled={isDeleting}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
+                      <Trash2 className="mr-2 h-4 w-4" />
                       {isDeleting ? 'Deleting...' : 'Delete'}
                     </Button>
                   )}
@@ -722,15 +719,39 @@ const Comment: React.FC<CommentProps> = ({
                           </Avatar>
                           
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1">
-                              <span className="font-semibold text-sm hover:underline" onClick={() => navigate(`/profile/${reply.user.username}`)}>
-                                {reply.user.full_name || reply.user.username}
-                              </span>
-                              <span className="text-gray-500 text-xs">@{reply.user.username}</span>
-                              <span className="text-gray-500 text-xs">·</span>
-                              <span className="text-gray-500 text-xs">
-                                {formatDistanceToNow(new Date(reply.created_at), { addSuffix: true })}
-                              </span>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1">
+                                <span className="font-semibold text-sm hover:underline" onClick={() => navigate(`/profile/${reply.user.username}`)}>
+                                  {reply.user.full_name || reply.user.username}
+                                </span>
+                                <span className="text-gray-500 text-xs">@{reply.user.username}</span>
+                                <span className="text-gray-500 text-xs">·</span>
+                                <span className="text-gray-500 text-xs">
+                                  {formatDistanceToNow(new Date(reply.created_at), { addSuffix: true })}
+                                </span>
+                              </div>
+                              
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                                    <MoreHorizontal className="h-3 w-3" />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-48 p-0" align="end">
+                                  <div className="p-1">
+                                    {user && user.id === reply.user.id && (
+                                      <Button
+                                        variant="ghost"
+                                        className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50/10 text-xs"
+                                        onClick={() => handleDeleteReply(reply.id)}
+                                      >
+                                        <Trash2 className="mr-2 h-3 w-3" />
+                                        Delete
+                                      </Button>
+                                    )}
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
                             </div>
                             
                             <div className="mt-1 text-sm whitespace-pre-wrap break-words">
@@ -768,7 +789,6 @@ const Comment: React.FC<CommentProps> = ({
                               </button>
                             </div>
                             
-                            {/* Display reactions for replies */}
                             {replyReactions[reply.id]?.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-2">
                                 {replyReactions[reply.id].map((reaction, index) => (
@@ -801,7 +821,56 @@ const Comment: React.FC<CommentProps> = ({
     </div>
   );
   
-  // Helper functions for reply reactions and saves
+  function handleDeleteReply(replyId: string) {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to delete comments",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      supabase
+        .from('comments')
+        .delete()
+        .eq('id', replyId)
+        .eq('user_id', user.id)
+        .then(({ error }) => {
+          if (error) {
+            console.error('Error deleting reply comment:', error);
+            toast({
+              title: "Error",
+              description: "Failed to delete comment",
+              variant: "destructive",
+            });
+            return;
+          }
+          
+          toast({
+            title: "Success",
+            description: "Reply deleted successfully",
+          });
+          
+          const updatedReplies = replies.filter(reply => reply.id !== replyId);
+          
+          setReplyReactions(prevReactions => {
+            const newReactions = { ...prevReactions };
+            delete newReactions[replyId];
+            return newReactions;
+          });
+        });
+    } catch (error) {
+      console.error('Error in handleDeleteReply:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  }
+  
   function handleReplyEmojiSelect(emojiData: EmojiClickData, replyId: string) {
     try {
       if (!user) {
@@ -815,12 +884,10 @@ const Comment: React.FC<CommentProps> = ({
       
       const emoji = emojiData.emoji;
       
-      // First check if the user has already reacted with this emoji to this reply
       const currentReactions = replyReactions[replyId] || [];
       const existingReaction = currentReactions.find(r => r.emoji === emoji && r.reacted);
       
       if (existingReaction) {
-        // User has already reacted with this emoji, so delete it
         supabase
           .from('comment_reactions')
           .delete()
@@ -836,7 +903,6 @@ const Comment: React.FC<CommentProps> = ({
             });
           });
       } else {
-        // User hasn't reacted with this emoji yet, so add it
         supabase
           .from('comment_reactions')
           .insert({
@@ -868,122 +934,4 @@ const Comment: React.FC<CommentProps> = ({
       if (!user) {
         toast({
           title: "Sign in required",
-          description: "Please sign in to react to replies",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Check if the user has already reacted with this emoji to this reply
-      const currentReactions = replyReactions[replyId] || [];
-      const existingReaction = currentReactions.find(r => r.emoji === emoji && r.reacted);
-      
-      if (existingReaction) {
-        // User has already reacted with this emoji, so delete it
-        supabase
-          .from('comment_reactions')
-          .delete()
-          .eq('comment_id', replyId)
-          .eq('user_id', user.id)
-          .eq('emoji', emoji)
-          .then(({ error: deleteError }) => {
-            if (deleteError) throw deleteError;
-            
-            toast({
-              title: "Reaction removed",
-              description: `Removed ${emoji} reaction`,
-            });
-          });
-      } else {
-        // User hasn't reacted with this emoji yet, so add it
-        supabase
-          .from('comment_reactions')
-          .insert({
-            comment_id: replyId,
-            user_id: user.id,
-            emoji: emoji
-          })
-          .then(({ error: insertError }) => {
-            if (insertError) throw insertError;
-            
-            toast({
-              title: "Reaction added",
-              description: `You reacted with ${emoji}`,
-            });
-          });
-      }
-    } catch (error) {
-      console.error('Error toggling reaction for reply:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update reaction",
-        variant: "destructive",
-      });
-    }
-  }
-  
-  function handleReplySave(replyId: string) {
-    try {
-      if (!user) {
-        toast({
-          title: "Sign in required",
-          description: "Please sign in to save replies",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // First check if the user has already saved this reply
-      supabase
-        .from('saved_comments')
-        .select('*')
-        .eq('comment_id', replyId)
-        .eq('user_id', user.id)
-        .then(({ data, error }) => {
-          if (error) throw error;
-          
-          if (data && data.length > 0) {
-            // User has already saved this reply, so delete it
-            supabase
-              .from('saved_comments')
-              .delete()
-              .eq('comment_id', replyId)
-              .eq('user_id', user.id)
-              .then(({ error: deleteError }) => {
-                if (deleteError) throw deleteError;
-                
-                toast({
-                  title: "Removed from saved",
-                  description: "Reply removed from your saved items",
-                });
-              });
-          } else {
-            // User hasn't saved this reply yet, so add it
-            supabase
-              .from('saved_comments')
-              .insert({
-                comment_id: replyId,
-                user_id: user.id
-              })
-              .then(({ error: insertError }) => {
-                if (insertError) throw insertError;
-                
-                toast({
-                  title: "Saved to collection",
-                  description: "Reply added to your saved items",
-                });
-              });
-          }
-        });
-    } catch (error) {
-      console.error('Error toggling save status for reply:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update save status",
-        variant: "destructive",
-      });
-    }
-  }
-};
-
-export default Comment;
+          description: "Please sign in to react to replies
