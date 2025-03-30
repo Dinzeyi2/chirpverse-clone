@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -274,6 +275,9 @@ const PostPage: React.FC = () => {
     // We don't need to manually insert the comment here because the realtime
     // subscription will handle it. This function is mainly for optimistic updates
     // or additional actions.
+    
+    // Clear reply state after comment is added
+    setReplyingTo(null);
   };
 
   const handleReplyToComment = (commentId: string, username: string) => {
@@ -317,6 +321,17 @@ const PostPage: React.FC = () => {
       return part;
     });
   };
+  
+  // Prepare the currentUser object for comments
+  const currentUserForComments = user ? {
+    id: user.id,
+    name: user.user_metadata?.full_name || 'User',
+    username: user.user_metadata?.username || user.id.substring(0, 8),
+    avatar: blueProfileImage,
+    followers: 0,
+    following: 0,
+    verified: false,
+  } : null;
   
   if (loading) {
     return (
@@ -414,16 +429,8 @@ const PostPage: React.FC = () => {
               </div>
             )}
             <CommentForm 
-              currentUser={{
-                id: user.id,
-                name: user.user_metadata?.full_name || 'User',
-                username: user.user_metadata?.username || user.id.substring(0, 8),
-                avatar: blueProfileImage,
-                followers: 0,
-                following: 0,
-                verified: false,
-              }}
-              postAuthorId={post?.userId}
+              currentUser={currentUserForComments}
+              postAuthorId={post.id}
               onCommentAdded={handleCommentAdded}
               replyToMetadata={replyingTo ? {
                 reply_to: {
@@ -439,7 +446,9 @@ const PostPage: React.FC = () => {
         <CommentList 
           comments={comments} 
           isLoading={loading} 
-          onReplyClick={handleReplyToComment} 
+          onReplyClick={handleReplyToComment}
+          postId={post.id}
+          currentUser={currentUserForComments}
         />
       </div>
     </AppLayout>
