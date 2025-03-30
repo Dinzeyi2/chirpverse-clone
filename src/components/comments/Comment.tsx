@@ -12,6 +12,7 @@ import CodeBlock from '@/components/code/CodeBlock';
 import EmojiPicker, { EmojiClickData, Theme as EmojiPickerTheme } from "emoji-picker-react";
 import { useTheme } from '@/components/theme/theme-provider';
 import CommentForm from './CommentForm';
+import { Json } from '@/integrations/supabase/types';
 
 interface CommentProps {
   comment: {
@@ -53,26 +54,38 @@ interface CommentReaction {
   reacted: boolean;
 }
 
+interface MediaItem {
+  type: string;
+  url: string;
+}
+
+interface ReplyUser {
+  id: string;
+  username: string;
+  avatar: string;
+  full_name: string;
+  verified: boolean;
+}
+
+interface ReplyMetadata {
+  reply_to?: {
+    comment_id: string;
+    username: string;
+  };
+  parent_id?: string;
+  display_username?: string;
+  [key: string]: any;
+}
+
 interface Reply {
   id: string;
   content: string;
   created_at: string;
-  user: {
-    id: string;
-    username: string;
-    avatar: string;
-    full_name: string;
-    verified: boolean;
-  };
-  media?: {
-    type: string;
-    url: string;
-  }[];
+  user: ReplyUser;
+  media?: MediaItem[];
   likes: number;
   liked_by_user: boolean;
-  metadata?: {
-    [key: string]: any;
-  };
+  metadata?: ReplyMetadata;
 }
 
 const Comment: React.FC<CommentProps> = ({ 
@@ -126,6 +139,20 @@ const Comment: React.FC<CommentProps> = ({
       if (data && data.length > 0) {
         const formattedReplies: Reply[] = data.map(reply => {
           const metadata = reply.metadata || {};
+          
+          let formattedMedia: MediaItem[] = [];
+          if (Array.isArray(reply.media)) {
+            formattedMedia = reply.media.map(item => {
+              if (typeof item === 'object' && item !== null && 'type' in item && 'url' in item) {
+                return { 
+                  type: String(item.type), 
+                  url: String(item.url) 
+                };
+              }
+              return { type: 'unknown', url: '' };
+            });
+          }
+          
           return {
             id: reply.id,
             content: reply.content,
@@ -141,10 +168,10 @@ const Comment: React.FC<CommentProps> = ({
                 reply.user_id.substring(0, 8),
               verified: false
             },
-            media: Array.isArray(reply.media) ? reply.media : [],
+            media: formattedMedia,
             likes: 0,
             liked_by_user: false,
-            metadata: typeof metadata === 'object' ? metadata : {}
+            metadata: typeof metadata === 'object' ? metadata as ReplyMetadata : {}
           };
         });
         
@@ -757,7 +784,7 @@ const Comment: React.FC<CommentProps> = ({
                     {replies.map(reply => (
                       <Comment 
                         key={reply.id} 
-                        comment={reply} 
+                        comment={reply as any} 
                         isNestedReply 
                         postId={postId}
                         currentUser={currentUser}
