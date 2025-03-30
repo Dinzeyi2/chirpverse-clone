@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { MoreHorizontal, Save, Smile, Check, MessageCircle, Reply, ChevronDown, ChevronUp } from 'lucide-react';
+import { MoreHorizontal, Save, Smile, Check, MessageCircle, Reply as ReplyIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -122,7 +122,7 @@ const Comment: React.FC<CommentProps> = ({
             }
           }
           
-          const user: ReplyUser = {
+          const replyUser: ReplyUser = {
             id: reply.user_id || '',
             username: displayUsername,
             avatar: "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
@@ -134,7 +134,7 @@ const Comment: React.FC<CommentProps> = ({
             id: reply.id,
             content: reply.content,
             created_at: reply.created_at,
-            user,
+            user: replyUser,
             media: formattedMedia,
             likes: 0,
             liked_by_user: false,
@@ -680,7 +680,7 @@ const Comment: React.FC<CommentProps> = ({
               className="flex items-center gap-1 text-gray-500 hover:text-blue-600 transition-colors"
               onClick={handleReplyClick}
             >
-              <Reply className="h-4 w-4" />
+              <ReplyIcon className="h-4 w-4" />
               <span className="text-xs">Reply{replyCount > 0 && ` (${replyCount})`}</span>
             </button>
             
