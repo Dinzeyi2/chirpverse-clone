@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   username: string;
@@ -8,6 +9,24 @@ export interface User {
   profession?: string;
   following?: number;
   followers?: number;
+}
+
+// Simple types that don't cause circular references
+export interface MediaItem {
+  type: string;
+  url: string;
+}
+
+export interface CommentMetadata {
+  reply_to?: {
+    comment_id: string;
+    username: string;
+  };
+  parent_id?: string;
+  display_username?: string;
+  is_ai_generated?: boolean;
+  reactions?: string[];
+  [key: string]: any;
 }
 
 export interface Comment {
@@ -50,21 +69,7 @@ export interface ReplyTo {
   username: string;
 }
 
-export interface CommentMetadata {
-  reply_to?: ReplyTo;
-  parent_id?: string;
-  display_username?: string;
-  is_ai_generated?: boolean;
-  reactions?: string[];
-  [key: string]: any;
-}
-
 // Define interfaces for the Comment component to avoid circular dependencies
-export interface MediaItem {
-  type: string;
-  url: string;
-}
-
 export interface ReplyUser {
   id: string;
   username: string;

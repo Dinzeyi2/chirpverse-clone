@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -13,7 +12,7 @@ import CodeBlock from '@/components/code/CodeBlock';
 import EmojiPicker, { EmojiClickData, Theme as EmojiPickerTheme } from "emoji-picker-react";
 import { useTheme } from '@/components/theme/theme-provider';
 import CommentForm from './CommentForm';
-import { MediaItem, Reply, ReplyUser } from '@/lib/data';
+import { MediaItem } from '@/lib/data';
 
 interface CommentProps {
   comment: {
@@ -45,6 +44,25 @@ interface CommentReaction {
   reacted: boolean;
 }
 
+interface ReplyUser {
+  id: string;
+  username: string;
+  avatar: string;
+  full_name: string;
+  verified: boolean;
+}
+
+interface ReplyComment {
+  id: string;
+  content: string;
+  created_at: string;
+  user: ReplyUser;
+  media?: Array<{type: string, url: string}>;
+  likes: number;
+  liked_by_user: boolean;
+  metadata?: Record<string, any>;
+}
+
 const Comment: React.FC<CommentProps> = ({ 
   comment, 
   onDelete, 
@@ -62,7 +80,7 @@ const Comment: React.FC<CommentProps> = ({
   const [reactions, setReactions] = useState<CommentReaction[]>([]);
   const [isReplying, setIsReplying] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
-  const [replies, setReplies] = useState<Reply[]>([]);
+  const [replies, setReplies] = useState<ReplyComment[]>([]);
   const [replyCount, setReplyCount] = useState(0);
   const [loadingReplies, setLoadingReplies] = useState(false);
   
@@ -77,74 +95,56 @@ const Comment: React.FC<CommentProps> = ({
     
     try {
       setLoadingReplies(true);
+      
       const { data, error } = await supabase
         .from('comments')
-        .select(`
-          id,
-          content,
-          created_at,
-          user_id,
-          media,
-          metadata
-        `)
+        .select('*')
         .eq('shoutout_id', postId)
-        .eq('metadata->parent_id', comment.id)
-        .order('created_at', { ascending: true });
+        .filter('metadata->parent_id', 'eq', comment.id);
         
       if (error) throw error;
       
       if (data && data.length > 0) {
-        const formattedReplies: Reply[] = data.map(reply => {
-          // Safely handle metadata
-          const metadata = typeof reply.metadata === 'object' && reply.metadata !== null 
-            ? reply.metadata 
-            : {};
+        const formattedReplies: ReplyComment[] = data.map(reply => {
+          const metadata = reply.metadata || {};
           
-          // Safely handle media
-          let formattedMedia: MediaItem[] = [];
-          if (Array.isArray(reply.media)) {
-            formattedMedia = reply.media
-              .filter(item => item && typeof item === 'object')
-              .map(item => {
-                return { 
-                  type: typeof item.type === 'string' ? item.type : 'unknown', 
-                  url: typeof item.url === 'string' ? item.url : '' 
-                };
-              });
-          }
+          const mediaArray = Array.isArray(reply.media) ? reply.media : [];
+          const formattedMedia = mediaArray.map(item => {
+            if (item && typeof item === 'object' && item !== null) {
+              return {
+                type: item.type || 'unknown',
+                url: item.url || ''
+              };
+            }
+            return { type: 'unknown', url: '' };
+          });
           
-          // Safely extract display username
           let displayUsername = '';
           if (reply.user_id) {
             displayUsername = reply.user_id.substring(0, 8) || 'user';
             
             if (metadata && 
                 typeof metadata === 'object' && 
-                !Array.isArray(metadata) && 
-                'display_username' in metadata && 
-                typeof metadata.display_username === 'string') {
-              displayUsername = metadata.display_username;
+                metadata.display_username) {
+              displayUsername = String(metadata.display_username);
             }
           }
-          
-          // Create reply user object
-          const replyUser: ReplyUser = {
-            id: reply.user_id || '',
-            username: displayUsername,
-            avatar: "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
-            full_name: displayUsername,
-            verified: false
-          };
           
           return {
             id: reply.id,
             content: reply.content,
             created_at: reply.created_at,
-            user: replyUser,
+            user: {
+              id: reply.user_id || '',
+              username: displayUsername,
+              avatar: "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
+              full_name: displayUsername,
+              verified: false
+            },
             media: formattedMedia,
             likes: 0,
             liked_by_user: false,
-            metadata: typeof metadata === 'object' && !Array.isArray(metadata) ? metadata : {}
+            metadata: metadata
           };
         });
         
@@ -171,7 +171,7 @@ const Comment: React.FC<CommentProps> = ({
           .from('comments')
           .select('id', { count: 'exact' })
           .eq('shoutout_id', postId)
-          .eq('metadata->parent_id', comment.id);
+          .filter('metadata->parent_id', 'eq', comment.id);
           
         if (error) throw error;
         setReplyCount(count || 0);
@@ -488,6 +488,11 @@ const Comment: React.FC<CommentProps> = ({
         description: "Please sign in to reply",
         variant: "destructive",
       });
+      return;
+    }
+    
+    if (onReplyClick) {
+      onReplyClick(comment.id, comment.user.username);
       return;
     }
     

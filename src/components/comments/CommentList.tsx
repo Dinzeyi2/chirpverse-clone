@@ -75,9 +75,14 @@ const CommentList: React.FC<CommentListProps> = ({
     metadata: comment.metadata || {}
   }));
 
+  // Filter out replies at the top level - they'll be shown under their parent comments
+  const topLevelComments = formattedComments.filter(comment => 
+    !comment.metadata || !comment.metadata.parent_id
+  );
+
   return (
     <div className="divide-y divide-xExtraLightGray">
-      {formattedComments.map(comment => (
+      {topLevelComments.map(comment => (
         <Comment 
           key={comment.id} 
           comment={comment}
