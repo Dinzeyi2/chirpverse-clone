@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -26,10 +27,7 @@ interface CommentProps {
       full_name: string;
       verified: boolean;
     };
-    media?: {
-      type: string;
-      url: string;
-    }[];
+    media?: MediaItem[];
     likes: number;
     liked_by_user: boolean;
     metadata?: Record<string, any>;
@@ -97,31 +95,39 @@ const Comment: React.FC<CommentProps> = ({
       
       if (data && data.length > 0) {
         const formattedReplies: Reply[] = data.map(reply => {
-          const metadata = reply.metadata || {};
+          // Safely handle metadata
+          const metadata = typeof reply.metadata === 'object' && reply.metadata !== null 
+            ? reply.metadata 
+            : {};
           
+          // Safely handle media
           let formattedMedia: MediaItem[] = [];
           if (Array.isArray(reply.media)) {
-            formattedMedia = reply.media.map(item => {
-              if (typeof item === 'object' && item !== null && 'type' in item && 'url' in item) {
+            formattedMedia = reply.media
+              .filter(item => item && typeof item === 'object')
+              .map(item => {
                 return { 
-                  type: String(item.type), 
-                  url: String(item.url) 
+                  type: typeof item.type === 'string' ? item.type : 'unknown', 
+                  url: typeof item.url === 'string' ? item.url : '' 
                 };
-              }
-              return { type: 'unknown', url: '' };
-            });
+              });
           }
           
+          // Safely extract display username
           let displayUsername = '';
           if (reply.user_id) {
             displayUsername = reply.user_id.substring(0, 8) || 'user';
             
-            if (metadata && typeof metadata === 'object' && !Array.isArray(metadata) && 
-                'display_username' in metadata && typeof metadata.display_username === 'string') {
+            if (metadata && 
+                typeof metadata === 'object' && 
+                !Array.isArray(metadata) && 
+                'display_username' in metadata && 
+                typeof metadata.display_username === 'string') {
               displayUsername = metadata.display_username;
             }
           }
           
+          // Create reply user object
           const replyUser: ReplyUser = {
             id: reply.user_id || '',
             username: displayUsername,

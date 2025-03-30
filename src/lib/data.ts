@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   username: string;
@@ -17,16 +16,8 @@ export interface Comment {
   createdAt: string; // Matches our frontend expected format
   userId: string; // Matches our frontend expected format
   user?: User;
-  media?: {
-    type: string;
-    url: string;
-  }[] | any; // Updated to accept any type from the database
-  metadata?: {
-    display_username?: string;
-    is_ai_generated?: boolean;
-    reactions?: string[];
-    [key: string]: any;
-  } | any; // Updated to accept any type from the database
+  media?: MediaItem[];
+  metadata?: CommentMetadata;
   // Add aliases for database field mappings
   created_at?: string; // From database
   user_id?: string; // From database
@@ -47,14 +38,10 @@ export interface Post {
   liked?: boolean;
   bookmarked?: boolean;
   isOwner?: boolean;
-  images?: Array<string | {type: string, url: string}> | any; // Updated to accept any type from the database
+  images?: Array<string | MediaItem>;
   codeBlocks?: {code: string, language: string}[];
   languages?: string[];
-  metadata?: {
-    display_username?: string;
-    is_ai_generated?: boolean;
-    [key: string]: any;
-  } | any; // Updated to accept any type from the database
+  metadata?: Record<string, any>;
   comments?: Comment[]; // Add comments to the Post interface
 }
 
@@ -72,7 +59,7 @@ export interface CommentMetadata {
   [key: string]: any;
 }
 
-// Define interfaces for the Comment component to break circular dependencies
+// Define interfaces for the Comment component to avoid circular dependencies
 export interface MediaItem {
   type: string;
   url: string;
@@ -94,7 +81,7 @@ export interface Reply {
   media?: MediaItem[];
   likes: number;
   liked_by_user: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, any>; // Use Record<string, any> to avoid circular references
 }
 
 export function formatDate(dateStr: string): string {
