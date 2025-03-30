@@ -156,7 +156,6 @@ const Comment: React.FC<CommentProps> = ({
     };
   }, [comment.id, user]);
   
-  // Fetch reactions for all replies
   useEffect(() => {
     if (replies.length === 0) return;
     
@@ -174,12 +173,10 @@ const Comment: React.FC<CommentProps> = ({
         if (reactionData && reactionData.length > 0) {
           const reactionsByReply: Record<string, Record<string, { count: number, reacted: boolean }>> = {};
           
-          // Initialize reaction counts for all replies
           replyIds.forEach(replyId => {
             reactionsByReply[replyId] = {};
           });
           
-          // Process reaction data
           reactionData.forEach((reaction: any) => {
             const replyId = reaction.comment_id;
             const emoji = reaction.emoji;
@@ -198,7 +195,6 @@ const Comment: React.FC<CommentProps> = ({
             }
           });
           
-          // Convert to the format used by the component
           const formattedReactions: Record<string, CommentReaction[]> = {};
           
           Object.entries(reactionsByReply).forEach(([replyId, emojiData]) => {
@@ -218,7 +214,6 @@ const Comment: React.FC<CommentProps> = ({
     
     fetchReplyReactions();
     
-    // Set up realtime subscriptions for all replies
     const channels = replies.map(reply => {
       return supabase
         .channel(`reply-reactions-${reply.id}`)
@@ -934,4 +929,121 @@ const Comment: React.FC<CommentProps> = ({
       if (!user) {
         toast({
           title: "Sign in required",
-          description: "Please sign in to react to replies
+          description: "Please sign in to react to replies",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const currentReactions = replyReactions[replyId] || [];
+      const existingReaction = currentReactions.find(r => r.emoji === emoji && r.reacted);
+      
+      if (existingReaction) {
+        supabase
+          .from('comment_reactions')
+          .delete()
+          .eq('comment_id', replyId)
+          .eq('user_id', user.id)
+          .eq('emoji', emoji)
+          .then(({ error: deleteError }) => {
+            if (deleteError) throw deleteError;
+            
+            toast({
+              title: "Reaction removed",
+              description: `Removed ${emoji} reaction`,
+            });
+          });
+      } else {
+        supabase
+          .from('comment_reactions')
+          .insert({
+            comment_id: replyId,
+            user_id: user.id,
+            emoji: emoji
+          })
+          .then(({ error: insertError }) => {
+            if (insertError) throw insertError;
+            
+            toast({
+              title: "Reaction added",
+              description: `You reacted with ${emoji}`,
+            });
+          });
+      }
+    } catch (error) {
+      console.error('Error handling reply reaction:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update reaction",
+        variant: "destructive",
+      });
+    }
+  }
+  
+  function handleReplySave(replyId: string) {
+    try {
+      if (!user) {
+        toast({
+          title: "Sign in required",
+          description: "Please sign in to save comments",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      supabase
+        .from('saved_comments')
+        .select('*')
+        .eq('comment_id', replyId)
+        .eq('user_id', user.id)
+        .single()
+        .then(({ data, error }) => {
+          if (error && error.code !== 'PGRST116') {
+            throw error;
+          }
+          
+          const isSaved = !!data;
+          
+          if (isSaved) {
+            supabase
+              .from('saved_comments')
+              .delete()
+              .eq('comment_id', replyId)
+              .eq('user_id', user.id)
+              .then(({ error: deleteError }) => {
+                if (deleteError) throw deleteError;
+                
+                toast({
+                  title: "Removed from saved",
+                  description: "Reply removed from your saved items",
+                });
+              });
+          } else {
+            supabase
+              .from('saved_comments')
+              .insert({
+                comment_id: replyId,
+                user_id: user.id
+              })
+              .then(({ error: insertError }) => {
+                if (insertError) throw insertError;
+                
+                toast({
+                  title: "Saved to collection",
+                  description: "Reply added to your saved items",
+                });
+              });
+          }
+        });
+    } catch (error) {
+      console.error('Error handling reply save:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update save status",
+        variant: "destructive",
+      });
+    }
+  }
+};
+
+export default Comment;
