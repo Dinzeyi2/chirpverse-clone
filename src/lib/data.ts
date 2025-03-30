@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   username: string;
@@ -56,6 +55,20 @@ export interface Post {
     [key: string]: any;
   } | any; // Updated to accept any type from the database
   comments?: Comment[]; // Add comments to the Post interface
+}
+
+export interface ReplyTo {
+  comment_id: string;
+  username: string;
+}
+
+export interface CommentMetadata {
+  reply_to?: ReplyTo;
+  parent_id?: string;
+  display_username?: string;
+  is_ai_generated?: boolean;
+  reactions?: string[];
+  [key: string]: any;
 }
 
 export function formatDate(dateStr: string): string {

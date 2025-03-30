@@ -13,6 +13,7 @@ import EmojiPicker, { EmojiClickData, Theme as EmojiPickerTheme } from "emoji-pi
 import { useTheme } from '@/components/theme/theme-provider';
 import CommentForm from './CommentForm';
 import { Json } from '@/integrations/supabase/types';
+import { CommentMetadata, ReplyTo } from '@/lib/data';
 
 interface CommentProps {
   comment: {
@@ -32,14 +33,7 @@ interface CommentProps {
     }[];
     likes: number;
     liked_by_user: boolean;
-    metadata?: {
-      reply_to?: {
-        comment_id: string;
-        username: string;
-      },
-      parent_id?: string;
-      [key: string]: any;
-    };
+    metadata?: Record<string, any>;
   };
   onDelete?: () => void;
   onReplyClick?: (commentId: string, username: string) => void;
@@ -67,16 +61,6 @@ interface ReplyUser {
   verified: boolean;
 }
 
-interface ReplyMetadata {
-  reply_to?: {
-    comment_id: string;
-    username: string;
-  };
-  parent_id?: string;
-  display_username?: string;
-  [key: string]: any;
-}
-
 interface Reply {
   id: string;
   content: string;
@@ -85,7 +69,7 @@ interface Reply {
   media?: MediaItem[];
   likes: number;
   liked_by_user: boolean;
-  metadata?: ReplyMetadata;
+  metadata?: Record<string, any>;
 }
 
 const Comment: React.FC<CommentProps> = ({ 
@@ -153,25 +137,30 @@ const Comment: React.FC<CommentProps> = ({
             });
           }
           
+          let displayUsername = '';
+          if (typeof metadata === 'object' && metadata !== null) {
+            displayUsername = typeof metadata.display_username === 'string' 
+              ? metadata.display_username 
+              : reply.user_id?.substring(0, 8) || 'user';
+          } else {
+            displayUsername = reply.user_id?.substring(0, 8) || 'user';
+          }
+          
           return {
             id: reply.id,
             content: reply.content,
             created_at: reply.created_at,
             user: {
               id: reply.user_id,
-              username: typeof metadata === 'object' && metadata !== null && 'display_username' in metadata ? 
-                String(metadata.display_username) : 
-                reply.user_id.substring(0, 8),
+              username: displayUsername,
               avatar: "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
-              full_name: typeof metadata === 'object' && metadata !== null && 'display_username' in metadata ? 
-                String(metadata.display_username) : 
-                reply.user_id.substring(0, 8),
+              full_name: displayUsername,
               verified: false
             },
             media: formattedMedia,
             likes: 0,
             liked_by_user: false,
-            metadata: typeof metadata === 'object' ? metadata as ReplyMetadata : {}
+            metadata: typeof metadata === 'object' ? metadata : {}
           };
         });
         
