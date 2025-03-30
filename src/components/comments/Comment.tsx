@@ -138,12 +138,13 @@ const Comment: React.FC<CommentProps> = ({
           }
           
           let displayUsername = '';
-          if (typeof metadata === 'object' && metadata !== null) {
-            displayUsername = typeof metadata.display_username === 'string' 
-              ? metadata.display_username 
-              : reply.user_id?.substring(0, 8) || 'user';
-          } else {
-            displayUsername = reply.user_id?.substring(0, 8) || 'user';
+          if (reply.user_id) {
+            displayUsername = reply.user_id.substring(0, 8) || 'user';
+            
+            if (metadata && typeof metadata === 'object' && !Array.isArray(metadata) && 
+                'display_username' in metadata && typeof metadata.display_username === 'string') {
+              displayUsername = metadata.display_username;
+            }
           }
           
           return {
@@ -151,7 +152,7 @@ const Comment: React.FC<CommentProps> = ({
             content: reply.content,
             created_at: reply.created_at,
             user: {
-              id: reply.user_id,
+              id: reply.user_id || '',
               username: displayUsername,
               avatar: "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
               full_name: displayUsername,
@@ -160,7 +161,7 @@ const Comment: React.FC<CommentProps> = ({
             media: formattedMedia,
             likes: 0,
             liked_by_user: false,
-            metadata: typeof metadata === 'object' ? metadata : {}
+            metadata: typeof metadata === 'object' && !Array.isArray(metadata) ? metadata : {}
           };
         });
         
