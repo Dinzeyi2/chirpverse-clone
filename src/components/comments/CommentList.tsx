@@ -7,8 +7,8 @@ interface CommentListProps {
   comments: CommentType[];
   isLoading?: boolean;
   onReplyClick?: (commentId: string, username: string) => void;
-  postId?: string; // Add postId prop
-  currentUser?: any; // Add currentUser prop
+  postId?: string;
+  currentUser?: any;
 }
 
 const CommentList: React.FC<CommentListProps> = ({ 

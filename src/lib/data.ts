@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   username: string;
@@ -69,6 +70,31 @@ export interface CommentMetadata {
   is_ai_generated?: boolean;
   reactions?: string[];
   [key: string]: any;
+}
+
+// Define interfaces for the Comment component to break circular dependencies
+export interface MediaItem {
+  type: string;
+  url: string;
+}
+
+export interface ReplyUser {
+  id: string;
+  username: string;
+  avatar: string;
+  full_name: string;
+  verified: boolean;
+}
+
+export interface Reply {
+  id: string;
+  content: string;
+  created_at: string;
+  user: ReplyUser;
+  media?: MediaItem[];
+  likes: number;
+  liked_by_user: boolean;
+  metadata?: Record<string, any>;
 }
 
 export function formatDate(dateStr: string): string {

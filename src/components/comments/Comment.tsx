@@ -12,8 +12,7 @@ import CodeBlock from '@/components/code/CodeBlock';
 import EmojiPicker, { EmojiClickData, Theme as EmojiPickerTheme } from "emoji-picker-react";
 import { useTheme } from '@/components/theme/theme-provider';
 import CommentForm from './CommentForm';
-import { Json } from '@/integrations/supabase/types';
-import { CommentMetadata, ReplyTo } from '@/lib/data';
+import { MediaItem, Reply, ReplyUser } from '@/lib/data';
 
 interface CommentProps {
   comment: {
@@ -46,30 +45,6 @@ interface CommentReaction {
   emoji: string;
   count: number;
   reacted: boolean;
-}
-
-interface MediaItem {
-  type: string;
-  url: string;
-}
-
-interface ReplyUser {
-  id: string;
-  username: string;
-  avatar: string;
-  full_name: string;
-  verified: boolean;
-}
-
-interface Reply {
-  id: string;
-  content: string;
-  created_at: string;
-  user: ReplyUser;
-  media?: MediaItem[];
-  likes: number;
-  liked_by_user: boolean;
-  metadata?: Record<string, any>;
 }
 
 const Comment: React.FC<CommentProps> = ({ 
@@ -147,17 +122,19 @@ const Comment: React.FC<CommentProps> = ({
             }
           }
           
+          const user: ReplyUser = {
+            id: reply.user_id || '',
+            username: displayUsername,
+            avatar: "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
+            full_name: displayUsername,
+            verified: false
+          };
+          
           return {
             id: reply.id,
             content: reply.content,
             created_at: reply.created_at,
-            user: {
-              id: reply.user_id || '',
-              username: displayUsername,
-              avatar: "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
-              full_name: displayUsername,
-              verified: false
-            },
+            user,
             media: formattedMedia,
             likes: 0,
             liked_by_user: false,
