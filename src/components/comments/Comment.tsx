@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -36,6 +37,7 @@ interface CommentProps {
   isNestedReply?: boolean;
   postId?: string;
   currentUser?: any;
+  replies?: any[]; // Preloaded replies
 }
 
 interface CommentReaction {
@@ -50,7 +52,8 @@ const Comment: React.FC<CommentProps> = ({
   onReplyClick,
   isNestedReply = false,
   postId,
-  currentUser
+  currentUser,
+  replies = []
 }) => {
   const [isLiked, setIsLiked] = useState(comment.liked_by_user);
   const [likeCount, setLikeCount] = useState(comment.likes);
@@ -61,8 +64,6 @@ const Comment: React.FC<CommentProps> = ({
   const [reactions, setReactions] = useState<CommentReaction[]>([]);
   const [isReplying, setIsReplying] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
-  const [replies, setReplies] = useState<ReplyComment[]>([]);
-  const [replyCount, setReplyCount] = useState(0);
   const [loadingReplies, setLoadingReplies] = useState(false);
   
   const { toast } = useToast();
@@ -71,121 +72,10 @@ const Comment: React.FC<CommentProps> = ({
   const commentRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
   
-  const fetchReplies = async () => {
-    if (!postId || !comment.id) return;
-    
-    try {
-      setLoadingReplies(true);
-      
-      const { data, error } = await supabase
-        .from('comments')
-        .select('*')
-        .eq('shoutout_id', postId)
-        .filter('metadata->parent_id', 'eq', comment.id);
-        
-      if (error) throw error;
-      
-      if (data && data.length > 0) {
-        const formattedReplies: ReplyComment[] = data.map(reply => {
-          // Safely handle metadata which could be null
-          const metadata = reply.metadata || {};
-          
-          // Safely handle media which could be null or array
-          let formattedMedia: MediaItem[] = [];
-          if (reply.media && Array.isArray(reply.media)) {
-            formattedMedia = reply.media.map(item => {
-              if (item && typeof item === 'object' && 'type' in item && 'url' in item) {
-                return {
-                  type: String(item.type) || 'unknown',
-                  url: String(item.url) || ''
-                };
-              }
-              return { type: 'unknown', url: '' };
-            });
-          }
-          
-          let displayUsername = '';
-          if (reply.user_id) {
-            displayUsername = reply.user_id.substring(0, 8) || 'user';
-            
-            if (metadata && 
-                typeof metadata === 'object' && 
-                'display_username' in metadata) {
-              displayUsername = String(metadata.display_username);
-            }
-          }
-          
-          return {
-            id: reply.id,
-            content: reply.content,
-            created_at: reply.created_at,
-            user: {
-              id: reply.user_id || '',
-              username: displayUsername,
-              avatar: "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
-              full_name: displayUsername,
-              verified: false
-            },
-            media: formattedMedia,
-            likes: 0,
-            liked_by_user: false,
-            metadata: typeof metadata === 'object' ? metadata : {}
-          };
-        });
-        
-        setReplies(formattedReplies);
-      }
-    } catch (error) {
-      console.error('Error fetching replies:', error);
-      toast({
-        title: "Failed to load replies",
-        description: "There was an error fetching replies",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingReplies(false);
-    }
-  };
+  const hasReplies = replies && replies.length > 0;
+  const replyCount = replies.length;
   
-  useEffect(() => {
-    if (!postId || !comment.id) return;
-    
-    const countReplies = async () => {
-      try {
-        const { data, error, count } = await supabase
-          .from('comments')
-          .select('id', { count: 'exact' })
-          .eq('shoutout_id', postId)
-          .filter('metadata->parent_id', 'eq', comment.id);
-          
-        if (error) throw error;
-        setReplyCount(count || 0);
-      } catch (error) {
-        console.error('Error counting replies:', error);
-      }
-    };
-    
-    countReplies();
-    
-    const repliesChannel = supabase
-      .channel(`replies-${comment.id}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'comments',
-        filter: `metadata->parent_id=eq.${comment.id}`
-      }, () => {
-        countReplies();
-        if (showReplies) {
-          fetchReplies();
-        }
-      })
-      .subscribe();
-      
-    return () => {
-      supabase.removeChannel(repliesChannel);
-    };
-  }, [comment.id, postId, showReplies]);
+  // Previous fetchReplies implementation is no longer needed as replies are passed in as props
   
   useEffect(() => {
     if (!user) return;
@@ -482,11 +372,7 @@ const Comment: React.FC<CommentProps> = ({
     }
     
     setIsReplying(!isReplying);
-    
-    if (!isReplying && !showReplies) {
-      setShowReplies(true);
-      fetchReplies();
-    }
+    setShowReplies(true);
   };
   
   const copyCommentLink = () => {
@@ -517,29 +403,23 @@ const Comment: React.FC<CommentProps> = ({
   
   const handleCommentAdded = () => {
     setIsReplying(false);
-    fetchReplies();
   };
   
   const toggleReplies = () => {
-    const newShowReplies = !showReplies;
-    setShowReplies(newShowReplies);
-    
-    if (newShowReplies && replies.length === 0) {
-      fetchReplies();
-    }
+    setShowReplies(!showReplies);
   };
   
   if (comment.metadata && 
       typeof comment.metadata === 'object' && 
       'parent_id' in comment.metadata && 
       !isNestedReply) {
-    return null;
+    return null; // Skip rendering parent replies in the main list
   }
   
   return (
     <div 
       ref={commentRef}
-      className={`p-4 border-b border-xExtraLightGray transition-colors hover:bg-gray-50/5 ${isNestedReply ? 'pl-8 border-l border-xExtraLightGray ml-8' : ''}`}
+      className={`p-4 border-b border-xExtraLightGray transition-colors hover:bg-gray-50/5 ${isNestedReply ? 'ml-8 border-l border-xExtraLightGray' : ''}`}
     >
       {comment.metadata?.reply_to && (
         <div className="mb-1 text-xs text-gray-500">
@@ -711,57 +591,86 @@ const Comment: React.FC<CommentProps> = ({
             </div>
           )}
           
-          {replyCount > 0 && (
-            <button 
-              onClick={toggleReplies}
-              className="mt-2 text-xs text-gray-500 hover:text-blue-500 flex items-center gap-1"
-            >
-              {showReplies ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-              {showReplies ? 'Hide replies' : `Show ${replyCount} ${replyCount === 1 ? 'reply' : 'replies'}`}
-            </button>
-          )}
-          
+          {/* Reply form */}
           {isReplying && currentUser && postId && (
-            <CommentForm 
-              currentUser={currentUser}
-              postAuthorId={postId}
-              onCommentAdded={handleCommentAdded}
-              replyToMetadata={{
-                reply_to: {
-                  comment_id: comment.id,
-                  username: comment.user.username
-                }
-              }}
-              placeholderText={`Reply to @${comment.user.username}...`}
-              parentId={comment.id}
-              isReply={true}
-            />
+            <div className="mt-3 pl-3 border-l-2 border-gray-200 dark:border-gray-700">
+              <div className="text-xs text-gray-500 mb-2">
+                Replying to @{comment.user.username}
+              </div>
+              <CommentForm 
+                currentUser={currentUser}
+                postAuthorId={postId}
+                onCommentAdded={handleCommentAdded}
+                replyToMetadata={{
+                  reply_to: {
+                    comment_id: comment.id,
+                    username: comment.user.username
+                  },
+                  parent_id: comment.id
+                }}
+                placeholderText={`Reply to @${comment.user.username}...`}
+                isReply={true}
+              />
+            </div>
           )}
           
-          {showReplies && (
+          {/* Reddit-style reply section */}
+          {hasReplies && (
             <div className="mt-2">
-              {loadingReplies ? (
-                <div className="flex justify-center py-2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-xBlue"></div>
+              <button 
+                onClick={toggleReplies}
+                className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-500 mt-2"
+              >
+                {showReplies ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                <span>{showReplies ? "Hide replies" : `Show ${replyCount} ${replyCount === 1 ? "reply" : "replies"}`}</span>
+              </button>
+              
+              {showReplies && (
+                <div className="mt-2 space-y-3 ml-4 pl-4 border-l-2 border-gray-200 dark:border-gray-700">
+                  {loadingReplies ? (
+                    <div className="flex justify-center py-2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-xBlue"></div>
+                    </div>
+                  ) : (
+                    replies.map(reply => (
+                      <div key={reply.id} className="pt-2 first:pt-0 pb-2 last:pb-0">
+                        <div className="flex gap-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={reply.user.avatar} alt={reply.user.username} />
+                            <AvatarFallback>{reply.user.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1">
+                              <span className="font-semibold text-sm hover:underline" onClick={() => navigate(`/profile/${reply.user.username}`)}>
+                                {reply.user.full_name || reply.user.username}
+                              </span>
+                              <span className="text-gray-500 text-xs">@{reply.user.username}</span>
+                              <span className="text-gray-500 text-xs">·</span>
+                              <span className="text-gray-500 text-xs">
+                                {formatDistanceToNow(new Date(reply.created_at), { addSuffix: true })}
+                              </span>
+                            </div>
+                            
+                            <div className="mt-1 text-sm whitespace-pre-wrap break-words">
+                              {reply.content}
+                            </div>
+                            
+                            <div className="mt-2 flex items-center gap-4">
+                              <button 
+                                className="flex items-center gap-1 text-gray-500 hover:text-blue-600 transition-colors text-xs"
+                                onClick={() => onReplyClick && onReplyClick(comment.id, comment.user.username)}
+                              >
+                                <ReplyIcon className="h-3 w-3" />
+                                <span>Reply</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
-              ) : (
-                replies.length > 0 ? (
-                  <div className="space-y-2">
-                    {replies.map(reply => (
-                      <Comment 
-                        key={reply.id} 
-                        comment={reply as any} 
-                        isNestedReply 
-                        postId={postId}
-                        currentUser={currentUser}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="py-2 text-xs text-gray-500">
-                    No replies yet
-                  </div>
-                )
               )}
             </div>
           )}

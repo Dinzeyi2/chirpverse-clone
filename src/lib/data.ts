@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   username: string;
@@ -92,7 +91,7 @@ export interface Reply {
   metadata?: Record<string, any> | null; // Use Record<string, any> to avoid circular references
 }
 
-// Add this to ensure compatibility with Comment.tsx
+// Update this to ensure compatibility with Comment.tsx
 export interface ReplyComment {
   id: string;
   content: string;

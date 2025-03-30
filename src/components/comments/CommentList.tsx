@@ -18,16 +18,16 @@ const CommentList: React.FC<CommentListProps> = ({
   postId,
   currentUser
 }) => {
-  // Improved deduplication with consistent sorting to ensure stable order
-  const uniqueComments = useMemo(() => {
+  // Group comments by parent-child relationships
+  const commentThreads = useMemo(() => {
     if (!comments || !Array.isArray(comments)) {
-      return [];
+      return { topLevel: [], repliesByParentId: new Map() };
     }
     
+    // First deduplicate comments
     const uniqueMap = new Map<string, CommentType>();
     
     // Sort by creation date (newest first) before deduplication
-    // This ensures we keep the newest version of each comment
     const sortedComments = [...comments].sort((a, b) => 
       new Date(b.createdAt || b.created_at || '').getTime() - 
       new Date(a.createdAt || a.created_at || '').getTime()
@@ -40,8 +40,49 @@ const CommentList: React.FC<CommentListProps> = ({
       }
     });
     
-    // Convert back to array and maintain sorted order
-    return Array.from(uniqueMap.values());
+    const uniqueComments = Array.from(uniqueMap.values());
+    
+    // Now organize into threads
+    const topLevelComments: CommentType[] = [];
+    const repliesByParentId = new Map<string, CommentType[]>();
+    
+    uniqueComments.forEach(comment => {
+      // Check if this is a reply
+      const metadata = comment.metadata && typeof comment.metadata === 'object' ? comment.metadata : {};
+      const parentId = metadata.parent_id || 
+                      (metadata.reply_to && metadata.reply_to.comment_id) || 
+                      null;
+      
+      if (parentId) {
+        // This is a reply
+        if (!repliesByParentId.has(parentId)) {
+          repliesByParentId.set(parentId, []);
+        }
+        repliesByParentId.get(parentId)!.push(comment);
+      } else {
+        // This is a top-level comment
+        topLevelComments.push(comment);
+      }
+    });
+    
+    // Sort replies by date (newest replies first)
+    repliesByParentId.forEach((replies, parentId) => {
+      repliesByParentId.set(
+        parentId,
+        replies.sort((a, b) => 
+          new Date(b.createdAt || b.created_at || '').getTime() - 
+          new Date(a.createdAt || a.created_at || '').getTime()
+        )
+      );
+    });
+    
+    return {
+      topLevel: topLevelComments.sort((a, b) => 
+        new Date(b.createdAt || b.created_at || '').getTime() - 
+        new Date(a.createdAt || a.created_at || '').getTime()
+      ),
+      repliesByParentId
+    };
   }, [comments]);
 
   if (isLoading) {
@@ -52,7 +93,7 @@ const CommentList: React.FC<CommentListProps> = ({
     );
   }
 
-  if (!uniqueComments || uniqueComments.length === 0) {
+  if (!commentThreads.topLevel || commentThreads.topLevel.length === 0) {
     return (
       <div className="py-6 text-center">
         <p className="text-xGray font-medium">No comments yet</p>
@@ -62,7 +103,7 @@ const CommentList: React.FC<CommentListProps> = ({
   }
 
   // Format comments to match what the Comment component expects
-  const formattedComments = uniqueComments.map(comment => {
+  const formatComment = (comment: CommentType) => {
     // Safely handle media
     let formattedMedia = [];
     if (comment.media && Array.isArray(comment.media)) {
@@ -98,26 +139,26 @@ const CommentList: React.FC<CommentListProps> = ({
       liked_by_user: comment.liked_by_user || false,
       metadata: metadata
     };
-  });
-
-  // Filter out replies at the top level - they'll be shown under their parent comments
-  const topLevelComments = formattedComments.filter(comment => 
-    !comment.metadata || 
-    typeof comment.metadata !== 'object' || 
-    !('parent_id' in comment.metadata)
-  );
+  };
 
   return (
     <div className="divide-y divide-xExtraLightGray">
-      {topLevelComments.map(comment => (
-        <Comment 
-          key={comment.id} 
-          comment={comment}
-          onReplyClick={onReplyClick}
-          postId={postId} 
-          currentUser={currentUser}
-        />
-      ))}
+      {commentThreads.topLevel.map(comment => {
+        const formattedComment = formatComment(comment);
+        const replies = commentThreads.repliesByParentId.get(comment.id) || [];
+        const formattedReplies = replies.map(reply => formatComment(reply));
+        
+        return (
+          <Comment 
+            key={comment.id} 
+            comment={formattedComment}
+            onReplyClick={onReplyClick}
+            postId={postId}
+            currentUser={currentUser}
+            replies={formattedReplies}
+          />
+        );
+      })}
     </div>
   );
 };
