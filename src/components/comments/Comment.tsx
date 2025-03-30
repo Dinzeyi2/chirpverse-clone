@@ -65,6 +65,7 @@ const Comment: React.FC<CommentProps> = ({
   const [isReplying, setIsReplying] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
   const [loadingReplies, setLoadingReplies] = useState(false);
+  const [replyReactions, setReplyReactions] = useState<Record<string, CommentReaction[]>>({});
   
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -155,6 +156,88 @@ const Comment: React.FC<CommentProps> = ({
       supabase.removeChannel(reactionsChannel);
     };
   }, [comment.id, user]);
+  
+  // Fetch reactions for all replies
+  useEffect(() => {
+    if (replies.length === 0) return;
+    
+    const fetchReplyReactions = async () => {
+      try {
+        const replyIds = replies.map(reply => reply.id);
+        
+        const { data: reactionData, error } = await supabase
+          .from('comment_reactions')
+          .select('emoji, user_id, comment_id')
+          .in('comment_id', replyIds);
+        
+        if (error) throw error;
+        
+        if (reactionData && reactionData.length > 0) {
+          const reactionsByReply: Record<string, Record<string, { count: number, reacted: boolean }>> = {};
+          
+          // Initialize reaction counts for all replies
+          replyIds.forEach(replyId => {
+            reactionsByReply[replyId] = {};
+          });
+          
+          // Process reaction data
+          reactionData.forEach((reaction: any) => {
+            const replyId = reaction.comment_id;
+            const emoji = reaction.emoji;
+            
+            if (!reactionsByReply[replyId][emoji]) {
+              reactionsByReply[replyId][emoji] = {
+                count: 0,
+                reacted: false
+              };
+            }
+            
+            reactionsByReply[replyId][emoji].count += 1;
+            
+            if (user && reaction.user_id === user.id) {
+              reactionsByReply[replyId][emoji].reacted = true;
+            }
+          });
+          
+          // Convert to the format used by the component
+          const formattedReactions: Record<string, CommentReaction[]> = {};
+          
+          Object.entries(reactionsByReply).forEach(([replyId, emojiData]) => {
+            formattedReactions[replyId] = Object.entries(emojiData).map(([emoji, data]) => ({
+              emoji,
+              count: data.count,
+              reacted: data.reacted
+            }));
+          });
+          
+          setReplyReactions(formattedReactions);
+        }
+      } catch (error) {
+        console.error('Error fetching reply reactions:', error);
+      }
+    };
+    
+    fetchReplyReactions();
+    
+    // Set up realtime subscriptions for all replies
+    const channels = replies.map(reply => {
+      return supabase
+        .channel(`reply-reactions-${reply.id}`)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'comment_reactions',
+          filter: `comment_id=eq.${reply.id}`
+        }, () => {
+          fetchReplyReactions();
+        })
+        .subscribe();
+    });
+    
+    return () => {
+      channels.forEach(channel => supabase.removeChannel(channel));
+    };
+  }, [replies, user]);
   
   const handleSave = async () => {
     try {
@@ -665,7 +748,6 @@ const Comment: React.FC<CommentProps> = ({
                                 <PopoverContent className="p-0 border-none">
                                   <EmojiPicker
                                     onEmojiClick={(emojiData) => {
-                                      // Create a separate handler for reply reactions
                                       handleReplyEmojiSelect(emojiData, reply.id);
                                     }}
                                     searchDisabled
@@ -685,6 +767,26 @@ const Comment: React.FC<CommentProps> = ({
                                 <span>Save</span>
                               </button>
                             </div>
+                            
+                            {/* Display reactions for replies */}
+                            {replyReactions[reply.id]?.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {replyReactions[reply.id].map((reaction, index) => (
+                                  <button
+                                    key={index}
+                                    onClick={() => handleReplyReactionClick(reaction.emoji, reply.id)}
+                                    className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs border transition-colors
+                                      ${reaction.reacted 
+                                        ? 'bg-blue-50 border-blue-200 text-blue-500 dark:bg-blue-900/10 dark:border-blue-800/20' 
+                                        : 'bg-gray-100 border-gray-300 text-gray-800 dark:bg-gray-800/30 dark:border-gray-700/30 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-800/50'
+                                      }`}
+                                  >
+                                    <span>{reaction.emoji}</span>
+                                    <span>{reaction.count}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -699,7 +801,7 @@ const Comment: React.FC<CommentProps> = ({
     </div>
   );
   
-  // New helper functions for reply reactions and saves
+  // Helper functions for reply reactions and saves
   function handleReplyEmojiSelect(emojiData: EmojiClickData, replyId: string) {
     try {
       if (!user) {
@@ -714,52 +816,104 @@ const Comment: React.FC<CommentProps> = ({
       const emoji = emojiData.emoji;
       
       // First check if the user has already reacted with this emoji to this reply
-      supabase
-        .from('comment_reactions')
-        .select('*')
-        .eq('comment_id', replyId)
-        .eq('user_id', user.id)
-        .eq('emoji', emoji)
-        .then(({ data, error }) => {
-          if (error) throw error;
-          
-          if (data && data.length > 0) {
-            // User has already reacted with this emoji, so delete it
-            supabase
-              .from('comment_reactions')
-              .delete()
-              .eq('comment_id', replyId)
-              .eq('user_id', user.id)
-              .eq('emoji', emoji)
-              .then(({ error: deleteError }) => {
-                if (deleteError) throw deleteError;
-                
-                toast({
-                  title: "Reaction removed",
-                  description: `Removed ${emoji} reaction`,
-                });
-              });
-          } else {
-            // User hasn't reacted with this emoji yet, so add it
-            supabase
-              .from('comment_reactions')
-              .insert({
-                comment_id: replyId,
-                user_id: user.id,
-                emoji: emoji
-              })
-              .then(({ error: insertError }) => {
-                if (insertError) throw insertError;
-                
-                toast({
-                  title: "Reaction added",
-                  description: `You reacted with ${emoji}`,
-                });
-              });
-          }
-        });
+      const currentReactions = replyReactions[replyId] || [];
+      const existingReaction = currentReactions.find(r => r.emoji === emoji && r.reacted);
+      
+      if (existingReaction) {
+        // User has already reacted with this emoji, so delete it
+        supabase
+          .from('comment_reactions')
+          .delete()
+          .eq('comment_id', replyId)
+          .eq('user_id', user.id)
+          .eq('emoji', emoji)
+          .then(({ error: deleteError }) => {
+            if (deleteError) throw deleteError;
+            
+            toast({
+              title: "Reaction removed",
+              description: `Removed ${emoji} reaction`,
+            });
+          });
+      } else {
+        // User hasn't reacted with this emoji yet, so add it
+        supabase
+          .from('comment_reactions')
+          .insert({
+            comment_id: replyId,
+            user_id: user.id,
+            emoji: emoji
+          })
+          .then(({ error: insertError }) => {
+            if (insertError) throw insertError;
+            
+            toast({
+              title: "Reaction added",
+              description: `You reacted with ${emoji}`,
+            });
+          });
+      }
     } catch (error) {
       console.error('Error handling reply reaction:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update reaction",
+        variant: "destructive",
+      });
+    }
+  }
+  
+  function handleReplyReactionClick(emoji: string, replyId: string) {
+    try {
+      if (!user) {
+        toast({
+          title: "Sign in required",
+          description: "Please sign in to react to replies",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Check if the user has already reacted with this emoji to this reply
+      const currentReactions = replyReactions[replyId] || [];
+      const existingReaction = currentReactions.find(r => r.emoji === emoji && r.reacted);
+      
+      if (existingReaction) {
+        // User has already reacted with this emoji, so delete it
+        supabase
+          .from('comment_reactions')
+          .delete()
+          .eq('comment_id', replyId)
+          .eq('user_id', user.id)
+          .eq('emoji', emoji)
+          .then(({ error: deleteError }) => {
+            if (deleteError) throw deleteError;
+            
+            toast({
+              title: "Reaction removed",
+              description: `Removed ${emoji} reaction`,
+            });
+          });
+      } else {
+        // User hasn't reacted with this emoji yet, so add it
+        supabase
+          .from('comment_reactions')
+          .insert({
+            comment_id: replyId,
+            user_id: user.id,
+            emoji: emoji
+          })
+          .then(({ error: insertError }) => {
+            if (insertError) throw insertError;
+            
+            toast({
+              title: "Reaction added",
+              description: `You reacted with ${emoji}`,
+            });
+          });
+      }
+    } catch (error) {
+      console.error('Error toggling reaction for reply:', error);
       toast({
         title: "Error",
         description: "Failed to update reaction",
