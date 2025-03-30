@@ -27,8 +27,9 @@ serve(async (req) => {
     console.log("Generating AI comment for post:", postContent.substring(0, 50) + "...");
     console.log(`Requested comment count: ${commentsCount}`);
     
-    // Ensure commentsCount is within reasonable limits
-    const actualCommentsCount = Math.min(Math.max(parseInt(commentsCount, 10) || 3, 1), 40);
+    // Ensure commentsCount is within reasonable limits, but increase minimum to 10
+    // This ensures we always get more comments than before
+    const actualCommentsCount = Math.min(Math.max(parseInt(commentsCount, 10) || 10, 10), 40);
     
     // Create a unique query with randomization factors
     const timestamp = new Date().toISOString();
@@ -93,7 +94,27 @@ serve(async (req) => {
         "Could be a caching issue, try hard-refreshing.",
         "This is a known bug in the framework, there's a workaround.",
         "I'd recommend using a different approach altogether.",
-        "Check your network tab for any failed requests."
+        "Check your network tab for any failed requests.",
+        "Sometimes restarting the development server helps",
+        "I bet there's a missing closing bracket somewhere",
+        "Does this happen in production or just dev?",
+        "The problem might be in how the data is structured",
+        "Have you checked for null or undefined values?",
+        "Your environment variables might not be loaded correctly",
+        "This looks like a classic race condition to me",
+        "Did you remember to initialize the state?",
+        "I'd double check your package version compatibility",
+        "Maybe try with a different browser to rule out extensions",
+        "Could be an issue with how you're handling async code",
+        "Try stepping through with the debugger to find the exact point of failure",
+        "This reminds me of an issue I had with memory leaks",
+        "Are you properly cleaning up event listeners?",
+        "Check your webpack config, might be a bundling issue",
+        "Did you import the correct function from the library?",
+        "I've found that using a different approach works better here",
+        "Make sure your API endpoint is correctly formatted",
+        "Have you checked your network tab to see the response?",
+        "Looks like you might be missing some error handling"
       ];
       
       const results = [];
@@ -113,8 +134,8 @@ serve(async (req) => {
     };
     
     // We'll use a batch approach to handle many comments
-    // Generate up to 10 comments with API, then use fallbacks if more needed
-    const apiGenerationCount = Math.min(actualCommentsCount, 10);
+    // Generate up to 20 comments with API, then use fallbacks if more needed
+    const apiGenerationCount = Math.min(actualCommentsCount, 20);
     const fallbackCount = actualCommentsCount - apiGenerationCount;
     
     // Generate comments with the API (up to apiGenerationCount)

@@ -115,8 +115,8 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
     try {
       console.log('Generating AI comments for post:', postId);
       
-      // Generate between 10 to 38 comments as requested
-      const commentsToGenerate = Math.floor(Math.random() * 29) + 10; // 10 to 38 comments
+      // Generate between 15 to 40 comments (increased minimum from 10)
+      const commentsToGenerate = Math.floor(Math.random() * 26) + 15; // 15 to 40 comments
       
       // Call our edge function to generate AI comments
       const { data, error } = await supabase.functions.invoke('generate-ai-comment', {
@@ -139,7 +139,7 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
         return;
       }
       
-      console.log('Generated AI comments:', data.comments);
+      console.log(`Generated ${data.comments.length} AI comments`);
       
       // Add each comment with a random AI username and its reactions
       for (const commentData of data.comments) {
@@ -180,7 +180,7 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
     } catch (err) {
       console.error('Error adding AI comments:', err);
       // Try fallback if main method fails
-      await addFallbackComments(postId, postContent, blueUserId, Math.floor(Math.random() * 29) + 10);
+      await addFallbackComments(postId, postContent, blueUserId, Math.floor(Math.random() * 26) + 15);
     }
   };
 

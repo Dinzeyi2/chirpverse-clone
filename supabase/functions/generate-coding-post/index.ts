@@ -40,7 +40,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a web crawler that finds real coding questions posted by developers online. When you find a question, rewrite it to sound casual and authentic - like someone quickly typing a forum post. Remove any markdown formatting. Make it sound natural and conversational, with some casual words. Always include a language tag like @JavaScript or @Python at the end of the question, not at the beginning. IMPORTANT: Each response must be unique and different from previous ones. Never generate the same content twice.'
+            content: 'You are a web crawler that finds real coding questions posted by developers online. When you find a question, rewrite it to sound casual and authentic - like someone quickly typing a forum post. Remove any markdown formatting. Make it sound natural and conversational, with some casual words. Always include a language tag like @JavaScript or @Python at the end of the question, not at the beginning. IMPORTANT: Each response must be unique and different from previous ones. Never generate the same content twice. IMPORTANT: Do not include code blocks with import statements that repeat multiple times. Limit any code snippets to 5-10 lines maximum and make them relevant.'
           },
           {
             role: 'user',
@@ -50,9 +50,7 @@ serve(async (req) => {
         temperature: 0.9,
         max_tokens: 280,
         top_p: 0.95,
-        // Remove one of these penalties - can't use both
-        frequency_penalty: 0.7,
-        // presence_penalty: 0.7  // Removed this line to fix the error
+        frequency_penalty: 0.7
       }),
     });
 
@@ -63,7 +61,32 @@ serve(async (req) => {
       throw new Error(`Perplexity API returned ${response.status}: ${JSON.stringify(data)}`);
     }
     
-    const generatedContent = data.choices[0].message.content.trim();
+    // Verify the content doesn't have repetitive import statements
+    let generatedContent = data.choices[0].message.content.trim();
+    
+    // Check for repetitive import patterns and truncate if necessary
+    if (generatedContent.includes('using System.Collections') || 
+        generatedContent.includes('import ') || 
+        generatedContent.includes('#include')) {
+      
+      const lines = generatedContent.split('\n');
+      let repetitionStartIndex = -1;
+      
+      // Find where repetition might start
+      for (let i = 0; i < lines.length - 1; i++) {
+        if (lines[i].trim() === lines[i+1].trim() && lines[i].trim().length > 0) {
+          repetitionStartIndex = i;
+          break;
+        }
+      }
+      
+      // Truncate if repetition found
+      if (repetitionStartIndex > 0) {
+        generatedContent = lines.slice(0, repetitionStartIndex + 1).join('\n') + 
+                          '\n// ... additional imports truncated for brevity';
+      }
+    }
+    
     console.log("Generated content from real issues:", generatedContent);
     
     return new Response(JSON.stringify({ content: generatedContent }), {
