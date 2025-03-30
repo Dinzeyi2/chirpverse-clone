@@ -27,11 +27,12 @@ interface CommentFormProps {
     reply_to: {
       comment_id: string;
       username: string;
-    }
+    };
+    parent_id?: string;
   };
   placeholderText?: string;
-  parentId?: string; // Add parentId for nested replies
-  isReply?: boolean; // Flag to indicate if this is a reply form
+  parentId?: string;
+  isReply?: boolean;
 }
 
 const CommentForm: React.FC<CommentFormProps> = ({ 
@@ -63,7 +64,7 @@ const CommentForm: React.FC<CommentFormProps> = ({
     try {
       const file = files[0];
       
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      if (file.size > 10 * 1024 * 1024) {
         toast({
           title: "File too large",
           description: "Please upload files smaller than 10MB",
@@ -74,7 +75,6 @@ const CommentForm: React.FC<CommentFormProps> = ({
 
       setIsSubmitting(true);
       
-      // Create a unique file path
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
       const filePath = `comments/${currentUser.id}/${fileName}`;
@@ -91,7 +91,6 @@ const CommentForm: React.FC<CommentFormProps> = ({
         .from('media')
         .getPublicUrl(filePath);
         
-      // Determine media type
       let mediaType = 'file';
       if (file.type.startsWith('image/')) {
         mediaType = 'image';
@@ -135,7 +134,6 @@ const CommentForm: React.FC<CommentFormProps> = ({
     try {
       setIsSubmitting(true);
       
-      // First verify the post exists before trying to add a comment
       const { data: postExists, error: postCheckError } = await supabase
         .from('shoutouts')
         .select('id')
@@ -153,22 +151,22 @@ const CommentForm: React.FC<CommentFormProps> = ({
         return;
       }
       
-      // Prepare metadata
       const metadata: Record<string, any> = {
         display_username: currentUser.username
       };
       
-      // Add reply metadata if this is a reply
       if (replyToMetadata) {
         metadata.reply_to = replyToMetadata.reply_to;
+        
+        if (replyToMetadata.parent_id) {
+          metadata.parent_id = replyToMetadata.parent_id;
+        }
       }
       
-      // If this is a nested reply, add parent_id to metadata
       if (parentId) {
         metadata.parent_id = parentId;
       }
       
-      // Add comment to database
       const { error, data } = await supabase
         .from('comments')
         .insert({
@@ -184,7 +182,6 @@ const CommentForm: React.FC<CommentFormProps> = ({
       setComment('');
       setMedia([]);
       
-      // Notify parent component
       onCommentAdded(comment, media);
       
       toast({
@@ -203,9 +200,7 @@ const CommentForm: React.FC<CommentFormProps> = ({
     }
   };
 
-  // Fix: Changed onSubmit to onSave to match CodeEditorDialog component's prop name
   const handleCodeSubmit = (code: string, language: string) => {
-    // Create a new media item for the code
     const codeMedia = {
       type: 'code',
       url: JSON.stringify({ code, language })

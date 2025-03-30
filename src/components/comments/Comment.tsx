@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -74,8 +73,6 @@ const Comment: React.FC<CommentProps> = ({
   
   const hasReplies = replies && replies.length > 0;
   const replyCount = replies.length;
-  
-  // Previous fetchReplies implementation is no longer needed as replies are passed in as props
   
   useEffect(() => {
     if (!user) return;
@@ -591,7 +588,6 @@ const Comment: React.FC<CommentProps> = ({
             </div>
           )}
           
-          {/* Reply form */}
           {isReplying && currentUser && postId && (
             <div className="mt-3 pl-3 border-l-2 border-gray-200 dark:border-gray-700">
               <div className="text-xs text-gray-500 mb-2">
@@ -614,7 +610,6 @@ const Comment: React.FC<CommentProps> = ({
             </div>
           )}
           
-          {/* Reddit-style reply section */}
           {hasReplies && (
             <div className="mt-2">
               <button 
