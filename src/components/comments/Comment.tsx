@@ -552,13 +552,15 @@ const Comment: React.FC<CommentProps> = ({
               </PopoverContent>
             </Popover>
             
-            <button 
-              className="flex items-center gap-1 text-gray-500 hover:text-blue-600 transition-colors"
-              onClick={handleReplyClick}
-            >
-              <ReplyIcon className="h-4 w-4" />
-              <span className="text-xs">Reply{replyCount > 0 && ` (${replyCount})`}</span>
-            </button>
+            {!isNestedReply && (
+              <button 
+                className="flex items-center gap-1 text-gray-500 hover:text-blue-600 transition-colors"
+                onClick={handleReplyClick}
+              >
+                <ReplyIcon className="h-4 w-4" />
+                <span className="text-xs">Reply{replyCount > 0 && ` (${replyCount})`}</span>
+              </button>
+            )}
             
             <button 
               className={`flex items-center gap-1 ${isSaved ? 'text-blue-500' : 'text-gray-500'} hover:text-blue-600 transition-colors`}
@@ -652,12 +654,31 @@ const Comment: React.FC<CommentProps> = ({
                             </div>
                             
                             <div className="mt-2 flex items-center gap-4">
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button className="flex items-center gap-1 text-gray-500 hover:text-blue-500 transition-colors text-xs">
+                                    <Smile className="h-3 w-3" />
+                                    <span>React</span>
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="p-0 border-none">
+                                  <EmojiPicker
+                                    onEmojiClick={(emojiData) => handleEmojiSelect(emojiData)}
+                                    searchDisabled
+                                    skinTonesDisabled
+                                    width={280}
+                                    height={350}
+                                    theme={(theme === 'dark' ? 'dark' : 'light') as EmojiPickerTheme}
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                              
                               <button 
-                                className="flex items-center gap-1 text-gray-500 hover:text-blue-600 transition-colors text-xs"
-                                onClick={() => onReplyClick && onReplyClick(comment.id, comment.user.username)}
+                                className={`flex items-center gap-1 text-xs ${isSaved ? 'text-blue-500' : 'text-gray-500'} hover:text-blue-600 transition-colors`}
+                                onClick={handleSave}
                               >
-                                <ReplyIcon className="h-3 w-3" />
-                                <span>Reply</span>
+                                <Save className={`h-3 w-3 ${isSaved ? 'fill-current' : ''}`} />
+                                <span>Save</span>
                               </button>
                             </div>
                           </div>
