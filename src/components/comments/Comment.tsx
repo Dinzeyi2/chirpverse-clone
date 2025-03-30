@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -12,7 +13,7 @@ import CodeBlock from '@/components/code/CodeBlock';
 import EmojiPicker, { EmojiClickData, Theme as EmojiPickerTheme } from "emoji-picker-react";
 import { useTheme } from '@/components/theme/theme-provider';
 import CommentForm from './CommentForm';
-import { MediaItem } from '@/lib/data';
+import { MediaItem, Reply } from '@/lib/data';
 
 interface CommentProps {
   comment: {
@@ -26,10 +27,10 @@ interface CommentProps {
       full_name: string;
       verified: boolean;
     };
-    media?: MediaItem[];
+    media?: MediaItem[] | null;
     likes: number;
     liked_by_user: boolean;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, any> | null;
   };
   onDelete?: () => void;
   onReplyClick?: (commentId: string, username: string) => void;
@@ -44,23 +45,21 @@ interface CommentReaction {
   reacted: boolean;
 }
 
-interface ReplyUser {
-  id: string;
-  username: string;
-  avatar: string;
-  full_name: string;
-  verified: boolean;
-}
-
 interface ReplyComment {
   id: string;
   content: string;
   created_at: string;
-  user: ReplyUser;
-  media?: Array<{type: string, url: string}>;
+  user: {
+    id: string;
+    username: string;
+    avatar: string;
+    full_name: string;
+    verified: boolean;
+  };
+  media?: MediaItem[] | null;
   likes: number;
   liked_by_user: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, any> | null;
 }
 
 const Comment: React.FC<CommentProps> = ({ 
@@ -106,18 +105,22 @@ const Comment: React.FC<CommentProps> = ({
       
       if (data && data.length > 0) {
         const formattedReplies: ReplyComment[] = data.map(reply => {
+          // Safely handle metadata which could be null
           const metadata = reply.metadata || {};
           
-          const mediaArray = Array.isArray(reply.media) ? reply.media : [];
-          const formattedMedia = mediaArray.map(item => {
-            if (item && typeof item === 'object' && item !== null) {
-              return {
-                type: item.type || 'unknown',
-                url: item.url || ''
-              };
-            }
-            return { type: 'unknown', url: '' };
-          });
+          // Safely handle media which could be null or array
+          let formattedMedia: MediaItem[] = [];
+          if (reply.media && Array.isArray(reply.media)) {
+            formattedMedia = reply.media.map(item => {
+              if (item && typeof item === 'object') {
+                return {
+                  type: item.type || 'unknown',
+                  url: item.url || ''
+                };
+              }
+              return { type: 'unknown', url: '' };
+            });
+          }
           
           let displayUsername = '';
           if (reply.user_id) {

@@ -159,9 +159,16 @@ const Explore = () => {
       if (postsData && postsData.length > 0) {
         // Format the posts data
         const formattedPosts: Post[] = postsData.map(post => {
-          const metadata = post.metadata as Record<string, any> || {};
-          const displayUsername = metadata.display_username || 
+          const metadata = post.metadata || {};
+          const displayUsername = typeof metadata === 'object' && 'display_username' in metadata ? 
+            String(metadata.display_username) : 
             (post.user_id ? post.user_id.substring(0, 8) : 'user');
+          
+          // Safely handle media
+          let formattedMedia: Array<string | MediaItem> = [];
+          if (post.media && Array.isArray(post.media)) {
+            formattedMedia = post.media;
+          }
           
           return {
             id: post.id,
@@ -172,8 +179,8 @@ const Explore = () => {
             reposts: 0,
             views: 0,
             userId: post.user_id,
-            images: post.media,
-            metadata: post.metadata,
+            images: formattedMedia,
+            metadata: post.metadata || {},
             user: {
               id: post.user_id,
               name: displayUsername,
@@ -201,9 +208,16 @@ const Explore = () => {
         if (similarPostsData && similarPostsData.length > 0) {
           // Format the similar posts data
           const formattedSimilarPosts: Post[] = similarPostsData.map(post => {
-            const metadata = post.metadata as Record<string, any> || {};
-            const displayUsername = metadata.display_username || 
+            const metadata = post.metadata || {};
+            const displayUsername = typeof metadata === 'object' && 'display_username' in metadata ? 
+              String(metadata.display_username) : 
               (post.user_id ? post.user_id.substring(0, 8) : 'user');
+            
+            // Safely handle media
+            let formattedMedia: Array<string | MediaItem> = [];
+            if (post.media && Array.isArray(post.media)) {
+              formattedMedia = post.media;
+            }
             
             return {
               id: post.id,
@@ -214,8 +228,8 @@ const Explore = () => {
               reposts: 0,
               views: 0,
               userId: post.user_id,
-              images: post.media,
-              metadata: post.metadata,
+              images: formattedMedia,
+              metadata: post.metadata || {},
               user: {
                 id: post.user_id,
                 name: displayUsername,

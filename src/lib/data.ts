@@ -35,8 +35,8 @@ export interface Comment {
   createdAt: string; // Matches our frontend expected format
   userId: string; // Matches our frontend expected format
   user?: User;
-  media?: MediaItem[];
-  metadata?: CommentMetadata;
+  media?: MediaItem[] | null;
+  metadata?: CommentMetadata | Record<string, any> | null;
   // Add aliases for database field mappings
   created_at?: string; // From database
   user_id?: string; // From database
@@ -57,10 +57,10 @@ export interface Post {
   liked?: boolean;
   bookmarked?: boolean;
   isOwner?: boolean;
-  images?: Array<string | MediaItem>;
+  images?: Array<string | MediaItem> | null;
   codeBlocks?: {code: string, language: string}[];
   languages?: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, any> | null;
   comments?: Comment[]; // Add comments to the Post interface
 }
 
@@ -83,10 +83,10 @@ export interface Reply {
   content: string;
   created_at: string;
   user: ReplyUser;
-  media?: MediaItem[];
+  media?: MediaItem[] | null;
   likes: number;
   liked_by_user: boolean;
-  metadata?: Record<string, any>; // Use Record<string, any> to avoid circular references
+  metadata?: Record<string, any> | null; // Use Record<string, any> to avoid circular references
 }
 
 export function formatDate(dateStr: string): string {

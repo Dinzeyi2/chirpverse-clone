@@ -58,22 +58,30 @@ const CommentList: React.FC<CommentListProps> = ({
   }
 
   // Format comments to match what the Comment component expects
-  const formattedComments = uniqueComments.map(comment => ({
-    id: comment.id,
-    content: comment.content,
-    created_at: comment.createdAt || comment.created_at || new Date().toISOString(),
-    user: {
-      id: comment.userId || comment.user_id || '',
-      username: comment.user?.username || 'user',
-      avatar: comment.user?.avatar || '',
-      full_name: comment.user?.name || 'User',
-      verified: comment.user?.verified || false
-    },
-    media: comment.media || [],
-    likes: comment.likes || 0,
-    liked_by_user: comment.liked_by_user || false,
-    metadata: comment.metadata || {}
-  }));
+  const formattedComments = uniqueComments.map(comment => {
+    // Safely handle media
+    let formattedMedia = [];
+    if (comment.media && Array.isArray(comment.media)) {
+      formattedMedia = comment.media;
+    }
+    
+    return {
+      id: comment.id,
+      content: comment.content,
+      created_at: comment.createdAt || comment.created_at || new Date().toISOString(),
+      user: {
+        id: comment.userId || comment.user_id || '',
+        username: comment.user?.username || 'user',
+        avatar: comment.user?.avatar || '',
+        full_name: comment.user?.name || 'User',
+        verified: comment.user?.verified || false
+      },
+      media: formattedMedia,
+      likes: comment.likes || 0,
+      liked_by_user: comment.liked_by_user || false,
+      metadata: comment.metadata || {}
+    };
+  });
 
   // Filter out replies at the top level - they'll be shown under their parent comments
   const topLevelComments = formattedComments.filter(comment => 

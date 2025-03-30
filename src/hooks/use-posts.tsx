@@ -56,16 +56,31 @@ export const usePosts = () => {
         
       if (commentsError) throw commentsError;
       
-      const formattedComments: Comment[] = (commentsData || []).map(comment => ({
-        id: comment.id,
-        content: comment.content,
-        createdAt: comment.created_at,
-        userId: comment.user_id,
-        created_at: comment.created_at,
-        user_id: comment.user_id,
-        media: comment.media,
-        metadata: comment.metadata
-      }));
+      const formattedComments: Comment[] = (commentsData || []).map(comment => {
+        let mediaArray: MediaItem[] = [];
+        if (comment.media && Array.isArray(comment.media)) {
+          mediaArray = comment.media.map(item => {
+            if (item && typeof item === 'object') {
+              return {
+                type: item.type || 'unknown',
+                url: item.url || ''
+              };
+            }
+            return { type: 'unknown', url: '' };
+          });
+        }
+        
+        return {
+          id: comment.id,
+          content: comment.content,
+          createdAt: comment.created_at,
+          userId: comment.user_id,
+          created_at: comment.created_at,
+          user_id: comment.user_id,
+          media: mediaArray,
+          metadata: comment.metadata || {}
+        };
+      });
       
       return formattedComments;
     } catch (error) {
