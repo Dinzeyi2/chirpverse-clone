@@ -17,6 +17,9 @@ export interface MediaItem {
   url: string;
 }
 
+export type Json = string | number | boolean | { [key: string]: Json } | Json[];
+
+// Use a more specific type for metadata to avoid circular references
 export interface CommentMetadata {
   reply_to?: {
     comment_id: string;
@@ -26,7 +29,7 @@ export interface CommentMetadata {
   display_username?: string;
   is_ai_generated?: boolean;
   reactions?: string[];
-  [key: string]: any;
+  [key: string]: any; // Allow additional properties
 }
 
 export interface Comment {
@@ -87,6 +90,24 @@ export interface Reply {
   likes: number;
   liked_by_user: boolean;
   metadata?: Record<string, any> | null; // Use Record<string, any> to avoid circular references
+}
+
+// Add this to ensure compatibility with Comment.tsx
+export interface ReplyComment {
+  id: string;
+  content: string;
+  created_at: string;
+  user: {
+    id: string;
+    username: string;
+    avatar: string;
+    full_name: string;
+    verified: boolean;
+  };
+  media?: MediaItem[] | null;
+  likes: number;
+  liked_by_user: boolean;
+  metadata?: Record<string, any> | null;
 }
 
 export function formatDate(dateStr: string): string {

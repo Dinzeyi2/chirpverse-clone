@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import SwipeablePostView from '@/components/feed/SwipeablePostView';
 import { Search, ArrowLeft, Loader2 } from 'lucide-react';
-import { Post } from '@/lib/data';
+import { Post, MediaItem } from '@/lib/data';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import PostList from '@/components/feed/PostList';
@@ -159,7 +160,8 @@ const Explore = () => {
       if (postsData && postsData.length > 0) {
         // Format the posts data
         const formattedPosts: Post[] = postsData.map(post => {
-          const metadata = post.metadata || {};
+          const metadata = post.metadata && typeof post.metadata === 'object' ? 
+            post.metadata : {};
           const displayUsername = typeof metadata === 'object' && 'display_username' in metadata ? 
             String(metadata.display_username) : 
             (post.user_id ? post.user_id.substring(0, 8) : 'user');
@@ -167,7 +169,17 @@ const Explore = () => {
           // Safely handle media
           let formattedMedia: Array<string | MediaItem> = [];
           if (post.media && Array.isArray(post.media)) {
-            formattedMedia = post.media;
+            formattedMedia = post.media.map(item => {
+              if (typeof item === 'string') {
+                return item;
+              } else if (item && typeof item === 'object' && 'url' in item) {
+                return {
+                  type: 'type' in item ? String(item.type) : 'unknown',
+                  url: String(item.url) || ''
+                };
+              }
+              return '';
+            }).filter(Boolean);
           }
           
           return {
@@ -180,7 +192,7 @@ const Explore = () => {
             views: 0,
             userId: post.user_id,
             images: formattedMedia,
-            metadata: post.metadata || {},
+            metadata: metadata,
             user: {
               id: post.user_id,
               name: displayUsername,
@@ -208,7 +220,8 @@ const Explore = () => {
         if (similarPostsData && similarPostsData.length > 0) {
           // Format the similar posts data
           const formattedSimilarPosts: Post[] = similarPostsData.map(post => {
-            const metadata = post.metadata || {};
+            const metadata = post.metadata && typeof post.metadata === 'object' ? 
+              post.metadata : {};
             const displayUsername = typeof metadata === 'object' && 'display_username' in metadata ? 
               String(metadata.display_username) : 
               (post.user_id ? post.user_id.substring(0, 8) : 'user');
@@ -216,7 +229,17 @@ const Explore = () => {
             // Safely handle media
             let formattedMedia: Array<string | MediaItem> = [];
             if (post.media && Array.isArray(post.media)) {
-              formattedMedia = post.media;
+              formattedMedia = post.media.map(item => {
+                if (typeof item === 'string') {
+                  return item;
+                } else if (item && typeof item === 'object' && 'url' in item) {
+                  return {
+                    type: 'type' in item ? String(item.type) : 'unknown',
+                    url: String(item.url) || ''
+                  };
+                }
+                return '';
+              }).filter(Boolean);
             }
             
             return {
@@ -229,7 +252,7 @@ const Explore = () => {
               views: 0,
               userId: post.user_id,
               images: formattedMedia,
-              metadata: post.metadata || {},
+              metadata: metadata,
               user: {
                 id: post.user_id,
                 name: displayUsername,

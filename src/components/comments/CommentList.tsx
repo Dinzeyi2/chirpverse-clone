@@ -20,6 +20,10 @@ const CommentList: React.FC<CommentListProps> = ({
 }) => {
   // Improved deduplication with consistent sorting to ensure stable order
   const uniqueComments = useMemo(() => {
+    if (!comments || !Array.isArray(comments)) {
+      return [];
+    }
+    
     const uniqueMap = new Map<string, CommentType>();
     
     // Sort by creation date (newest first) before deduplication
@@ -62,8 +66,21 @@ const CommentList: React.FC<CommentListProps> = ({
     // Safely handle media
     let formattedMedia = [];
     if (comment.media && Array.isArray(comment.media)) {
-      formattedMedia = comment.media;
+      formattedMedia = comment.media.map(media => {
+        if (typeof media === 'string') {
+          return { type: 'image', url: media };
+        } else if (media && typeof media === 'object') {
+          return {
+            type: media.type || 'unknown',
+            url: media.url || ''
+          };
+        }
+        return { type: 'unknown', url: '' };
+      });
     }
+    
+    // Ensure metadata is an object
+    const metadata = typeof comment.metadata === 'object' ? comment.metadata : {};
     
     return {
       id: comment.id,
@@ -79,13 +96,15 @@ const CommentList: React.FC<CommentListProps> = ({
       media: formattedMedia,
       likes: comment.likes || 0,
       liked_by_user: comment.liked_by_user || false,
-      metadata: comment.metadata || {}
+      metadata: metadata
     };
   });
 
   // Filter out replies at the top level - they'll be shown under their parent comments
   const topLevelComments = formattedComments.filter(comment => 
-    !comment.metadata || !comment.metadata.parent_id
+    !comment.metadata || 
+    typeof comment.metadata !== 'object' || 
+    !('parent_id' in comment.metadata)
   );
 
   return (

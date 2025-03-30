@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -13,7 +12,7 @@ import CodeBlock from '@/components/code/CodeBlock';
 import EmojiPicker, { EmojiClickData, Theme as EmojiPickerTheme } from "emoji-picker-react";
 import { useTheme } from '@/components/theme/theme-provider';
 import CommentForm from './CommentForm';
-import { MediaItem, Reply } from '@/lib/data';
+import { MediaItem, ReplyComment } from '@/lib/data';
 
 interface CommentProps {
   comment: {
@@ -43,23 +42,6 @@ interface CommentReaction {
   emoji: string;
   count: number;
   reacted: boolean;
-}
-
-interface ReplyComment {
-  id: string;
-  content: string;
-  created_at: string;
-  user: {
-    id: string;
-    username: string;
-    avatar: string;
-    full_name: string;
-    verified: boolean;
-  };
-  media?: MediaItem[] | null;
-  likes: number;
-  liked_by_user: boolean;
-  metadata?: Record<string, any> | null;
 }
 
 const Comment: React.FC<CommentProps> = ({ 
@@ -112,10 +94,10 @@ const Comment: React.FC<CommentProps> = ({
           let formattedMedia: MediaItem[] = [];
           if (reply.media && Array.isArray(reply.media)) {
             formattedMedia = reply.media.map(item => {
-              if (item && typeof item === 'object') {
+              if (item && typeof item === 'object' && 'type' in item && 'url' in item) {
                 return {
-                  type: item.type || 'unknown',
-                  url: item.url || ''
+                  type: String(item.type) || 'unknown',
+                  url: String(item.url) || ''
                 };
               }
               return { type: 'unknown', url: '' };
@@ -128,7 +110,7 @@ const Comment: React.FC<CommentProps> = ({
             
             if (metadata && 
                 typeof metadata === 'object' && 
-                metadata.display_username) {
+                'display_username' in metadata) {
               displayUsername = String(metadata.display_username);
             }
           }
@@ -147,7 +129,7 @@ const Comment: React.FC<CommentProps> = ({
             media: formattedMedia,
             likes: 0,
             liked_by_user: false,
-            metadata: metadata
+            metadata: typeof metadata === 'object' ? metadata : {}
           };
         });
         
@@ -547,7 +529,10 @@ const Comment: React.FC<CommentProps> = ({
     }
   };
   
-  if (comment.metadata?.parent_id && !isNestedReply) {
+  if (comment.metadata && 
+      typeof comment.metadata === 'object' && 
+      'parent_id' in comment.metadata && 
+      !isNestedReply) {
     return null;
   }
   

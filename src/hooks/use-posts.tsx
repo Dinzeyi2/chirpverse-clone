@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, enableRealtimeForTables } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Post, Comment } from '@/lib/data';
+import { Post, Comment, MediaItem } from '@/lib/data';
 import { PostEngagement } from '@/components/feed/PostList';
 
 export type SortOption = 'latest' | 'popular' | 'commented';
@@ -56,33 +56,40 @@ export const usePosts = () => {
         
       if (commentsError) throw commentsError;
       
-      const formattedComments: Comment[] = (commentsData || []).map(comment => {
-        let mediaArray: MediaItem[] = [];
-        if (comment.media && Array.isArray(comment.media)) {
-          mediaArray = comment.media.map(item => {
-            if (item && typeof item === 'object') {
-              return {
-                type: item.type || 'unknown',
-                url: item.url || ''
-              };
-            }
-            return { type: 'unknown', url: '' };
-          });
-        }
+      if (commentsData && commentsData.length > 0) {
+        const formattedComments: Comment[] = (commentsData || []).map(comment => {
+          let mediaArray: MediaItem[] = [];
+          if (comment.media && Array.isArray(comment.media)) {
+            mediaArray = comment.media.map(item => {
+              if (item && typeof item === 'object' && 'type' in item && 'url' in item) {
+                return {
+                  type: String(item.type) || 'unknown',
+                  url: String(item.url) || ''
+                };
+              }
+              return { type: 'unknown', url: '' };
+            });
+          }
+          
+          const metadata = comment.metadata && typeof comment.metadata === 'object' ? 
+            comment.metadata : {};
+          
+          return {
+            id: comment.id,
+            content: comment.content,
+            createdAt: comment.created_at,
+            userId: comment.user_id,
+            created_at: comment.created_at,
+            user_id: comment.user_id,
+            media: mediaArray,
+            metadata: metadata
+          };
+        });
         
-        return {
-          id: comment.id,
-          content: comment.content,
-          createdAt: comment.created_at,
-          userId: comment.user_id,
-          created_at: comment.created_at,
-          user_id: comment.user_id,
-          media: mediaArray,
-          metadata: comment.metadata || {}
-        };
-      });
-      
-      return formattedComments;
+        return formattedComments;
+      } else {
+        return [];
+      }
     } catch (error) {
       console.error(`Error fetching comments for post ${postId}:`, error);
       return [];
