@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -30,8 +31,6 @@ interface CommentFormProps {
     }
   };
   placeholderText?: string;
-  parentId?: string; // Add parentId for nested replies
-  isReply?: boolean; // Flag to indicate if this is a reply form
 }
 
 const CommentForm: React.FC<CommentFormProps> = ({ 
@@ -39,9 +38,7 @@ const CommentForm: React.FC<CommentFormProps> = ({
   postAuthorId, 
   onCommentAdded, 
   replyToMetadata,
-  placeholderText = 'Add a comment...',
-  parentId,
-  isReply = false
+  placeholderText = 'Add a comment...' 
 }) => {
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -135,38 +132,11 @@ const CommentForm: React.FC<CommentFormProps> = ({
     try {
       setIsSubmitting(true);
       
-      // First verify the post exists before trying to add a comment
-      const { data: postExists, error: postCheckError } = await supabase
-        .from('shoutouts')
-        .select('id')
-        .eq('id', postAuthorId)
-        .single();
-      
-      if (postCheckError || !postExists) {
-        console.error('Error: Post does not exist:', postCheckError);
-        toast({
-          title: "Failed to post comment",
-          description: "The post you're trying to comment on doesn't exist or has been deleted",
-          variant: "destructive",
-        });
-        setIsSubmitting(false);
-        return;
-      }
-      
       // Prepare metadata
-      const metadata: Record<string, any> = {
-        display_username: currentUser.username
+      const metadata = {
+        display_username: currentUser.username,
+        ...(replyToMetadata || {})
       };
-      
-      // Add reply metadata if this is a reply
-      if (replyToMetadata) {
-        metadata.reply_to = replyToMetadata.reply_to;
-      }
-      
-      // If this is a nested reply, add parent_id to metadata
-      if (parentId) {
-        metadata.parent_id = parentId;
-      }
       
       // Add comment to database
       const { error, data } = await supabase
@@ -189,7 +159,7 @@ const CommentForm: React.FC<CommentFormProps> = ({
       
       toast({
         title: "Comment added",
-        description: isReply ? "Your reply has been posted successfully" : "Your comment has been posted successfully"
+        description: "Your comment has been posted successfully"
       });
     } catch (error) {
       console.error('Error posting comment:', error);
@@ -203,7 +173,6 @@ const CommentForm: React.FC<CommentFormProps> = ({
     }
   };
 
-  // Fix: Changed onSubmit to onSave to match CodeEditorDialog component's prop name
   const handleCodeSubmit = (code: string, language: string) => {
     // Create a new media item for the code
     const codeMedia = {
@@ -225,7 +194,7 @@ const CommentForm: React.FC<CommentFormProps> = ({
   };
 
   return (
-    <div className={`p-4 ${isReply ? "pl-12 border-l border-xExtraLightGray" : "border-b border-xExtraLightGray"}`}>
+    <div className="p-4 border-b border-xExtraLightGray">
       <div className="flex gap-3">
         <Avatar className="h-10 w-10">
           <AvatarImage src={currentUser.avatar} alt={currentUser.username} />
@@ -320,7 +289,7 @@ const CommentForm: React.FC<CommentFormProps> = ({
                 disabled={(!comment.trim() && media.length === 0) || isSubmitting}
                 className="bg-xBlue hover:bg-blue-600 text-white px-4 rounded-full"
               >
-                {isSubmitting ? 'Posting...' : isReply ? 'Reply' : 'Post'}
+                {isSubmitting ? 'Posting...' : 'Post'}
               </Button>
             </div>
           </form>

@@ -11,32 +11,22 @@ export interface User {
   followers?: number;
 }
 
-// Simple types that don't cause circular references
-export interface MediaItem {
-  type: string;
-  url: string;
-}
-
-export interface CommentMetadata {
-  reply_to?: {
-    comment_id: string;
-    username: string;
-  };
-  parent_id?: string;
-  display_username?: string;
-  is_ai_generated?: boolean;
-  reactions?: string[];
-  [key: string]: any;
-}
-
 export interface Comment {
   id: string;
   content: string;
   createdAt: string; // Matches our frontend expected format
   userId: string; // Matches our frontend expected format
   user?: User;
-  media?: MediaItem[];
-  metadata?: CommentMetadata;
+  media?: {
+    type: string;
+    url: string;
+  }[] | any; // Updated to accept any type from the database
+  metadata?: {
+    display_username?: string;
+    is_ai_generated?: boolean;
+    reactions?: string[];
+    [key: string]: any;
+  } | any; // Updated to accept any type from the database
   // Add aliases for database field mappings
   created_at?: string; // From database
   user_id?: string; // From database
@@ -57,36 +47,15 @@ export interface Post {
   liked?: boolean;
   bookmarked?: boolean;
   isOwner?: boolean;
-  images?: Array<string | MediaItem>;
+  images?: Array<string | {type: string, url: string}> | any; // Updated to accept any type from the database
   codeBlocks?: {code: string, language: string}[];
   languages?: string[];
-  metadata?: Record<string, any>;
+  metadata?: {
+    display_username?: string;
+    is_ai_generated?: boolean;
+    [key: string]: any;
+  } | any; // Updated to accept any type from the database
   comments?: Comment[]; // Add comments to the Post interface
-}
-
-export interface ReplyTo {
-  comment_id: string;
-  username: string;
-}
-
-// Define interfaces for the Comment component to avoid circular dependencies
-export interface ReplyUser {
-  id: string;
-  username: string;
-  avatar: string;
-  full_name: string;
-  verified: boolean;
-}
-
-export interface Reply {
-  id: string;
-  content: string;
-  created_at: string;
-  user: ReplyUser;
-  media?: MediaItem[];
-  likes: number;
-  liked_by_user: boolean;
-  metadata?: Record<string, any>; // Use Record<string, any> to avoid circular references
 }
 
 export function formatDate(dateStr: string): string {

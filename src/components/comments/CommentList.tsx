@@ -7,17 +7,9 @@ interface CommentListProps {
   comments: CommentType[];
   isLoading?: boolean;
   onReplyClick?: (commentId: string, username: string) => void;
-  postId?: string;
-  currentUser?: any;
 }
 
-const CommentList: React.FC<CommentListProps> = ({ 
-  comments, 
-  isLoading = false, 
-  onReplyClick,
-  postId,
-  currentUser
-}) => {
+const CommentList: React.FC<CommentListProps> = ({ comments, isLoading = false, onReplyClick }) => {
   // Improved deduplication with consistent sorting to ensure stable order
   const uniqueComments = useMemo(() => {
     const uniqueMap = new Map<string, CommentType>();
@@ -71,24 +63,16 @@ const CommentList: React.FC<CommentListProps> = ({
     },
     media: comment.media || [],
     likes: comment.likes || 0,
-    liked_by_user: comment.liked_by_user || false,
-    metadata: comment.metadata || {}
+    liked_by_user: comment.liked_by_user || false
   }));
-
-  // Filter out replies at the top level - they'll be shown under their parent comments
-  const topLevelComments = formattedComments.filter(comment => 
-    !comment.metadata || !comment.metadata.parent_id
-  );
 
   return (
     <div className="divide-y divide-xExtraLightGray">
-      {topLevelComments.map(comment => (
+      {formattedComments.map(comment => (
         <Comment 
           key={comment.id} 
           comment={comment}
-          onReplyClick={onReplyClick}
-          postId={postId} 
-          currentUser={currentUser}
+          onReplyClick={onReplyClick} 
         />
       ))}
     </div>
