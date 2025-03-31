@@ -198,6 +198,7 @@ const PostPage: React.FC = () => {
               );
               
               setComments(sortedComments);
+              console.log('Formatted and set comments:', sortedComments.length);
             } else {
               console.log('No comments found for this post');
               setComments([]);
@@ -331,7 +332,6 @@ const PostPage: React.FC = () => {
     });
   };
   
-  // Prepare the currentUser object for comments
   const currentUserForComments = user ? {
     id: user.id,
     name: user.user_metadata?.full_name || 'User',
@@ -341,7 +341,7 @@ const PostPage: React.FC = () => {
     following: 0,
     verified: false,
   } : null;
-  
+
   if (loading) {
     return (
       <AppLayout>
@@ -421,7 +421,6 @@ const PostPage: React.FC = () => {
       </div>
       
       <div className="comment-container">
-        {/* Comment form for logged in users */}
         {!user ? (
           <div className="p-4 flex flex-col items-center justify-center border-b border-xExtraLightGray space-y-3">
             <p className="text-center text-gray-600 dark:text-gray-400">
@@ -465,7 +464,6 @@ const PostPage: React.FC = () => {
           </div>
         )}
         
-        {/* Display comments for everyone, regardless of login status */}
         <CommentList 
           comments={comments} 
           isLoading={loading} 
