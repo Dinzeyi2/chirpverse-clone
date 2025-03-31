@@ -142,6 +142,15 @@ const CommentList: React.FC<CommentListProps> = ({
     };
   };
 
+  // Format the current user object to match what Comment component expects
+  const formattedCurrentUser = currentUser ? {
+    id: currentUser.id,
+    username: currentUser.username || currentUser.user_metadata?.username || 'user',
+    avatar: currentUser.avatar || '',
+    full_name: currentUser.name || currentUser.user_metadata?.full_name || 'User',
+    verified: currentUser.verified || false
+  } : null;
+
   return (
     <div className="divide-y divide-xExtraLightGray">
       {commentThreads.topLevel.map(comment => {
@@ -155,7 +164,7 @@ const CommentList: React.FC<CommentListProps> = ({
             comment={formattedComment}
             onReplyClick={onReplyClick}
             postId={postId}
-            currentUser={currentUser}
+            currentUser={formattedCurrentUser}
             replies={formattedReplies}
           />
         );
