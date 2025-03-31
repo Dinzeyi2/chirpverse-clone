@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Comment as CommentType } from '@/lib/data';
 import Comment from './Comment';
@@ -97,7 +96,9 @@ const CommentList: React.FC<CommentListProps> = ({
     return (
       <div className="py-6 text-center">
         <p className="text-xGray font-medium">No comments yet</p>
-        <p className="text-xGray text-sm mt-1">Be the first to comment on this post!</p>
+        <p className="text-xGray text-sm mt-1">
+          {currentUser ? 'Be the first to comment on this post!' : 'Sign in to be the first to comment!'}
+        </p>
       </div>
     );
   }

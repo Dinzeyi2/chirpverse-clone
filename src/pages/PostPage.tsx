@@ -283,7 +283,7 @@ const PostPage: React.FC = () => {
 
   const handleReplyToComment = (commentId: string, username: string) => {
     if (!user) {
-      // If user is not logged in, redirect to auth page
+      // If user is not logged in, show toast
       toast.error('Please sign in to reply to comments');
       return;
     }
