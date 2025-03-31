@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Brain, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -13,90 +13,83 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [autoPostEnabled, setAutoPostEnabled] = useState(true);
   const [nextPostTime, setNextPostTime] = useState<Date | null>(null);
-  const lastPostTimeRef = useRef<Date | null>(null);
-  const autoPostInitializedRef = useRef(false);
+  const [lastPostedTime, setLastPostedTime] = useState<Date | null>(null);
+
+  // Function to get a random interval between 5-8 minutes in milliseconds
+  const getRandomInterval = () => {
+    // Between 5-8 minutes (300000-480000 ms)
+    return Math.floor(Math.random() * (480000 - 300000 + 1)) + 300000;
+  };
+
+  // Check if the auto-posting feature is working properly
+  useEffect(() => {
+    const checkLastPost = async () => {
+      try {
+        // Check when was the last AI post created
+        const { data: lastPosts, error } = await supabase
+          .from('shoutouts')
+          .select('created_at, metadata')
+          .eq('user_id', '513259a2-555a-4c73-8ce5-db537e33b546') // The fixed blue5146 user ID
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (error) throw error;
+
+        if (lastPosts && lastPosts.length > 0) {
+          const lastPost = lastPosts[0];
+          const lastPostDate = new Date(lastPost.created_at);
+          setLastPostedTime(lastPostDate);
+          
+          console.log(`Last AI post was at ${lastPostDate.toLocaleTimeString()}`);
+          
+          // If it's been more than 10 minutes since the last post, force a new post
+          const currentTime = new Date();
+          const timeSinceLastPost = currentTime.getTime() - lastPostDate.getTime();
+          
+          if (timeSinceLastPost > 600000) { // 10 minutes
+            console.log("It's been more than 10 minutes since the last post, generating a new one now");
+            generatePost();
+          } else {
+            // Schedule next post based on last post time
+            const nextTime = new Date(lastPostDate.getTime() + getRandomInterval());
+            if (!nextPostTime || nextTime < nextPostTime) {
+              setNextPostTime(nextTime);
+              console.log(`Next post scheduled for ${nextTime.toLocaleTimeString()}`);
+            }
+          }
+        } else {
+          // If no posts found, generate one now
+          console.log("No previous AI posts found, generating one now");
+          generatePost();
+        }
+      } catch (error) {
+        console.error("Error checking last post:", error);
+      }
+    };
+
+    // Run this check when component mounts
+    checkLastPost();
+    
+    // Set up recurring check every minute
+    const recurringCheck = setInterval(() => {
+      if (autoPostEnabled && nextPostTime && new Date() >= nextPostTime) {
+        console.log("Auto-generating post now");
+        generatePost();
+      }
+    }, 60000); // Check every minute
+    
+    return () => {
+      clearInterval(recurringCheck);
+    };
+  }, [autoPostEnabled, nextPostTime]);
 
   // Auto-generate posts every 5-8 minutes
   useEffect(() => {
     if (!autoPostEnabled) return;
-
-    console.log("Initializing AI auto-posting system");
-    autoPostInitializedRef.current = true;
-    
-    // Function to get a random interval between 5-8 minutes in milliseconds
-    const getRandomInterval = () => {
-      // Between 5-8 minutes (300000-480000 ms)
-      return Math.floor(Math.random() * (480000 - 300000 + 1)) + 300000;
-    };
-    
-    // Check if we've recently posted
-    const checkLastPostTime = async () => {
-      try {
-        // Get the most recent AI-generated post
-        const { data: recentPosts, error } = await supabase
-          .from('shoutouts')
-          .select('created_at, metadata')
-          .eq('user_id', '513259a2-555a-4c73-8ce5-db537e33b546')
-          .order('created_at', { ascending: false })
-          .limit(1);
-        
-        if (error) {
-          console.error("Error checking last post time:", error);
-          return null;
-        }
-        
-        if (recentPosts && recentPosts.length > 0) {
-          const lastPostTime = new Date(recentPosts[0].created_at);
-          lastPostTimeRef.current = lastPostTime;
-          console.log("Last AI post was at", lastPostTime.toLocaleTimeString());
-          return lastPostTime;
-        }
-        
-        return null;
-      } catch (err) {
-        console.error("Error in checkLastPostTime:", err);
-        return null;
-      }
-    };
-    
-    // Set the next post time initially
-    const initializeNextPostTime = async () => {
-      // First check when we last posted
-      const lastPostTime = await checkLastPostTime();
-      
-      if (lastPostTime) {
-        const now = new Date();
-        const timeSinceLastPost = now.getTime() - lastPostTime.getTime();
-        const interval = getRandomInterval();
-        
-        // If we posted less than our interval ago, wait the remaining time
-        if (timeSinceLastPost < interval) {
-          const remainingTime = interval - timeSinceLastPost;
-          const next = new Date(now.getTime() + remainingTime);
-          setNextPostTime(next);
-          console.log(`Next post scheduled for ${next.toLocaleTimeString()}`);
-          return;
-        }
-      }
-      
-      // Otherwise, schedule a post soon (in 1-2 minutes)
-      const shortInterval = Math.floor(Math.random() * (120000 - 60000 + 1)) + 60000;
-      const next = new Date(Date.now() + shortInterval);
-      setNextPostTime(next);
-      console.log(`Next post scheduled for ${next.toLocaleTimeString()}`);
-    };
-    
-    // Initialize on mount
-    if (!nextPostTime && !autoPostInitializedRef.current) {
-      initializeNextPostTime();
-    }
     
     // Setup interval to check if it's time to generate a post
     const checkInterval = setInterval(() => {
-      console.log("Checking if it's time to create a new post...");
-      console.log("Next scheduled post time:", nextPostTime);
-      
-      if (nextPostTime && new Date() >= nextPostTime && !isGenerating) {
+      if (nextPostTime && new Date() >= nextPostTime) {
         console.log("Auto-generating post now");
         generatePost();
         
@@ -108,31 +101,10 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       }
     }, 10000); // Check every 10 seconds
     
-    // Backup interval in case the main interval doesn't trigger
-    const backupInterval = setInterval(() => {
-      const now = new Date();
-      
-      if (lastPostTimeRef.current) {
-        const timeSinceLastPost = now.getTime() - lastPostTimeRef.current.getTime();
-        
-        // If it's been more than 8 minutes since the last post, force a new one
-        if (timeSinceLastPost > 480000 && !isGenerating) {
-          console.log("Backup interval triggering post - it's been too long since the last one");
-          generatePost();
-          
-          // Schedule the next post
-          const newInterval = getRandomInterval();
-          const next = new Date(now.getTime() + newInterval);
-          setNextPostTime(next);
-        }
-      }
-    }, 60000); // Check every minute
-    
     return () => {
       clearInterval(checkInterval);
-      clearInterval(backupInterval);
     };
-  }, [autoPostEnabled, nextPostTime, isGenerating]);
+  }, [autoPostEnabled, nextPostTime]);
 
   const checkForDuplicateContent = async (content: string): Promise<boolean> => {
     try {
@@ -158,33 +130,42 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
     }
   };
 
+  // Generate a unique random blue username
   const generateRandomBlueUsername = (): string => {
+    // List of potential words to make the username feel more natural
     const adjectives = ['cool', 'super', 'awesome', 'coding', 'dev', 'tech', 'data', 'web', 'pro', 'smart'];
     const nouns = ['coder', 'dev', 'builder', 'creator', 'ninja', 'guru', 'hacker', 'wizard', 'expert', 'geek'];
     
+    // 50% chance to use a word-based username, 50% chance to use a number-based one
     if (Math.random() > 0.5) {
       const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
       const noun = nouns[Math.floor(Math.random() * nouns.length)];
       const num = Math.floor(Math.random() * 1000);
       return `blue${adj}${noun}${num}`;
     } else {
+      // Generate a random 3-5 digit number
       const randomNum = Math.floor(1000 + Math.random() * 90000).toString();
       return `blue${randomNum}`;
     }
   };
 
+  // Add emoji reactions to a post
   const addRandomEmojiReactions = async (postId: string) => {
     try {
       console.log('Adding random emoji reactions to post:', postId);
       
+      // Common emoji reactions
       const emojiOptions = ['👍', '❤️', '🔥', '👏', '😄', '🚀', '💯', '🙌', '👌', '😎'];
       
-      const numberOfReactions = Math.floor(Math.random() * 23) + 7;
+      // Generate 7-29 random emoji reactions (as requested)
+      const numberOfReactions = Math.floor(Math.random() * 23) + 7; // 7 to 29 reactions
       const selectedEmojis = [];
       
+      // Set up the fixed blue user ID for AI-generated content
       const blue5146UserId = '513259a2-555a-4c73-8ce5-db537e33b546';
       
       for (let i = 0; i < numberOfReactions; i++) {
+        // Pick a random emoji that hasn't been selected yet
         let emoji;
         do {
           emoji = emojiOptions[Math.floor(Math.random() * emojiOptions.length)];
@@ -192,6 +173,7 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
         
         selectedEmojis.push(emoji);
         
+        // Generate 1-3 reactions for each emoji
         const reactionCount = Math.floor(Math.random() * 3) + 1;
         
         for (let j = 0; j < reactionCount; j++) {
@@ -209,6 +191,7 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
             console.log(`Added emoji reaction ${emoji} to post ${postId}`);
           }
           
+          // Add a small delay between reactions
           await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
@@ -220,21 +203,25 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
     }
   };
 
+  // Add AI comments to the generated post
   const addAIComments = async (postId: string, postContent: string, blueUserId: string) => {
     try {
       console.log('Generating AI comments for post:', postId);
       
-      const commentsToGenerate = Math.floor(Math.random() * 26) + 15;
+      // Generate between 15 to 40 comments (increased minimum from 10)
+      const commentsToGenerate = Math.floor(Math.random() * 26) + 15; // 15 to 40 comments
       
+      // Call our edge function to generate AI comments
       const { data, error } = await supabase.functions.invoke('generate-ai-comment', {
         body: { 
           postContent,
-          commentsCount: commentsToGenerate
+          commentsCount: commentsToGenerate  // Pass the desired comment count
         }
       });
       
       if (error) {
         console.error('Error generating AI comments:', error);
+        // Fallback to local comment generation if edge function fails
         await addFallbackComments(postId, postContent, blueUserId, commentsToGenerate);
         return;
       }
@@ -247,14 +234,16 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       
       console.log(`Generated ${data.comments.length} AI comments`);
       
+      // Add each comment with a random AI username and its reactions
       for (const commentData of data.comments) {
+        // Add a small delay between comments to make them appear more natural
         await new Promise(resolve => setTimeout(resolve, Math.random() * 500));
         
         const { data: commentData_, error: commentError } = await supabase
           .from('comments')
           .insert({
             content: commentData.content,
-            user_id: blueUserId,
+            user_id: blueUserId,  // Use the same blue user ID for consistency
             shoutout_id: postId,
             metadata: {
               display_username: commentData.displayUsername,
@@ -272,8 +261,10 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
         
         console.log(`Added AI comment from ${commentData.displayUsername}:`, commentData_);
         
+        // Add a slight delay before adding reactions to this comment
         await new Promise(resolve => setTimeout(resolve, 200));
         
+        // Add reactions to this comment
         await addCommentReactions(commentData_.id, blueUserId, commentData.reactions);
       }
       
@@ -281,13 +272,16 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       
     } catch (err) {
       console.error('Error adding AI comments:', err);
+      // Try fallback if main method fails
       await addFallbackComments(postId, postContent, blueUserId, Math.floor(Math.random() * 26) + 15);
     }
   };
 
+  // Add emoji reactions to a comment
   const addCommentReactions = async (commentId: string, userId: string, emojis: string[]) => {
     try {
       for (const emoji of emojis) {
+        // Add 1-3 reactions for each emoji
         const reactionCount = Math.floor(Math.random() * 3) + 1;
         
         for (let i = 0; i < reactionCount; i++) {
@@ -305,6 +299,7 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
             console.log(`Added ${emoji} reaction to comment ${commentId}`);
           }
           
+          // Add a small delay between reactions
           await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
@@ -313,8 +308,10 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
     }
   };
 
+  // Fallback comment generation if the edge function fails
   const addFallbackComments = async (postId: string, postContent: string, blueUserId: string, commentCount = 24) => {
     try {
+      // Simple hardcoded fallback comments
       const fallbackComments = [
         "Have you tried clearing your cache?",
         "I ran into this same issue last week. Try checking your console for errors.",
@@ -339,10 +336,12 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
         "I'd start by adding console logs to track the flow."
       ];
       
+      // Pick random comments from the pool to reach the desired count
       const numberOfComments = Math.min(commentCount, fallbackComments.length);
       const selectedComments = [];
       
       for (let i = 0; i < numberOfComments; i++) {
+        // Pick a random comment that hasn't been selected yet
         let comment;
         do {
           comment = fallbackComments[Math.floor(Math.random() * fallbackComments.length)];
@@ -352,8 +351,10 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
         
         const displayUsername = generateRandomBlueUsername();
         
+        // Generate random emoji reactions for this comment
         const randomEmojis = ['👍', '❤️', '🔥', '🚀', '🙌'].sort(() => Math.random() - 0.5).slice(0, Math.floor(Math.random() * 3) + 1);
         
+        // Add a small delay between comments
         await new Promise(resolve => setTimeout(resolve, Math.random() * 300));
         
         const { data: commentData, error: commentError } = await supabase
@@ -378,8 +379,10 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
         
         console.log(`Added fallback comment from ${displayUsername}:`, commentData);
         
+        // Add a slight delay before adding reactions to this comment
         await new Promise(resolve => setTimeout(resolve, 200));
         
+        // Add reactions to this comment
         await addCommentReactions(commentData.id, blueUserId, randomEmojis);
       }
       
@@ -391,18 +394,20 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
   };
 
   const generatePost = async () => {
-    if (isGenerating) return;
+    if (isGenerating) return; // Prevent multiple simultaneous generations
     
     setIsGenerating(true);
     toast.info('Looking for real developer questions...');
     
     try {
+      // Get current user to check authentication
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
         throw new Error("You need to be logged in to generate AI posts");
       }
       
+      // Try up to 3 times to get a unique post
       let attempts = 0;
       let content = null;
       let isDuplicate = false;
@@ -412,15 +417,17 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
         attempts++;
         
         try {
+          // Call our edge function to generate a post with real content from the web
           const { data, error } = await supabase.functions.invoke('generate-coding-post');
           
           if (error) {
             errorMessage = error.message;
             console.error('Error from edge function:', error);
-            continue;
+            continue; // Try again on error
           }
           
           if (data?.content) {
+            // Check if this content is a duplicate
             isDuplicate = await checkForDuplicateContent(data.content);
             
             if (!isDuplicate) {
@@ -446,19 +453,22 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
         }
       }
       
+      // Set the fixed user ID for blue5146 - make sure all AI posts belong to this specific user
       const blue5146UserId = '513259a2-555a-4c73-8ce5-db537e33b546';
       
+      // Generate a unique username that starts with "blue"
       const displayUsername = generateRandomBlueUsername();
       
       console.log(`Generated random username: ${displayUsername}`);
       
+      // Insert the post directly into the database to ensure persistence
       const { data: insertedPost, error: insertError } = await supabase
         .from('shoutouts')
         .insert({
           content: content,
-          user_id: blue5146UserId,
+          user_id: blue5146UserId, // Always use the fixed user ID for blue5146
           metadata: {
-            display_username: displayUsername,
+            display_username: displayUsername, // Random "blue" username for each post
             is_ai_generated: true
           }
         })
@@ -472,13 +482,23 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       
       console.log('Successfully inserted AI post:', insertedPost);
       
-      lastPostTimeRef.current = new Date();
+      // Schedule next post in 5-8 minutes
+      const newInterval = getRandomInterval();
+      const next = new Date(Date.now() + newInterval);
+      setNextPostTime(next);
+      setLastPostedTime(new Date());
+      console.log(`Next automatic post scheduled for ${next.toLocaleTimeString()}`);
       
+      // Generate and add AI comments to the post
       if (insertedPost?.id) {
+        // First add comments 
         await addAIComments(insertedPost.id, content, blue5146UserId);
+        
+        // Then add emoji reactions
         await addRandomEmojiReactions(insertedPost.id);
       }
       
+      // For frontend optimistic update - pass the generated content to parent
       onPostGenerated(content);
       
       toast.success('Found a developer question and posted it!');
