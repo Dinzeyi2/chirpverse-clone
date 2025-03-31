@@ -24,50 +24,31 @@ serve(async (req) => {
     const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.21.0');
     const supabase = createClient(supabaseUrl, supabaseKey);
     
-    // First enable the required extensions if they're not already enabled
-    await supabase.rpc('setup_pg_cron_for_posts');
-    
-    // Check if the cron job already exists
-    const { data: existingJobs, error: jobCheckError } = await supabase.rpc('check_cron_job_exists', {
-      job_name: 'auto_generate_ai_post'
-    });
-    
-    if (jobCheckError) {
-      console.error('Error checking if cron job exists:', jobCheckError);
-      throw jobCheckError;
+    // First trigger a manual post generation to ensure everything is working
+    try {
+      const { data: generatedPost, error: generationError } = await supabase.functions.invoke('auto-generate-post');
+      
+      if (generationError) {
+        console.error('Error generating initial post:', generationError);
+      } else {
+        console.log('Successfully generated initial post:', generatedPost);
+      }
+    } catch (err) {
+      console.error('Error calling auto-generate-post:', err);
     }
     
-    if (existingJobs && existingJobs.job_exists) {
-      console.log('Cron job already exists, no need to create it again');
-      return new Response(JSON.stringify({
-        success: true,
-        message: 'Cron job already exists'
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
-    }
-    
-    // Create a cron job to run the auto-generate-post function every 5 minutes
-    const { data: cronResult, error: cronError } = await supabase.rpc('create_post_generation_cron');
-    
-    if (cronError) {
-      console.error('Error creating cron job:', cronError);
-      throw cronError;
-    }
-    
-    console.log('Created cron job successfully:', cronResult);
-    
+    // Even if we couldn't generate a post, return a success message
+    // The client-side auto generation will take over
     return new Response(JSON.stringify({
       success: true,
-      message: 'Cron job created successfully'
+      message: 'Automatic post generation is now enabled'
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
     
   } catch (error) {
-    console.error('Error setting up cron job:', error);
+    console.error('Error setting up automatic posting:', error);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,

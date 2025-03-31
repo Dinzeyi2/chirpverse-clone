@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -352,16 +351,8 @@ serve(async (req) => {
     const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.21.0');
     const supabase = createClient(supabaseUrl, supabaseKey);
     
-    // Check if enough time has passed since the last post
-    const shouldGenerate = await shouldGenerateNewPost(supabase);
-    
-    if (!shouldGenerate) {
-      return new Response(JSON.stringify({ message: "Not time to generate a new post yet" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
-    }
-    
+    // Always generate a new post when this function is called regardless of timing
+    // This makes it work reliably for both scheduled and manual triggering
     console.log("Generating new AI post");
     
     // Try up to 3 times to get a unique post

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Brain, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -11,6 +11,12 @@ interface GenerateAIPostProps {
 
 const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [lastGenerated, setLastGenerated] = useState<Date | null>(null);
+
+  // Function to generate a random interval between 5-8 minutes in milliseconds
+  const getRandomInterval = (): number => {
+    return (Math.floor(Math.random() * (8 - 5 + 1)) + 5) * 60 * 1000;
+  };
 
   const generatePost = async () => {
     if (isGenerating) return; // Prevent multiple simultaneous generations
@@ -19,13 +25,6 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
     toast.info('Looking for real developer questions...');
     
     try {
-      // Get current user to check authentication
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error("You need to be logged in to generate AI posts");
-      }
-      
       // Call our edge function directly
       const { data, error } = await supabase.functions.invoke('auto-generate-post');
       
@@ -53,6 +52,7 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
         }
         
         toast.success('Found a developer question and posted it!');
+        setLastGenerated(new Date());
       } else {
         toast.info('No new post was generated. Please try again later.');
       }
@@ -63,6 +63,32 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       setIsGenerating(false);
     }
   };
+
+  // Set up automatic generation based on an interval
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    const scheduleNextGeneration = () => {
+      const interval = getRandomInterval();
+      console.log(`Scheduling next post generation in ${interval / 60000} minutes`);
+      
+      timeoutId = setTimeout(() => {
+        generatePost().then(() => {
+          scheduleNextGeneration();
+        });
+      }, interval);
+    };
+
+    // Start the cycle
+    scheduleNextGeneration();
+
+    // Cleanup function
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, []);
 
   return (
     <Button
