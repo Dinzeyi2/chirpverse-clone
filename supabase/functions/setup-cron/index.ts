@@ -24,8 +24,28 @@ serve(async (req) => {
     const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.21.0');
     const supabase = createClient(supabaseUrl, supabaseKey);
     
-    // First trigger a manual post generation to ensure everything is working
+    // Set up a scheduled cron job to run every 5-8 minutes
     try {
+      // Setup cron job to call auto-generate-post function periodically
+      // This uses Supabase's pg_cron to create a server-side scheduled job
+      const { data: cronData, error: cronError } = await supabase.rpc('setup_pg_cron_for_posts');
+      
+      if (cronError) {
+        console.error('Error setting up cron job:', cronError);
+      } else {
+        console.log('Cron job setup response:', cronData);
+      }
+      
+      // Create schedule for post generation
+      const { data: scheduleData, error: scheduleError } = await supabase.rpc('create_post_generation_cron');
+      
+      if (scheduleError) {
+        console.error('Error creating scheduled job:', scheduleError);
+      } else {
+        console.log('Schedule created successfully:', scheduleData);
+      }
+      
+      // Also trigger a manual post generation to ensure everything is working
       const { data: generatedPost, error: generationError } = await supabase.functions.invoke('auto-generate-post');
       
       if (generationError) {
@@ -34,14 +54,12 @@ serve(async (req) => {
         console.log('Successfully generated initial post:', generatedPost);
       }
     } catch (err) {
-      console.error('Error calling auto-generate-post:', err);
+      console.error('Error setting up cron:', err);
     }
     
-    // Even if we couldn't generate a post, return a success message
-    // The client-side auto generation will take over
     return new Response(JSON.stringify({
       success: true,
-      message: 'Automatic post generation is now enabled'
+      message: 'Automatic post generation is now enabled on the server side'
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

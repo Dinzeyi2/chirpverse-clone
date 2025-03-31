@@ -12,6 +12,7 @@ interface GenerateAIPostProps {
 const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [lastGenerated, setLastGenerated] = useState<Date | null>(null);
+  const [isAutomationEnabled, setIsAutomationEnabled] = useState(false);
 
   // Function to generate a random interval between 5-8 minutes in milliseconds
   const getRandomInterval = (): number => {
@@ -60,6 +61,30 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       supabase.removeChannel(channel);
     };
   }, [onPostGenerated]);
+
+  // Check if server-side automation is enabled
+  useEffect(() => {
+    const checkAutomationStatus = async () => {
+      try {
+        // Call setup-cron function to ensure server-side automation is running
+        const { data, error } = await supabase.functions.invoke('setup-cron');
+        
+        if (error) {
+          console.error('Error checking automation status:', error);
+        } else {
+          console.log('Automation status:', data);
+          if (data?.success) {
+            setIsAutomationEnabled(true);
+            toast.success('Automatic post generation is active on the server! Posts will continue to be generated even when you are offline.');
+          }
+        }
+      } catch (err) {
+        console.error('Error checking automation status:', err);
+      }
+    };
+    
+    checkAutomationStatus();
+  }, []);
 
   const generatePost = async () => {
     if (isGenerating) return; // Prevent multiple simultaneous generations
@@ -140,6 +165,7 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       variant="outline"
       size="sm"
       className="flex items-center gap-2"
+      title={isAutomationEnabled ? "Posts are also automatically generated every 5-8 minutes even when you're offline" : "Generate AI questions"}
     >
       {isGenerating ? (
         <Loader2 className="h-4 w-4 animate-spin" />
