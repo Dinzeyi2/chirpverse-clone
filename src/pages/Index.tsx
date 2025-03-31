@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, Suspense, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
@@ -14,6 +15,7 @@ import { Progress } from '@/components/ui/progress';
 import CreatePost from '@/components/feed/CreatePost';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import GenerateAIPost from '@/components/feed/GenerateAIPost';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
   const [feedView, setFeedView] = useState<'swipeable' | 'list'>('swipeable');
@@ -32,6 +34,20 @@ const Index = () => {
     userLanguages,
     engagementData
   } = usePosts();
+  
+  useEffect(() => {
+    // Set up the cron job for automatic post generation when the app loads
+    const setupAutomatedPosting = async () => {
+      try {
+        await supabase.functions.invoke('setup-cron');
+        console.log("Automated post generation has been set up");
+      } catch (error) {
+        console.error("Error setting up automated posting:", error);
+      }
+    };
+    
+    setupAutomatedPosting();
+  }, []);
   
   const handlePostCreated = (content: string, media?: {type: string, url: string}[]) => {
     if (!user) return;
