@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Image, X, Video, Code } from 'lucide-react';
+import { Image, X, Video, Code, Smile } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { toast } from 'sonner';
 import { DialogClose } from '@/components/ui/dialog';
@@ -9,6 +9,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import CodeEditorDialog from '@/components/code/CodeEditorDialog';
 import CodeBlock from '@/components/code/CodeBlock';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 
 interface CreatePostProps {
   onPostCreated?: (content: string, media?: {type: string, url: string}[]) => void;
@@ -22,6 +24,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const [mediaFiles, setMediaFiles] = useState<{type: string, file: File, preview: string}[]>([]);
   const [codeDialogOpen, setCodeDialogOpen] = useState(false);
   const [codeBlocks, setCodeBlocks] = useState<{code: string, language: string}[]>([]);
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -174,6 +177,11 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   
   const handleCodeInsert = (code: string, language: string) => {
     setCodeBlocks(prev => [...prev, { code, language }]);
+  };
+  
+  const handleEmojiClick = (emojiData: EmojiClickData) => {
+    setPostContent(prev => prev + emojiData.emoji);
+    setEmojiPickerOpen(false);
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -370,6 +378,20 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                 >
                   <Video size={20} />
                 </button>
+                <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <button 
+                      type="button"
+                      className="p-2 text-xBlue rounded-full hover:bg-xBlue/10 transition-colors"
+                      disabled={isLoading}
+                    >
+                      <Smile size={20} />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0 border-none">
+                    <EmojiPicker onEmojiClick={handleEmojiClick} width={300} height={400} />
+                  </PopoverContent>
+                </Popover>
                 <button 
                   type="button"
                   className="p-2 text-xBlue rounded-full hover:bg-xBlue/10 transition-colors"
