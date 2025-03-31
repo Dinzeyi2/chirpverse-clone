@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Brain, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -12,6 +12,45 @@ interface GenerateAIPostProps {
 
 const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [autoPostEnabled, setAutoPostEnabled] = useState(true);
+  const [nextPostTime, setNextPostTime] = useState<Date | null>(null);
+
+  // Auto-generate posts every 5-8 minutes
+  useEffect(() => {
+    if (!autoPostEnabled) return;
+    
+    // Function to get a random interval between 5-8 minutes in milliseconds
+    const getRandomInterval = () => {
+      // Between 5-8 minutes (300000-480000 ms)
+      return Math.floor(Math.random() * (480000 - 300000 + 1)) + 300000;
+    };
+    
+    // Set the next post time initially
+    if (!nextPostTime) {
+      const interval = getRandomInterval();
+      const next = new Date(Date.now() + interval);
+      setNextPostTime(next);
+      console.log(`Next automatic post scheduled for ${next.toLocaleTimeString()}`);
+    }
+    
+    // Setup interval to check if it's time to generate a post
+    const checkInterval = setInterval(() => {
+      if (nextPostTime && new Date() >= nextPostTime) {
+        console.log("Auto-generating post now");
+        generatePost();
+        
+        // Schedule the next post
+        const newInterval = getRandomInterval();
+        const next = new Date(Date.now() + newInterval);
+        setNextPostTime(next);
+        console.log(`Next automatic post scheduled for ${next.toLocaleTimeString()}`);
+      }
+    }, 10000); // Check every 10 seconds
+    
+    return () => {
+      clearInterval(checkInterval);
+    };
+  }, [autoPostEnabled, nextPostTime]);
 
   const checkForDuplicateContent = async (content: string): Promise<boolean> => {
     try {
@@ -301,6 +340,8 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
   };
 
   const generatePost = async () => {
+    if (isGenerating) return; // Prevent multiple simultaneous generations
+    
     setIsGenerating(true);
     toast.info('Looking for real developer questions...');
     
