@@ -18,6 +18,49 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
     return (Math.floor(Math.random() * (8 - 5 + 1)) + 5) * 60 * 1000;
   };
 
+  // Subscribe to real-time updates for the shoutouts table
+  useEffect(() => {
+    const channel = supabase
+      .channel('shoutouts-changes')
+      .on('postgres_changes', 
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'shoutouts',
+          filter: 'metadata->is_ai_generated=eq.true'
+        }, 
+        (payload) => {
+          console.log('New AI-generated post detected:', payload);
+          
+          if (payload.new && payload.new.content) {
+            // Fetch the complete post data
+            supabase
+              .from('shoutouts')
+              .select('content, media, metadata')
+              .eq('id', payload.new.id)
+              .single()
+              .then(({ data, error }) => {
+                if (error) {
+                  console.error('Error fetching new post details:', error);
+                  return;
+                }
+                
+                if (data) {
+                  // Pass the generated content to parent component for immediate display
+                  onPostGenerated(data.content);
+                  toast.success('New AI post detected and added to your feed!');
+                }
+              });
+          }
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [onPostGenerated]);
+
   const generatePost = async () => {
     if (isGenerating) return; // Prevent multiple simultaneous generations
     
