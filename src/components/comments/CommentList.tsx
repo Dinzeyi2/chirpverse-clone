@@ -21,11 +21,8 @@ const CommentList: React.FC<CommentListProps> = ({
   // Group comments by parent-child relationships
   const commentThreads = useMemo(() => {
     if (!comments || !Array.isArray(comments)) {
-      console.log('No valid comments array provided:', comments);
       return { topLevel: [], repliesByParentId: new Map() };
     }
-    
-    console.log('Processing comments array length:', comments.length);
     
     // First deduplicate comments
     const uniqueMap = new Map<string, CommentType>();
@@ -44,7 +41,6 @@ const CommentList: React.FC<CommentListProps> = ({
     });
     
     const uniqueComments = Array.from(uniqueMap.values());
-    console.log('Unique comments after deduplication:', uniqueComments.length);
     
     // Now organize into threads
     const topLevelComments: CommentType[] = [];
@@ -68,9 +64,6 @@ const CommentList: React.FC<CommentListProps> = ({
         topLevelComments.push(comment);
       }
     });
-    
-    console.log('Top level comments:', topLevelComments.length);
-    console.log('Reply threads:', repliesByParentId.size);
     
     // Sort replies by date (newest replies first)
     repliesByParentId.forEach((replies, parentId) => {
@@ -101,7 +94,6 @@ const CommentList: React.FC<CommentListProps> = ({
   }
 
   if (!commentThreads.topLevel || commentThreads.topLevel.length === 0) {
-    console.log('No comments to display');
     return (
       <div className="py-6 text-center">
         <p className="text-xGray font-medium">No comments yet</p>
@@ -140,9 +132,7 @@ const CommentList: React.FC<CommentListProps> = ({
         username: comment.user?.username || 'user',
         avatar: comment.user?.avatar || '',
         full_name: comment.user?.name || 'User',
-        verified: comment.user?.verified || false,
-        followers: 0,
-        following: 0
+        verified: comment.user?.verified || false
       },
       media: formattedMedia,
       likes: comment.likes || 0,
@@ -151,18 +141,6 @@ const CommentList: React.FC<CommentListProps> = ({
     };
   };
 
-  // Prepare the formattedCurrentUser with all required properties
-  const formattedCurrentUser = currentUser ? {
-    ...currentUser,
-    // Ensure all required User properties are present
-    followers: currentUser.followers || 0,
-    following: currentUser.following || 0,
-    name: currentUser.name || currentUser.username || 'User',
-    full_name: currentUser.full_name || currentUser.name || 'User'
-  } : null;
-
-  console.log('Rendering comments list with top level comments:', commentThreads.topLevel.length);
-  
   return (
     <div className="divide-y divide-xExtraLightGray">
       {commentThreads.topLevel.map(comment => {
@@ -176,7 +154,7 @@ const CommentList: React.FC<CommentListProps> = ({
             comment={formattedComment}
             onReplyClick={onReplyClick}
             postId={postId}
-            currentUser={formattedCurrentUser}
+            currentUser={currentUser}
             replies={formattedReplies}
           />
         );

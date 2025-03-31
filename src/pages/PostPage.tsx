@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, LogIn } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import CommentList from '@/components/comments/CommentList';
 import CommentForm from '@/components/comments/CommentForm';
@@ -8,8 +9,6 @@ import PostCard from '@/components/feed/PostCard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
 
 interface SupabaseComment {
   id: string;
@@ -132,8 +131,6 @@ const PostPage: React.FC = () => {
             content: postData.content,
             createdAt: postData.created_at,
             likes: 0,
-            comments: 0,
-            saves: 0,
             reposts: 0,
             replies: 0,
             views: 0,
@@ -198,7 +195,6 @@ const PostPage: React.FC = () => {
               );
               
               setComments(sortedComments);
-              console.log('Formatted and set comments:', sortedComments.length);
             } else {
               console.log('No comments found for this post');
               setComments([]);
@@ -285,12 +281,6 @@ const PostPage: React.FC = () => {
   };
 
   const handleReplyToComment = (commentId: string, username: string) => {
-    if (!user) {
-      // If user is not logged in, redirect to auth page
-      toast.error('Please sign in to reply to comments');
-      return;
-    }
-    
     setReplyingTo({ commentId, username });
     // Scroll to comment form
     const commentFormElement = document.querySelector('.comment-form');
@@ -332,6 +322,7 @@ const PostPage: React.FC = () => {
     });
   };
   
+  // Prepare the currentUser object for comments
   const currentUserForComments = user ? {
     id: user.id,
     name: user.user_metadata?.full_name || 'User',
@@ -341,7 +332,7 @@ const PostPage: React.FC = () => {
     following: 0,
     verified: false,
   } : null;
-
+  
   if (loading) {
     return (
       <AppLayout>
@@ -421,19 +412,7 @@ const PostPage: React.FC = () => {
       </div>
       
       <div className="comment-container">
-        {!user ? (
-          <div className="p-4 flex flex-col items-center justify-center border-b border-xExtraLightGray space-y-3">
-            <p className="text-center text-gray-600 dark:text-gray-400">
-              Sign in to join the conversation and post comments
-            </p>
-            <Link to="/auth">
-              <Button className="flex items-center gap-2">
-                <LogIn size={16} />
-                Sign in to comment
-              </Button>
-            </Link>
-          </div>
-        ) : (
+        {user && (
           <div className="comment-form">
             {replyingTo && (
               <div className="flex items-center justify-between px-4 py-2 bg-gray-100/10 dark:bg-gray-800/20 border-b border-xExtraLightGray">
@@ -451,7 +430,7 @@ const PostPage: React.FC = () => {
             )}
             <CommentForm 
               currentUser={currentUserForComments}
-              postAuthorId={post?.id || ''}
+              postAuthorId={post.id}
               onCommentAdded={handleCommentAdded}
               replyToMetadata={replyingTo ? {
                 reply_to: {
@@ -468,7 +447,7 @@ const PostPage: React.FC = () => {
           comments={comments} 
           isLoading={loading} 
           onReplyClick={handleReplyToComment}
-          postId={post?.id || ''}
+          postId={post.id}
           currentUser={currentUserForComments}
         />
       </div>

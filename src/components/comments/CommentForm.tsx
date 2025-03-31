@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -21,7 +20,7 @@ interface User {
 }
 
 interface CommentFormProps {
-  currentUser: User | null;
+  currentUser: User;
   postAuthorId: string;
   onCommentAdded: (content: string, media?: {type: string, url: string}[]) => void;
   replyToMetadata?: {
@@ -45,11 +44,6 @@ const CommentForm: React.FC<CommentFormProps> = ({
   parentId,
   isReply = false
 }) => {
-  // If there's no current user, don't render the comment form
-  if (!currentUser) {
-    return null;
-  }
-
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [media, setMedia] = useState<{type: string, url: string}[]>([]);
