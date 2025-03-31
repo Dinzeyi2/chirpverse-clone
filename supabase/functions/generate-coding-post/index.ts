@@ -1,5 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,6 +19,16 @@ serve(async (req) => {
       throw new Error('PERPLEXITY_API_KEY is not set in Supabase secrets');
     }
 
+    // Create a Supabase client with service role key to bypass RLS policies
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Supabase credentials not available in environment');
+    }
+    
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    
     console.log("Fetching real coding problems from Perplexity API");
     
     // Create a unique query with more randomization factors
@@ -88,6 +99,53 @@ serve(async (req) => {
     }
     
     console.log("Generated content from real issues:", generatedContent);
+    
+    // Generate random username for the blue user
+    const generateRandomUsername = () => {
+      const adjectives = ['cool', 'super', 'awesome', 'coding', 'dev', 'tech', 'data', 'web', 'pro', 'smart'];
+      const nouns = ['coder', 'dev', 'builder', 'creator', 'ninja', 'guru', 'hacker', 'wizard', 'expert', 'geek'];
+      
+      if (Math.random() > 0.5) {
+        const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+        const noun = nouns[Math.floor(Math.random() * nouns.length)];
+        const num = Math.floor(Math.random() * 1000);
+        return `blue${adj}${noun}${num}`;
+      } else {
+        const randomNum = Math.floor(1000 + Math.random() * 90000).toString();
+        return `blue${randomNum}`;
+      }
+    };
+    
+    // Insert the new post with service role client to bypass RLS
+    try {
+      const blueUserId = "513259a2-555a-4c73-8ce5-db537e33b546";
+      const displayUsername = generateRandomUsername();
+      
+      console.log(`Inserting new post with user_id: ${blueUserId} and display username: ${displayUsername}`);
+      
+      const { data: insertedPost, error: insertError } = await supabaseAdmin
+        .from('shoutouts')
+        .insert({
+          content: generatedContent,
+          user_id: blueUserId,
+          metadata: {
+            display_username: displayUsername,
+            is_ai_generated: true
+          }
+        })
+        .select('id')
+        .single();
+        
+      if (insertError) {
+        console.error('Error inserting AI post:', insertError);
+        throw new Error(`Failed to save post to database: ${insertError.message}`);
+      }
+      
+      console.log('Successfully inserted AI post with ID:', insertedPost?.id);
+    } catch (dbError) {
+      console.error('Database operation error:', dbError);
+      throw dbError;
+    }
     
     return new Response(JSON.stringify({ content: generatedContent }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
