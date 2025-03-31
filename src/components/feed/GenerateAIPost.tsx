@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Brain, Loader2 } from 'lucide-react';
@@ -13,79 +14,24 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [autoPostEnabled, setAutoPostEnabled] = useState(true);
   const [nextPostTime, setNextPostTime] = useState<Date | null>(null);
-  const [lastPostedTime, setLastPostedTime] = useState<Date | null>(null);
-
-  // Function to get a random interval between 5-8 minutes in milliseconds
-  const getRandomInterval = () => {
-    // Between 5-8 minutes (300000-480000 ms)
-    return Math.floor(Math.random() * (480000 - 300000 + 1)) + 300000;
-  };
-
-  // Check if the auto-posting feature is working properly
-  useEffect(() => {
-    const checkLastPost = async () => {
-      try {
-        // Check when was the last AI post created
-        const { data: lastPosts, error } = await supabase
-          .from('shoutouts')
-          .select('created_at, metadata')
-          .eq('user_id', '513259a2-555a-4c73-8ce5-db537e33b546') // The fixed blue5146 user ID
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        if (error) throw error;
-
-        if (lastPosts && lastPosts.length > 0) {
-          const lastPost = lastPosts[0];
-          const lastPostDate = new Date(lastPost.created_at);
-          setLastPostedTime(lastPostDate);
-          
-          console.log(`Last AI post was at ${lastPostDate.toLocaleTimeString()}`);
-          
-          // If it's been more than 10 minutes since the last post, force a new post
-          const currentTime = new Date();
-          const timeSinceLastPost = currentTime.getTime() - lastPostDate.getTime();
-          
-          if (timeSinceLastPost > 600000) { // 10 minutes
-            console.log("It's been more than 10 minutes since the last post, generating a new one now");
-            generatePost();
-          } else {
-            // Schedule next post based on last post time
-            const nextTime = new Date(lastPostDate.getTime() + getRandomInterval());
-            if (!nextPostTime || nextTime < nextPostTime) {
-              setNextPostTime(nextTime);
-              console.log(`Next post scheduled for ${nextTime.toLocaleTimeString()}`);
-            }
-          }
-        } else {
-          // If no posts found, generate one now
-          console.log("No previous AI posts found, generating one now");
-          generatePost();
-        }
-      } catch (error) {
-        console.error("Error checking last post:", error);
-      }
-    };
-
-    // Run this check when component mounts
-    checkLastPost();
-    
-    // Set up recurring check every minute
-    const recurringCheck = setInterval(() => {
-      if (autoPostEnabled && nextPostTime && new Date() >= nextPostTime) {
-        console.log("Auto-generating post now");
-        generatePost();
-      }
-    }, 60000); // Check every minute
-    
-    return () => {
-      clearInterval(recurringCheck);
-    };
-  }, [autoPostEnabled, nextPostTime]);
 
   // Auto-generate posts every 5-8 minutes
   useEffect(() => {
     if (!autoPostEnabled) return;
+    
+    // Function to get a random interval between 5-8 minutes in milliseconds
+    const getRandomInterval = () => {
+      // Between 5-8 minutes (300000-480000 ms)
+      return Math.floor(Math.random() * (480000 - 300000 + 1)) + 300000;
+    };
+    
+    // Set the next post time initially
+    if (!nextPostTime) {
+      const interval = getRandomInterval();
+      const next = new Date(Date.now() + interval);
+      setNextPostTime(next);
+      console.log(`Next automatic post scheduled for ${next.toLocaleTimeString()}`);
+    }
     
     // Setup interval to check if it's time to generate a post
     const checkInterval = setInterval(() => {
@@ -481,13 +427,6 @@ const GenerateAIPost: React.FC<GenerateAIPostProps> = ({ onPostGenerated }) => {
       }
       
       console.log('Successfully inserted AI post:', insertedPost);
-      
-      // Schedule next post in 5-8 minutes
-      const newInterval = getRandomInterval();
-      const next = new Date(Date.now() + newInterval);
-      setNextPostTime(next);
-      setLastPostedTime(new Date());
-      console.log(`Next automatic post scheduled for ${next.toLocaleTimeString()}`);
       
       // Generate and add AI comments to the post
       if (insertedPost?.id) {
