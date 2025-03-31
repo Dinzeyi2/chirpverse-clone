@@ -371,7 +371,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                 </button>
                 <button 
                   type="button"
-                  className="p-2 text-xBlue rounded-full hover:bg-xBlue/10 transition-colors"
+                  className="p-2 text-green-500 rounded-full hover:bg-green-500/10 transition-colors"
                   onClick={() => setCodeDialogOpen(true)}
                   disabled={isLoading}
                 >
