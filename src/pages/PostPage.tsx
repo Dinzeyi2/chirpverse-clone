@@ -132,6 +132,8 @@ const PostPage: React.FC = () => {
             content: postData.content,
             createdAt: postData.created_at,
             likes: 0,
+            comments: 0,
+            saves: 0,
             reposts: 0,
             replies: 0,
             views: 0,
@@ -419,6 +421,7 @@ const PostPage: React.FC = () => {
       </div>
       
       <div className="comment-container">
+        {/* Comment form for logged in users */}
         {!user ? (
           <div className="p-4 flex flex-col items-center justify-center border-b border-xExtraLightGray space-y-3">
             <p className="text-center text-gray-600 dark:text-gray-400">
@@ -462,6 +465,7 @@ const PostPage: React.FC = () => {
           </div>
         )}
         
+        {/* Display comments for everyone, regardless of login status */}
         <CommentList 
           comments={comments} 
           isLoading={loading} 
