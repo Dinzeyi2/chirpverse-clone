@@ -26,7 +26,8 @@ serve(async (req) => {
     const languages = ["JavaScript", "Python", "React", "TypeScript", "CSS", "HTML", "Node.js", "Vue", "Angular", "Java", "C#", "PHP"];
     const randomLanguage = languages[Math.floor(Math.random() * languages.length)];
     
-    const uniqueQuery = `Find a real coding problem that a developer has posted online about ${randomLanguage}. Current time: ${timestamp}, Random seed: ${randomSeed}. Rewrite it as a casual question like someone would post on Reddit or Stack Overflow - use natural language, informal tone, and maybe a typo. Make it sound like a real human wrote it in a hurry. Include the programming language as a tag at the end (e.g., @${randomLanguage}). Keep it under 280 characters.`;
+    // Make query more focused on real developer questions with code issues
+    const uniqueQuery = `Find a real coding problem that a developer has posted online about ${randomLanguage}. Current time: ${timestamp}, Random seed: ${randomSeed}. Format it as a casual question like someone would post on Stack Overflow or Reddit - use natural language, informal tone, and include code snippets when relevant. Make it sound like a real human wrote it with a specific coding issue they're trying to solve. Include the programming language as a tag at the end (e.g., @${randomLanguage}). Keep it under 280 characters total.`;
     
     // Use Perplexity API to search for real coding issues on the web
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
@@ -40,17 +41,17 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a web crawler that finds real coding questions posted by developers online. When you find a question, rewrite it to sound casual and authentic - like someone quickly typing a forum post. Remove any markdown formatting. Make it sound natural and conversational, with some casual words. Always include a language tag like @JavaScript or @Python at the end of the question, not at the beginning. IMPORTANT: Each response must be unique and different from previous ones. Never generate the same content twice. IMPORTANT: Do not include code blocks with import statements that repeat multiple times. Limit any code snippets to 5-10 lines maximum and make them relevant.'
+            content: 'You are a web crawler that finds real coding questions posted by developers online. When you find a question, rewrite it to sound casual and authentic - like someone quickly typing a forum post. Include some code snippets when appropriate. Make it sound natural and conversational, with some casual words and maybe a few typos. Format the question with ** at the beginning like **HTML issue** or **React problem** to categorize it. Always include a language tag like @JavaScript or @Python at the end of the question. IMPORTANT: Each response must be unique and different from previous ones. Never generate the same content twice. IMPORTANT: If you include code snippets, keep them short (5-10 lines max) and make sure they demonstrate a specific problem the user is having.'
           },
           {
             role: 'user',
             content: uniqueQuery
           }
         ],
-        temperature: 0.9,
+        temperature: 1.0,
         max_tokens: 280,
         top_p: 0.95,
-        frequency_penalty: 0.7
+        frequency_penalty: 0.9
       }),
     });
 
@@ -84,6 +85,28 @@ serve(async (req) => {
       if (repetitionStartIndex > 0) {
         generatedContent = lines.slice(0, repetitionStartIndex + 1).join('\n') + 
                           '\n// ... additional imports truncated for brevity';
+      }
+    }
+    
+    // Ensure the post has code formatting
+    if (!generatedContent.includes('```') && Math.random() > 0.5) {
+      // Add code block if missing
+      const codeSnippets = {
+        "JavaScript": 'document.getElementById("myElement").addEventListener("click", () => {\n  console.log("Why isn\'t this working?");\n});',
+        "Python": 'def process_data(items):\n  return [x for x in items if x > 0]\n\nresult = process_data([1, -2, 3])\nprint(result)',
+        "HTML": '<div class="container">\n  <button id="btn">Click me</button>\n</div>',
+        "CSS": '.my-class {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n}',
+        "React": 'const [items, setItems] = useState([]);\nuseEffect(() => {\n  fetchData().then(data => setItems(data));\n}, []);',
+        "TypeScript": 'interface User {\n  name: string;\n  age: number;\n}\n\nfunction greet(user: User) {\n  return `Hello ${user.name}`;\n}',
+      };
+      
+      if (randomLanguage in codeSnippets) {
+        if (generatedContent.includes("?")) {
+          const questionParts = generatedContent.split("?");
+          generatedContent = questionParts[0] + "? Here's my code:\n```\n" + codeSnippets[randomLanguage] + "\n```\n" + questionParts.slice(1).join("?");
+        } else {
+          generatedContent = generatedContent + "\n\n```\n" + codeSnippets[randomLanguage] + "\n```";
+        }
       }
     }
     
