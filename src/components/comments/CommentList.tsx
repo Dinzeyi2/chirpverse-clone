@@ -132,7 +132,9 @@ const CommentList: React.FC<CommentListProps> = ({
         username: comment.user?.username || 'user',
         avatar: comment.user?.avatar || '',
         full_name: comment.user?.name || 'User',
-        verified: comment.user?.verified || false
+        verified: comment.user?.verified || false,
+        followers: 0,
+        following: 0
       },
       media: formattedMedia,
       likes: comment.likes || 0,
@@ -140,6 +142,16 @@ const CommentList: React.FC<CommentListProps> = ({
       metadata: metadata
     };
   };
+
+  // Prepare the formattedCurrentUser with all required properties
+  const formattedCurrentUser = currentUser ? {
+    ...currentUser,
+    // Ensure all required User properties are present
+    followers: currentUser.followers || 0,
+    following: currentUser.following || 0,
+    name: currentUser.name || currentUser.username || 'User',
+    full_name: currentUser.full_name || currentUser.name || 'User'
+  } : null;
 
   return (
     <div className="divide-y divide-xExtraLightGray">
@@ -154,7 +166,7 @@ const CommentList: React.FC<CommentListProps> = ({
             comment={formattedComment}
             onReplyClick={onReplyClick}
             postId={postId}
-            currentUser={currentUser}
+            currentUser={formattedCurrentUser}
             replies={formattedReplies}
           />
         );
