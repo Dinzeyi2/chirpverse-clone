@@ -37,7 +37,6 @@ interface CommentProps {
   postId?: string;
   currentUser?: any;
   replies?: any[]; // Preloaded replies
-  canReply?: boolean; // Added this prop to fix the type error
 }
 
 interface CommentReaction {
@@ -936,4 +935,115 @@ const Comment: React.FC<CommentProps> = ({
         return;
       }
       
-      const currentReactions = replyReactions[
+      const currentReactions = replyReactions[replyId] || [];
+      const existingReaction = currentReactions.find(r => r.emoji === emoji && r.reacted);
+      
+      if (existingReaction) {
+        supabase
+          .from('comment_reactions')
+          .delete()
+          .eq('comment_id', replyId)
+          .eq('user_id', user.id)
+          .eq('emoji', emoji)
+          .then(({ error: deleteError }) => {
+            if (deleteError) throw deleteError;
+            
+            toast({
+              title: "Reaction removed",
+              description: `Removed ${emoji} reaction`,
+            });
+          });
+      } else {
+        supabase
+          .from('comment_reactions')
+          .insert({
+            comment_id: replyId,
+            user_id: user.id,
+            emoji: emoji
+          })
+          .then(({ error: insertError }) => {
+            if (insertError) throw insertError;
+            
+            toast({
+              title: "Reaction added",
+              description: `You reacted with ${emoji}`,
+            });
+          });
+      }
+    } catch (error) {
+      console.error('Error handling reply reaction:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update reaction",
+        variant: "destructive",
+      });
+    }
+  }
+  
+  function handleReplySave(replyId: string) {
+    try {
+      if (!user) {
+        toast({
+          title: "Sign in required",
+          description: "Please sign in to save comments",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      supabase
+        .from('saved_comments')
+        .select('*')
+        .eq('comment_id', replyId)
+        .eq('user_id', user.id)
+        .single()
+        .then(({ data, error }) => {
+          if (error && error.code !== 'PGRST116') {
+            throw error;
+          }
+          
+          const isSaved = !!data;
+          
+          if (isSaved) {
+            supabase
+              .from('saved_comments')
+              .delete()
+              .eq('comment_id', replyId)
+              .eq('user_id', user.id)
+              .then(({ error: deleteError }) => {
+                if (deleteError) throw deleteError;
+                
+                toast({
+                  title: "Removed from saved",
+                  description: "Reply removed from your saved items",
+                });
+              });
+          } else {
+            supabase
+              .from('saved_comments')
+              .insert({
+                comment_id: replyId,
+                user_id: user.id
+              })
+              .then(({ error: insertError }) => {
+                if (insertError) throw insertError;
+                
+                toast({
+                  title: "Saved to collection",
+                  description: "Reply added to your saved items",
+                });
+              });
+          }
+        });
+    } catch (error) {
+      console.error('Error handling reply save:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update save status",
+        variant: "destructive",
+      });
+    }
+  }
+};
+
+export default Comment;
