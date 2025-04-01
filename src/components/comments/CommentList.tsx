@@ -1,58 +1,164 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
+import { Comment as CommentType } from '@/lib/data';
 import Comment from './Comment';
-import CommentForm from './CommentForm';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface CommentListProps {
-  comments: any[];
-  isLoading: boolean;
+  comments: CommentType[];
+  isLoading?: boolean;
   onReplyClick?: (commentId: string, username: string) => void;
-  postId: string;
-  currentUser: any;
+  postId?: string;
+  currentUser?: any;
 }
 
-const CommentList = ({ comments, isLoading, onReplyClick, postId, currentUser }: CommentListProps) => {
-  const { user } = useAuth();
-  
+const CommentList: React.FC<CommentListProps> = ({ 
+  comments, 
+  isLoading = false, 
+  onReplyClick,
+  postId,
+  currentUser
+}) => {
+  // Group comments by parent-child relationships
+  const commentThreads = useMemo(() => {
+    if (!comments || !Array.isArray(comments)) {
+      return { topLevel: [], repliesByParentId: new Map() };
+    }
+    
+    // First deduplicate comments
+    const uniqueMap = new Map<string, CommentType>();
+    
+    // Sort by creation date (newest first) before deduplication
+    const sortedComments = [...comments].sort((a, b) => 
+      new Date(b.createdAt || b.created_at || '').getTime() - 
+      new Date(a.createdAt || a.created_at || '').getTime()
+    );
+    
+    // Add to map (which automatically handles deduplication by ID)
+    sortedComments.forEach(comment => {
+      if (!uniqueMap.has(comment.id)) {
+        uniqueMap.set(comment.id, comment);
+      }
+    });
+    
+    const uniqueComments = Array.from(uniqueMap.values());
+    
+    // Now organize into threads
+    const topLevelComments: CommentType[] = [];
+    const repliesByParentId = new Map<string, CommentType[]>();
+    
+    uniqueComments.forEach(comment => {
+      // Check if this is a reply
+      const metadata = comment.metadata && typeof comment.metadata === 'object' ? comment.metadata : {};
+      const parentId = metadata.parent_id || 
+                      (metadata.reply_to && metadata.reply_to.comment_id) || 
+                      null;
+      
+      if (parentId) {
+        // This is a reply
+        if (!repliesByParentId.has(parentId)) {
+          repliesByParentId.set(parentId, []);
+        }
+        repliesByParentId.get(parentId)!.push(comment);
+      } else {
+        // This is a top-level comment
+        topLevelComments.push(comment);
+      }
+    });
+    
+    // Sort replies by date (newest replies first)
+    repliesByParentId.forEach((replies, parentId) => {
+      repliesByParentId.set(
+        parentId,
+        replies.sort((a, b) => 
+          new Date(b.createdAt || b.created_at || '').getTime() - 
+          new Date(a.createdAt || a.created_at || '').getTime()
+        )
+      );
+    });
+    
+    return {
+      topLevel: topLevelComments.sort((a, b) => 
+        new Date(b.createdAt || b.created_at || '').getTime() - 
+        new Date(a.createdAt || a.created_at || '').getTime()
+      ),
+      repliesByParentId
+    };
+  }, [comments]);
+
   if (isLoading) {
     return (
-      <div className="p-4 space-y-4">
-        {Array(3).fill(null).map((_, i) => (
-          <div key={i} className="flex gap-3">
-            <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse"></div>
-            <div className="flex-1 space-y-2">
-              <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
-              <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
-              <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
-            </div>
-          </div>
-        ))}
+      <div className="py-6 text-center">
+        <p className="text-xGray font-medium">Loading comments...</p>
       </div>
     );
   }
-  
-  if (!comments || comments.length === 0) {
+
+  if (!commentThreads.topLevel || commentThreads.topLevel.length === 0) {
     return (
-      <div className="p-4 text-center py-8">
-        <p className="text-gray-500 dark:text-gray-400">No comments yet. Be the first to comment!</p>
+      <div className="py-6 text-center">
+        <p className="text-xGray font-medium">No comments yet</p>
+        <p className="text-xGray text-sm mt-1">Be the first to comment on this post!</p>
       </div>
     );
   }
-  
-  const renderComment = (comment: any) => (
-    <Comment
-      key={comment.id}
-      comment={comment}
-      onReplyClick={user ? onReplyClick : undefined}
-      postId={postId}
-      currentUser={currentUser}
-    />
-  );
-  
+
+  // Format comments to match what the Comment component expects
+  const formatComment = (comment: CommentType) => {
+    // Safely handle media
+    let formattedMedia = [];
+    if (comment.media && Array.isArray(comment.media)) {
+      formattedMedia = comment.media.map(media => {
+        if (typeof media === 'string') {
+          return { type: 'image', url: media };
+        } else if (media && typeof media === 'object') {
+          return {
+            type: media.type || 'unknown',
+            url: media.url || ''
+          };
+        }
+        return { type: 'unknown', url: '' };
+      });
+    }
+    
+    // Ensure metadata is an object
+    const metadata = typeof comment.metadata === 'object' ? comment.metadata : {};
+    
+    return {
+      id: comment.id,
+      content: comment.content,
+      created_at: comment.createdAt || comment.created_at || new Date().toISOString(),
+      user: {
+        id: comment.userId || comment.user_id || '',
+        username: comment.user?.username || 'user',
+        avatar: comment.user?.avatar || '',
+        full_name: comment.user?.name || 'User',
+        verified: comment.user?.verified || false
+      },
+      media: formattedMedia,
+      likes: comment.likes || 0,
+      liked_by_user: comment.liked_by_user || false,
+      metadata: metadata
+    };
+  };
+
   return (
-    <div className="comments-list">
-      {comments.map(renderComment)}
+    <div className="divide-y divide-xExtraLightGray">
+      {commentThreads.topLevel.map(comment => {
+        const formattedComment = formatComment(comment);
+        const replies = commentThreads.repliesByParentId.get(comment.id) || [];
+        const formattedReplies = replies.map(reply => formatComment(reply));
+        
+        return (
+          <Comment 
+            key={comment.id} 
+            comment={formattedComment}
+            onReplyClick={onReplyClick}
+            postId={postId}
+            currentUser={currentUser}
+            replies={formattedReplies}
+          />
+        );
+      })}
     </div>
   );
 };
