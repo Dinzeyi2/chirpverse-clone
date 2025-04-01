@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -281,6 +280,11 @@ const PostPage: React.FC = () => {
   };
 
   const handleReplyToComment = (commentId: string, username: string) => {
+    if (!user) {
+      toast.error('You need to sign in to reply to comments');
+      return;
+    }
+    
     setReplyingTo({ commentId, username });
     // Scroll to comment form
     const commentFormElement = document.querySelector('.comment-form');
@@ -322,7 +326,6 @@ const PostPage: React.FC = () => {
     });
   };
   
-  // Prepare the currentUser object for comments
   const currentUserForComments = user ? {
     id: user.id,
     name: user.user_metadata?.full_name || 'User',
@@ -440,6 +443,14 @@ const PostPage: React.FC = () => {
               } : undefined}
               placeholderText={replyingTo ? `Reply to @${replyingTo.username}...` : undefined}
             />
+          </div>
+        )}
+        
+        {!user && (
+          <div className="px-4 py-3 bg-gray-100/50 dark:bg-gray-800/20 text-center border-b border-xExtraLightGray">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Sign in to join the conversation
+            </p>
           </div>
         )}
         
