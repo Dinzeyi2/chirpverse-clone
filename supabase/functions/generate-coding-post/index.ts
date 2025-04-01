@@ -26,7 +26,8 @@ serve(async (req) => {
     const languages = ["JavaScript", "Python", "React", "TypeScript", "CSS", "HTML", "Node.js", "Vue", "Angular", "Java", "C#", "PHP"];
     const randomLanguage = languages[Math.floor(Math.random() * languages.length)];
     
-    const uniqueQuery = `Find a real coding problem that a developer has posted online about ${randomLanguage}. Current time: ${timestamp}, Random seed: ${randomSeed}. Rewrite it as a casual question like someone would post on Reddit or Stack Overflow - use natural language, informal tone, and maybe a typo. Make it sound like a real human wrote it in a hurry. Include the programming language as a tag at the end (e.g., @${randomLanguage}). Keep it under 280 characters.`;
+    // Improved prompt that avoids repetitive patterns and ensures more natural, varied questions
+    const uniqueQuery = `Find a real, interesting coding problem that a developer might face when working with ${randomLanguage}. Current time: ${timestamp}, Random seed: ${randomSeed}. Write it as a casual question like someone would post on Reddit or Stack Overflow - use natural language, conversational tone, and keep it authentic. Make it sound like a real human wrote it. Include specific details about the error or challenge they're facing. Do NOT include repetitive patterns of keywords, error messages, or text that repeats "data_column" multiple times. Keep the entire post under 280 characters. Include the programming language as a tag at the end (e.g., @${randomLanguage}).`;
     
     // Use Perplexity API to search for real coding issues on the web
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
@@ -40,7 +41,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a web crawler that finds real coding questions posted by developers online. When you find a question, rewrite it to sound casual and authentic - like someone quickly typing a forum post. Remove any markdown formatting. Make it sound natural and conversational, with some casual words. Always include a language tag like @JavaScript or @Python at the end of the question, not at the beginning. IMPORTANT: Each response must be unique and different from previous ones. Never generate the same content twice. IMPORTANT: Do not include code blocks with import statements that repeat multiple times. Limit any code snippets to 5-10 lines maximum and make them relevant.'
+            content: 'You are a web crawler that finds real coding questions posted by developers online. When you find a question, rewrite it to sound casual and authentic. Follow these STRICT rules: 1) NEVER repeat patterns like "data_column" multiple times, 2) NEVER include overly long error messages, 3) Keep content diverse and interesting, 4) Make questions focused on a specific problem a developer might face, 5) Include the language tag at the end, 6) Keep content under 280 characters. If you see repetitive text patterns forming, STOP and rewrite completely.'
           },
           {
             role: 'user',
@@ -50,7 +51,7 @@ serve(async (req) => {
         temperature: 0.9,
         max_tokens: 280,
         top_p: 0.95,
-        frequency_penalty: 0.7
+        frequency_penalty: 0.9
       }),
     });
 
@@ -61,33 +62,27 @@ serve(async (req) => {
       throw new Error(`Perplexity API returned ${response.status}: ${JSON.stringify(data)}`);
     }
     
-    // Verify the content doesn't have repetitive import statements
     let generatedContent = data.choices[0].message.content.trim();
     
-    // Check for repetitive import patterns and truncate if necessary
-    if (generatedContent.includes('using System.Collections') || 
-        generatedContent.includes('import ') || 
-        generatedContent.includes('#include')) {
+    // Verify content quality and prevent repetitive patterns
+    if (generatedContent.includes('data_column') || 
+        (generatedContent.match(/\*\*/g) || []).length > 4 || 
+        generatedContent.includes('error:') && generatedContent.length > 150) {
       
-      const lines = generatedContent.split('\n');
-      let repetitionStartIndex = -1;
+      // If we detect problematic patterns, generate a fallback question
+      const fallbackQuestions = [
+        `Anyone know why my ${randomLanguage} app crashes whenever I try to load images from an API? Been stuck on this for hours! @${randomLanguage}`,
+        `How do I optimize this ${randomLanguage} function that's taking forever to run? I think I messed up the algorithm somewhere. @${randomLanguage}`,
+        `Need help with ${randomLanguage} routing - my pages load but all the styles disappear when I navigate between them. Any ideas? @${randomLanguage}`,
+        `Just spent 3 hours debugging my ${randomLanguage} code only to find I misspelled a variable name. What's your worst coding facepalm moment? @${randomLanguage}`,
+        `Working on a ${randomLanguage} project and can't figure out why my tests are failing in CI but pass locally. Environment issue maybe? @${randomLanguage}`
+      ];
       
-      // Find where repetition might start
-      for (let i = 0; i < lines.length - 1; i++) {
-        if (lines[i].trim() === lines[i+1].trim() && lines[i].trim().length > 0) {
-          repetitionStartIndex = i;
-          break;
-        }
-      }
-      
-      // Truncate if repetition found
-      if (repetitionStartIndex > 0) {
-        generatedContent = lines.slice(0, repetitionStartIndex + 1).join('\n') + 
-                          '\n// ... additional imports truncated for brevity';
-      }
+      generatedContent = fallbackQuestions[Math.floor(Math.random() * fallbackQuestions.length)];
+      console.log("Used fallback question due to poor quality generated content");
     }
     
-    console.log("Generated content from real issues:", generatedContent);
+    console.log("Generated content:", generatedContent);
     
     return new Response(JSON.stringify({ content: generatedContent }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
