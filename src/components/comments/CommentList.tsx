@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { Comment as CommentType } from '@/lib/data';
 import Comment from './Comment';
@@ -140,9 +141,6 @@ const CommentList: React.FC<CommentListProps> = ({
     };
   };
 
-  // Determine if user can reply based on auth status
-  const canReply = !!currentUser;
-
   return (
     <div className="divide-y divide-xExtraLightGray">
       {commentThreads.topLevel.map(comment => {
@@ -154,7 +152,7 @@ const CommentList: React.FC<CommentListProps> = ({
           <Comment 
             key={comment.id} 
             comment={formattedComment}
-            onReplyClick={canReply ? onReplyClick : undefined}
+            onReplyClick={onReplyClick}
             postId={postId}
             currentUser={currentUser}
             replies={formattedReplies}

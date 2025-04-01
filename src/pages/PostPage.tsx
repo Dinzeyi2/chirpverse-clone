@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -451,6 +452,12 @@ const PostPage: React.FC = () => {
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Sign in to join the conversation
             </p>
+            <button 
+              onClick={() => navigate('/auth')}
+              className="mt-2 inline-flex items-center px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 transition-colors"
+            >
+              <span className="mr-1">→</span> Sign in to comment
+            </button>
           </div>
         )}
         
@@ -458,7 +465,7 @@ const PostPage: React.FC = () => {
           comments={comments} 
           isLoading={loading} 
           onReplyClick={handleReplyToComment}
-          postId={post.id}
+          postId={post?.id}
           currentUser={currentUserForComments}
         />
       </div>
