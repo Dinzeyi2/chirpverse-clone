@@ -281,11 +281,6 @@ const PostPage: React.FC = () => {
   };
 
   const handleReplyToComment = (commentId: string, username: string) => {
-    if (!user) {
-      toast.error("You need to sign in to reply to comments");
-      return;
-    }
-    
     setReplyingTo({ commentId, username });
     // Scroll to comment form
     const commentFormElement = document.querySelector('.comment-form');
@@ -445,12 +440,6 @@ const PostPage: React.FC = () => {
               } : undefined}
               placeholderText={replyingTo ? `Reply to @${replyingTo.username}...` : undefined}
             />
-          </div>
-        )}
-        
-        {!user && (
-          <div className="p-4 bg-gray-50 dark:bg-gray-800/20 text-center border-b border-xExtraLightGray">
-            <p className="text-sm text-gray-600 dark:text-gray-400">Sign in to leave a comment</p>
           </div>
         )}
         

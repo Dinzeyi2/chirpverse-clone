@@ -152,11 +152,10 @@ const CommentList: React.FC<CommentListProps> = ({
           <Comment 
             key={comment.id} 
             comment={formattedComment}
-            onReplyClick={currentUser ? onReplyClick : undefined}
+            onReplyClick={onReplyClick}
             postId={postId}
             currentUser={currentUser}
             replies={formattedReplies}
-            canReply={!!currentUser}
           />
         );
       })}
