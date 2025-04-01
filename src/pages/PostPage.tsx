@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -412,7 +411,7 @@ const PostPage: React.FC = () => {
       </div>
       
       <div className="comment-container">
-        {user && (
+        {user ? (
           <div className="comment-form">
             {replyingTo && (
               <div className="flex items-center justify-between px-4 py-2 bg-gray-100/10 dark:bg-gray-800/20 border-b border-xExtraLightGray">
@@ -440,6 +439,14 @@ const PostPage: React.FC = () => {
               } : undefined}
               placeholderText={replyingTo ? `Reply to @${replyingTo.username}...` : undefined}
             />
+          </div>
+        ) : (
+          <div className="p-4 border-b border-xExtraLightGray">
+            <div className="flex items-center justify-center py-3 px-4 bg-gray-50 dark:bg-gray-800/30 rounded-lg">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                <span className="font-medium">Sign in</span> to join the conversation
+              </p>
+            </div>
           </div>
         )}
         
