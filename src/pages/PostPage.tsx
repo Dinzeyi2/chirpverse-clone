@@ -137,7 +137,7 @@ const PostPage: React.FC = () => {
             images: postData.media,
             metadata: postData.metadata,
             user: {
-              id: postData.profiles.id,
+              id: postData.profiles?.id || postData.user_id,
               name: displayUsername,
               username: displayUsername,
               avatar: blueProfileImage,
@@ -225,8 +225,6 @@ const PostPage: React.FC = () => {
         table: 'comments',
         filter: `shoutout_id=eq.${postId}`
       }, async (payload) => {
-        console.log('New comment received via realtime:', payload);
-        
         if (processedCommentIdsRef.current.has(payload.new.id)) {
           console.log('Ignoring duplicate comment received via realtime:', payload.new.id);
           return;

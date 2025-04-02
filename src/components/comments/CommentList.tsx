@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { Comment as CommentType } from '@/lib/data';
 import Comment from './Comment';
@@ -92,7 +93,9 @@ const CommentList: React.FC<CommentListProps> = ({
     );
   }
 
+  // We need to make sure this check uses the right property from commentThreads
   if (!commentThreads.topLevel || commentThreads.topLevel.length === 0) {
+    console.log("No comments found to display");
     return (
       <div className="py-6 text-center">
         <p className="text-xGray font-medium">No comments yet</p>
@@ -100,6 +103,8 @@ const CommentList: React.FC<CommentListProps> = ({
       </div>
     );
   }
+  
+  console.log(`Displaying ${commentThreads.topLevel.length} comments`);
 
   // Format comments to match what the Comment component expects
   const formatComment = (comment: CommentType) => {
