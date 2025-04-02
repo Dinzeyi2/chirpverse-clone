@@ -162,6 +162,7 @@ const PostPage: React.FC = () => {
             
           if (commentsError) {
             console.error('Error fetching comments:', commentsError);
+            console.log('Authentication status:', user ? 'Logged in' : 'Not logged in');
           } else {
             console.log('Found comments:', commentsData?.length || 0);
           }
