@@ -265,7 +265,7 @@ const PostPage: React.FC = () => {
         supabase.removeChannel(commentsChannelRef.current);
       }
     };
-  }, [postId]);
+  }, [postId, user]);
   
   const handleCommentAdded = async (content: string, media?: {type: string, url: string}[]) => {
     if (!user || !postId) return;
