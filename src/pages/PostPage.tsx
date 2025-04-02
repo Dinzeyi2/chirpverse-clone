@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -184,7 +183,7 @@ const PostPage: React.FC = () => {
             
             if (commentsData && commentsData.length > 0) {
               const formattedComments = commentsData.map((comment: any) => {
-                const typedComment = comment as SupabaseComment;
+                const typedComment = comment;
                 const formattedComment = formatComment(typedComment);
                 processedCommentIdsRef.current.add(formattedComment.id);
                 return formattedComment;
@@ -425,7 +424,7 @@ const PostPage: React.FC = () => {
                   <span className="text-sm font-semibold text-xBlue">@{replyingTo.username}</span>
                 </div>
                 <button 
-                  onClick={clearReplyingTo}
+                  onClick={() => setReplyingTo(null)}
                   className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                 >
                   Cancel
@@ -434,7 +433,7 @@ const PostPage: React.FC = () => {
             )}
             <CommentForm 
               currentUser={currentUserForComments}
-              postAuthorId={post.id}
+              postAuthorId={post?.id}
               onCommentAdded={handleCommentAdded}
               replyToMetadata={replyingTo ? {
                 reply_to: {
