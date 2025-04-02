@@ -213,60 +213,58 @@ const PostPage: React.FC = () => {
     
     fetchPostAndComments();
     
-    if (user && postId) {
-      if (commentsChannelRef.current) {
-        supabase.removeChannel(commentsChannelRef.current);
-      }
-      
-      commentsChannelRef.current = supabase
-        .channel(`comments-channel-${postId}`)
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'comments',
-          filter: `shoutout_id=eq.${postId}`
-        }, async (payload) => {
-          if (processedCommentIdsRef.current.has(payload.new.id)) {
-            console.log('Ignoring duplicate comment received via realtime:', payload.new.id);
-            return;
-          }
-          
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('user_id', payload.new.user_id)
-            .single();
-          
-          const newCommentData = {
-            ...payload.new,
-            profiles: profileData || { user_id: payload.new.user_id }
-          } as SupabaseComment;
-          
-          const formattedComment = formatComment(newCommentData);
-          
-          processedCommentIdsRef.current.add(formattedComment.id);
-          
-          setComments(prevComments => {
-            if (prevComments.some(c => c.id === formattedComment.id)) {
-              return prevComments;
-            }
-            return [formattedComment, ...prevComments];
-          });
-          
-          setPost(prev => ({
-            ...prev,
-            replies: (prev?.replies || 0) + 1
-          }));
-        })
-        .subscribe();
+    if (commentsChannelRef.current) {
+      supabase.removeChannel(commentsChannelRef.current);
     }
+    
+    commentsChannelRef.current = supabase
+      .channel(`comments-channel-${postId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'comments',
+        filter: `shoutout_id=eq.${postId}`
+      }, async (payload) => {
+        if (processedCommentIdsRef.current.has(payload.new.id)) {
+          console.log('Ignoring duplicate comment received via realtime:', payload.new.id);
+          return;
+        }
+        
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', payload.new.user_id)
+          .single();
+        
+        const newCommentData = {
+          ...payload.new,
+          profiles: profileData || { user_id: payload.new.user_id }
+        } as SupabaseComment;
+        
+        const formattedComment = formatComment(newCommentData);
+        
+        processedCommentIdsRef.current.add(formattedComment.id);
+        
+        setComments(prevComments => {
+          if (prevComments.some(c => c.id === formattedComment.id)) {
+            return prevComments;
+          }
+          return [formattedComment, ...prevComments];
+        });
+        
+        setPost(prev => ({
+          ...prev,
+          replies: (prev?.replies || 0) + 1
+        }));
+      })
+      .subscribe();
       
     return () => {
       if (commentsChannelRef.current) {
         supabase.removeChannel(commentsChannelRef.current);
       }
     };
-  }, [postId, user]);
+  }, [postId]);
   
   const handleCommentAdded = async (content: string, media?: {type: string, url: string}[]) => {
     if (!user || !postId) return;
@@ -275,6 +273,7 @@ const PostPage: React.FC = () => {
     // subscription will handle it. This function is mainly for optimistic updates
     // or additional actions.
     
+    // Clear reply state after comment is added
     setReplyingTo(null);
   };
 
@@ -285,6 +284,7 @@ const PostPage: React.FC = () => {
     }
     
     setReplyingTo({ commentId, username });
+    // Scroll to comment form
     const commentFormElement = document.querySelector('.comment-form');
     if (commentFormElement) {
       commentFormElement.scrollIntoView({ behavior: 'smooth' });
