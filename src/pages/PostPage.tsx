@@ -214,58 +214,60 @@ const PostPage: React.FC = () => {
     
     fetchPostAndComments();
     
-    if (commentsChannelRef.current) {
+    if (user && commentsChannelRef.current) {
       supabase.removeChannel(commentsChannelRef.current);
     }
     
-    commentsChannelRef.current = supabase
-      .channel(`comments-channel-${postId}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'comments',
-        filter: `shoutout_id=eq.${postId}`
-      }, async (payload) => {
-        if (processedCommentIdsRef.current.has(payload.new.id)) {
-          console.log('Ignoring duplicate comment received via realtime:', payload.new.id);
-          return;
-        }
-        
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', payload.new.user_id)
-          .single();
-        
-        const newCommentData = {
-          ...payload.new,
-          profiles: profileData || { user_id: payload.new.user_id }
-        } as SupabaseComment;
-        
-        const formattedComment = formatComment(newCommentData);
-        
-        processedCommentIdsRef.current.add(formattedComment.id);
-        
-        setComments(prevComments => {
-          if (prevComments.some(c => c.id === formattedComment.id)) {
-            return prevComments;
+    if (user) {
+      commentsChannelRef.current = supabase
+        .channel(`comments-channel-${postId}`)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'comments',
+          filter: `shoutout_id=eq.${postId}`
+        }, async (payload) => {
+          if (processedCommentIdsRef.current.has(payload.new.id)) {
+            console.log('Ignoring duplicate comment received via realtime:', payload.new.id);
+            return;
           }
-          return [formattedComment, ...prevComments];
-        });
-        
-        setPost(prev => ({
-          ...prev,
-          replies: (prev?.replies || 0) + 1
-        }));
-      })
-      .subscribe();
+          
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', payload.new.user_id)
+            .single();
+          
+          const newCommentData = {
+            ...payload.new,
+            profiles: profileData || { user_id: payload.new.user_id }
+          } as SupabaseComment;
+          
+          const formattedComment = formatComment(newCommentData);
+          
+          processedCommentIdsRef.current.add(formattedComment.id);
+          
+          setComments(prevComments => {
+            if (prevComments.some(c => c.id === formattedComment.id)) {
+              return prevComments;
+            }
+            return [formattedComment, ...prevComments];
+          });
+          
+          setPost(prev => ({
+            ...prev,
+            replies: (prev?.replies || 0) + 1
+          }));
+        })
+        .subscribe();
+    }
       
     return () => {
       if (commentsChannelRef.current) {
         supabase.removeChannel(commentsChannelRef.current);
       }
     };
-  }, [postId, user]);
+  }, [postId]);
   
   const handleCommentAdded = async (content: string, media?: {type: string, url: string}[]) => {
     if (!user || !postId) return;
