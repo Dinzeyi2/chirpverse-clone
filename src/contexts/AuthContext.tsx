@@ -71,7 +71,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Store subscription in Supabase if user is authenticated
       if (user) {
         // Save the subscription to the user's profile
-        await supabase.from('user_push_subscriptions').upsert(
+        // Use a type assertion to work around the TypeScript error
+        await supabase.from('user_push_subscriptions' as any).upsert(
           {
             user_id: user.id,
             subscription: JSON.stringify(subscription),
