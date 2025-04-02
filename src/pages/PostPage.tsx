@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -214,7 +213,6 @@ const PostPage: React.FC = () => {
     
     fetchPostAndComments();
     
-    // Only setup realtime subscription if user is logged in
     if (user && postId) {
       if (commentsChannelRef.current) {
         supabase.removeChannel(commentsChannelRef.current);
@@ -277,7 +275,6 @@ const PostPage: React.FC = () => {
     // subscription will handle it. This function is mainly for optimistic updates
     // or additional actions.
     
-    // Clear reply state after comment is added
     setReplyingTo(null);
   };
 
@@ -288,7 +285,6 @@ const PostPage: React.FC = () => {
     }
     
     setReplyingTo({ commentId, username });
-    // Scroll to comment form
     const commentFormElement = document.querySelector('.comment-form');
     if (commentFormElement) {
       commentFormElement.scrollIntoView({ behavior: 'smooth' });
