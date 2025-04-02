@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
@@ -7,11 +8,12 @@ type AuthContextType = {
   session: Session | null;
   user: any | null;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, name: string, username: string, field?: string, company?: string, programmingLanguages?: string[]) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, name: string, username: string, field?: string, company?: string, programmingLanguages?: string[], notificationsConsent?: boolean) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   loading: boolean;
   username: string | null;
   displayName: string | null;
+  subscribeToNotifications: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,6 +32,77 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const last2 = userId.substring(userId.length - 2);
     
     return `blue${first2}${last2}`;
+  };
+
+  // Function to register service worker and subscribe to push notifications
+  const subscribeToNotifications = async () => {
+    try {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        console.error('Push notifications are not supported in this browser');
+        return;
+      }
+
+      // Register service worker
+      const registration = await navigator.serviceWorker.register('/service-worker.js');
+      console.log('Service Worker registered with scope:', registration.scope);
+
+      // Request notification permission
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        console.error('Notification permission denied');
+        return;
+      }
+
+      // Get push subscription
+      let subscription = await registration.pushManager.getSubscription();
+      
+      if (!subscription) {
+        // Get VAPID public key from server
+        const vapidPublicKey = 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U';
+        const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+        
+        // Create subscription
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: convertedVapidKey
+        });
+      }
+
+      // Store subscription in Supabase if user is authenticated
+      if (user) {
+        // Save the subscription to the user's profile
+        await supabase.from('user_push_subscriptions').upsert(
+          {
+            user_id: user.id,
+            subscription: JSON.stringify(subscription),
+            created_at: new Date().toISOString()
+          },
+          { onConflict: 'user_id' }
+        );
+        
+        toast.success('Successfully subscribed to notifications');
+      }
+    } catch (error) {
+      console.error('Error subscribing to push notifications:', error);
+      toast.error('Failed to subscribe to notifications');
+    }
+  };
+
+  // Helper function to convert VAPID key
+  const urlBase64ToUint8Array = (base64String: string) => {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding)
+      .replace(/-/g, '+')
+      .replace(/_/g, '/');
+      
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+      
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    
+    return outputArray;
   };
 
   useEffect(() => {
@@ -89,7 +162,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (email: string, password: string, name: string, username: string, field?: string, company?: string, programmingLanguages?: string[]) => {
+  const signUp = async (email: string, password: string, name: string, username: string, field?: string, company?: string, programmingLanguages?: string[], notificationsConsent?: boolean) => {
     try {
       const { error } = await supabase.auth.signUp({
         email,
@@ -99,7 +172,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             full_name: name,
             username,
             company,
-            programming_languages: programmingLanguages ?? []
+            programming_languages: programmingLanguages ?? [],
+            notifications_consent: notificationsConsent ?? false
           }
         }
       });
@@ -107,6 +181,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         toast.error(error.message);
         return { error };
+      }
+      
+      // If user gave consent to notifications, subscribe them
+      if (notificationsConsent) {
+        setTimeout(() => {
+          subscribeToNotifications();
+        }, 1000);
       }
       
       toast.success('Signed up successfully! Check your email for verification.');
@@ -135,7 +216,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       signOut, 
       loading, 
       username,
-      displayName 
+      displayName,
+      subscribeToNotifications
     }}>
       {children}
     </AuthContext.Provider>

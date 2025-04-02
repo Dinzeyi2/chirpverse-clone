@@ -14,6 +14,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const SignUpForm = () => {
   const [name, setName] = useState('');
@@ -24,6 +25,7 @@ const SignUpForm = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(1);
+  const [notificationsConsent, setNotificationsConsent] = useState(false);
   const { signUp } = useAuth();
   const navigate = useNavigate();
   
@@ -92,7 +94,17 @@ const SignUpForm = () => {
       // Generate a random username to ensure uniqueness and security
       const randomUsername = `user${Math.random().toString(36).substring(2, 10)}`;
       
-      const { error } = await signUp(email, password, name, randomUsername, undefined, undefined, selectedLanguages);
+      const { error } = await signUp(
+        email, 
+        password, 
+        name, 
+        randomUsername, 
+        undefined, 
+        undefined, 
+        selectedLanguages, 
+        notificationsConsent
+      );
+      
       if (error) {
         setError(error.message);
       } else {
@@ -269,6 +281,19 @@ const SignUpForm = () => {
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
+            </div>
+
+            <div className="flex items-start gap-2 pt-2">
+              <Checkbox 
+                id="notifications" 
+                checked={notificationsConsent}
+                onCheckedChange={(checked) => setNotificationsConsent(checked === true)} 
+                className="mt-1 bg-black border-gray-700" 
+                required
+              />
+              <Label htmlFor="notifications" className="text-white text-sm">
+                I agree to receive push notifications from iblue. You can opt out anytime in settings. <RequiredIndicator />
+              </Label>
             </div>
 
             <div className="text-sm text-gray-400">
