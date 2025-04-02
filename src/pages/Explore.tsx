@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import SwipeablePostView from '@/components/feed/SwipeablePostView';
 import { Search, ArrowLeft, Loader2 } from 'lucide-react';
@@ -16,6 +15,56 @@ const Explore = () => {
   const [searchResults, setSearchResults] = useState<Post[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [noMoreResults, setNoMoreResults] = useState(false);
+  const observer = useRef<IntersectionObserver | null>(null);
+  const loadingRef = useRef<HTMLDivElement>(null);
+  
+  const formatPostData = (post: any): Post => {
+    const metadata = post.metadata && typeof post.metadata === 'object' ? 
+      post.metadata : {};
+    const displayUsername = typeof metadata === 'object' && 'display_username' in metadata ? 
+      String(metadata.display_username) : 
+      (post.user_id ? post.user_id.substring(0, 8) : 'user');
+    
+    let formattedMedia: Array<string | MediaItem> = [];
+    if (post.media && Array.isArray(post.media)) {
+      formattedMedia = post.media.map(item => {
+        if (typeof item === 'string') {
+          return item;
+        } else if (item && typeof item === 'object' && 'url' in item) {
+          return {
+            type: 'type' in item ? String(item.type) : 'unknown',
+            url: String(item.url) || ''
+          };
+        }
+        return '';
+      }).filter(Boolean);
+    }
+    
+    return {
+      id: post.id,
+      content: post.content,
+      createdAt: post.created_at,
+      likes: 0,
+      replies: 0,
+      reposts: 0,
+      views: 0,
+      userId: post.user_id,
+      images: formattedMedia,
+      metadata: metadata,
+      user: {
+        id: post.user_id,
+        name: displayUsername,
+        username: displayUsername,
+        avatar: "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
+        verified: false,
+        email: '',
+        followers: 0,
+        following: 0
+      }
+    };
+  };
   
   const getRelatedPosts = (topicName: string): Post[] => {
     return [
@@ -139,15 +188,86 @@ const Explore = () => {
     setSearchQuery('');
   };
 
+  const loadMoreSearchResults = useCallback(async () => {
+    if (isLoadingMore || noMoreResults || !searchQuery.trim() || !showSearchResults) return;
+    
+    setIsLoadingMore(true);
+    
+    try {
+      const lastPost = searchResults[searchResults.length - 1];
+      const lastPostDate = lastPost?.createdAt;
+      
+      const { data: postsData, error: postsError } = await supabase
+        .from('shoutouts')
+        .select('id, content, created_at, user_id, media, metadata')
+        .ilike('content', `%${searchQuery}%`)
+        .lt('created_at', lastPostDate)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      
+      if (postsError) throw postsError;
+      
+      if (postsData && postsData.length > 0) {
+        const formattedPosts = postsData.map(formatPostData);
+        
+        setSearchResults(prev => [...prev, ...formattedPosts]);
+        
+        if (postsData.length < 10) {
+          setNoMoreResults(true);
+        }
+      } else {
+        setNoMoreResults(true);
+      }
+    } catch (error) {
+      console.error('Search pagination error:', error);
+      toast.error('Failed to load more results');
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [searchQuery, searchResults, isLoadingMore, noMoreResults, showSearchResults]);
+  
+  useEffect(() => {
+    if (isLoadingMore) return;
+    
+    const options = {
+      root: null,
+      rootMargin: '0px',
+      threshold: 1.0
+    };
+    
+    observer.current = new IntersectionObserver((entries) => {
+      const [entry] = entries;
+      if (entry.isIntersecting) {
+        loadMoreSearchResults();
+      }
+    }, options);
+    
+    if (loadingRef.current && showSearchResults) {
+      observer.current.observe(loadingRef.current);
+    }
+    
+    return () => {
+      if (observer.current) {
+        observer.current.disconnect();
+      }
+    };
+  }, [loadMoreSearchResults, isLoadingMore, showSearchResults]);
+  
+  useEffect(() => {
+    if (!showSearchResults) {
+      setNoMoreResults(false);
+    }
+  }, [showSearchResults]);
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
     setIsSearching(true);
     setShowSearchResults(true);
+    setNoMoreResults(false);
     
     try {
-      // Search for posts containing the search query in their content
       const { data: postsData, error: postsError } = await supabase
         .from('shoutouts')
         .select('id, content, created_at, user_id, media, metadata')
@@ -158,57 +278,16 @@ const Explore = () => {
       if (postsError) throw postsError;
       
       if (postsData && postsData.length > 0) {
-        // Format the posts data
-        const formattedPosts: Post[] = postsData.map(post => {
-          const metadata = post.metadata && typeof post.metadata === 'object' ? 
-            post.metadata : {};
-          const displayUsername = typeof metadata === 'object' && 'display_username' in metadata ? 
-            String(metadata.display_username) : 
-            (post.user_id ? post.user_id.substring(0, 8) : 'user');
-          
-          // Safely handle media
-          let formattedMedia: Array<string | MediaItem> = [];
-          if (post.media && Array.isArray(post.media)) {
-            formattedMedia = post.media.map(item => {
-              if (typeof item === 'string') {
-                return item;
-              } else if (item && typeof item === 'object' && 'url' in item) {
-                return {
-                  type: 'type' in item ? String(item.type) : 'unknown',
-                  url: String(item.url) || ''
-                };
-              }
-              return '';
-            }).filter(Boolean);
-          }
-          
-          return {
-            id: post.id,
-            content: post.content,
-            createdAt: post.created_at,
-            likes: 0,
-            replies: 0,
-            reposts: 0,
-            views: 0,
-            userId: post.user_id,
-            images: formattedMedia,
-            metadata: metadata,
-            user: {
-              id: post.user_id,
-              name: displayUsername,
-              username: displayUsername,
-              avatar: "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
-              verified: false,
-              email: '',
-              followers: 0,
-              following: 0
-            }
-          };
-        });
+        const formattedPosts: Post[] = postsData.map(formatPostData);
         
         setSearchResults(formattedPosts);
+        
+        if (postsData.length < 10) {
+          setNoMoreResults(true);
+        } else {
+          setNoMoreResults(false);
+        }
       } else {
-        // If no exact matches, search for similar posts
         const { data: similarPostsData, error: similarPostsError } = await supabase
           .from('shoutouts')
           .select('id, content, created_at, user_id, media, metadata')
@@ -218,63 +297,25 @@ const Explore = () => {
         if (similarPostsError) throw similarPostsError;
         
         if (similarPostsData && similarPostsData.length > 0) {
-          // Format the similar posts data
-          const formattedSimilarPosts: Post[] = similarPostsData.map(post => {
-            const metadata = post.metadata && typeof post.metadata === 'object' ? 
-              post.metadata : {};
-            const displayUsername = typeof metadata === 'object' && 'display_username' in metadata ? 
-              String(metadata.display_username) : 
-              (post.user_id ? post.user_id.substring(0, 8) : 'user');
-            
-            // Safely handle media
-            let formattedMedia: Array<string | MediaItem> = [];
-            if (post.media && Array.isArray(post.media)) {
-              formattedMedia = post.media.map(item => {
-                if (typeof item === 'string') {
-                  return item;
-                } else if (item && typeof item === 'object' && 'url' in item) {
-                  return {
-                    type: 'type' in item ? String(item.type) : 'unknown',
-                    url: String(item.url) || ''
-                  };
-                }
-                return '';
-              }).filter(Boolean);
-            }
-            
-            return {
-              id: post.id,
-              content: post.content,
-              createdAt: post.created_at,
-              likes: 0,
-              replies: 0,
-              reposts: 0,
-              views: 0,
-              userId: post.user_id,
-              images: formattedMedia,
-              metadata: metadata,
-              user: {
-                id: post.user_id,
-                name: displayUsername,
-                username: displayUsername,
-                avatar: "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
-                verified: false,
-                email: '',
-                followers: 0,
-                following: 0
-              }
-            };
-          });
+          const formattedSimilarPosts: Post[] = similarPostsData.map(formatPostData);
           
           setSearchResults(formattedSimilarPosts);
+          
+          if (similarPostsData.length < 10) {
+            setNoMoreResults(true);
+          } else {
+            setNoMoreResults(false);
+          }
         } else {
           setSearchResults([]);
+          setNoMoreResults(true);
         }
       }
     } catch (error) {
       console.error('Search error:', error);
       toast.error('Failed to search. Please try again.');
       setSearchResults([]);
+      setNoMoreResults(true);
     } finally {
       setIsSearching(false);
     }
@@ -327,7 +368,20 @@ const Explore = () => {
               <Loader2 className="h-8 w-8 animate-spin text-xBlue" />
             </div>
           ) : searchResults.length > 0 ? (
-            <PostList posts={searchResults} />
+            <>
+              <PostList posts={searchResults} />
+              
+              <div 
+                ref={loadingRef} 
+                className="py-4 flex justify-center"
+              >
+                {isLoadingMore && !noMoreResults ? (
+                  <Loader2 className="h-6 w-6 animate-spin text-xBlue" />
+                ) : noMoreResults ? (
+                  <p className="text-sm text-xGray">No more results</p>
+                ) : null}
+              </div>
+            </>
           ) : (
             <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
               <h2 className="text-xl font-bold mb-2">No results found</h2>
