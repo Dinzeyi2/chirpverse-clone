@@ -7,7 +7,12 @@ import AppLayout from '@/components/layout/AppLayout';
 import { Canvas } from '@/components/palm/Canvas';
 import { supabase } from "@/integrations/supabase/client";
 import CodeBlock from '@/components/code/CodeBlock';
-import { Tooltip } from '@/components/ui/tooltip';
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger 
+} from '@/components/ui/tooltip';
 import {
   Dialog,
   DialogContent,
@@ -238,17 +243,24 @@ const Palm = () => {
         <div className="border-t border-border p-4 bg-background">
           <div className="flex items-center gap-2 max-w-4xl mx-auto w-full">
             <div className="flex items-center gap-2">
-              <Tooltip content="Open canvas">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="icon" 
-                  className="h-10 w-10 rounded-full flex-shrink-0"
-                  onClick={toggleCanvas}
-                >
-                  <Plus className="h-5 w-5" />
-                </Button>
-              </Tooltip>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="icon" 
+                      className="h-10 w-10 rounded-full flex-shrink-0"
+                      onClick={toggleCanvas}
+                    >
+                      <Plus className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Open canvas</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             
             <div className="flex items-center w-full rounded-[24px] border border-border bg-background shadow-sm">
