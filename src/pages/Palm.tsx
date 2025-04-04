@@ -1,10 +1,11 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowUp, ImageIcon, PlusCircle, RefreshCw, Plus, MoreHorizontal } from 'lucide-react';
+import { ArrowUp, ImageIcon, PlusCircle, Plus, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import AppLayout from '@/components/layout/AppLayout';
 import { Canvas } from '@/components/palm/Canvas';
+import { supabase } from "@/integrations/supabase/client";
 
 const Palm = () => {
   const [messages, setMessages] = useState<{role: 'user' | 'assistant', content: string}[]>([]);
@@ -33,24 +34,25 @@ const Palm = () => {
     setIsLoading(true);
     
     try {
-      // Simulating AI response
-      setTimeout(() => {
-        const response = `Thanks for your message: "${userMessage}". This is a simulated response. In a real implementation, this would connect to an AI service.`;
-        setMessages(prev => [...prev, { role: 'assistant', content: response }]);
-        setIsLoading(false);
-      }, 1000);
+      // Call the Gemini API via Supabase Edge Function
+      const { data, error } = await supabase.functions.invoke('gemini-chat', {
+        body: { 
+          messages: [
+            ...messages, 
+            { role: 'user', content: userMessage }
+          ] 
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
       
-      // In a real implementation, you would call your AI API here
-      // const response = await fetch('/api/palm', { 
-      //   method: 'POST', 
-      //   body: JSON.stringify({ message: userMessage }),
-      //   headers: { 'Content-Type': 'application/json' }
-      // });
-      // const data = await response.json();
-      // setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error("Failed to send message. Please try again.");
+    } finally {
       setIsLoading(false);
     }
   };
@@ -103,7 +105,7 @@ const Palm = () => {
               {isLoading && (
                 <div className="flex justify-start">
                   <div className="flex items-center space-x-2 bg-secondary text-secondary-foreground rounded-lg px-4 py-2">
-                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    <MoreHorizontal className="h-4 w-4 animate-pulse" />
                     <span>Thinking...</span>
                   </div>
                 </div>
@@ -119,7 +121,7 @@ const Palm = () => {
           </div>
         )}
 
-        {/* Input Area - Updated to match the reference image */}
+        {/* Input Area */}
         <div className="border-t border-border p-4">
           <div className="flex items-center gap-2 max-w-4xl mx-auto w-full">
             <Button 
@@ -127,22 +129,12 @@ const Palm = () => {
               variant="outline" 
               size="icon" 
               className="h-10 w-10 rounded-full flex-shrink-0"
+              onClick={toggleCanvas}
             >
               <Plus className="h-5 w-5" />
             </Button>
             
             <div className="flex items-center w-full rounded-2xl border border-border bg-background shadow-sm">
-              <Button 
-                type="button" 
-                variant="ghost" 
-                size="sm"
-                className="ml-2 px-2 rounded-full"
-                onClick={toggleCanvas}
-              >
-                <ImageIcon className="h-5 w-5" />
-                <span className="ml-1">Create image</span>
-              </Button>
-              
               <div className="flex-grow px-2">
                 <form onSubmit={handleSubmit} className="flex items-center w-full">
                   <input
