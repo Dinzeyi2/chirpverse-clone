@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Home, Search, User, Bookmark, Settings, PlusCircle, LogOut, LogIn, Menu, Palm } from 'lucide-react';
+import { Home, Search, User, Bookmark, Settings, PlusCircle, LogOut, LogIn, Menu, Palmtree } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
@@ -32,7 +33,7 @@ export const Sidebar = () => {
     { name: 'Home', icon: Home, href: '/' },
     { name: 'Explore', icon: Search, href: '/explore' },
     { name: 'Bookmarks', icon: Bookmark, href: '/bookmarks' },
-    { name: 'Palm', icon: Palm, href: '/palm' },
+    { name: 'Palm', icon: Palmtree, href: '/palm' },
     { name: 'Profile', icon: User, href: profilePath },
     { name: 'Settings', icon: Settings, href: '/settings' },
   ];
