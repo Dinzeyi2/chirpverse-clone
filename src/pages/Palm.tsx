@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowUp, ImageIcon, PlusCircle, Plus, MoreHorizontal } from 'lucide-react';
+import { ArrowUp, Plus, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import AppLayout from '@/components/layout/AppLayout';
@@ -45,7 +45,13 @@ const Palm = () => {
       });
 
       if (error) {
-        throw new Error(error.message);
+        console.error("Edge function error:", error);
+        throw new Error(`Edge function error: ${error.message}`);
+      }
+      
+      if (!data || !data.message) {
+        console.error("Invalid response format:", data);
+        throw new Error("Received invalid response format from server");
       }
       
       setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
@@ -73,7 +79,7 @@ const Palm = () => {
         <div className="flex items-center justify-between px-4 pb-4">
           <h1 className="text-2xl font-semibold">Palm</h1>
           <Button variant="outline" size="sm" onClick={handleNewChat}>
-            <PlusCircle className="h-4 w-4 mr-2" />
+            <Plus className="h-4 w-4 mr-2" />
             New Chat
           </Button>
         </div>
