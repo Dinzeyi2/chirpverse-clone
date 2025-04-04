@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowUp, ImageIcon, PlusCircle, Plus, MoreHorizontal, Code } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -37,14 +36,12 @@ const Palm = () => {
     const userMessage = input.trim();
     setInput('');
     
-    // Add user message to chat with explicit typing
     const newUserMessage: ChatMessage = { role: 'user', content: userMessage };
     const updatedMessages = [...messages, newUserMessage];
     setMessages(updatedMessages);
     setIsLoading(true);
     
     try {
-      // Call the Gemini API via Supabase Edge Function
       console.log("Calling gemini-chat with messages:", JSON.stringify(updatedMessages));
       
       const { data, error } = await supabase.functions.invoke('gemini-chat', {
@@ -62,7 +59,6 @@ const Palm = () => {
       }
       
       console.log("Received response from gemini-chat:", data);
-      // Add assistant message with explicit typing
       const assistantMessage: ChatMessage = { role: 'assistant', content: data.message };
       setMessages([...updatedMessages, assistantMessage]);
     } catch (error) {
@@ -76,14 +72,14 @@ const Palm = () => {
   const toggleCanvas = () => {
     setShowCanvas(!showCanvas);
     if (!showCanvas) {
-      setShowCode(false); // Close code panel when opening canvas
+      setShowCode(false);
     }
   };
 
   const toggleCode = () => {
     setShowCode(!showCode);
     if (!showCode) {
-      setShowCanvas(false); // Close canvas when opening code panel
+      setShowCanvas(false);
     }
   };
 
@@ -93,7 +89,6 @@ const Palm = () => {
     setShowCode(false);
   };
 
-  // Code content example (could be replaced with actual code editor or content)
   const codeContent = `
 <!DOCTYPE html>
 <html lang="en">
@@ -130,9 +125,7 @@ const Palm = () => {
   return (
     <AppLayout>
       <div className="flex h-screen max-h-[calc(100vh-64px)]">
-        {/* Chat Panel - Left side */}
         <div className={`flex flex-col ${(showCanvas || showCode) ? 'w-1/2 border-r border-border' : 'w-full'} h-full transition-all duration-300`}>
-          {/* Header */}
           <div className="flex items-center justify-between px-4 py-4 border-b border-border">
             <h1 className="text-2xl font-semibold">Palm</h1>
             <Button variant="outline" size="sm" onClick={handleNewChat}>
@@ -141,7 +134,6 @@ const Palm = () => {
             </Button>
           </div>
 
-          {/* Messages Container */}
           <div className="flex-grow overflow-y-auto px-4 pb-4 pt-4">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center">
@@ -182,25 +174,21 @@ const Palm = () => {
             )}
           </div>
 
-          {/* Input Area */}
           <div className="border-t border-border p-4">
-            <div className="flex items-center gap-2 max-w-full mx-auto w-full">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-2 max-w-full mx-auto w-full">
+              <div className="flex items-center rounded-full border border-border bg-background shadow-sm p-1">
                 <Button 
                   type="button" 
-                  variant="outline" 
+                  variant="ghost" 
                   size="icon" 
-                  className="h-10 w-10 rounded-full flex-shrink-0"
-                  onClick={() => {
-                    // Toggle menu or add more options
-                  }}
+                  className="h-9 w-9 rounded-full flex-shrink-0 mr-1"
                 >
                   <Plus className="h-5 w-5" />
                 </Button>
                 
                 <Button 
                   type="button" 
-                  variant="outline" 
+                  variant="ghost" 
                   size="sm" 
                   className={`rounded-full ${showCanvas ? 'bg-primary/10' : ''}`}
                   onClick={toggleCanvas}
@@ -211,43 +199,38 @@ const Palm = () => {
                 
                 <Button 
                   type="button" 
-                  variant="outline" 
+                  variant="ghost" 
                   size="sm" 
-                  className={`rounded-full ${showCode ? 'bg-primary/10' : ''}`}
+                  className={`rounded-full ${showCode ? 'bg-primary/10' : ''} mr-1`}
                   onClick={toggleCode}
                 >
                   <SquareCode className="h-4 w-4 mr-1" />
                   Code
                 </Button>
-              </div>
-              
-              <div className="flex items-center w-full rounded-2xl border border-border bg-background shadow-sm">
-                <div className="flex-grow px-2">
-                  <form onSubmit={handleSubmit} className="flex items-center w-full">
-                    <input
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      placeholder="Ask anything"
-                      className="w-full py-2 px-3 bg-transparent border-none focus:outline-none text-sm"
-                      disabled={isLoading}
-                    />
-                    <Button 
-                      type="submit" 
-                      size="icon"
-                      variant="ghost"
-                      className="ml-1 rounded-full h-8 w-8" 
-                      disabled={!input.trim() || isLoading}
-                    >
-                      <ArrowUp className="h-4 w-4" />
-                    </Button>
-                  </form>
-                </div>
+                
+                <form onSubmit={handleSubmit} className="flex items-center flex-grow">
+                  <input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Ask anything"
+                    className="w-full py-2 px-3 bg-transparent border-none focus:outline-none text-sm"
+                    disabled={isLoading}
+                  />
+                  <Button 
+                    type="submit" 
+                    size="icon"
+                    variant="ghost"
+                    className="ml-1 rounded-full h-8 w-8" 
+                    disabled={!input.trim() || isLoading}
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                  </Button>
+                </form>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Canvas or Code Panel - Right side */}
         {showCanvas && (
           <div className="w-1/2 h-full flex flex-col border-l border-border bg-white">
             <div className="border-b border-border py-3 px-4 flex items-center justify-between bg-gray-50">
