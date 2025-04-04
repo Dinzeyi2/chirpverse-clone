@@ -1,11 +1,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowUp, ImageIcon, PlusCircle, Plus, MoreHorizontal } from 'lucide-react';
+import { ArrowUp, ImageIcon, PlusCircle, Plus, MoreHorizontal, SquareCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import AppLayout from '@/components/layout/AppLayout';
 import { Canvas } from '@/components/palm/Canvas';
 import { supabase } from "@/integrations/supabase/client";
+import CodeEditorDialog from '@/components/code/CodeEditorDialog';
 
 // Define a proper type for chat messages
 type ChatMessage = {
@@ -18,6 +19,9 @@ const Palm = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showCanvas, setShowCanvas] = useState(false);
+  const [showCodeEditor, setShowCodeEditor] = useState(false);
+  const [codeContent, setCodeContent] = useState('');
+  const [codeLanguage, setCodeLanguage] = useState('typescript');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -73,11 +77,25 @@ const Palm = () => {
 
   const toggleCanvas = () => {
     setShowCanvas(!showCanvas);
+    if (showCodeEditor) setShowCodeEditor(false);
+  };
+
+  const toggleCodeEditor = () => {
+    setShowCodeEditor(!showCodeEditor);
+    if (showCanvas) setShowCanvas(false);
+  };
+
+  const handleCodeInsert = (code: string, language: string) => {
+    setCodeContent(code);
+    setCodeLanguage(language);
+    // We don't close the dialog here as we want it to remain open
   };
 
   const handleNewChat = () => {
     setMessages([]);
     setShowCanvas(false);
+    setShowCodeEditor(false);
+    setCodeContent('');
   };
 
   return (
@@ -139,18 +157,37 @@ const Palm = () => {
           </div>
         )}
 
+        {/* Code Editor Dialog */}
+        <CodeEditorDialog
+          open={showCodeEditor}
+          onClose={() => setShowCodeEditor(false)}
+          onSave={handleCodeInsert}
+        />
+
         {/* Input Area */}
         <div className="border-t border-border p-4">
           <div className="flex items-center gap-2 max-w-4xl mx-auto w-full">
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="icon" 
-              className="h-10 w-10 rounded-full flex-shrink-0"
-              onClick={toggleCanvas}
-            >
-              <Plus className="h-5 w-5" />
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="icon" 
+                className={`h-10 w-10 rounded-full flex-shrink-0 ${showCanvas ? 'bg-blue-100 text-blue-600' : ''}`}
+                onClick={toggleCanvas}
+              >
+                <Plus className="h-5 w-5" />
+              </Button>
+              
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="icon" 
+                className={`h-10 w-10 rounded-full flex-shrink-0 ${showCodeEditor ? 'bg-blue-100 text-blue-600' : ''}`}
+                onClick={toggleCodeEditor}
+              >
+                <SquareCode className="h-5 w-5" />
+              </Button>
+            </div>
             
             <div className="flex items-center w-full rounded-2xl border border-border bg-background shadow-sm">
               <div className="flex-grow px-2">
