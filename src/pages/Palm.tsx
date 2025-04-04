@@ -1,12 +1,30 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowUp, ImageIcon, PlusCircle, Plus, MoreHorizontal } from 'lucide-react';
+import { ArrowUp, ImageIcon, PlusCircle, Plus, MoreHorizontal, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import AppLayout from '@/components/layout/AppLayout';
 import { Canvas } from '@/components/palm/Canvas';
 import { supabase } from "@/integrations/supabase/client";
 import CodeBlock from '@/components/code/CodeBlock';
+import { Tooltip } from '@/components/ui/tooltip';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 // Define a proper type for chat messages
 type ChatMessage = {
@@ -57,6 +75,7 @@ const Palm = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showCanvas, setShowCanvas] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -112,6 +131,7 @@ const Palm = () => {
 
   const toggleCanvas = () => {
     setShowCanvas(!showCanvas);
+    setIsSheetOpen(true);
   };
 
   const handleNewChat = () => {
@@ -148,7 +168,7 @@ const Palm = () => {
 
   return (
     <AppLayout>
-      <div className="flex flex-col h-screen max-h-[calc(100vh-64px)] pt-4">
+      <div className="flex flex-col h-screen max-h-[calc(100vh-64px)] pt-4 bg-[#f9f9f9] dark:bg-[#0c0c0c]">
         {/* Header */}
         <div className="flex items-center justify-between px-4 pb-4">
           <h1 className="text-2xl font-semibold">Palm</h1>
@@ -163,10 +183,10 @@ const Palm = () => {
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <h2 className="text-3xl font-bold mb-4">What can I help with?</h2>
-              <p className="text-muted-foreground">Ask anything...</p>
+              <p className="text-muted-foreground">Ask anything, including code questions...</p>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-6 max-w-4xl mx-auto">
               {messages.map((message, index) => (
                 <div 
                   key={index} 
@@ -176,7 +196,7 @@ const Palm = () => {
                     className={`max-w-full md:max-w-[80%] rounded-lg px-4 py-3 ${
                       message.role === 'user' 
                         ? 'bg-[#2196f3] text-white rounded-2xl' 
-                        : 'bg-[#f5f5f1] text-[#1f1f1f] rounded-2xl'
+                        : 'bg-[#f5f5f1] text-[#1f1f1f] dark:bg-[#1a1a1a] dark:text-[#f1f1f1] rounded-2xl'
                     }`}
                   >
                     {renderMessageContent(message.content)}
@@ -185,7 +205,7 @@ const Palm = () => {
               ))}
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="flex items-center space-x-2 bg-[#f5f5f1] text-[#1f1f1f] rounded-2xl px-4 py-3">
+                  <div className="flex items-center space-x-2 bg-[#f5f5f1] text-[#1f1f1f] dark:bg-[#1a1a1a] dark:text-[#f1f1f1] rounded-2xl px-4 py-3">
                     <div className="flex space-x-1">
                       <span className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
                       <span className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
@@ -199,33 +219,46 @@ const Palm = () => {
           )}
         </div>
 
-        {showCanvas && (
-          <div className="p-4 border-t border-border">
-            <Canvas />
-          </div>
-        )}
+        {/* Canvas Sheet (Side Panel) */}
+        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+          <SheetContent className="w-[90%] sm:w-[600px] p-0" side="right">
+            <div className="h-full flex flex-col">
+              <div className="p-4 border-b">
+                <h2 className="text-lg font-semibold">Whiteboard</h2>
+                <p className="text-sm text-muted-foreground">Draw or diagram your ideas</p>
+              </div>
+              <div className="flex-grow overflow-auto p-4">
+                <Canvas />
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
 
         {/* Input Area */}
-        <div className="border-t border-border p-4">
+        <div className="border-t border-border p-4 bg-background">
           <div className="flex items-center gap-2 max-w-4xl mx-auto w-full">
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="icon" 
-              className="h-10 w-10 rounded-full flex-shrink-0"
-              onClick={toggleCanvas}
-            >
-              <Plus className="h-5 w-5" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Tooltip content="Open canvas">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="icon" 
+                  className="h-10 w-10 rounded-full flex-shrink-0"
+                  onClick={toggleCanvas}
+                >
+                  <Plus className="h-5 w-5" />
+                </Button>
+              </Tooltip>
+            </div>
             
-            <div className="flex items-center w-full rounded-2xl border border-border bg-background shadow-sm">
+            <div className="flex items-center w-full rounded-[24px] border border-border bg-background shadow-sm">
               <div className="flex-grow px-2">
                 <form onSubmit={handleSubmit} className="flex items-center w-full">
                   <input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="Ask anything"
-                    className="w-full py-2 px-3 bg-transparent border-none focus:outline-none text-sm"
+                    className="w-full py-3 px-3 bg-transparent border-none focus:outline-none text-sm"
                     disabled={isLoading}
                   />
                   <Button 
@@ -249,6 +282,9 @@ const Palm = () => {
                 <MoreHorizontal className="h-5 w-5" />
               </Button>
             </div>
+          </div>
+          <div className="mt-2 text-xs text-center text-muted-foreground">
+            Palm can make mistakes. Check important info.
           </div>
         </div>
       </div>
