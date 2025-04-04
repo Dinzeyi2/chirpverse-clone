@@ -48,12 +48,6 @@ serve(async (req) => {
       parts: [{ text: msg.content }]
     }));
 
-    // Add a system prompt to ensure code formatting matches ChatGPT style
-    formattedMessages.unshift({
-      role: "model",
-      parts: [{ text: "You are a helpful AI assistant. When providing code examples, format them in markdown code blocks with the language specified. For example: ```javascript\nconsole.log('Hello world');\n```. Always specify the language for proper syntax highlighting. If you're not sure of the language, use a general type like 'typescript' or 'markup'." }]
-    });
-
     console.log("Formatted messages for Gemini:", JSON.stringify(formattedMessages));
 
     // Call Gemini 1.5 Pro model
