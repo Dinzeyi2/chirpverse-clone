@@ -20,6 +20,10 @@ serve(async (req) => {
 
     console.log("Received request with messages:", JSON.stringify(messages));
 
+    if (!geminiApiKey) {
+      throw new Error('GEMINI_API_KEY environment variable is not set');
+    }
+
     // Format messages for Gemini API
     const formattedMessages = messages.map(msg => ({
       role: msg.role === "user" ? "user" : "model",
