@@ -16,15 +16,27 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    // Check if API key exists
+    if (!geminiApiKey) {
+      console.error("Missing GEMINI_API_KEY environment variable");
+      throw new Error("API key not configured");
+    }
 
+    const { messages } = await req.json();
+    
     console.log("Received request with messages:", JSON.stringify(messages));
+
+    if (!messages || !Array.isArray(messages)) {
+      throw new Error("Invalid or missing messages array");
+    }
 
     // Format messages for Gemini API
     const formattedMessages = messages.map(msg => ({
       role: msg.role === "user" ? "user" : "model",
       parts: [{ text: msg.content }]
     }));
+
+    console.log("Formatted messages for Gemini:", JSON.stringify(formattedMessages));
 
     // Call Gemini 2.5 Pro experimental model
     const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-experimental:generateContent', {
@@ -42,19 +54,29 @@ serve(async (req) => {
       }),
     });
 
+    const responseText = await response.text();
+    console.log("Raw Gemini API response:", responseText);
+
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Gemini API Error:", errorText);
-      throw new Error(`Gemini API error: ${response.status} ${errorText}`);
+      console.error("Gemini API Error:", responseText);
+      throw new Error(`Gemini API error: ${response.status} - ${responseText}`);
     }
 
-    const data = await response.json();
-    console.log("Gemini API response:", JSON.stringify(data));
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      console.error("Error parsing JSON response:", e);
+      throw new Error("Invalid JSON response from Gemini API");
+    }
+
+    console.log("Parsed Gemini API response:", JSON.stringify(data));
 
     let generatedText = "";
-    if (data.candidates && data.candidates[0]?.content?.parts) {
+    if (data.candidates && data.candidates.length > 0 && data.candidates[0]?.content?.parts) {
       generatedText = data.candidates[0].content.parts[0].text;
     } else {
+      console.error("Unexpected response format:", JSON.stringify(data));
       throw new Error("Unexpected response format from Gemini API");
     }
 
@@ -63,7 +85,7 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Error in gemini-chat function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error.message || "Unknown error occurred" }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

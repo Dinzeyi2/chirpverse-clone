@@ -26,32 +26,37 @@ const Palm = () => {
     e.preventDefault();
     if (!input.trim()) return;
     
-    const userMessage = input;
+    const userMessage = input.trim();
     setInput('');
     
     // Add user message to chat
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    const updatedMessages = [...messages, { role: 'user', content: userMessage }];
+    setMessages(updatedMessages);
     setIsLoading(true);
     
     try {
       // Call the Gemini API via Supabase Edge Function
+      console.log("Calling gemini-chat with messages:", JSON.stringify(updatedMessages));
+      
       const { data, error } = await supabase.functions.invoke('gemini-chat', {
-        body: { 
-          messages: [
-            ...messages, 
-            { role: 'user', content: userMessage }
-          ] 
-        },
+        body: { messages: updatedMessages },
       });
 
       if (error) {
-        throw new Error(error.message);
+        console.error("Supabase function error:", error);
+        throw new Error(error.message || "Failed to communicate with chat service");
       }
       
-      setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
+      if (!data || !data.message) {
+        console.error("Invalid response from gemini-chat:", data);
+        throw new Error("Invalid response from chat service");
+      }
+      
+      console.log("Received response from gemini-chat:", data);
+      setMessages([...updatedMessages, { role: 'assistant', content: data.message }]);
     } catch (error) {
       console.error("Error sending message:", error);
-      toast.error("Failed to send message. Please try again.");
+      toast.error(error instanceof Error ? error.message : "Failed to send message. Please try again.");
     } finally {
       setIsLoading(false);
     }
