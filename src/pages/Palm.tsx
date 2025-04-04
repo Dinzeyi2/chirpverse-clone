@@ -34,6 +34,9 @@ const Palm = () => {
     setIsLoading(true);
     
     try {
+      console.log("Sending message to Gemini:", userMessage);
+      console.log("Current messages:", messages);
+      
       // Call the Gemini API via Supabase Edge Function
       const { data, error } = await supabase.functions.invoke('gemini-chat', {
         body: { 
@@ -44,16 +47,29 @@ const Palm = () => {
         },
       });
 
+      console.log("Response from Edge function:", { data, error });
+
       if (error) {
         console.error("Edge function error:", error);
         throw new Error(`Edge function error: ${error.message}`);
       }
       
-      if (!data || !data.message) {
-        console.error("Invalid response format:", data);
-        throw new Error("Received invalid response format from server");
+      if (!data) {
+        console.error("No data returned from edge function");
+        throw new Error("No response data received from server");
       }
       
+      if (data.error) {
+        console.error("Error from Gemini API:", data.error);
+        throw new Error(`Gemini API error: ${data.error}`);
+      }
+      
+      if (!data.message) {
+        console.error("Invalid response format:", data);
+        throw new Error("Invalid response format from server");
+      }
+      
+      console.log("Successfully received response:", data.message);
       setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
     } catch (error) {
       console.error("Error sending message:", error);

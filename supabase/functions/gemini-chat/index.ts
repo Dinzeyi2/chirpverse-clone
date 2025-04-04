@@ -17,11 +17,17 @@ serve(async (req) => {
 
   try {
     const { messages } = await req.json();
-
+    
     console.log("Received request with messages:", JSON.stringify(messages));
 
     if (!geminiApiKey) {
+      console.error("GEMINI_API_KEY is not set in environment variables");
       throw new Error('GEMINI_API_KEY environment variable is not set');
+    }
+
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      console.error("Invalid or empty messages array received");
+      throw new Error('Invalid or empty messages array');
     }
 
     // Format messages for Gemini API
@@ -61,9 +67,12 @@ serve(async (req) => {
     if (data.candidates && data.candidates[0]?.content?.parts) {
       generatedText = data.candidates[0].content.parts[0].text;
     } else {
+      console.error("Unexpected response format:", JSON.stringify(data));
       throw new Error("Unexpected response format from Gemini API");
     }
 
+    console.log("Generated text to return:", generatedText);
+    
     return new Response(JSON.stringify({ message: generatedText }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
