@@ -1,11 +1,14 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowUp, PlusCircle, Plus, MoreHorizontal, Code } from 'lucide-react';
+import { ArrowUp, PlusCircle, Plus, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import AppLayout from '@/components/layout/AppLayout';
 import { Canvas } from '@/components/palm/Canvas';
 import { supabase } from "@/integrations/supabase/client";
 import { SquareCode } from 'lucide-react';
+import CodeDialog from '@/components/code/CodeDialog';
+import CodeEditorDialog from '@/components/code/CodeEditorDialog';
 
 // Define a proper type for chat messages
 type ChatMessage = {
@@ -17,8 +20,9 @@ const Palm = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showCanvas, setShowCanvas] = useState(false);
   const [showCode, setShowCode] = useState(false);
+  const [codeContent, setCodeContent] = useState('');
+  const [isCodeDialogOpen, setIsCodeDialogOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -69,28 +73,22 @@ const Palm = () => {
     }
   };
 
-  const toggleCanvas = () => {
-    setShowCanvas(!showCanvas);
-    if (!showCanvas) {
-      setShowCode(false);
-    }
-  };
-
   const toggleCode = () => {
-    setShowCode(!showCode);
-    if (!showCode) {
-      setShowCanvas(false);
-    }
+    setIsCodeDialogOpen(!isCodeDialogOpen);
   };
 
   const handleNewChat = () => {
     setMessages([]);
-    setShowCanvas(false);
     setShowCode(false);
+    setCodeContent('');
   };
 
-  const codeContent = `
-<!DOCTYPE html>
+  const handleSaveCode = (code: string, language: string) => {
+    setCodeContent(code);
+    // Here you could also add logic to send the code to the chat if needed
+  };
+
+  const initialCodeContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -119,13 +117,12 @@ const Palm = () => {
 <body>
   <!-- Your code here -->
 </body>
-</html>
-  `;
+</html>`;
 
   return (
     <AppLayout>
       <div className="flex h-screen max-h-[calc(100vh-64px)]">
-        <div className={`flex flex-col ${(showCanvas || showCode) ? 'w-1/2 border-r border-border' : 'w-full'} h-full transition-all duration-300`}>
+        <div className="flex flex-col w-full h-full transition-all duration-300">
           <div className="flex items-center justify-between px-4 py-4 border-b border-border">
             <h1 className="text-2xl font-semibold">Palm</h1>
             <Button variant="outline" size="sm" onClick={handleNewChat}>
@@ -190,7 +187,7 @@ const Palm = () => {
                   type="button" 
                   variant="ghost" 
                   size="sm" 
-                  className={`rounded-full ${showCode ? 'bg-primary/10' : ''} mr-1`}
+                  className={`rounded-full flex items-center ${isCodeDialogOpen ? 'bg-primary/10' : ''} mr-1`}
                   onClick={toggleCode}
                 >
                   <SquareCode className="h-4 w-4 mr-1" />
@@ -219,52 +216,14 @@ const Palm = () => {
             </div>
           </div>
         </div>
-
-        {showCanvas && (
-          <div className="w-1/2 h-full flex flex-col border-l border-border bg-white">
-            <div className="border-b border-border py-3 px-4 flex items-center justify-between bg-gray-50">
-              <h2 className="font-semibold">Canvas</h2>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={toggleCanvas}
-                className="h-8 w-8 p-0 rounded-full"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-              </Button>
-            </div>
-            <div className="flex-grow overflow-y-auto p-4">
-              <Canvas />
-            </div>
-          </div>
-        )}
-
-        {showCode && (
-          <div className="w-1/2 h-full flex flex-col border-l border-border">
-            <div className="border-b border-border py-3 px-4 flex items-center justify-between bg-gray-50">
-              <div className="flex items-center gap-2">
-                <SquareCode className="h-5 w-5" />
-                <h2 className="font-semibold">Code Editor</h2>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={toggleCode}
-                className="h-8 w-8 p-0 rounded-full"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-              </Button>
-            </div>
-            <div className="flex-grow overflow-y-auto p-0 bg-[#fafafa]">
-              <pre className="text-xs font-mono p-4 overflow-auto h-full">
-                <code className="language-html">
-                  {codeContent}
-                </code>
-              </pre>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Use the CodeEditorDialog component instead of inline code */}
+      <CodeEditorDialog
+        open={isCodeDialogOpen}
+        onClose={() => setIsCodeDialogOpen(false)}
+        onSave={handleSaveCode}
+      />
     </AppLayout>
   );
 };
