@@ -34,7 +34,7 @@ const Palm = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Function to parse code blocks from text content
+  // Function to parse code blocks from text content with improved regex
   const parseCodeBlocks = (content: string) => {
     // Regular expression to match code blocks: ```language\ncode\n```
     const codeBlockRegex = /```(\w+)?\n([\s\S]*?)\n```/g;
@@ -136,18 +136,18 @@ const Palm = () => {
 
   const renderMessageContent = (message: ChatMessage) => {
     if (!message.codeBlocks || message.codeBlocks.length === 0) {
-      return <div>{message.content}</div>;
+      return <div className="whitespace-pre-wrap">{message.content}</div>;
     }
     
     // Split the content by code block placeholders
     const parts = message.content.split(/\[CODE_BLOCK_(\d+)\]/);
     
     return (
-      <div>
+      <div className="space-y-2">
         {parts.map((part, index) => {
           // Even indices are text parts
           if (index % 2 === 0) {
-            return <div key={index}>{part}</div>;
+            return part ? <div key={index} className="whitespace-pre-wrap">{part}</div> : null;
           }
           
           // Odd indices are code block references
@@ -157,7 +157,7 @@ const Palm = () => {
           if (!codeBlock) return null;
           
           return (
-            <div key={index} className="my-4">
+            <div key={index} className="w-full">
               <CodeBlock 
                 code={codeBlock.code} 
                 language={codeBlock.language} 
