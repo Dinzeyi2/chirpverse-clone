@@ -1,17 +1,19 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowUp, ImageIcon, PlusCircle, Plus, MoreHorizontal, SquareCode } from 'lucide-react';
+import { ArrowUp, PlusCircle, Plus, MoreHorizontal, SquareCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import AppLayout from '@/components/layout/AppLayout';
 import { Canvas } from '@/components/palm/Canvas';
 import { supabase } from "@/integrations/supabase/client";
 import CodeEditorDialog from '@/components/code/CodeEditorDialog';
+import CodeBlock from '@/components/code/CodeBlock';
 
 // Define a proper type for chat messages
 type ChatMessage = {
   role: 'user' | 'assistant';
   content: string;
+  codeBlocks?: { code: string; language: string }[];
 };
 
 const Palm = () => {
@@ -30,6 +32,37 @@ const Palm = () => {
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Function to parse code blocks from text content
+  const parseCodeBlocks = (content: string) => {
+    // Regular expression to match code blocks: ```language\ncode\n```
+    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)\n```/g;
+    const codeBlocks: { code: string; language: string }[] = [];
+    
+    // Find all code blocks in the content
+    let match;
+    let lastIndex = 0;
+    let newContent = '';
+    
+    while ((match = codeBlockRegex.exec(content)) !== null) {
+      // Add text before code block
+      newContent += content.substring(lastIndex, match.index) + '[CODE_BLOCK_' + codeBlocks.length + ']';
+      
+      // Extract language and code
+      const language = match[1] || 'typescript';
+      const code = match[2];
+      
+      // Add to code blocks array
+      codeBlocks.push({ language, code });
+      
+      lastIndex = match.index + match[0].length;
+    }
+    
+    // Add remaining text after last code block
+    newContent += content.substring(lastIndex);
+    
+    return { content: newContent, codeBlocks };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -64,8 +97,17 @@ const Palm = () => {
       }
       
       console.log("Received response from gemini-chat:", data);
-      // Add assistant message with explicit typing
-      const assistantMessage: ChatMessage = { role: 'assistant', content: data.message };
+      
+      // Parse code blocks from the response
+      const { content, codeBlocks } = parseCodeBlocks(data.message);
+      
+      // Add assistant message with explicit typing and code blocks
+      const assistantMessage: ChatMessage = { 
+        role: 'assistant', 
+        content, 
+        codeBlocks 
+      };
+      
       setMessages([...updatedMessages, assistantMessage]);
     } catch (error) {
       console.error("Error sending message:", error);
@@ -86,9 +128,46 @@ const Palm = () => {
   };
 
   const handleCodeInsert = (code: string, language: string) => {
-    setCodeContent(code);
-    setCodeLanguage(language);
-    // We don't close the dialog here as we want it to remain open
+    // Add the code to the input with markdown code block syntax
+    const codeBlock = `\`\`\`${language}\n${code}\n\`\`\``;
+    setInput(prev => prev + '\n' + codeBlock);
+    setShowCodeEditor(false);
+  };
+
+  const renderMessageContent = (message: ChatMessage) => {
+    if (!message.codeBlocks || message.codeBlocks.length === 0) {
+      return <div>{message.content}</div>;
+    }
+    
+    // Split the content by code block placeholders
+    const parts = message.content.split(/\[CODE_BLOCK_(\d+)\]/);
+    
+    return (
+      <div>
+        {parts.map((part, index) => {
+          // Even indices are text parts
+          if (index % 2 === 0) {
+            return <div key={index}>{part}</div>;
+          }
+          
+          // Odd indices are code block references
+          const codeBlockIndex = parseInt(part, 10);
+          const codeBlock = message.codeBlocks[codeBlockIndex];
+          
+          if (!codeBlock) return null;
+          
+          return (
+            <div key={index} className="my-4">
+              <CodeBlock 
+                code={codeBlock.code} 
+                language={codeBlock.language} 
+                inPost={true}
+              />
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   const handleNewChat = () => {
@@ -131,7 +210,7 @@ const Palm = () => {
                         : 'bg-[#f5f5f1] text-[#1f1f1f] rounded-2xl'
                     }`}
                   >
-                    {message.content}
+                    {renderMessageContent(message)}
                   </div>
                 </div>
               ))}

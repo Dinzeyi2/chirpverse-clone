@@ -48,6 +48,12 @@ serve(async (req) => {
       parts: [{ text: msg.content }]
     }));
 
+    // Add a system prompt to encourage code with markdown formatting
+    formattedMessages.unshift({
+      role: "model",
+      parts: [{ text: "When providing code examples, please format them as markdown code blocks with the language specified. For example: ```javascript\nconsole.log('Hello world');\n```" }]
+    });
+
     console.log("Formatted messages for Gemini:", JSON.stringify(formattedMessages));
 
     // Call Gemini 1.5 Pro model
