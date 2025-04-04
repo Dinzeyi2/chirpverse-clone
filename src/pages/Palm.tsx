@@ -1,5 +1,6 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowUp, ImageIcon, PlusCircle, Plus, MoreHorizontal, Code } from 'lucide-react';
+import { ArrowUp, PlusCircle, Plus, MoreHorizontal, Code } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import AppLayout from '@/components/layout/AppLayout';
@@ -184,17 +185,6 @@ const Palm = () => {
                   className="h-9 w-9 rounded-full flex-shrink-0 mr-1"
                 >
                   <Plus className="h-5 w-5" />
-                </Button>
-                
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  size="sm" 
-                  className={`rounded-full ${showCanvas ? 'bg-primary/10' : ''}`}
-                  onClick={toggleCanvas}
-                >
-                  <ImageIcon className="h-4 w-4 mr-1" />
-                  Canvas
                 </Button>
                 
                 <Button 
