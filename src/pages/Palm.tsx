@@ -30,7 +30,8 @@ const Palm = () => {
     setInput('');
     
     // Add user message to chat
-    const updatedMessages = [...messages, { role: 'user', content: userMessage }];
+    const newUserMessage = { role: 'user' as const, content: userMessage };
+    const updatedMessages = [...messages, newUserMessage];
     setMessages(updatedMessages);
     setIsLoading(true);
     
@@ -53,7 +54,7 @@ const Palm = () => {
       }
       
       console.log("Received response from gemini-chat:", data);
-      setMessages([...updatedMessages, { role: 'assistant', content: data.message }]);
+      setMessages([...updatedMessages, { role: 'assistant' as const, content: data.message }]);
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error(error instanceof Error ? error.message : "Failed to send message. Please try again.");

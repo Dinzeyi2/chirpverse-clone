@@ -38,8 +38,8 @@ serve(async (req) => {
 
     console.log("Formatted messages for Gemini:", JSON.stringify(formattedMessages));
 
-    // Call Gemini 2.5 Pro experimental model
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-experimental:generateContent', {
+    // Call Gemini 1.5 Pro model (using a model that actually exists)
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
