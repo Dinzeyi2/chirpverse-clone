@@ -107,10 +107,11 @@ const Palm = () => {
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div 
-                    className={`max-w-[80%] rounded-lg px-4 py-2 
-                      ${message.role === 'user' 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'bg-secondary text-secondary-foreground'}`}
+                    className={`max-w-[80%] rounded-lg px-4 py-3 ${
+                      message.role === 'user' 
+                        ? 'bg-[#2196f3] text-white rounded-2xl' 
+                        : 'bg-[#f5f5f1] text-[#1f1f1f] rounded-2xl'
+                    }`}
                   >
                     {message.content}
                   </div>
@@ -118,9 +119,12 @@ const Palm = () => {
               ))}
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="flex items-center space-x-2 bg-secondary text-secondary-foreground rounded-lg px-4 py-2">
-                    <MoreHorizontal className="h-4 w-4 animate-pulse" />
-                    <span>Thinking...</span>
+                  <div className="flex items-center space-x-2 bg-[#f5f5f1] text-[#1f1f1f] rounded-2xl px-4 py-3">
+                    <div className="flex space-x-1">
+                      <span className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                      <span className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                      <span className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                    </div>
                   </div>
                 </div>
               )}
