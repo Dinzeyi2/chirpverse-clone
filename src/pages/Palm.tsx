@@ -1,6 +1,5 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowUp, ImageIcon, PlusCircle, RefreshCw, Plus, MoreHorizontal } from 'lucide-react';
+import { ArrowUp, PlusCircle, RefreshCw, Plus, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import AppLayout from '@/components/layout/AppLayout';
@@ -119,7 +118,7 @@ const Palm = () => {
           </div>
         )}
 
-        {/* Input Area - Updated to match the reference image */}
+        {/* Input Area - Removed "Create image" button */}
         <div className="border-t border-border p-4">
           <div className="flex items-center gap-2 max-w-4xl mx-auto w-full">
             <Button 
@@ -127,22 +126,12 @@ const Palm = () => {
               variant="outline" 
               size="icon" 
               className="h-10 w-10 rounded-full flex-shrink-0"
+              onClick={toggleCanvas}
             >
               <Plus className="h-5 w-5" />
             </Button>
             
             <div className="flex items-center w-full rounded-2xl border border-border bg-background shadow-sm">
-              <Button 
-                type="button" 
-                variant="ghost" 
-                size="sm"
-                className="ml-2 px-2 rounded-full"
-                onClick={toggleCanvas}
-              >
-                <ImageIcon className="h-5 w-5" />
-                <span className="ml-1">Create image</span>
-              </Button>
-              
               <div className="flex-grow px-2">
                 <form onSubmit={handleSubmit} className="flex items-center w-full">
                   <input
