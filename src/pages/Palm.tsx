@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowUp, ImageIcon, PlusCircle, RefreshCw } from 'lucide-react';
+import { ArrowUp, ImageIcon, PlusCircle, RefreshCw, Plus, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import AppLayout from '@/components/layout/AppLayout';
@@ -119,37 +119,61 @@ const Palm = () => {
           </div>
         )}
 
-        {/* Input Area */}
+        {/* Input Area - Updated to match the reference image */}
         <div className="border-t border-border p-4">
-          <form onSubmit={handleSubmit} className="flex items-end gap-2">
+          <div className="flex items-center gap-2 max-w-4xl mx-auto w-full">
             <Button 
               type="button" 
               variant="outline" 
               size="icon" 
-              className="flex-shrink-0"
-              onClick={toggleCanvas}
+              className="h-10 w-10 rounded-full flex-shrink-0"
             >
-              <ImageIcon className="h-4 w-4" />
+              <Plus className="h-5 w-5" />
             </Button>
-            <div className="flex-grow relative">
-              <textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask anything..."
-                className="w-full resize-none border rounded-lg p-3 pr-10 min-h-[3rem] max-h-[12rem] bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                rows={1}
-                disabled={isLoading}
-              />
+            
+            <div className="flex items-center w-full rounded-2xl border border-border bg-background shadow-sm">
               <Button 
-                type="submit" 
-                size="icon" 
-                className="absolute right-2 bottom-2" 
-                disabled={!input.trim() || isLoading}
+                type="button" 
+                variant="ghost" 
+                size="sm"
+                className="ml-2 px-2 rounded-full"
+                onClick={toggleCanvas}
               >
-                <ArrowUp className="h-4 w-4" />
+                <ImageIcon className="h-5 w-5" />
+                <span className="ml-1">Create image</span>
+              </Button>
+              
+              <div className="flex-grow px-2">
+                <form onSubmit={handleSubmit} className="flex items-center w-full">
+                  <input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Ask anything"
+                    className="w-full py-2 px-3 bg-transparent border-none focus:outline-none text-sm"
+                    disabled={isLoading}
+                  />
+                  <Button 
+                    type="submit" 
+                    size="icon"
+                    variant="ghost"
+                    className="ml-1 rounded-full h-8 w-8" 
+                    disabled={!input.trim() || isLoading}
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                  </Button>
+                </form>
+              </div>
+              
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="mr-2 rounded-full h-8 w-8"
+              >
+                <MoreHorizontal className="h-5 w-5" />
               </Button>
             </div>
-          </form>
+          </div>
         </div>
       </div>
     </AppLayout>
