@@ -24,7 +24,7 @@ const Palm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || isLoading) return;
     
     const userMessage = input;
     setInput('');
@@ -34,46 +34,41 @@ const Palm = () => {
     setIsLoading(true);
     
     try {
-      console.log("Sending message to Gemini:", userMessage);
-      console.log("Current messages:", messages);
+      const currentMessages = [...messages, { role: 'user', content: userMessage }];
+      console.log("Sending messages to edge function:", currentMessages);
       
       // Call the Gemini API via Supabase Edge Function
       const { data, error } = await supabase.functions.invoke('gemini-chat', {
-        body: { 
-          messages: [
-            ...messages, 
-            { role: 'user', content: userMessage }
-          ] 
-        },
+        body: { messages: currentMessages }
       });
 
-      console.log("Response from Edge function:", { data, error });
+      console.log("Response from edge function:", { data, error });
 
       if (error) {
         console.error("Edge function error:", error);
-        throw new Error(`Edge function error: ${error.message}`);
+        throw new Error(`Failed to communicate with server: ${error.message}`);
       }
       
       if (!data) {
         console.error("No data returned from edge function");
-        throw new Error("No response data received from server");
+        throw new Error("No response received from server");
       }
       
       if (data.error) {
         console.error("Error from Gemini API:", data.error);
-        throw new Error(`Gemini API error: ${data.error}`);
+        throw new Error(`AI service error: ${data.error}`);
       }
       
       if (!data.message) {
         console.error("Invalid response format:", data);
-        throw new Error("Invalid response format from server");
+        throw new Error("Received an invalid response format");
       }
       
       console.log("Successfully received response:", data.message);
       setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
     } catch (error) {
       console.error("Error sending message:", error);
-      toast.error("Failed to send message. Please try again.");
+      toast.error(error instanceof Error ? error.message : "Failed to send message. Please try again.");
     } finally {
       setIsLoading(false);
     }
