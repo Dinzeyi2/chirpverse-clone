@@ -87,8 +87,7 @@ const CodeDialog: React.FC<CodeDialogProps> = ({
             ref={editorRef}
             className="flex-1 p-2 overflow-auto text-sm text-gray-300 font-mono whitespace-pre"
             style={{ 
-              backgroundColor: '#1e1e1e', 
-              tab: 2,
+              backgroundColor: '#1e1e1e',
               WebkitFontSmoothing: 'antialiased'
             }}
           >
