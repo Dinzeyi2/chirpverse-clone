@@ -6,11 +6,50 @@ import { toast } from 'sonner';
 import AppLayout from '@/components/layout/AppLayout';
 import { Canvas } from '@/components/palm/Canvas';
 import { supabase } from "@/integrations/supabase/client";
+import CodeBlock from '@/components/code/CodeBlock';
 
 // Define a proper type for chat messages
 type ChatMessage = {
   role: 'user' | 'assistant';
   content: string;
+};
+
+// Function to parse markdown code blocks from text
+const parseCodeBlocks = (text: string) => {
+  const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+  const parts: Array<{ type: 'text' | 'code', content: string, language?: string }> = [];
+  
+  let lastIndex = 0;
+  let match;
+  
+  while ((match = codeBlockRegex.exec(text)) !== null) {
+    // Add text before the code block
+    if (match.index > lastIndex) {
+      parts.push({
+        type: 'text',
+        content: text.substring(lastIndex, match.index)
+      });
+    }
+    
+    // Add the code block
+    parts.push({
+      type: 'code',
+      content: match[2], // The code content
+      language: match[1] || 'javascript' // The language or default to javascript
+    });
+    
+    lastIndex = match.index + match[0].length;
+  }
+  
+  // Add any remaining text after the last code block
+  if (lastIndex < text.length) {
+    parts.push({
+      type: 'text',
+      content: text.substring(lastIndex)
+    });
+  }
+  
+  return parts.length > 0 ? parts : [{ type: 'text', content: text }];
 };
 
 const Palm = () => {
@@ -80,6 +119,33 @@ const Palm = () => {
     setShowCanvas(false);
   };
 
+  // Render message content with code blocks
+  const renderMessageContent = (content: string) => {
+    const parts = parseCodeBlocks(content);
+    
+    return parts.map((part, index) => {
+      if (part.type === 'code') {
+        return (
+          <div key={index} className="my-2 w-full">
+            <CodeBlock 
+              code={part.content} 
+              language={part.language || 'javascript'}
+              expanded={true}
+              inPost={true} 
+            />
+          </div>
+        );
+      } else {
+        // Use whitespace-pre-wrap to preserve whitespace in text
+        return (
+          <div key={index} className="whitespace-pre-wrap break-words">
+            {part.content}
+          </div>
+        );
+      }
+    });
+  };
+
   return (
     <AppLayout>
       <div className="flex flex-col h-screen max-h-[calc(100vh-64px)] pt-4">
@@ -107,13 +173,13 @@ const Palm = () => {
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div 
-                    className={`max-w-[80%] rounded-lg px-4 py-3 ${
+                    className={`max-w-full md:max-w-[80%] rounded-lg px-4 py-3 ${
                       message.role === 'user' 
                         ? 'bg-[#2196f3] text-white rounded-2xl' 
                         : 'bg-[#f5f5f1] text-[#1f1f1f] rounded-2xl'
                     }`}
                   >
-                    {message.content}
+                    {renderMessageContent(message.content)}
                   </div>
                 </div>
               ))}
