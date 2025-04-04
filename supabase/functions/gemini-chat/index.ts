@@ -9,6 +9,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Define types for our messages
+type ChatMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+};
+
+// Define type for Gemini API formatted messages
+type GeminiMessage = {
+  role: 'user' | 'model';
+  parts: { text: string }[];
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -30,15 +42,15 @@ serve(async (req) => {
       throw new Error("Invalid or missing messages array");
     }
 
-    // Format messages for Gemini API
-    const formattedMessages = messages.map(msg => ({
+    // Format messages for Gemini API with proper typing
+    const formattedMessages: GeminiMessage[] = messages.map((msg: ChatMessage) => ({
       role: msg.role === "user" ? "user" : "model",
       parts: [{ text: msg.content }]
     }));
 
     console.log("Formatted messages for Gemini:", JSON.stringify(formattedMessages));
 
-    // Call Gemini 1.5 Pro model (using a model that actually exists)
+    // Call Gemini 1.5 Pro model
     const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent', {
       method: 'POST',
       headers: {

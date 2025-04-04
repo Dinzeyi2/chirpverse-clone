@@ -7,8 +7,14 @@ import AppLayout from '@/components/layout/AppLayout';
 import { Canvas } from '@/components/palm/Canvas';
 import { supabase } from "@/integrations/supabase/client";
 
+// Define a proper type for chat messages
+type ChatMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+};
+
 const Palm = () => {
-  const [messages, setMessages] = useState<{role: 'user' | 'assistant', content: string}[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showCanvas, setShowCanvas] = useState(false);
@@ -29,8 +35,8 @@ const Palm = () => {
     const userMessage = input.trim();
     setInput('');
     
-    // Add user message to chat
-    const newUserMessage = { role: 'user' as const, content: userMessage };
+    // Add user message to chat with explicit typing
+    const newUserMessage: ChatMessage = { role: 'user', content: userMessage };
     const updatedMessages = [...messages, newUserMessage];
     setMessages(updatedMessages);
     setIsLoading(true);
@@ -54,7 +60,9 @@ const Palm = () => {
       }
       
       console.log("Received response from gemini-chat:", data);
-      setMessages([...updatedMessages, { role: 'assistant' as const, content: data.message }]);
+      // Add assistant message with explicit typing
+      const assistantMessage: ChatMessage = { role: 'assistant', content: data.message };
+      setMessages([...updatedMessages, assistantMessage]);
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error(error instanceof Error ? error.message : "Failed to send message. Please try again.");
