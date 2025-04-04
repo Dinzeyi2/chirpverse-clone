@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowUp, Plus, MoreHorizontal } from 'lucide-react';
+import { ArrowUp, ImageIcon, PlusCircle, Plus, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import AppLayout from '@/components/layout/AppLayout';
@@ -24,7 +24,7 @@ const Palm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim()) return;
     
     const userMessage = input;
     setInput('');
@@ -34,41 +34,24 @@ const Palm = () => {
     setIsLoading(true);
     
     try {
-      const currentMessages = [...messages, { role: 'user', content: userMessage }];
-      console.log("Sending messages to edge function:", currentMessages);
-      
       // Call the Gemini API via Supabase Edge Function
       const { data, error } = await supabase.functions.invoke('gemini-chat', {
-        body: { messages: currentMessages }
+        body: { 
+          messages: [
+            ...messages, 
+            { role: 'user', content: userMessage }
+          ] 
+        },
       });
 
-      console.log("Response from edge function:", { data, error });
-
       if (error) {
-        console.error("Edge function error:", error);
-        throw new Error(`Failed to communicate with server: ${error.message}`);
+        throw new Error(error.message);
       }
       
-      if (!data) {
-        console.error("No data returned from edge function");
-        throw new Error("No response received from server");
-      }
-      
-      if (data.error) {
-        console.error("Error from Gemini API:", data.error);
-        throw new Error(`AI service error: ${data.error}`);
-      }
-      
-      if (!data.message) {
-        console.error("Invalid response format:", data);
-        throw new Error("Received an invalid response format");
-      }
-      
-      console.log("Successfully received response:", data.message);
       setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
     } catch (error) {
       console.error("Error sending message:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to send message. Please try again.");
+      toast.error("Failed to send message. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -90,7 +73,7 @@ const Palm = () => {
         <div className="flex items-center justify-between px-4 pb-4">
           <h1 className="text-2xl font-semibold">Palm</h1>
           <Button variant="outline" size="sm" onClick={handleNewChat}>
-            <Plus className="h-4 w-4 mr-2" />
+            <PlusCircle className="h-4 w-4 mr-2" />
             New Chat
           </Button>
         </div>

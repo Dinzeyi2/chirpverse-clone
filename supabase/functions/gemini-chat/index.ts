@@ -16,26 +16,9 @@ serve(async (req) => {
   }
 
   try {
-    const requestData = await req.json();
-    const { messages } = requestData;
-    
-    console.log("Received request with data:", JSON.stringify(requestData));
-    
-    if (!geminiApiKey) {
-      console.error("GEMINI_API_KEY is not set in environment variables");
-      return new Response(
-        JSON.stringify({ error: 'API key not configured' }), 
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const { messages } = await req.json();
 
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      console.error("Invalid or empty messages array received");
-      return new Response(
-        JSON.stringify({ error: 'Invalid message format' }), 
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    console.log("Received request with messages:", JSON.stringify(messages));
 
     // Format messages for Gemini API
     const formattedMessages = messages.map(msg => ({
@@ -43,67 +26,46 @@ serve(async (req) => {
       parts: [{ text: msg.content }]
     }));
 
-    console.log("Formatted messages for Gemini:", JSON.stringify(formattedMessages));
-    
-    const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-experimental:generateContent';
-    const requestBody = {
-      contents: formattedMessages,
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 2048,
-      },
-    };
-    
-    console.log("Sending request to Gemini API:", JSON.stringify(requestBody));
-
-    // Call Gemini API
-    const response = await fetch(`${apiUrl}?key=${geminiApiKey}`, {
+    // Call Gemini 2.5 Pro experimental model
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-experimental:generateContent', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'x-goog-api-key': geminiApiKey,
       },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify({
+        contents: formattedMessages,
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 2048,
+        },
+      }),
     });
 
-    console.log("Gemini API response status:", response.status);
-    
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Gemini API Error:", errorText);
-      return new Response(
-        JSON.stringify({ error: `Gemini API error: ${response.status}` }), 
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error(`Gemini API error: ${response.status} ${errorText}`);
     }
 
-    const responseData = await response.json();
-    console.log("Gemini API response:", JSON.stringify(responseData));
+    const data = await response.json();
+    console.log("Gemini API response:", JSON.stringify(data));
 
     let generatedText = "";
-    if (responseData.candidates && 
-        responseData.candidates[0]?.content?.parts && 
-        responseData.candidates[0]?.content?.parts.length > 0) {
-      
-      generatedText = responseData.candidates[0].content.parts[0].text;
-      console.log("Generated text to return:", generatedText);
-      
-      return new Response(
-        JSON.stringify({ message: generatedText }), 
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (data.candidates && data.candidates[0]?.content?.parts) {
+      generatedText = data.candidates[0].content.parts[0].text;
     } else {
-      console.error("Unexpected response format:", JSON.stringify(responseData));
-      return new Response(
-        JSON.stringify({ error: "Invalid response from Gemini API" }), 
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error("Unexpected response format from Gemini API");
     }
-    
+
+    return new Response(JSON.stringify({ message: generatedText }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     console.error('Error in gemini-chat function:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }), 
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
