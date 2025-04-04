@@ -1,438 +1,977 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Trash2, Download, Pencil, Square, Undo, Redo, Type, ChevronDown } from 'lucide-react';
+import { fabric } from 'fabric';
+import { 
+  Trash2, Download, Move, Pencil, Square, Circle as CircleIcon, 
+  Type, Undo, Redo, ChevronDown, Image as ImageIcon, 
+  ArrowUp, RotateCw, Minus, Plus, BringToFront, SendToBack,
+  ArrowRight, Triangle, MousePointer, FolderPlus
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Slider } from "@/components/ui/slider";
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger 
+} from '@/components/ui/tooltip';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
-type Tool = 'pencil' | 'rectangle' | 'text';
+type Tool = 'select' | 'move' | 'pen' | 'pencil' | 'rectangle' | 'circle' | 'triangle' | 'arrow' | 'line' | 'text';
 
 export const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [color, setColor] = useState('#000000');
-  const [tool, setTool] = useState<Tool>('pencil');
+  const [fabricCanvas, setFabricCanvas] = useState<fabric.Canvas | null>(null);
+  const [tool, setTool] = useState<Tool>('select');
   const [strokeWidth, setStrokeWidth] = useState(2);
-  const [startPosition, setStartPosition] = useState({ x: 0, y: 0 });
-  const [history, setHistory] = useState<ImageData[]>([]);
-  const [redoStack, setRedoStack] = useState<ImageData[]>([]);
-  const [textInput, setTextInput] = useState('');
-  const [isAddingText, setIsAddingText] = useState(false);
-  const textInputRef = useRef<HTMLTextAreaElement>(null);
+  const [color, setColor] = useState('#000000');
+  const [fillColor, setFillColor] = useState('rgba(0,0,0,0)');
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [canvasHistory, setCanvasHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [zoomLevel, setZoomLevel] = useState(100);
+  const [objectsCounter, setObjectsCounter] = useState(0);
   
-  // Initialize canvas
+  // Initialize canvas with Fabric.js
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvasRef.current) return;
     
-    const context = canvas.getContext('2d');
-    if (!context) return;
+    const canvas = new fabric.Canvas(canvasRef.current, {
+      width: 800,
+      height: 600,
+      backgroundColor: '#ffffff',
+      selection: true,
+      preserveObjectStacking: true,
+    });
     
-    // Set canvas to white background
-    context.fillStyle = '#ffffff';
-    context.fillRect(0, 0, canvas.width, canvas.height);
+    setFabricCanvas(canvas);
+    
+    canvas.freeDrawingBrush.color = color;
+    canvas.freeDrawingBrush.width = strokeWidth;
     
     // Save initial state
-    const initialState = context.getImageData(0, 0, canvas.width, canvas.height);
-    setHistory([initialState]);
+    const initialState = JSON.stringify(canvas.toJSON());
+    setCanvasHistory([initialState]);
+    setHistoryIndex(0);
+    
+    // Handle canvas events
+    canvas.on('mouse:down', handleMouseDown);
+    canvas.on('mouse:move', handleMouseMove);
+    canvas.on('mouse:up', handleMouseUp);
+    canvas.on('object:added', handleObjectAdded);
+    canvas.on('object:modified', handleObjectModified);
+    
+    // Cleanup
+    return () => {
+      canvas.off('mouse:down', handleMouseDown);
+      canvas.off('mouse:move', handleMouseMove);
+      canvas.off('mouse:up', handleMouseUp);
+      canvas.off('object:added', handleObjectAdded);
+      canvas.off('object:modified', handleObjectModified);
+      canvas.dispose();
+    };
   }, []);
   
-  // Focus text input when adding text
+  // Update freeDrawingBrush when tool or color changes
   useEffect(() => {
-    if (isAddingText && textInputRef.current) {
-      textInputRef.current.focus();
+    if (!fabricCanvas) return;
+    
+    fabricCanvas.isDrawingMode = tool === 'pencil' || tool === 'pen';
+    fabricCanvas.freeDrawingBrush.color = color;
+    fabricCanvas.freeDrawingBrush.width = strokeWidth;
+    
+    // Update cursor based on selected tool
+    switch (tool) {
+      case 'select':
+        fabricCanvas.defaultCursor = 'default';
+        break;
+      case 'move':
+        fabricCanvas.defaultCursor = 'move';
+        break;
+      case 'pencil':
+      case 'pen':
+        fabricCanvas.defaultCursor = 'crosshair';
+        break;
+      default:
+        fabricCanvas.defaultCursor = 'crosshair';
     }
-  }, [isAddingText]);
+  }, [tool, color, strokeWidth, fabricCanvas]);
   
-  const saveToHistory = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const context = canvas.getContext('2d');
-    if (!context) return;
-    
-    const currentState = context.getImageData(0, 0, canvas.width, canvas.height);
-    setHistory(prev => [...prev, currentState]);
-    setRedoStack([]);
+  // Track object modifications and additions for history
+  const handleObjectAdded = () => {
+    if (!fabricCanvas) return;
+    saveCanvasState();
   };
   
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const context = canvas.getContext('2d');
-    if (!context) return;
-    
-    // Get position
-    let clientX, clientY;
-    
-    if ('touches' in e) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else {
-      clientX = e.clientX;
-      clientY = e.clientY;
-    }
-    
-    const rect = canvas.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
-    
-    setStartPosition({ x, y });
-    
-    if (tool === 'text') {
-      setIsAddingText(true);
-      setTextInput('');
-      if (textInputRef.current) {
-        textInputRef.current.style.left = `${x}px`;
-        textInputRef.current.style.top = `${y}px`;
-      }
-      return;
-    }
-    
-    setIsDrawing(true);
-    
-    if (tool === 'pencil') {
-      context.beginPath();
-      context.moveTo(x, y);
-      context.lineWidth = strokeWidth;
-      context.strokeStyle = color;
-      context.lineCap = 'round';
-    }
+  const handleObjectModified = () => {
+    if (!fabricCanvas) return;
+    saveCanvasState();
   };
   
-  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || tool === 'text') return;
+  // Save current canvas state to history
+  const saveCanvasState = () => {
+    if (!fabricCanvas) return;
     
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const newState = JSON.stringify(fabricCanvas.toJSON());
     
-    const context = canvas.getContext('2d');
-    if (!context) return;
+    // Truncate future states if we're not at the end of history
+    const newHistory = canvasHistory.slice(0, historyIndex + 1);
+    newHistory.push(newState);
     
-    // Get position
-    let clientX, clientY;
-    
-    if ('touches' in e) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-      e.preventDefault(); // Prevent scrolling
-    } else {
-      clientX = e.clientX;
-      clientY = e.clientY;
+    // Limit history to prevent memory issues
+    if (newHistory.length > 30) {
+      newHistory.shift();
     }
     
-    const rect = canvas.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
-    
-    if (tool === 'pencil') {
-      context.lineTo(x, y);
-      context.stroke();
-    } else if (tool === 'rectangle') {
-      // Create temporary canvas for preview
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = canvas.width;
-      tempCanvas.height = canvas.height;
-      const tempContext = tempCanvas.getContext('2d');
-      
-      if (!tempContext) return;
-      
-      // Copy the original canvas
-      tempContext.drawImage(canvas, 0, 0);
-      
-      // Draw rectangle
-      tempContext.strokeStyle = color;
-      tempContext.lineWidth = strokeWidth;
-      tempContext.strokeRect(
-        startPosition.x,
-        startPosition.y,
-        x - startPosition.x,
-        y - startPosition.y
-      );
-      
-      // Clear and redraw
-      context.clearRect(0, 0, canvas.width, canvas.height);
-      context.drawImage(tempCanvas, 0, 0);
-    }
+    setCanvasHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
   };
   
-  const endDrawing = () => {
-    if (!isDrawing && tool !== 'text') return;
-    
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const context = canvas.getContext('2d');
-    if (!context) return;
-    
-    if (tool === 'pencil') {
-      context.closePath();
-    }
-    
-    saveToHistory();
-    setIsDrawing(false);
-  };
-  
-  const handleClearCanvas = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const context = canvas.getContext('2d');
-    if (!context) return;
-    
-    context.fillStyle = '#ffffff';
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    saveToHistory();
-  };
-  
+  // Handle undo and redo
   const handleUndo = () => {
-    if (history.length <= 1) return;
+    if (historyIndex <= 0 || !fabricCanvas) return;
     
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const newIndex = historyIndex - 1;
+    const prevState = canvasHistory[newIndex];
     
-    const context = canvas.getContext('2d');
-    if (!context) return;
-    
-    // Pop the last action from history
-    const newHistory = [...history];
-    const lastState = newHistory.pop();
-    if (!lastState) return;
-    
-    // Add to redo stack
-    setRedoStack(prev => [...prev, lastState]);
-    
-    // Apply the previous state
-    if (newHistory.length > 0) {
-      const previousState = newHistory[newHistory.length - 1];
-      context.putImageData(previousState, 0, 0);
-    }
-    
-    setHistory(newHistory);
+    fabricCanvas.loadFromJSON(prevState, () => {
+      fabricCanvas.renderAll();
+      setHistoryIndex(newIndex);
+    });
   };
   
   const handleRedo = () => {
-    if (redoStack.length === 0) return;
+    if (historyIndex >= canvasHistory.length - 1 || !fabricCanvas) return;
     
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const newIndex = historyIndex + 1;
+    const nextState = canvasHistory[newIndex];
     
-    const context = canvas.getContext('2d');
-    if (!context) return;
-    
-    // Pop the last action from redo stack
-    const newRedoStack = [...redoStack];
-    const stateToRestore = newRedoStack.pop();
-    if (!stateToRestore) return;
-    
-    // Apply the state
-    context.putImageData(stateToRestore, 0, 0);
-    
-    // Update history
-    setHistory(prev => [...prev, stateToRestore]);
-    setRedoStack(newRedoStack);
+    fabricCanvas.loadFromJSON(nextState, () => {
+      fabricCanvas.renderAll();
+      setHistoryIndex(newIndex);
+    });
   };
   
-  const handleAddText = () => {
-    if (!textInput.trim() || !isAddingText) return;
+  // Drawing and object creation handlers
+  const handleMouseDown = (e: fabric.IEvent<MouseEvent>) => {
+    if (!fabricCanvas || tool === 'select' || tool === 'move' || tool === 'pencil' || tool === 'pen') return;
     
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    setIsDrawing(true);
+    const pointer = fabricCanvas.getPointer(e.e);
     
-    const context = canvas.getContext('2d');
-    if (!context) return;
+    switch (tool) {
+      case 'rectangle':
+        createRectangle(pointer);
+        break;
+      case 'circle':
+        createCircle(pointer);
+        break;
+      case 'triangle':
+        createTriangle(pointer);
+        break;
+      case 'line':
+        createLine(pointer);
+        break;
+      case 'arrow':
+        createArrow(pointer);
+        break;
+      case 'text':
+        createText(pointer);
+        break;
+    }
+  };
+  
+  const handleMouseMove = (e: fabric.IEvent<MouseEvent>) => {
+    if (!isDrawing || !fabricCanvas) return;
     
-    context.font = `${strokeWidth * 6}px Arial`;
-    context.fillStyle = color;
-    context.fillText(
-      textInput, 
-      startPosition.x, 
-      startPosition.y + strokeWidth * 6
-    );
+    // If we're in drawing mode, we don't need to do anything here
+    // Fabric.js handles the drawing internally
+  };
+  
+  const handleMouseUp = () => {
+    setIsDrawing(false);
+    setObjectsCounter(prev => prev + 1);
+  };
+  
+  // Object creation methods
+  const createRectangle = (pointer: { x: number, y: number }) => {
+    if (!fabricCanvas) return;
     
-    setIsAddingText(false);
-    setTextInput('');
-    saveToHistory();
+    const rect = new fabric.Rect({
+      left: pointer.x,
+      top: pointer.y,
+      width: 100,
+      height: 80,
+      fill: fillColor,
+      stroke: color,
+      strokeWidth: strokeWidth,
+      cornerSize: 8,
+      transparentCorners: false,
+    });
+    
+    fabricCanvas.add(rect);
+    fabricCanvas.setActiveObject(rect);
+  };
+  
+  const createCircle = (pointer: { x: number, y: number }) => {
+    if (!fabricCanvas) return;
+    
+    const circle = new fabric.Circle({
+      left: pointer.x,
+      top: pointer.y,
+      radius: 50,
+      fill: fillColor,
+      stroke: color,
+      strokeWidth: strokeWidth,
+      cornerSize: 8,
+      transparentCorners: false,
+    });
+    
+    fabricCanvas.add(circle);
+    fabricCanvas.setActiveObject(circle);
+  };
+  
+  const createTriangle = (pointer: { x: number, y: number }) => {
+    if (!fabricCanvas) return;
+    
+    const triangle = new fabric.Triangle({
+      left: pointer.x,
+      top: pointer.y,
+      width: 100,
+      height: 100,
+      fill: fillColor,
+      stroke: color,
+      strokeWidth: strokeWidth,
+      cornerSize: 8,
+      transparentCorners: false,
+    });
+    
+    fabricCanvas.add(triangle);
+    fabricCanvas.setActiveObject(triangle);
+  };
+  
+  const createLine = (pointer: { x: number, y: number }) => {
+    if (!fabricCanvas) return;
+    
+    const line = new fabric.Line([pointer.x, pointer.y, pointer.x + 100, pointer.y], {
+      stroke: color,
+      strokeWidth: strokeWidth,
+      cornerSize: 8,
+      transparentCorners: false,
+    });
+    
+    fabricCanvas.add(line);
+    fabricCanvas.setActiveObject(line);
+  };
+  
+  const createArrow = (pointer: { x: number, y: number }) => {
+    if (!fabricCanvas) return;
+    
+    // Create line
+    const line = new fabric.Line([pointer.x, pointer.y, pointer.x + 100, pointer.y], {
+      stroke: color,
+      strokeWidth: strokeWidth,
+    });
+    
+    // Create arrowhead
+    const triangle = new fabric.Triangle({
+      left: pointer.x + 100,
+      top: pointer.y,
+      width: 20,
+      height: 20,
+      fill: color,
+      stroke: color,
+      strokeWidth: 1,
+      angle: 90,
+      originX: 'center',
+      originY: 'bottom',
+    });
+    
+    // Group them together
+    const arrow = new fabric.Group([line, triangle], {
+      cornerSize: 8,
+      transparentCorners: false,
+    });
+    
+    fabricCanvas.add(arrow);
+    fabricCanvas.setActiveObject(arrow);
+  };
+  
+  const createText = (pointer: { x: number, y: number }) => {
+    if (!fabricCanvas) return;
+    
+    const text = new fabric.IText('Double click to edit', {
+      left: pointer.x,
+      top: pointer.y,
+      fontFamily: 'Arial',
+      fontSize: 20,
+      fill: color,
+      cornerSize: 8,
+      transparentCorners: false,
+      editable: true,
+    });
+    
+    fabricCanvas.add(text);
+    fabricCanvas.setActiveObject(text);
+  };
+  
+  // Canvas utility functions
+  const handleClearCanvas = () => {
+    if (!fabricCanvas) return;
+    
+    fabricCanvas.clear();
+    fabricCanvas.setBackgroundColor('#ffffff', () => {
+      fabricCanvas.renderAll();
+    });
+    
+    saveCanvasState();
+    toast.success('Canvas cleared');
+  };
+  
+  const handleDeleteSelected = () => {
+    if (!fabricCanvas) return;
+    
+    const activeObject = fabricCanvas.getActiveObject();
+    if (activeObject) {
+      fabricCanvas.remove(activeObject);
+      fabricCanvas.discardActiveObject();
+      fabricCanvas.renderAll();
+      saveCanvasState();
+    }
   };
   
   const handleDownload = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!fabricCanvas) return;
     
-    // Create temporary link
     const link = document.createElement('a');
-    link.download = 'palm-drawing.png';
-    link.href = canvas.toDataURL('image/png');
+    link.download = 'canvas-drawing.png';
+    
+    fabricCanvas.discardActiveObject();
+    fabricCanvas.renderAll();
+    
+    link.href = fabricCanvas.toDataURL({
+      format: 'png',
+      quality: 1,
+    });
+    
     link.click();
+    toast.success('Image downloaded');
   };
   
+  const handleBringToFront = () => {
+    if (!fabricCanvas) return;
+    
+    const activeObject = fabricCanvas.getActiveObject();
+    if (!activeObject) return;
+    
+    activeObject.bringToFront();
+    fabricCanvas.renderAll();
+    saveCanvasState();
+  };
+  
+  const handleSendToBack = () => {
+    if (!fabricCanvas) return;
+    
+    const activeObject = fabricCanvas.getActiveObject();
+    if (!activeObject) return;
+    
+    activeObject.sendToBack();
+    fabricCanvas.renderAll();
+    saveCanvasState();
+  };
+  
+  const handleZoom = (zoomDir: 'in' | 'out') => {
+    if (!fabricCanvas) return;
+    
+    let zoom = fabricCanvas.getZoom();
+    
+    if (zoomDir === 'in') {
+      zoom = Math.min(zoom + 0.1, 3);
+    } else {
+      zoom = Math.max(zoom - 0.1, 0.5);
+    }
+    
+    fabricCanvas.setZoom(zoom);
+    setZoomLevel(Math.round(zoom * 100));
+  };
+  
+  const handleUploadImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!fabricCanvas || !e.target.files || e.target.files.length === 0) return;
+    
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    
+    reader.onload = (event) => {
+      if (!event.target?.result) return;
+      
+      fabric.Image.fromURL(event.target.result.toString(), (img) => {
+        // Scale down large images
+        if (img.width && img.width > 400) {
+          const aspectRatio = img.width / (img.height || 1);
+          img.scaleToWidth(400);
+          img.scaleToHeight(400 / aspectRatio);
+        }
+        
+        fabricCanvas.add(img);
+        fabricCanvas.setActiveObject(img);
+        fabricCanvas.renderAll();
+        saveCanvasState();
+      });
+    };
+    
+    reader.readAsDataURL(file);
+    e.target.value = ''; // Reset input
+  };
+  
+  // Define color palette
   const colorOptions = [
     '#000000', // Black
+    '#ffffff', // White
     '#FF0000', // Red 
     '#00FF00', // Green
     '#0000FF', // Blue
     '#FFFF00', // Yellow
     '#FF00FF', // Magenta
     '#00FFFF', // Cyan
+    '#FFA500', // Orange
+    '#964B00', // Brown
+    '#808080', // Gray
+    '#A020F0', // Purple
   ];
   
+  // UI Rendering
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <Button 
-            variant={tool === 'pencil' ? 'default' : 'outline'} 
-            size="sm" 
-            onClick={() => setTool('pencil')}
-            className="h-8 w-8 p-0"
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant={tool === 'rectangle' ? 'default' : 'outline'} 
-            size="sm" 
-            onClick={() => setTool('rectangle')}
-            className="h-8 w-8 p-0"
-          >
-            <Square className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant={tool === 'text' ? 'default' : 'outline'} 
-            size="sm" 
-            onClick={() => setTool('text')}
-            className="h-8 w-8 p-0"
-          >
-            <Type className="h-4 w-4" />
-          </Button>
+    <div className="flex flex-col gap-4 h-full">
+      <div className="flex flex-col space-y-4">
+        {/* Main Toolbar */}
+        <div className="flex justify-between p-1 bg-gray-50 dark:bg-gray-900 rounded-md shadow-sm border border-gray-200 dark:border-gray-800">
+          <div className="flex items-center gap-1">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant={tool === 'select' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setTool('select')}
+                    className="h-8 w-8 p-0"
+                  >
+                    <MousePointer className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Select</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant={tool === 'move' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setTool('move')}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Move className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Move</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant={tool === 'pencil' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setTool('pencil')}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Pencil</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant={tool === 'rectangle' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setTool('rectangle')}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Square className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Rectangle</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant={tool === 'circle' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setTool('circle')}
+                    className="h-8 w-8 p-0"
+                  >
+                    <CircleIcon className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Circle</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant={tool === 'triangle' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setTool('triangle')}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Triangle className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Triangle</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant={tool === 'line' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setTool('line')}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Line</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant={tool === 'arrow' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setTool('arrow')}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Arrow</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant={tool === 'text' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setTool('text')}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Type className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Text</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            {/* Image Upload */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8 w-8 p-0 relative"
+                    onClick={() => document.getElementById('image-upload')?.click()}
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                    <input 
+                      type="file" 
+                      id="image-upload" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={handleUploadImage}
+                    />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Upload Image</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                <div 
-                  className="h-4 w-4 rounded-full border border-gray-300" 
-                  style={{ backgroundColor: color }}
-                />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="p-2 flex flex-wrap gap-1 w-[120px]">
-              {colorOptions.map((c) => (
-                <div
-                  key={c}
-                  className={cn(
-                    "h-6 w-6 rounded-full cursor-pointer border border-gray-300",
-                    color === c && "ring-2 ring-blue-500"
-                  )}
-                  style={{ backgroundColor: c }}
-                  onClick={() => setColor(c)}
-                />
-              ))}
-              <input 
-                type="color" 
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                className="h-6 w-6 p-0 cursor-pointer"
+          <div className="flex items-center gap-1">
+            {/* Color Picker */}
+            <DropdownMenu>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                        <div 
+                          className="h-4 w-4 rounded-full border border-gray-300" 
+                          style={{ backgroundColor: color }}
+                        />
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Stroke Color</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <DropdownMenuContent align="end" className="p-2 w-[140px]">
+                <div className="grid grid-cols-4 gap-1">
+                  {colorOptions.map((c) => (
+                    <div
+                      key={c}
+                      className={cn(
+                        "h-6 w-6 rounded-full cursor-pointer border border-gray-300",
+                        color === c && "ring-2 ring-blue-500"
+                      )}
+                      style={{ backgroundColor: c }}
+                      onClick={() => setColor(c)}
+                    />
+                  ))}
+                </div>
+                <div className="mt-2 flex justify-center">
+                  <input 
+                    type="color" 
+                    value={color}
+                    onChange={(e) => setColor(e.target.value)}
+                    className="h-8 w-full cursor-pointer"
+                  />
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            {/* Fill Color Picker */}
+            <DropdownMenu>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                        <div 
+                          className="h-4 w-4 rounded-full border border-gray-300" 
+                          style={{ 
+                            backgroundColor: fillColor,
+                            backgroundImage: fillColor === 'rgba(0,0,0,0)' ? 
+                              'linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc), linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc)' : 
+                              'none',
+                            backgroundSize: '6px 6px',
+                            backgroundPosition: '0 0, 3px 3px'
+                          }}
+                        />
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Fill Color</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <DropdownMenuContent align="end" className="p-2 w-[140px]">
+                <div className="grid grid-cols-4 gap-1">
+                  {['rgba(0,0,0,0)', ...colorOptions].map((c) => (
+                    <div
+                      key={c}
+                      className={cn(
+                        "h-6 w-6 rounded-full cursor-pointer border border-gray-300",
+                        fillColor === c && "ring-2 ring-blue-500"
+                      )}
+                      style={{ 
+                        backgroundColor: c,
+                        backgroundImage: c === 'rgba(0,0,0,0)' ? 
+                          'linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc), linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc)' : 
+                          'none',
+                        backgroundSize: '6px 6px',
+                        backgroundPosition: '0 0, 3px 3px'
+                      }}
+                      onClick={() => setFillColor(c)}
+                    />
+                  ))}
+                </div>
+                <div className="mt-2 flex justify-center">
+                  <input 
+                    type="color" 
+                    value={fillColor === 'rgba(0,0,0,0)' ? '#ffffff' : fillColor}
+                    onChange={(e) => setFillColor(e.target.value)}
+                    className="h-8 w-full cursor-pointer"
+                  />
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            {/* Stroke Width Slider */}
+            <div className="mx-1 flex items-center gap-2">
+              <Slider 
+                value={[strokeWidth]} 
+                min={1} 
+                max={20} 
+                step={1} 
+                onValueChange={(value) => setStrokeWidth(value[0])}
+                className="w-24"
               />
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          <div className="ml-2 w-24">
-            <Slider 
-              value={[strokeWidth]} 
-              min={1} 
-              max={10} 
-              step={1} 
-              onValueChange={(value) => setStrokeWidth(value[0])}
-            />
+              <span className="text-xs w-5">{strokeWidth}</span>
+            </div>
+            
+            {/* Object Actions */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleBringToFront}
+                    className="h-8 w-8 p-0"
+                  >
+                    <BringToFront className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Bring to Front</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleSendToBack}
+                    className="h-8 w-8 p-0"
+                  >
+                    <SendToBack className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Send to Back</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleUndo}
-            className="h-8 w-8 p-0"
-            disabled={history.length <= 1}
-          >
-            <Undo className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleRedo}
-            className="h-8 w-8 p-0"
-            disabled={redoStack.length === 0}
-          >
-            <Redo className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleClearCanvas}
-            className="h-8 px-2"
-          >
-            <Trash2 className="h-4 w-4 mr-1" />
-            Clear
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleDownload}
-            className="h-8 px-2"
-          >
-            <Download className="h-4 w-4 mr-1" />
-            Save
-          </Button>
+        
+        {/* Secondary Toolbar */}
+        <div className="flex justify-between p-1 bg-gray-50 dark:bg-gray-900 rounded-md shadow-sm border border-gray-200 dark:border-gray-800">
+          <div className="flex items-center gap-1">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleUndo}
+                    className="h-8 px-2"
+                    disabled={historyIndex <= 0}
+                  >
+                    <Undo className="h-4 w-4 mr-1" />
+                    Undo
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Undo</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleRedo}
+                    className="h-8 px-2"
+                    disabled={historyIndex >= canvasHistory.length - 1}
+                  >
+                    <Redo className="h-4 w-4 mr-1" />
+                    Redo
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Redo</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleDeleteSelected}
+                    className="h-8 px-2"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Delete Selected</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          
+          <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 mr-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleZoom('out')}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Zoom Out</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <span className="text-xs w-12 text-center">{zoomLevel}%</span>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleZoom('in')}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Zoom In</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleClearCanvas}
+                    className="h-8 px-2"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Clear
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Clear Canvas</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleDownload}
+                    className="h-8 px-2"
+                  >
+                    <Download className="h-4 w-4 mr-1" />
+                    Export
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Export as PNG</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
       </div>
       
-      <div className="relative border rounded-lg overflow-hidden bg-white shadow-md">
-        <canvas
-          ref={canvasRef}
-          width={600}
-          height={400}
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={endDrawing}
-          onMouseLeave={endDrawing}
-          onTouchStart={startDrawing}
-          onTouchMove={draw}
-          onTouchEnd={endDrawing}
-          className="w-full touch-none cursor-crosshair"
-        />
-        
-        {isAddingText && (
-          <div className="absolute inset-0 bg-black bg-opacity-10">
-            <textarea
-              ref={textInputRef}
-              value={textInput}
-              onChange={(e) => setTextInput(e.target.value)}
-              className="absolute p-1 border-2 border-blue-500 bg-white"
-              style={{ 
-                minWidth: '100px',
-                minHeight: '30px',
-                outline: 'none',
-                fontSize: `${strokeWidth * 6}px`,
-                color: color,
-              }}
-              onBlur={handleAddText}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleAddText();
-                }
-              }}
+      {/* Canvas Area */}
+      <div className="relative flex-grow overflow-auto bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-inner">
+        <div className="absolute inset-0 flex items-center justify-center p-4 overflow-auto">
+          <div className="relative bg-white shadow-lg">
+            <canvas
+              ref={canvasRef}
+              className="cursor-crosshair touch-none"
             />
+            {/* Indicator for canvas size */}
+            <div className="absolute bottom-2 right-2 bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded text-xs opacity-70">
+              800 × 600
+            </div>
           </div>
-        )}
+        </div>
+      </div>
+      
+      {/* Status bar */}
+      <div className="flex justify-between text-xs text-gray-500 px-1">
+        <div>
+          Objects: {objectsCounter}
+        </div>
+        <div>
+          Tool: {tool.charAt(0).toUpperCase() + tool.slice(1)}
+        </div>
       </div>
     </div>
   );

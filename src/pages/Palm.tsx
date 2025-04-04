@@ -30,6 +30,11 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 
 // Define a proper type for chat messages
 type ChatMessage = {
@@ -226,11 +231,13 @@ const Palm = () => {
 
         {/* Canvas Sheet (Side Panel) */}
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <SheetContent className="w-[90%] sm:w-[600px] p-0" side="right">
+          <SheetContent className="w-[90%] sm:w-[800px] p-0" side="right">
             <div className="h-full flex flex-col">
-              <div className="p-4 border-b">
-                <h2 className="text-lg font-semibold">Whiteboard</h2>
-                <p className="text-sm text-muted-foreground">Draw or diagram your ideas</p>
+              <div className="p-4 border-b flex justify-between items-center">
+                <div>
+                  <h2 className="text-lg font-semibold">Whiteboard</h2>
+                  <p className="text-sm text-muted-foreground">Draw or diagram your ideas</p>
+                </div>
               </div>
               <div className="flex-grow overflow-auto p-4">
                 <Canvas />
