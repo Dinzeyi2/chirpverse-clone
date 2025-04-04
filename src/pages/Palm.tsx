@@ -1,11 +1,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowUp, ImageIcon, PlusCircle, Plus, MoreHorizontal } from 'lucide-react';
+import { ArrowUp, ImageIcon, PlusCircle, Plus, MoreHorizontal, Code } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import AppLayout from '@/components/layout/AppLayout';
 import { Canvas } from '@/components/palm/Canvas';
 import { supabase } from "@/integrations/supabase/client";
+import { SquareCode } from 'lucide-react';
 
 // Define a proper type for chat messages
 type ChatMessage = {
@@ -18,6 +19,7 @@ const Palm = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showCanvas, setShowCanvas] = useState(false);
+  const [showCode, setShowCode] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -73,118 +75,223 @@ const Palm = () => {
 
   const toggleCanvas = () => {
     setShowCanvas(!showCanvas);
+    if (!showCanvas) {
+      setShowCode(false); // Close code panel when opening canvas
+    }
+  };
+
+  const toggleCode = () => {
+    setShowCode(!showCode);
+    if (!showCode) {
+      setShowCanvas(false); // Close canvas when opening code panel
+    }
   };
 
   const handleNewChat = () => {
     setMessages([]);
     setShowCanvas(false);
+    setShowCode(false);
   };
+
+  // Code content example (could be replaced with actual code editor or content)
+  const codeContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CodeQuery - Coder Social Platform</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @font-face {
+      font-family: 'LucideIcons';
+      src: url(https://cdn.jsdelivr.net/npm/lucide-static@latest/font/Lucide.ttf);
+    }
+    .lucide {
+      font-family: 'LucideIcons';
+      font-style: normal;
+      font-weight: normal;
+      font-variant: normal;
+      text-rendering: auto;
+      line-height: 1;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      display: inline-block; /* Ensure icons behave like inline elements */
+      vertical-align: middle; /* Align icons nicely with text */
+    }
+  </style>
+</head>
+<body>
+  <!-- Your code here -->
+</body>
+</html>
+  `;
 
   return (
     <AppLayout>
-      <div className="flex flex-col h-screen max-h-[calc(100vh-64px)] pt-4">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 pb-4">
-          <h1 className="text-2xl font-semibold">Palm</h1>
-          <Button variant="outline" size="sm" onClick={handleNewChat}>
-            <PlusCircle className="h-4 w-4 mr-2" />
-            New Chat
-          </Button>
-        </div>
+      <div className="flex h-screen max-h-[calc(100vh-64px)]">
+        {/* Chat Panel - Left side */}
+        <div className={`flex flex-col ${(showCanvas || showCode) ? 'w-1/2 border-r border-border' : 'w-full'} h-full transition-all duration-300`}>
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-4 border-b border-border">
+            <h1 className="text-2xl font-semibold">Palm</h1>
+            <Button variant="outline" size="sm" onClick={handleNewChat}>
+              <PlusCircle className="h-4 w-4 mr-2" />
+              New Chat
+            </Button>
+          </div>
 
-        {/* Messages Container */}
-        <div className="flex-grow overflow-y-auto px-4 pb-4">
-          {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-              <h2 className="text-3xl font-bold mb-4">What can I help with?</h2>
-              <p className="text-muted-foreground">Ask anything...</p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {messages.map((message, index) => (
-                <div 
-                  key={index} 
-                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
+          {/* Messages Container */}
+          <div className="flex-grow overflow-y-auto px-4 pb-4 pt-4">
+            {messages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <h2 className="text-3xl font-bold mb-4">What can I help with?</h2>
+                <p className="text-muted-foreground">Ask anything...</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {messages.map((message, index) => (
                   <div 
-                    className={`max-w-[80%] rounded-lg px-4 py-3 ${
-                      message.role === 'user' 
-                        ? 'bg-[#2196f3] text-white rounded-2xl' 
-                        : 'bg-[#f5f5f1] text-[#1f1f1f] rounded-2xl'
-                    }`}
+                    key={index} 
+                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
-                    {message.content}
-                  </div>
-                </div>
-              ))}
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="flex items-center space-x-2 bg-[#f5f5f1] text-[#1f1f1f] rounded-2xl px-4 py-3">
-                    <div className="flex space-x-1">
-                      <span className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                      <span className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                      <span className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                    <div 
+                      className={`max-w-[80%] rounded-lg px-4 py-3 ${
+                        message.role === 'user' 
+                          ? 'bg-[#2196f3] text-white rounded-2xl' 
+                          : 'bg-[#f5f5f1] text-[#1f1f1f] rounded-2xl'
+                      }`}
+                    >
+                      {message.content}
                     </div>
                   </div>
+                ))}
+                {isLoading && (
+                  <div className="flex justify-start">
+                    <div className="flex items-center space-x-2 bg-[#f5f5f1] text-[#1f1f1f] rounded-2xl px-4 py-3">
+                      <div className="flex space-x-1">
+                        <span className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                        <span className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                        <span className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+            )}
+          </div>
+
+          {/* Input Area */}
+          <div className="border-t border-border p-4">
+            <div className="flex items-center gap-2 max-w-full mx-auto w-full">
+              <div className="flex items-center gap-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="icon" 
+                  className="h-10 w-10 rounded-full flex-shrink-0"
+                  onClick={() => {
+                    // Toggle menu or add more options
+                  }}
+                >
+                  <Plus className="h-5 w-5" />
+                </Button>
+                
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  className={`rounded-full ${showCanvas ? 'bg-primary/10' : ''}`}
+                  onClick={toggleCanvas}
+                >
+                  <ImageIcon className="h-4 w-4 mr-1" />
+                  Canvas
+                </Button>
+                
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  className={`rounded-full ${showCode ? 'bg-primary/10' : ''}`}
+                  onClick={toggleCode}
+                >
+                  <SquareCode className="h-4 w-4 mr-1" />
+                  Code
+                </Button>
+              </div>
+              
+              <div className="flex items-center w-full rounded-2xl border border-border bg-background shadow-sm">
+                <div className="flex-grow px-2">
+                  <form onSubmit={handleSubmit} className="flex items-center w-full">
+                    <input
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      placeholder="Ask anything"
+                      className="w-full py-2 px-3 bg-transparent border-none focus:outline-none text-sm"
+                      disabled={isLoading}
+                    />
+                    <Button 
+                      type="submit" 
+                      size="icon"
+                      variant="ghost"
+                      className="ml-1 rounded-full h-8 w-8" 
+                      disabled={!input.trim() || isLoading}
+                    >
+                      <ArrowUp className="h-4 w-4" />
+                    </Button>
+                  </form>
                 </div>
-              )}
-              <div ref={messagesEndRef} />
+              </div>
             </div>
-          )}
+          </div>
         </div>
 
+        {/* Canvas or Code Panel - Right side */}
         {showCanvas && (
-          <div className="p-4 border-t border-border">
-            <Canvas />
+          <div className="w-1/2 h-full flex flex-col border-l border-border bg-white">
+            <div className="border-b border-border py-3 px-4 flex items-center justify-between bg-gray-50">
+              <h2 className="font-semibold">Canvas</h2>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={toggleCanvas}
+                className="h-8 w-8 p-0 rounded-full"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </Button>
+            </div>
+            <div className="flex-grow overflow-y-auto p-4">
+              <Canvas />
+            </div>
           </div>
         )}
 
-        {/* Input Area */}
-        <div className="border-t border-border p-4">
-          <div className="flex items-center gap-2 max-w-4xl mx-auto w-full">
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="icon" 
-              className="h-10 w-10 rounded-full flex-shrink-0"
-              onClick={toggleCanvas}
-            >
-              <Plus className="h-5 w-5" />
-            </Button>
-            
-            <div className="flex items-center w-full rounded-2xl border border-border bg-background shadow-sm">
-              <div className="flex-grow px-2">
-                <form onSubmit={handleSubmit} className="flex items-center w-full">
-                  <input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder="Ask anything"
-                    className="w-full py-2 px-3 bg-transparent border-none focus:outline-none text-sm"
-                    disabled={isLoading}
-                  />
-                  <Button 
-                    type="submit" 
-                    size="icon"
-                    variant="ghost"
-                    className="ml-1 rounded-full h-8 w-8" 
-                    disabled={!input.trim() || isLoading}
-                  >
-                    <ArrowUp className="h-4 w-4" />
-                  </Button>
-                </form>
+        {showCode && (
+          <div className="w-1/2 h-full flex flex-col border-l border-border">
+            <div className="border-b border-border py-3 px-4 flex items-center justify-between bg-gray-50">
+              <div className="flex items-center gap-2">
+                <SquareCode className="h-5 w-5" />
+                <h2 className="font-semibold">Code Editor</h2>
               </div>
-              
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="mr-2 rounded-full h-8 w-8"
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={toggleCode}
+                className="h-8 w-8 p-0 rounded-full"
               >
-                <MoreHorizontal className="h-5 w-5" />
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
               </Button>
             </div>
+            <div className="flex-grow overflow-y-auto p-0 bg-[#fafafa]">
+              <pre className="text-xs font-mono p-4 overflow-auto h-full">
+                <code className="language-html">
+                  {codeContent}
+                </code>
+              </pre>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </AppLayout>
   );
