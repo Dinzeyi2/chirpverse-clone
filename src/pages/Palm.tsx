@@ -191,8 +191,9 @@ const Palm = () => {
             )}
           </div>
 
+          {/* Canvas container - updated to ensure it can show all content */}
           {showCanvas && (
-            <div className="p-4 border-t border-gray-200">
+            <div className="p-4 border-t border-gray-200 overflow-y-auto">
               <Canvas />
             </div>
           )}

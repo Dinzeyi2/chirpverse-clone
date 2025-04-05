@@ -128,7 +128,7 @@ export const Canvas = () => {
   const [activeLineNumber, setActiveLineNumber] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
   
-  // Extract only the lines for display
+  // Extract lines for display
   const codeLines = htmlCode.split('\n');
   
   // Get syntax highlighting colors based on content
@@ -159,7 +159,7 @@ export const Canvas = () => {
       .replace(/'/g, "&#039;");
   };
   
-  // Prepare code for display with line numbers
+  // Prepare code for display with line numbers - ensure ALL lines are displayed
   const displayCode = codeLines.map((line, index) => {
     const escapedLine = escapeHtml(line);
     const highlightedLine = getHighlightedLine(escapedLine, index + 1);
@@ -222,7 +222,7 @@ export const Canvas = () => {
           </div>
         </div>
         
-        {/* Code editor with line numbers */}
+        {/* Code editor with line numbers - ensure it's scrollable for ALL content */}
         <div className="max-h-[500px] overflow-auto">
           {displayCode}
         </div>
