@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowUp, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -191,9 +190,9 @@ const Palm = () => {
             )}
           </div>
 
-          {/* Canvas container - updated to ensure it can show all content with proper scrolling */}
+          {/* Canvas container - updated to display full code without truncation */}
           {showCanvas && (
-            <div className="p-4 border-t border-gray-200 overflow-y-auto max-h-[70vh]">
+            <div className="p-4 border-t border-gray-200 overflow-y-auto max-h-[75vh]">
               <Canvas />
             </div>
           )}
