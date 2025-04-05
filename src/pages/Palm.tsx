@@ -97,7 +97,7 @@ const Palm = () => {
         <div className="flex flex-col h-full w-full border-r border-gray-200">
           {/* Chat header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-            <h1 className="text-xl font-semibold">Palm with Gemini 2.5 Pro</h1>
+            <h1 className="text-xl font-semibold">Palm with Gemini 1.5 Pro</h1>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={handleNewChat} className="rounded-md">
                 <PlusCircle className="h-4 w-4 mr-2" />
@@ -112,7 +112,7 @@ const Palm = () => {
               <div className="flex flex-col items-center justify-center h-full text-center">
                 <h2 className="text-2xl font-semibold mb-4">How can I help you today?</h2>
                 <p className="text-gray-500">Ask me to write or explain code, debug an issue, or discuss programming concepts.</p>
-                <p className="text-gray-500 mt-2">Powered by Gemini 2.5 Pro</p>
+                <p className="text-gray-500 mt-2">Powered by Gemini 1.5 Pro</p>
               </div>
             ) : (
               <div className="space-y-6">
@@ -231,7 +231,7 @@ const Palm = () => {
             </div>
             
             <div className="text-xs text-center text-gray-500 mt-2">
-              Palm may make mistakes. Powered by Gemini 2.5 Pro.
+              Palm may make mistakes. Powered by Gemini 1.5 Pro.
             </div>
           </div>
         </div>
