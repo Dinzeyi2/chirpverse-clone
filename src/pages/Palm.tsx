@@ -143,9 +143,9 @@ const Palm = () => {
                           blockquote: ({ children }) => (
                             <blockquote className="border-l-4 border-gray-300 pl-4 italic my-2">{children}</blockquote>
                           ),
-                          code: ({ node, inline, className, children, ...props }) => {
+                          code: ({ className, children, ...props }) => {
                             const match = /language-(\w+)/.exec(className || '');
-                            return !inline && match ? (
+                            return match ? (
                               <CodeBlock
                                 code={String(children).replace(/\n$/, '')}
                                 language={match[1]}
@@ -153,7 +153,7 @@ const Palm = () => {
                               />
                             ) : (
                               <code
-                                className={`${inline ? 'bg-gray-200 text-gray-800 px-1 py-0.5 rounded' : 'block bg-gray-100 p-2 rounded'}`}
+                                className="bg-gray-200 text-gray-800 px-1 py-0.5 rounded"
                                 {...props}
                               >
                                 {children}
