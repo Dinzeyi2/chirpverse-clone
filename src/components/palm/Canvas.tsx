@@ -128,7 +128,7 @@ export const Canvas = () => {
   const [activeLineNumber, setActiveLineNumber] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
   
-  // Extract lines for display
+  // Extract all lines for display
   const codeLines = htmlCode.split('\n');
   
   // Get syntax highlighting colors based on content
