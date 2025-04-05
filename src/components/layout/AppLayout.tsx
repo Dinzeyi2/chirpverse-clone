@@ -7,7 +7,6 @@ import { useTheme } from '@/components/theme/theme-provider';
 import { useIsMobile, useScreenSize } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { useLocation } from 'react-router-dom';
 
 interface AppLayoutProps {
   children?: React.ReactNode;
@@ -18,10 +17,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const isMobile = useIsMobile();
   const { width } = useScreenSize();
   const { user } = useAuth();
-  const location = useLocation();
-  
-  // Check if we're on the Palm page
-  const isPalmPage = location.pathname === '/palm';
   
   return (
     <div className={cn(
@@ -47,24 +42,23 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         </div>
       )}
       
-      {/* Sidebar Navigation - Hide for Palm page */}
-      {!isPalmPage && <Sidebar />}
+      {/* Sidebar Navigation */}
+      <Sidebar />
       
       {/* Main Content Area */}
       <main 
         className={cn(
           "flex-grow min-h-screen w-full",
           theme === "dark" ? "bg-black" : "bg-lightBeige",
-          isPalmPage ? "" : (isMobile ? "pb-20 px-1" : "ml-[275px]")
+          isMobile 
+            ? "pb-20 px-1" // Reduced padding for better mobile view
+            : "ml-[275px]" // Add margin for sidebar on desktop
         )}
         style={{ 
-          maxWidth: isPalmPage ? '100%' : (isMobile ? '100%' : 'calc(100% - 275px)'),
+          maxWidth: isMobile ? '100%' : 'calc(100% - 275px)',
         }}
       >
-        <div className={cn(
-          "mx-auto",
-          isPalmPage ? "w-full max-w-none" : "w-full max-w-2xl"
-        )}>
+        <div className="w-full max-w-2xl mx-auto">
           {children || <Outlet />}
         </div>
       </main>

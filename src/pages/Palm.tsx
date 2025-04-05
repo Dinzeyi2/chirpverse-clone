@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowUp, ImageIcon, PlusCircle, Plus, MoreHorizontal, Search, Lightbulb } from 'lucide-react';
+import { ArrowUp, ImageIcon, PlusCircle, Plus, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import AppLayout from '@/components/layout/AppLayout';
@@ -8,7 +8,6 @@ import { Canvas } from '@/components/palm/Canvas';
 import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from 'react-markdown';
 import CodeBlock from '@/components/code/CodeBlock';
-import CodeEditor from '@/components/palm/CodeEditor';
 
 // Define a proper type for chat messages
 type ChatMessage = {
@@ -22,7 +21,6 @@ const Palm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showCanvas, setShowCanvas] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [codeContent, setCodeContent] = useState<string>('');
 
   useEffect(() => {
     scrollToBottom();
@@ -67,14 +65,6 @@ const Palm = () => {
       // Add assistant message with explicit typing
       const assistantMessage: ChatMessage = { role: 'assistant', content: data.message };
       setMessages([...updatedMessages, assistantMessage]);
-      
-      // Extract code blocks from the response to display in code editor
-      const codeBlockRegex = /```(?:\w+)?\s*([\s\S]*?)```/g;
-      const matches = [...data.message.matchAll(codeBlockRegex)];
-      if (matches.length > 0) {
-        // Use the first code block found in the response
-        setCodeContent(matches[0][1]);
-      }
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error(error instanceof Error ? error.message : "Failed to send message. Please try again.");
@@ -89,29 +79,32 @@ const Palm = () => {
 
   const handleNewChat = () => {
     setMessages([]);
-    setCodeContent('');
     setShowCanvas(false);
   };
 
+  // Helper function to detect code blocks in markdown
+  const renderCodeBlock = ({ language, value }: { language: string; value: string }) => {
+    return <CodeBlock code={value} language={language || 'text'} />;
+  };
+
   return (
-    <div className="h-screen w-full flex overflow-hidden bg-white">
-      {/* Left panel - Chat */}
-      <div className="flex flex-col h-full w-1/2 border-r border-gray-200">
-        {/* Chat header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-          <h1 className="text-xl font-semibold">Palm</h1>
-          <Button variant="outline" size="sm" onClick={handleNewChat} className="rounded-md">
+    <AppLayout>
+      <div className="flex flex-col h-screen max-h-[calc(100vh-64px)] pt-4">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 pb-4">
+          <h1 className="text-2xl font-semibold">Palm</h1>
+          <Button variant="outline" size="sm" onClick={handleNewChat}>
             <PlusCircle className="h-4 w-4 mr-2" />
             New Chat
           </Button>
         </div>
 
         {/* Messages Container */}
-        <div className="flex-grow overflow-y-auto px-4 py-4 bg-white">
+        <div className="flex-grow overflow-y-auto px-4 pb-4">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
-              <h2 className="text-2xl font-semibold mb-4">How can I help you today?</h2>
-              <p className="text-gray-500">Ask me to write or explain code, debug an issue, or discuss programming concepts.</p>
+              <h2 className="text-3xl font-bold mb-4">What can I help with?</h2>
+              <p className="text-muted-foreground">Ask anything...</p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -121,10 +114,10 @@ const Palm = () => {
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div 
-                    className={`max-w-[95%] rounded-lg px-4 py-3 ${
+                    className={`max-w-[80%] rounded-lg px-4 py-3 ${
                       message.role === 'user' 
-                        ? 'bg-gray-100 text-gray-800 rounded-2xl' 
-                        : 'bg-white text-gray-800 border border-gray-200 rounded-2xl'
+                        ? 'bg-[#2196f3] text-white rounded-2xl' 
+                        : 'bg-[#f5f5f1] text-[#1f1f1f] rounded-2xl'
                     }`}
                   >
                     {message.role === 'user' ? (
@@ -132,6 +125,7 @@ const Palm = () => {
                     ) : (
                       <ReactMarkdown
                         components={{
+                          // Apply proper styling to different markdown elements
                           p: ({ children }) => <p className="mb-2">{children}</p>,
                           h1: ({ children }) => <h1 className="text-xl font-bold my-2">{children}</h1>,
                           h2: ({ children }) => <h2 className="text-lg font-bold my-2">{children}</h2>,
@@ -176,7 +170,7 @@ const Palm = () => {
               ))}
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="flex items-center space-x-2 bg-white text-gray-800 border border-gray-200 rounded-2xl px-4 py-3">
+                  <div className="flex items-center space-x-2 bg-[#f5f5f1] text-[#1f1f1f] rounded-2xl px-4 py-3">
                     <div className="flex space-x-1">
                       <span className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
                       <span className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
@@ -191,22 +185,32 @@ const Palm = () => {
         </div>
 
         {showCanvas && (
-          <div className="p-4 border-t border-gray-200">
+          <div className="p-4 border-t border-border">
             <Canvas />
           </div>
         )}
 
         {/* Input Area */}
-        <div className="border-t border-gray-200 p-4 bg-white">
-          <div className="flex items-center gap-2 mx-auto w-full">            
-            <div className="flex items-center w-full rounded-lg border border-gray-300 bg-white shadow-sm">
+        <div className="border-t border-border p-4">
+          <div className="flex items-center gap-2 max-w-4xl mx-auto w-full">
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="icon" 
+              className="h-10 w-10 rounded-full flex-shrink-0"
+              onClick={toggleCanvas}
+            >
+              <Plus className="h-5 w-5" />
+            </Button>
+            
+            <div className="flex items-center w-full rounded-2xl border border-border bg-background shadow-sm">
               <div className="flex-grow px-2">
                 <form onSubmit={handleSubmit} className="flex items-center w-full">
                   <input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="Ask anything"
-                    className="w-full py-3 px-3 bg-transparent border-none focus:outline-none text-sm"
+                    className="w-full py-2 px-3 bg-transparent border-none focus:outline-none text-sm"
                     disabled={isLoading}
                   />
                   <Button 
@@ -220,32 +224,20 @@ const Palm = () => {
                   </Button>
                 </form>
               </div>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" size="icon" className="rounded-full h-9 w-9">
-                <Plus className="h-5 w-5" />
-              </Button>
-              <Button variant="outline" size="icon" className="rounded-full h-9 w-9">
-                <Search className="h-5 w-5" />
-              </Button>
-              <Button variant="outline" size="icon" className="rounded-full h-9 w-9">
-                <Lightbulb className="h-5 w-5" />
+              
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="mr-2 rounded-full h-8 w-8"
+              >
+                <MoreHorizontal className="h-5 w-5" />
               </Button>
             </div>
-          </div>
-          
-          <div className="text-xs text-center text-gray-500 mt-2">
-            Palm may make mistakes. Check important info.
           </div>
         </div>
       </div>
-      
-      {/* Right panel - Code Editor */}
-      <div className="h-full w-1/2 bg-white">
-        <CodeEditor content={codeContent} />
-      </div>
-    </div>
+    </AppLayout>
   );
 };
 
