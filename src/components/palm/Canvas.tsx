@@ -222,7 +222,7 @@ export const Canvas = () => {
           </div>
         </div>
         
-        {/* Code editor with line numbers - ensure it's scrollable for ALL content */}
+        {/* Code editor with line numbers - Make sure scrolling works properly */}
         <div className="max-h-[500px] overflow-auto">
           {displayCode}
         </div>
