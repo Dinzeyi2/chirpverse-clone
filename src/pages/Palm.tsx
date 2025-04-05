@@ -1,40 +1,11 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowUp, ImageIcon, PlusCircle, Plus, MoreHorizontal, CheckCircle2 } from 'lucide-react';
+import { ArrowUp, ImageIcon, PlusCircle, Plus, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import AppLayout from '@/components/layout/AppLayout';
 import { Canvas } from '@/components/palm/Canvas';
 import { supabase } from "@/integrations/supabase/client";
-import CodeBlock from '@/components/code/CodeBlock';
-import { 
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger 
-} from '@/components/ui/tooltip';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
 
 // Define a proper type for chat messages
 type ChatMessage = {
@@ -42,50 +13,11 @@ type ChatMessage = {
   content: string;
 };
 
-// Function to parse markdown code blocks from text
-const parseCodeBlocks = (text: string) => {
-  const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
-  const parts: Array<{ type: 'text' | 'code', content: string, language?: string }> = [];
-  
-  let lastIndex = 0;
-  let match;
-  
-  while ((match = codeBlockRegex.exec(text)) !== null) {
-    // Add text before the code block
-    if (match.index > lastIndex) {
-      parts.push({
-        type: 'text',
-        content: text.substring(lastIndex, match.index)
-      });
-    }
-    
-    // Add the code block
-    parts.push({
-      type: 'code',
-      content: match[2], // The code content
-      language: match[1] || 'javascript' // The language or default to javascript
-    });
-    
-    lastIndex = match.index + match[0].length;
-  }
-  
-  // Add any remaining text after the last code block
-  if (lastIndex < text.length) {
-    parts.push({
-      type: 'text',
-      content: text.substring(lastIndex)
-    });
-  }
-  
-  return parts.length > 0 ? parts : [{ type: 'text', content: text }];
-};
-
 const Palm = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showCanvas, setShowCanvas] = useState(false);
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -141,7 +73,6 @@ const Palm = () => {
 
   const toggleCanvas = () => {
     setShowCanvas(!showCanvas);
-    setIsSheetOpen(true);
   };
 
   const handleNewChat = () => {
@@ -149,36 +80,9 @@ const Palm = () => {
     setShowCanvas(false);
   };
 
-  // Render message content with code blocks
-  const renderMessageContent = (content: string) => {
-    const parts = parseCodeBlocks(content);
-    
-    return parts.map((part, index) => {
-      if (part.type === 'code') {
-        return (
-          <div key={index} className="my-2 w-full">
-            <CodeBlock 
-              code={part.content} 
-              language={part.language || 'javascript'}
-              expanded={true}
-              inPost={true} 
-            />
-          </div>
-        );
-      } else {
-        // Use whitespace-pre-wrap to preserve whitespace in text
-        return (
-          <div key={index} className="whitespace-pre-wrap break-words">
-            {part.content}
-          </div>
-        );
-      }
-    });
-  };
-
   return (
     <AppLayout>
-      <div className="flex flex-col h-screen max-h-[calc(100vh-64px)] pt-4 bg-[#f9f9f9] dark:bg-[#0c0c0c]">
+      <div className="flex flex-col h-screen max-h-[calc(100vh-64px)] pt-4">
         {/* Header */}
         <div className="flex items-center justify-between px-4 pb-4">
           <h1 className="text-2xl font-semibold">Palm</h1>
@@ -193,29 +97,29 @@ const Palm = () => {
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <h2 className="text-3xl font-bold mb-4">What can I help with?</h2>
-              <p className="text-muted-foreground">Ask anything, including code questions...</p>
+              <p className="text-muted-foreground">Ask anything...</p>
             </div>
           ) : (
-            <div className="space-y-6 max-w-4xl mx-auto">
+            <div className="space-y-6">
               {messages.map((message, index) => (
                 <div 
                   key={index} 
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div 
-                    className={`max-w-full md:max-w-[80%] rounded-lg px-4 py-3 ${
+                    className={`max-w-[80%] rounded-lg px-4 py-3 ${
                       message.role === 'user' 
                         ? 'bg-[#2196f3] text-white rounded-2xl' 
-                        : 'bg-[#f5f5f1] text-[#1f1f1f] dark:bg-[#1a1a1a] dark:text-[#f1f1f1] rounded-2xl'
+                        : 'bg-[#f5f5f1] text-[#1f1f1f] rounded-2xl'
                     }`}
                   >
-                    {renderMessageContent(message.content)}
+                    {message.content}
                   </div>
                 </div>
               ))}
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="flex items-center space-x-2 bg-[#f5f5f1] text-[#1f1f1f] dark:bg-[#1a1a1a] dark:text-[#f1f1f1] rounded-2xl px-4 py-3">
+                  <div className="flex items-center space-x-2 bg-[#f5f5f1] text-[#1f1f1f] rounded-2xl px-4 py-3">
                     <div className="flex space-x-1">
                       <span className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
                       <span className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
@@ -229,58 +133,33 @@ const Palm = () => {
           )}
         </div>
 
-        {/* Canvas Sheet - ChatGPT Style */}
-        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <SheetContent className="w-[90%] sm:w-[calc(100%-250px)] p-0 sm:max-w-none border-l border-gray-200 dark:border-gray-800 shadow-none" side="right">
-            <div className="h-full flex flex-col bg-white dark:bg-[#16161a]">
-              {/* Header styled like ChatGPT */}
-              <div className="p-3 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
-                <div className="text-sm font-medium">Whiteboard</div>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </div>
-              
-              {/* Canvas area with clean design */}
-              <div className="flex-grow h-full overflow-hidden">
-                <Canvas />
-              </div>
-            </div>
-          </SheetContent>
-        </Sheet>
+        {showCanvas && (
+          <div className="p-4 border-t border-border">
+            <Canvas />
+          </div>
+        )}
 
         {/* Input Area */}
-        <div className="border-t border-border p-4 bg-background">
+        <div className="border-t border-border p-4">
           <div className="flex items-center gap-2 max-w-4xl mx-auto w-full">
-            <div className="flex items-center gap-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="icon" 
-                      className="h-10 w-10 rounded-full flex-shrink-0"
-                      onClick={toggleCanvas}
-                    >
-                      <Plus className="h-5 w-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Open canvas</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="icon" 
+              className="h-10 w-10 rounded-full flex-shrink-0"
+              onClick={toggleCanvas}
+            >
+              <Plus className="h-5 w-5" />
+            </Button>
             
-            <div className="flex items-center w-full rounded-[24px] border border-border bg-background shadow-sm">
+            <div className="flex items-center w-full rounded-2xl border border-border bg-background shadow-sm">
               <div className="flex-grow px-2">
                 <form onSubmit={handleSubmit} className="flex items-center w-full">
                   <input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="Ask anything"
-                    className="w-full py-3 px-3 bg-transparent border-none focus:outline-none text-sm"
+                    className="w-full py-2 px-3 bg-transparent border-none focus:outline-none text-sm"
                     disabled={isLoading}
                   />
                   <Button 
@@ -304,9 +183,6 @@ const Palm = () => {
                 <MoreHorizontal className="h-5 w-5" />
               </Button>
             </div>
-          </div>
-          <div className="mt-2 text-xs text-center text-muted-foreground">
-            Palm can make mistakes. Check important info.
           </div>
         </div>
       </div>

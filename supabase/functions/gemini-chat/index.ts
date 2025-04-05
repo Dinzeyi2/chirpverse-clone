@@ -50,42 +50,6 @@ serve(async (req) => {
 
     console.log("Formatted messages for Gemini:", JSON.stringify(formattedMessages));
 
-    // Add a detailed system message to help with code formatting
-    const systemMessage = {
-      role: "model",
-      parts: [{ 
-        text: `
-You are an AI assistant specialized in coding and technical subjects.
-When responding with code, please format it properly using markdown code blocks with the appropriate language specified.
-
-For example: 
-\`\`\`javascript
-console.log('Hello world');
-\`\`\`
-
-For HTML:
-\`\`\`html
-<div class="container">
-  <h1>Hello World</h1>
-</div>
-\`\`\`
-
-For CSS:
-\`\`\`css
-.container {
-  display: flex;
-  justify-content: center;
-}
-\`\`\`
-
-Always specify the language for proper highlighting and maintain proper indentation in your code snippets.
-`
-      }]
-    };
-    
-    // Insert the system message at the beginning
-    formattedMessages.unshift(systemMessage);
-
     // Call Gemini 1.5 Pro model
     const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent', {
       method: 'POST',
