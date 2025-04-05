@@ -1,13 +1,12 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowUp, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import AppLayout from '@/components/layout/AppLayout';
-import { Canvas } from '@/components/palm/Canvas';
 import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from 'react-markdown';
 import CodeBlock from '@/components/code/CodeBlock';
-import { Input } from '@/components/ui/input';
 
 // Define a proper type for chat messages
 type ChatMessage = {
@@ -19,7 +18,6 @@ const Palm = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showCanvas, setShowCanvas] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -73,13 +71,8 @@ const Palm = () => {
     }
   };
 
-  const toggleCanvas = () => {
-    setShowCanvas(!showCanvas);
-  };
-
   const handleNewChat = () => {
     setMessages([]);
-    setShowCanvas(false);
   };
 
   return (
@@ -91,14 +84,6 @@ const Palm = () => {
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
             <h1 className="text-xl font-semibold">Palm</h1>
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={toggleCanvas} 
-                className={`rounded-md ${showCanvas ? 'bg-blue-50 text-blue-600 border-blue-200' : ''}`}
-              >
-                {showCanvas ? 'Hide Canvas' : 'Show Canvas'}
-              </Button>
               <Button variant="outline" size="sm" onClick={handleNewChat} className="rounded-md">
                 <PlusCircle className="h-4 w-4 mr-2" />
                 New Chat
@@ -189,13 +174,6 @@ const Palm = () => {
               </div>
             )}
           </div>
-
-          {/* Canvas container - updated to display full code without truncation */}
-          {showCanvas && (
-            <div className="p-4 border-t border-gray-200 overflow-y-auto max-h-[75vh]">
-              <Canvas />
-            </div>
-          )}
 
           {/* Input Area */}
           <div className="border-t border-gray-200 p-4 bg-white">
