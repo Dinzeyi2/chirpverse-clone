@@ -91,10 +91,20 @@ const Palm = () => {
           {/* Chat header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
             <h1 className="text-xl font-semibold">Palm</h1>
-            <Button variant="outline" size="sm" onClick={handleNewChat} className="rounded-md">
-              <PlusCircle className="h-4 w-4 mr-2" />
-              New Chat
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={toggleCanvas} 
+                className={`rounded-md ${showCanvas ? 'bg-blue-50 text-blue-600 border-blue-200' : ''}`}
+              >
+                {showCanvas ? 'Hide Canvas' : 'Show Canvas'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleNewChat} className="rounded-md">
+                <PlusCircle className="h-4 w-4 mr-2" />
+                New Chat
+              </Button>
+            </div>
           </div>
 
           {/* Messages Container */}

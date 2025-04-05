@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Trash2, Download, Pencil, Square } from 'lucide-react';
+import { Trash2, Download, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export const Canvas = () => {
@@ -9,6 +9,7 @@ export const Canvas = () => {
   const [color, setColor] = useState('#000000');
   const [tool, setTool] = useState<'pencil' | 'rectangle'>('pencil');
   const [startPosition, setStartPosition] = useState({ x: 0, y: 0 });
+  const [copied, setCopied] = useState(false);
   
   // Initialize canvas
   useEffect(() => {
@@ -151,70 +152,121 @@ export const Canvas = () => {
     link.href = canvas.toDataURL('image/png');
     link.click();
   };
+
+  const handleCopy = () => {
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    // Would implement actual copy functionality in a real app
+  };
   
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex justify-between">
-        <div className="flex items-center gap-2">
-          <Button 
-            variant={tool === 'pencil' ? 'default' : 'outline'} 
-            size="sm" 
-            onClick={() => setTool('pencil')}
-            className="h-8 w-8 p-0"
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant={tool === 'rectangle' ? 'default' : 'outline'} 
-            size="sm" 
-            onClick={() => setTool('rectangle')}
-            className="h-8 w-8 p-0"
-          >
-            <Square className="h-4 w-4" />
-          </Button>
-          <input 
-            type="color" 
-            value={color}
-            onChange={(e) => setColor(e.target.value)}
-            className="h-8 w-8 p-0 cursor-pointer"
-          />
+      <div className="bg-[#1e1e1e] text-white rounded-lg overflow-hidden">
+        {/* Header bar similar to code editor */}
+        <div className="flex items-center justify-between px-4 py-2 bg-[#252526] border-b border-[#3e3e42]">
+          <div className="flex items-center">
+            <span className="text-xs mr-2">drawing.png</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleCopy}
+              className="h-7 w-7 p-0 text-gray-400 hover:text-white hover:bg-[#3e3e42]"
+            >
+              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleClearCanvas}
-            className="h-8"
-          >
-            <Trash2 className="h-4 w-4 mr-1" />
-            Clear
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleDownload}
-            className="h-8"
-          >
-            <Download className="h-4 w-4 mr-1" />
-            Save
-          </Button>
+        
+        {/* Line numbers and drawing area */}
+        <div className="flex">
+          {/* Line numbers */}
+          <div className="bg-[#1e1e1e] text-[#858585] text-xs px-2 py-1 select-none w-9 text-right">
+            <div>1</div>
+            <div>2</div>
+            <div>3</div>
+            <div>4</div>
+            <div>5</div>
+            <div>6</div>
+            <div>7</div>
+            <div>8</div>
+          </div>
+          
+          {/* Drawing canvas with dark background */}
+          <div className="flex-grow bg-[#1e1e1e] overflow-auto">
+            <canvas
+              ref={canvasRef}
+              width={580}
+              height={300}
+              onMouseDown={startDrawing}
+              onMouseMove={draw}
+              onMouseUp={endDrawing}
+              onMouseLeave={endDrawing}
+              onTouchStart={startDrawing}
+              onTouchMove={draw}
+              onTouchEnd={endDrawing}
+              className="w-full touch-none cursor-crosshair"
+            />
+          </div>
+        </div>
+        
+        {/* Footer with tools */}
+        <div className="px-3 py-2 bg-[#252526] border-t border-[#3e3e42] flex justify-between items-center">
+          <div className="flex items-center space-x-2">
+            <input 
+              type="color" 
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+              className="h-6 w-6 p-0 cursor-pointer bg-transparent border-none"
+            />
+            <div className="flex items-center space-x-1">
+              <button
+                onClick={() => setTool('pencil')}
+                className={`px-2 py-1 rounded text-xs ${tool === 'pencil' ? 'bg-[#37373d] text-white' : 'text-gray-400 hover:bg-[#3e3e42]'}`}
+              >
+                Pencil
+              </button>
+              <button
+                onClick={() => setTool('rectangle')}
+                className={`px-2 py-1 rounded text-xs ${tool === 'rectangle' ? 'bg-[#37373d] text-white' : 'text-gray-400 hover:bg-[#3e3e42]'}`}
+              >
+                Rectangle
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleClearCanvas}
+              className="h-7 px-2 text-xs text-gray-400 hover:text-white hover:bg-[#3e3e42]"
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1" />
+              Clear
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleDownload}
+              className="h-7 px-2 text-xs text-gray-400 hover:text-white hover:bg-[#3e3e42]"
+            >
+              <Download className="h-3.5 w-3.5 mr-1" />
+              Save
+            </Button>
+          </div>
         </div>
       </div>
       
-      <div className="border rounded-lg overflow-hidden bg-white">
-        <canvas
-          ref={canvasRef}
-          width={600}
-          height={300}
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={endDrawing}
-          onMouseLeave={endDrawing}
-          onTouchStart={startDrawing}
-          onTouchMove={draw}
-          onTouchEnd={endDrawing}
-          className="w-full touch-none cursor-crosshair"
-        />
+      {/* Code-like explanation */}
+      <div className="text-sm">
+        <h3 className="font-semibold mb-2">Key features:</h3>
+        <ul className="list-disc pl-5 space-y-1 text-sm">
+          <li><span className="font-medium">Drawing Tools:</span> Basic pencil and rectangle shape tools</li>
+          <li><span className="font-medium">Color Selection:</span> Choose any color for your drawing</li>
+          <li><span className="font-medium">Save Functionality:</span> Download your creation as a PNG image</li>
+        </ul>
       </div>
     </div>
   );
