@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowUp, ImageIcon, PlusCircle, Plus, MoreHorizontal, Search, Lightbulb } from 'lucide-react';
+import { ArrowUp, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import AppLayout from '@/components/layout/AppLayout';
@@ -8,7 +8,6 @@ import { Canvas } from '@/components/palm/Canvas';
 import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from 'react-markdown';
 import CodeBlock from '@/components/code/CodeBlock';
-import CodeEditor from '@/components/palm/CodeEditor';
 import { Input } from '@/components/ui/input';
 
 // Define a proper type for chat messages
@@ -23,7 +22,6 @@ const Palm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showCanvas, setShowCanvas] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [codeContent, setCodeContent] = useState<string>('');
 
   useEffect(() => {
     scrollToBottom();
@@ -68,14 +66,6 @@ const Palm = () => {
       // Add assistant message with explicit typing
       const assistantMessage: ChatMessage = { role: 'assistant', content: data.message };
       setMessages([...updatedMessages, assistantMessage]);
-      
-      // Extract code blocks from the response to display in code editor
-      const codeBlockRegex = /```(?:\w+)?\s*([\s\S]*?)```/g;
-      const matches = [...data.message.matchAll(codeBlockRegex)];
-      if (matches.length > 0) {
-        // Use the first code block found in the response
-        setCodeContent(matches[0][1]);
-      }
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error(error instanceof Error ? error.message : "Failed to send message. Please try again.");
@@ -90,15 +80,14 @@ const Palm = () => {
 
   const handleNewChat = () => {
     setMessages([]);
-    setCodeContent('');
     setShowCanvas(false);
   };
 
   return (
     <AppLayout>
       <div className="flex w-full h-[calc(100vh-20px)] overflow-hidden">
-        {/* Left panel - Chat */}
-        <div className="flex flex-col h-full w-1/2 border-r border-gray-200">
+        {/* Chat panel - now takes full width */}
+        <div className="flex flex-col h-full w-full border-r border-gray-200">
           {/* Chat header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
             <h1 className="text-xl font-semibold">Palm</h1>
@@ -198,7 +187,7 @@ const Palm = () => {
             </div>
           )}
 
-          {/* Input Area - Updated to make text visible */}
+          {/* Input Area */}
           <div className="border-t border-gray-200 p-4 bg-white">
             <div className="flex flex-col mx-auto w-full">
               <div className="relative flex items-center w-full rounded-2xl border border-gray-300 bg-white shadow-sm">
@@ -230,11 +219,6 @@ const Palm = () => {
               Palm may make mistakes. Check important info.
             </div>
           </div>
-        </div>
-        
-        {/* Right panel - Code Editor */}
-        <div className="h-full w-1/2 bg-white">
-          <CodeEditor content={codeContent} />
         </div>
       </div>
     </AppLayout>
