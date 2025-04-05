@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowUp, ImageIcon, PlusCircle, Plus, MoreHorizontal, Search, Lightbulb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -223,26 +222,6 @@ const Palm = () => {
                     <ArrowUp className="h-4 w-4" />
                   </Button>
                 </div>
-              </div>
-              
-              <div className="flex items-center justify-center mt-2 space-x-2">
-                <Button variant="outline" size="icon" className="rounded-full h-9 w-9 border border-gray-300">
-                  <Plus className="h-5 w-5" />
-                </Button>
-                <Button variant="outline" size="icon" className="rounded-full h-9 w-9 border border-gray-300 flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <path d="m21 21-4.3-4.3"></path>
-                  </svg>
-                  <span className="ml-1 text-sm">Search</span>
-                </Button>
-                <Button variant="outline" size="icon" className="rounded-full h-9 w-9 border border-gray-300 flex items-center">
-                  <Lightbulb className="h-5 w-5 mr-1" />
-                  <span className="text-sm">Reason</span>
-                </Button>
-                <Button variant="outline" size="icon" className="rounded-full h-9 w-9 border border-gray-300">
-                  <MoreHorizontal className="h-5 w-5" />
-                </Button>
               </div>
             </div>
             
