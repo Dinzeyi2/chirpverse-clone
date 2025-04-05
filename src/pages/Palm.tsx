@@ -229,17 +229,20 @@ const Palm = () => {
           )}
         </div>
 
-        {/* Canvas Sheet (Side Panel) */}
+        {/* Canvas Sheet - ChatGPT Style */}
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <SheetContent className="w-[90%] sm:w-[800px] p-0" side="right">
-            <div className="h-full flex flex-col">
-              <div className="p-4 border-b flex justify-between items-center">
-                <div>
-                  <h2 className="text-lg font-semibold">Whiteboard</h2>
-                  <p className="text-sm text-muted-foreground">Draw or diagram your ideas</p>
-                </div>
+          <SheetContent className="w-[90%] sm:w-[calc(100%-250px)] p-0 sm:max-w-none border-l border-gray-200 dark:border-gray-800 shadow-none" side="right">
+            <div className="h-full flex flex-col bg-white dark:bg-[#16161a]">
+              {/* Header styled like ChatGPT */}
+              <div className="p-3 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
+                <div className="text-sm font-medium">Whiteboard</div>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
               </div>
-              <div className="flex-grow overflow-auto p-4">
+              
+              {/* Canvas area with clean design */}
+              <div className="flex-grow h-full overflow-hidden">
                 <Canvas />
               </div>
             </div>
