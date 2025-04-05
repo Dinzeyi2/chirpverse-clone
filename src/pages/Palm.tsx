@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import AppLayout from '@/components/layout/AppLayout';
 import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from 'react-markdown';
-import CodeBlock from '@/components/code/CodeBlock';
+import CodeEditorV2 from '@/components/palm/CodeEditorV2';
 
 // Define a proper type for chat messages
 type ChatMessage = {
@@ -75,6 +75,21 @@ const Palm = () => {
     setMessages([]);
   };
 
+  // Function to extract code blocks from markdown
+  const extractCodeBlock = (content: string): { code: string, language: string } => {
+    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/;
+    const match = content.match(codeBlockRegex);
+    
+    if (match) {
+      return {
+        language: match[1] || 'text',
+        code: match[2]
+      };
+    }
+    
+    return { code: '', language: 'text' };
+  };
+
   return (
     <AppLayout>
       <div className="flex w-full h-[calc(100vh-20px)] overflow-hidden">
@@ -100,65 +115,76 @@ const Palm = () => {
               </div>
             ) : (
               <div className="space-y-6">
-                {messages.map((message, index) => (
-                  <div 
-                    key={index} 
-                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
+                {messages.map((message, index) => {
+                  const { code, language } = message.role === 'assistant' 
+                    ? extractCodeBlock(message.content) 
+                    : { code: '', language: '' };
+                    
+                  return (
                     <div 
-                      className={`max-w-[95%] rounded-lg px-4 py-3 ${
-                        message.role === 'user' 
-                          ? 'bg-gray-100 text-gray-800 rounded-2xl' 
-                          : 'bg-white text-gray-800 border border-gray-200 rounded-2xl'
-                      }`}
+                      key={index} 
+                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
-                      {message.role === 'user' ? (
-                        message.content
-                      ) : (
-                        <ReactMarkdown
-                          components={{
-                            p: ({ node, ...props }) => <p className="mb-2" {...props} />,
-                            h1: ({ node, ...props }) => <h1 className="text-xl font-bold my-2" {...props} />,
-                            h2: ({ node, ...props }) => <h2 className="text-lg font-bold my-2" {...props} />,
-                            h3: ({ node, ...props }) => <h3 className="text-md font-bold my-2" {...props} />,
-                            ul: ({ node, ...props }) => <ul className="list-disc pl-5 my-2" {...props} />,
-                            ol: ({ node, ...props }) => <ol className="list-decimal pl-5 my-2" {...props} />,
-                            li: ({ node, ...props }) => <li className="my-1" {...props} />,
-                            a: ({ node, href, children, ...props }) => (
-                              <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline" {...props}>
-                                {children}
-                              </a>
-                            ),
-                            em: ({ node, ...props }) => <em className="italic" {...props} />,
-                            strong: ({ node, ...props }) => <strong className="font-bold" {...props} />,
-                            blockquote: ({ node, ...props }) => (
-                              <blockquote className="border-l-4 border-gray-300 pl-4 italic my-2" {...props} />
-                            ),
-                            code: ({ className, children, ...props }) => {
-                              const match = /language-(\w+)/.exec(className || '');
-                              return match ? (
-                                <CodeBlock
-                                  code={String(children).replace(/\n$/, '')}
-                                  language={match[1]}
-                                  className="my-2"
-                                />
-                              ) : (
-                                <code
-                                  className="bg-gray-200 text-gray-800 px-1 py-0.5 rounded"
-                                  {...props}
-                                >
-                                  {children}
-                                </code>
-                              );
-                            },
-                          }}
-                        >
-                          {message.content}
-                        </ReactMarkdown>
-                      )}
+                      <div 
+                        className={`max-w-[95%] rounded-lg px-4 py-3 ${
+                          message.role === 'user' 
+                            ? 'bg-gray-100 text-gray-800 rounded-2xl' 
+                            : 'bg-white text-gray-800 border border-gray-200 rounded-2xl'
+                        }`}
+                      >
+                        {message.role === 'user' ? (
+                          message.content
+                        ) : (
+                          <>
+                            <ReactMarkdown
+                              components={{
+                                p: ({ node, ...props }) => <p className="mb-2" {...props} />,
+                                h1: ({ node, ...props }) => <h1 className="text-xl font-bold my-2" {...props} />,
+                                h2: ({ node, ...props }) => <h2 className="text-lg font-bold my-2" {...props} />,
+                                h3: ({ node, ...props }) => <h3 className="text-md font-bold my-2" {...props} />,
+                                ul: ({ node, ...props }) => <ul className="list-disc pl-5 my-2" {...props} />,
+                                ol: ({ node, ...props }) => <ol className="list-decimal pl-5 my-2" {...props} />,
+                                li: ({ node, ...props }) => <li className="my-1" {...props} />,
+                                a: ({ node, href, children, ...props }) => (
+                                  <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline" {...props}>
+                                    {children}
+                                  </a>
+                                ),
+                                em: ({ node, ...props }) => <em className="italic" {...props} />,
+                                strong: ({ node, ...props }) => <strong className="font-bold" {...props} />,
+                                blockquote: ({ node, ...props }) => (
+                                  <blockquote className="border-l-4 border-gray-300 pl-4 italic my-2" {...props} />
+                                ),
+                                code: ({ inline, className, children, ...props }) => {
+                                  const match = /language-(\w+)/.exec(className || '');
+                                  return !inline && match ? (
+                                    // Don't render code blocks through ReactMarkdown, we'll use our custom editor
+                                    <></>
+                                  ) : (
+                                    <code
+                                      className="bg-gray-200 text-gray-800 px-1 py-0.5 rounded"
+                                      {...props}
+                                    >
+                                      {children}
+                                    </code>
+                                  );
+                                },
+                              }}
+                            >
+                              {message.content.replace(/```[\w]*\n[\s\S]*?```/g, '')}
+                            </ReactMarkdown>
+                            
+                            {code && (
+                              <div className="my-4 h-[500px] w-full">
+                                <CodeEditorV2 code={code} language={language} />
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {isLoading && (
                   <div className="flex justify-start">
                     <div className="flex items-center space-x-2 bg-white text-gray-800 border border-gray-200 rounded-2xl px-4 py-3">
