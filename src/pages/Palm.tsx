@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from 'react-markdown';
 import CodeBlock from '@/components/code/CodeBlock';
 import CodeEditor from '@/components/palm/CodeEditor';
+import { Input } from '@/components/ui/input';
 
 // Define a proper type for chat messages
 type ChatMessage = {
@@ -197,41 +198,50 @@ const Palm = () => {
             </div>
           )}
 
-          {/* Input Area */}
+          {/* Input Area - Updated to match the provided design */}
           <div className="border-t border-gray-200 p-4 bg-white">
-            <div className="flex items-center gap-2 mx-auto w-full">            
-              <div className="flex items-center w-full rounded-lg border border-gray-300 bg-white shadow-sm">
-                <div className="flex-grow px-2">
-                  <form onSubmit={handleSubmit} className="flex items-center w-full">
-                    <input
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      placeholder="Ask anything"
-                      className="w-full py-3 px-3 bg-transparent border-none focus:outline-none text-sm"
-                      disabled={isLoading}
-                    />
-                    <Button 
-                      type="submit" 
-                      size="icon"
-                      variant="ghost"
-                      className="ml-1 rounded-full h-8 w-8" 
-                      disabled={!input.trim() || isLoading}
-                    >
-                      <ArrowUp className="h-4 w-4" />
-                    </Button>
-                  </form>
+            <div className="flex flex-col mx-auto w-full">
+              <div className="relative flex items-center w-full rounded-2xl border border-gray-300 bg-white shadow-sm">
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Ask anything"
+                  className="w-full py-3 px-4 bg-transparent border-none focus:outline-none text-sm min-h-[44px] max-h-[200px] resize-none"
+                  rows={1}
+                  disabled={isLoading}
+                  style={{ overflow: 'auto' }}
+                />
+                <div className="absolute right-2 bottom-2">
+                  <Button 
+                    type="submit" 
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleSubmit}
+                    className="rounded-full h-8 w-8 bg-black text-white hover:bg-gray-800" 
+                    disabled={!input.trim() || isLoading}
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
               
-              <div className="flex items-center space-x-2">
-                <Button variant="outline" size="icon" className="rounded-full h-9 w-9">
+              <div className="flex items-center justify-center mt-2 space-x-2">
+                <Button variant="outline" size="icon" className="rounded-full h-9 w-9 border border-gray-300">
                   <Plus className="h-5 w-5" />
                 </Button>
-                <Button variant="outline" size="icon" className="rounded-full h-9 w-9">
-                  <Search className="h-5 w-5" />
+                <Button variant="outline" size="icon" className="rounded-full h-9 w-9 border border-gray-300 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.3-4.3"></path>
+                  </svg>
+                  <span className="ml-1 text-sm">Search</span>
                 </Button>
-                <Button variant="outline" size="icon" className="rounded-full h-9 w-9">
-                  <Lightbulb className="h-5 w-5" />
+                <Button variant="outline" size="icon" className="rounded-full h-9 w-9 border border-gray-300 flex items-center">
+                  <Lightbulb className="h-5 w-5 mr-1" />
+                  <span className="text-sm">Reason</span>
+                </Button>
+                <Button variant="outline" size="icon" className="rounded-full h-9 w-9 border border-gray-300">
+                  <MoreHorizontal className="h-5 w-5" />
                 </Button>
               </div>
             </div>
