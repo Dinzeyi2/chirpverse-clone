@@ -47,23 +47,23 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         </div>
       )}
       
-      {/* Sidebar Navigation - Hide for Palm page */}
-      {!isPalmPage && <Sidebar />}
+      {/* Sidebar Navigation */}
+      <Sidebar />
       
       {/* Main Content Area */}
       <main 
         className={cn(
           "flex-grow min-h-screen w-full",
           theme === "dark" ? "bg-black" : "bg-lightBeige",
-          isPalmPage ? "" : (isMobile ? "pb-20 px-1" : "ml-[275px]")
+          isMobile ? "pb-20 px-1" : "ml-[275px]"
         )}
         style={{ 
-          maxWidth: isPalmPage ? '100%' : (isMobile ? '100%' : 'calc(100% - 275px)'),
+          maxWidth: isMobile ? '100%' : 'calc(100% - 275px)',
         }}
       >
         <div className={cn(
           "mx-auto",
-          isPalmPage ? "w-full max-w-none" : "w-full max-w-2xl"
+          isPalmPage ? "w-full max-w-none p-0" : "w-full max-w-2xl"
         )}>
           {children || <Outlet />}
         </div>
