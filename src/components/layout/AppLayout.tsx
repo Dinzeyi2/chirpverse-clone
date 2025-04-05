@@ -1,12 +1,13 @@
 
 import React from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/theme/theme-provider';
 import { useIsMobile, useScreenSize } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { useLocation } from 'react-router-dom';
 
 interface AppLayoutProps {
   children?: React.ReactNode;
@@ -19,7 +20,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const { user } = useAuth();
   const location = useLocation();
   
-  // Hide sidebar on Palm page
+  // Check if we're on the Palm page
   const isPalmPage = location.pathname === '/palm';
   
   return (
@@ -46,7 +47,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         </div>
       )}
       
-      {/* Sidebar Navigation - hidden on Palm page */}
+      {/* Sidebar Navigation - Hide for Palm page */}
       {!isPalmPage && <Sidebar />}
       
       {/* Main Content Area */}
@@ -54,19 +55,15 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         className={cn(
           "flex-grow min-h-screen w-full",
           theme === "dark" ? "bg-black" : "bg-lightBeige",
-          isMobile 
-            ? "pb-20 px-1" // Reduced padding for better mobile view
-            : isPalmPage 
-              ? "ml-0" // No margin for Palm page
-              : "ml-[275px]" // Add margin for sidebar on desktop
+          isPalmPage ? "" : (isMobile ? "pb-20 px-1" : "ml-[275px]")
         )}
         style={{ 
-          maxWidth: isPalmPage ? '100%' : isMobile ? '100%' : 'calc(100% - 275px)',
+          maxWidth: isPalmPage ? '100%' : (isMobile ? '100%' : 'calc(100% - 275px)'),
         }}
       >
         <div className={cn(
-          "w-full mx-auto",
-          !isPalmPage && "max-w-2xl" // Only apply max width on non-Palm pages
+          "mx-auto",
+          isPalmPage ? "w-full max-w-none" : "w-full max-w-2xl"
         )}>
           {children || <Outlet />}
         </div>
