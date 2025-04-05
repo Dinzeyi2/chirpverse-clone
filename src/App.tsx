@@ -13,7 +13,6 @@ import NotFound from "./pages/NotFound";
 import PostPage from "./pages/PostPage";
 import Auth from "./pages/Auth";
 import Settings from "./pages/Settings";
-import Palm from "./pages/Palm";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { useEffect } from "react";
@@ -79,14 +78,6 @@ const AppContent = () => {
         element={
           <ProtectedRoute>
             <PostPage />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/palm" 
-        element={
-          <ProtectedRoute>
-            <Palm />
           </ProtectedRoute>
         } 
       />
