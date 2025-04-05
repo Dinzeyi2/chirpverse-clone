@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowUp, ImageIcon, PlusCircle, Plus, MoreHorizontal, Search, Lightbulb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -197,7 +198,7 @@ const Palm = () => {
             </div>
           )}
 
-          {/* Input Area - Updated to match the provided design */}
+          {/* Input Area - Updated to make text visible */}
           <div className="border-t border-gray-200 p-4 bg-white">
             <div className="flex flex-col mx-auto w-full">
               <div className="relative flex items-center w-full rounded-2xl border border-gray-300 bg-white shadow-sm">
@@ -205,7 +206,7 @@ const Palm = () => {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask anything"
-                  className="w-full py-3 px-4 bg-transparent border-none focus:outline-none text-sm min-h-[44px] max-h-[200px] resize-none"
+                  className="w-full py-3 px-4 bg-transparent border-none focus:outline-none text-sm min-h-[44px] max-h-[200px] resize-none text-gray-800"
                   rows={1}
                   disabled={isLoading}
                   style={{ overflow: 'auto' }}
