@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 import AppLayout from '@/components/layout/AppLayout';
 import { Canvas } from '@/components/palm/Canvas';
 import { supabase } from "@/integrations/supabase/client";
+import ReactMarkdown from 'react-markdown';
+import CodeBlock from '@/components/code/CodeBlock';
 
 // Define a proper type for chat messages
 type ChatMessage = {
@@ -80,6 +82,11 @@ const Palm = () => {
     setShowCanvas(false);
   };
 
+  // Helper function to detect code blocks in markdown
+  const renderCodeBlock = ({ language, value }: { language: string; value: string }) => {
+    return <CodeBlock code={value} language={language || 'text'} />;
+  };
+
   return (
     <AppLayout>
       <div className="flex flex-col h-screen max-h-[calc(100vh-64px)] pt-4">
@@ -113,7 +120,51 @@ const Palm = () => {
                         : 'bg-[#f5f5f1] text-[#1f1f1f] rounded-2xl'
                     }`}
                   >
-                    {message.content}
+                    {message.role === 'user' ? (
+                      message.content
+                    ) : (
+                      <ReactMarkdown
+                        components={{
+                          // Apply proper styling to different markdown elements
+                          p: ({ children }) => <p className="mb-2">{children}</p>,
+                          h1: ({ children }) => <h1 className="text-xl font-bold my-2">{children}</h1>,
+                          h2: ({ children }) => <h2 className="text-lg font-bold my-2">{children}</h2>,
+                          h3: ({ children }) => <h3 className="text-md font-bold my-2">{children}</h3>,
+                          ul: ({ children }) => <ul className="list-disc pl-5 my-2">{children}</ul>,
+                          ol: ({ children }) => <ol className="list-decimal pl-5 my-2">{children}</ol>,
+                          li: ({ children }) => <li className="my-1">{children}</li>,
+                          a: ({ href, children }) => (
+                            <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                              {children}
+                            </a>
+                          ),
+                          em: ({ children }) => <em className="italic">{children}</em>,
+                          strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                          blockquote: ({ children }) => (
+                            <blockquote className="border-l-4 border-gray-300 pl-4 italic my-2">{children}</blockquote>
+                          ),
+                          code: ({ node, inline, className, children, ...props }) => {
+                            const match = /language-(\w+)/.exec(className || '');
+                            return !inline && match ? (
+                              <CodeBlock
+                                code={String(children).replace(/\n$/, '')}
+                                language={match[1]}
+                                className="my-2"
+                              />
+                            ) : (
+                              <code
+                                className={`${inline ? 'bg-gray-200 text-gray-800 px-1 py-0.5 rounded' : 'block bg-gray-100 p-2 rounded'}`}
+                                {...props}
+                              >
+                                {children}
+                              </code>
+                            );
+                          },
+                        }}
+                      >
+                        {message.content}
+                      </ReactMarkdown>
+                    )}
                   </div>
                 </div>
               ))}

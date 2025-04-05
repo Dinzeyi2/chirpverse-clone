@@ -50,7 +50,7 @@ serve(async (req) => {
 
     console.log("Formatted messages for Gemini:", JSON.stringify(formattedMessages));
 
-    // Call Gemini 1.5 Pro model
+    // Call Gemini 1.5 Pro model with configuration to preserve formatting
     const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent', {
       method: 'POST',
       headers: {
@@ -62,6 +62,10 @@ serve(async (req) => {
         generationConfig: {
           temperature: 0.7,
           maxOutputTokens: 2048,
+          // Add this to tell the model to maintain markdown formatting
+          responseFormat: {
+            preserveFormatting: true
+          }
         },
       }),
     });
