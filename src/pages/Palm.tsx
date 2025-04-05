@@ -155,9 +155,9 @@ const Palm = () => {
                                 blockquote: ({ node, ...props }) => (
                                   <blockquote className="border-l-4 border-gray-300 pl-4 italic my-2" {...props} />
                                 ),
-                                code: ({ inline, className, children, ...props }) => {
+                                code: ({ className, children, ...props }) => {
                                   const match = /language-(\w+)/.exec(className || '');
-                                  return !inline && match ? (
+                                  return match ? (
                                     // Don't render code blocks through ReactMarkdown, we'll use our custom editor
                                     <></>
                                   ) : (
