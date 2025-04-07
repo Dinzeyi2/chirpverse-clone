@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
@@ -38,25 +39,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
         console.error('Push notifications are not supported in this browser');
+        toast.error('Push notifications are not supported in this browser');
         return;
       }
 
-      // Register service worker
-      const registration = await navigator.serviceWorker.register('/service-worker.js');
-      console.log('Service Worker registered with scope:', registration.scope);
+      if (!user) {
+        console.error('User not authenticated');
+        toast.error('Please log in to enable notifications');
+        return;
+      }
+
+      console.log('Subscribing to notifications for user:', user.id);
 
       // Request notification permission
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
         console.error('Notification permission denied');
+        toast.error('Notification permission was denied');
+        return;
+      }
+
+      console.log('Notification permission granted');
+
+      // Register service worker
+      try {
+        // Attempt to unregister any existing service workers first
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (let registration of registrations) {
+          await registration.unregister();
+          console.log('Unregistered existing service worker');
+        }
+        
+        // Register a new service worker
+        const registration = await navigator.serviceWorker.register('/service-worker.js', {
+          scope: '/'
+        });
+        console.log('Service Worker registered with scope:', registration.scope);
+        
+        // Wait for the service worker to be ready
+        await navigator.serviceWorker.ready;
+        console.log('Service worker is ready');
+      } catch (swError) {
+        console.error('Service Worker registration failed:', swError);
+        toast.error('Failed to register notification service');
         return;
       }
 
       // Get push subscription
+      const registration = await navigator.serviceWorker.ready;
       let subscription = await registration.pushManager.getSubscription();
       
-      if (!subscription) {
-        // Get VAPID public key from Supabase
+      console.log('Existing subscription:', subscription);
+      
+      if (subscription) {
+        // If there's an existing subscription, unsubscribe first
+        await subscription.unsubscribe();
+        console.log('Unsubscribed from existing push subscription');
+      }
+      
+      try {
+        // Get VAPID public key from Supabase function
         const { data, error } = await supabase.functions.invoke('get-vapid-public-key');
         
         if (error) {
@@ -64,48 +106,70 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw new Error('Could not retrieve VAPID public key');
         }
         
-        const vapidPublicKey = data.vapidPublicKey;
+        const vapidPublicKey = data?.vapidPublicKey;
         if (!vapidPublicKey) {
+          toast.error('Server configuration error: VAPID key not available');
           throw new Error('VAPID public key not available');
         }
         
+        console.log('Retrieved VAPID public key:', vapidPublicKey);
+        
         const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
         
-        // Create subscription
+        // Create new subscription
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: convertedVapidKey
         });
+        
+        console.log('Created new push subscription:', subscription);
+      } catch (subscribeError) {
+        console.error('Error creating push subscription:', subscribeError);
+        toast.error('Failed to create notification subscription');
+        return;
       }
 
-      // Store subscription in Supabase if user is authenticated
-      if (user) {
-        try {
-          // Direct insert using raw SQL instead of RPC function
-          const subscriptionData = {
-            user_id: user.id,
-            subscription: JSON.stringify(subscription),
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          };
+      // Store subscription in Supabase
+      try {
+        // Format subscription object for storage
+        const subscriptionData = {
+          user_id: user.id,
+          subscription: JSON.stringify(subscription),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        console.log('Saving subscription to database:', subscriptionData);
+        
+        // Try to insert the subscription data
+        const { error: insertError } = await supabase
+          .from('user_push_subscriptions')
+          .upsert(subscriptionData, {
+            onConflict: 'user_id'
+          });
           
-          // Try to insert the subscription data directly
-          const { error: insertError } = await supabase
-            .from('user_push_subscriptions' as any)
-            .upsert(subscriptionData, {
-              onConflict: 'user_id'
-            });
-            
-          if (insertError) {
-            console.error('Error saving subscription:', insertError);
-            throw new Error('Failed to save push subscription');
-          }
-          
-          toast.success('Successfully subscribed to notifications');
-        } catch (dbError) {
-          console.error('Database error saving subscription:', dbError);
-          toast.error('Failed to store notification subscription');
+        if (insertError) {
+          console.error('Error saving subscription:', insertError);
+          throw new Error('Failed to save push subscription');
         }
+        
+        console.log('Successfully saved subscription to database');
+        
+        // Send a test notification
+        await supabase.functions.invoke('send-push-notification', {
+          body: {
+            userId: user.id,
+            title: 'Notifications Enabled',
+            body: 'You have successfully enabled push notifications!',
+            url: '/notifications',
+            tag: 'test-subscription'
+          }
+        });
+        
+        toast.success('Successfully subscribed to notifications');
+      } catch (dbError) {
+        console.error('Database error saving subscription:', dbError);
+        toast.error('Failed to store notification subscription');
       }
     } catch (error) {
       console.error('Error subscribing to push notifications:', error);

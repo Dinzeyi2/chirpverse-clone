@@ -283,8 +283,12 @@ const Settings = () => {
       return;
     }
     
+    toast.info("Sending test notification...");
+    
     try {
-      await supabase.functions.invoke('send-push-notification', {
+      console.log("Sending test notification to user:", user.id);
+      
+      const response = await supabase.functions.invoke('send-push-notification', {
         body: {
           userId: user.id,
           title: 'Test Notification',
@@ -294,10 +298,24 @@ const Settings = () => {
         }
       });
       
+      console.log("Notification API response:", response);
+      
+      if (response.error) {
+        throw new Error(response.error.message || "Failed to send notification");
+      }
+      
       toast.success('Test notification sent');
     } catch (error) {
       console.error('Error sending test notification:', error);
-      toast.error('Failed to send test notification');
+      toast.error('Failed to send test notification: ' + (error.message || "Unknown error"));
+      
+      // If there's an error, try re-subscribing to notifications
+      toast.info("Attempting to re-subscribe to notifications...");
+      try {
+        await subscribeToNotifications();
+      } catch (subError) {
+        console.error("Error re-subscribing:", subError);
+      }
     }
   };
 
@@ -382,6 +400,13 @@ const Settings = () => {
                       className="mt-2"
                     >
                       Test Push Notification
+                    </Button>
+                    <Button 
+                      onClick={subscribeToNotifications} 
+                      className="mt-2 ml-2"
+                      variant="outline"
+                    >
+                      Re-subscribe to Notifications
                     </Button>
                   </div>
                 </div>
