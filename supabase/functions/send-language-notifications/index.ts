@@ -12,12 +12,12 @@ serve(async (req) => {
 
     console.log('Starting language notification process')
 
-    // Get all users who have consented to notifications
+    // Get all users with emails and programming languages
     const { data: users, error: usersError } = await supabaseClient
       .from('profiles')
-      .select('user_id, programming_languages, email, email_notifications_enabled')
+      .select('user_id, programming_languages, email')
       .not('email', 'is', null)
-      .eq('email_notifications_enabled', true) // Only get users who have enabled email notifications
+      // No longer filtering by email_notifications_enabled
 
     if (usersError) {
       console.error('Error fetching users:', usersError)
@@ -27,7 +27,7 @@ serve(async (req) => {
       )
     }
 
-    console.log(`Found ${users?.length || 0} users with email notification enabled`)
+    console.log(`Found ${users?.length || 0} users with email addresses`)
 
     // Get recent posts (last 24 hours)
     const yesterday = new Date()

@@ -216,16 +216,11 @@ const ProgrammingLanguageSelector = ({
   );
 };
 
-const EmailNotificationSettings = ({
-  emailNotificationsEnabled,
-  setEmailNotificationsEnabled
-}: {
-  emailNotificationsEnabled: boolean;
-  setEmailNotificationsEnabled: React.Dispatch<React.SetStateAction<boolean>>;
-}) => {
+const EmailNotificationSettings = () => {
   const { theme } = useTheme();
   const textColor = theme === 'dark' ? 'text-white' : 'text-foreground';
   const mutedTextColor = theme === 'dark' ? 'text-xGray-dark' : 'text-muted-foreground';
+  const infoColor = theme === 'dark' ? 'text-blue-300' : 'text-blue-600';
   
   return (
     <div className="space-y-4">
@@ -234,22 +229,16 @@ const EmailNotificationSettings = ({
           Email Notifications
         </span>
         <span className={mutedTextColor}>
-          Receive notifications by email when there are new posts about programming languages you follow
+          You will receive notifications by email when there are new posts about programming languages you follow
         </span>
       </div>
       
       <div className="flex items-center space-x-2">
-        <Switch 
-          id="email-notifications" 
-          checked={emailNotificationsEnabled} 
-          onCheckedChange={setEmailNotificationsEnabled} 
-        />
-        <label 
-          htmlFor="email-notifications" 
-          className={cn("text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70", textColor)}
-        >
-          Enable email notifications
-        </label>
+        <div className={cn("p-2 bg-blue-100 dark:bg-blue-900 rounded-md", infoColor)}>
+          <span className="text-sm">
+            Email notifications are enabled by default using the email you signed up with. This helps you stay updated on discussions about your selected programming languages.
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -262,7 +251,6 @@ const Settings = () => {
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
   const [openLanguagesDialog, setOpenLanguagesDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(false);
   const [openEmailDialog, setOpenEmailDialog] = useState(false);
   
   useEffect(() => {
@@ -270,7 +258,7 @@ const Settings = () => {
       const fetchUserProfile = async () => {
         const { data, error } = await supabase
           .from('profiles')
-          .select('programming_languages, email_notifications_enabled')
+          .select('programming_languages')
           .eq('user_id', user.id)
           .single();
         
@@ -283,8 +271,6 @@ const Settings = () => {
           if (data.programming_languages) {
             setSelectedLanguages(Array.isArray(data.programming_languages) ? data.programming_languages : []);
           }
-          
-          setEmailNotificationsEnabled(!!data.email_notifications_enabled);
         }
       };
       
@@ -322,29 +308,6 @@ const Settings = () => {
     } catch (error) {
       console.error('Error updating programming languages:', error);
       toast.error('Failed to update programming languages');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const saveEmailNotificationSettings = async () => {
-    if (!user) return;
-    
-    setIsSaving(true);
-    
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ email_notifications_enabled: emailNotificationsEnabled })
-        .eq('user_id', user.id);
-      
-      if (error) throw error;
-      
-      toast.success('Email notification settings updated successfully');
-      setOpenEmailDialog(false);
-    } catch (error) {
-      console.error('Error updating email notification settings:', error);
-      toast.error('Failed to update email notification settings');
     } finally {
       setIsSaving(false);
     }
@@ -394,7 +357,7 @@ const Settings = () => {
             <SettingsItem 
               icon={Mail}
               title="Email Notifications"
-              description="Manage email notification preferences"
+              description="Information about email notifications for programming languages"
               onClick={handleEmailNotificationsClick}
             />
             
@@ -470,21 +433,15 @@ const Settings = () => {
           <DialogHeader>
             <DialogTitle>Email Notifications</DialogTitle>
             <DialogDescription className={mutedTextColor}>
-              Manage your email notification preferences
+              Information about email notifications
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="h-[30vh] pr-4">
-            <EmailNotificationSettings
-              emailNotificationsEnabled={emailNotificationsEnabled}
-              setEmailNotificationsEnabled={setEmailNotificationsEnabled}
-            />
+            <EmailNotificationSettings />
           </ScrollArea>
           <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" onClick={() => setOpenEmailDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={saveEmailNotificationSettings} disabled={isSaving}>
-              {isSaving ? 'Saving...' : 'Save Changes'}
+            <Button onClick={() => setOpenEmailDialog(false)}>
+              Close
             </Button>
           </div>
         </DialogContent>
