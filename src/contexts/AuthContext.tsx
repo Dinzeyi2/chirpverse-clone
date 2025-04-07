@@ -81,21 +81,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Store subscription in Supabase if user is authenticated
       if (user) {
-        // Save the subscription to the user's profile
+        // Save the subscription to the user's profile using raw query
         const { error: upsertError } = await supabase
-          .from('user_push_subscriptions')
-          .upsert(
-            {
+          .rpc('upsert_push_subscription', { 
+            p_user_id: user.id, 
+            p_subscription: JSON.stringify(subscription)
+          });
+        
+        if (upsertError) {
+          // Fall back to raw SQL if RPC doesn't exist
+          const { error: rawError } = await supabase
+            .from('user_push_subscriptions')
+            .upsert({
               user_id: user.id,
               subscription: JSON.stringify(subscription),
               created_at: new Date().toISOString()
-            },
-            { onConflict: 'user_id' }
-          );
-        
-        if (upsertError) {
-          console.error('Error saving subscription:', upsertError);
-          throw new Error('Failed to save notification subscription');
+            })
+            .select();
+          
+          if (rawError) {
+            console.error('Error saving subscription:', rawError);
+            throw new Error('Failed to save notification subscription');
+          }
         }
         
         toast.success('Successfully subscribed to notifications');
