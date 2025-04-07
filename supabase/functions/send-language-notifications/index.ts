@@ -58,6 +58,21 @@ serve(async (req) => {
     console.log(`Processing notifications for post: ${postId} (immediate: ${immediate}, debug: ${debug})`)
     console.log(`Languages explicitly passed: ${languages.join(', ') || 'none'}`)
 
+    // Validate RESEND_API_KEY is set
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    if (!resendApiKey) {
+      console.error('RESEND_API_KEY environment variable is not set');
+      return new Response(
+        JSON.stringify({ error: 'Email service API key is not configured' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500 
+        }
+      )
+    } else {
+      console.log('RESEND_API_KEY is properly configured');
+    }
+
     // Get the post details
     const { data: post, error: postError } = await supabaseClient
       .from('shoutouts')
@@ -68,7 +83,7 @@ serve(async (req) => {
     if (postError || !post) {
       console.error('Error fetching post:', postError);
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch post details' }),
+        JSON.stringify({ error: 'Failed to fetch post details', details: postError }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
           status: 500 
@@ -83,6 +98,7 @@ serve(async (req) => {
     if (languagesMentioned.length === 0) {
       console.log('No languages explicitly provided, extracting from content...');
       
+      // Enhanced language detection - look for both @language and direct mentions
       const mentionRegex = /@(\w+)/g;
       let match;
       while ((match = mentionRegex.exec(post.content)) !== null) {
@@ -92,8 +108,26 @@ serve(async (req) => {
           console.log(`Found language mention: ${language}`);
         }
       }
+      
+      // Add common languages detection without @ symbol
+      const commonLanguages = [
+        'javascript', 'typescript', 'python', 'java', 'c#', 'csharp', 'c++', 'cpp', 
+        'php', 'go', 'ruby', 'swift', 'kotlin', 'rust', 'dart', 'scala', 'r', 
+        'perl', 'haskell', 'lua', 'sql', 'html', 'css'
+      ];
+      
+      commonLanguages.forEach(language => {
+        const regex = new RegExp(`\\b${language}\\b`, 'i');
+        if (regex.test(post.content.toLowerCase()) && !languagesMentioned.includes(language.toLowerCase())) {
+          languagesMentioned.push(language.toLowerCase());
+          console.log(`Found direct language mention: ${language}`);
+        }
+      });
     }
 
+    // Remove duplicates
+    languagesMentioned = [...new Set(languagesMentioned)];
+    
     console.log(`Languages mentioned in post: ${languagesMentioned.join(', ') || 'none'}`);
 
     if (languagesMentioned.length === 0) {
@@ -118,7 +152,7 @@ serve(async (req) => {
     if (usersError) {
       console.error('Error fetching users:', usersError);
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch users' }),
+        JSON.stringify({ error: 'Failed to fetch users', details: usersError }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 500 
@@ -141,14 +175,29 @@ serve(async (req) => {
     // Process each user
     for (const user of users || []) {
       try {
-        // Skip users without programming languages
-        if (!user.programming_languages || !Array.isArray(user.programming_languages) || user.programming_languages.length === 0) {
+        // Process user's programming_languages safely
+        let userLanguages: string[] = [];
+        
+        if (user.programming_languages) {
+          if (Array.isArray(user.programming_languages)) {
+            userLanguages = user.programming_languages;
+          } else if (typeof user.programming_languages === 'string') {
+            try {
+              const parsed = JSON.parse(user.programming_languages);
+              userLanguages = Array.isArray(parsed) ? parsed : [user.programming_languages];
+            } catch (e) {
+              userLanguages = [user.programming_languages];
+            }
+          }
+        }
+        
+        // Validation: Skip users without programming languages or email notifications disabled
+        if (!userLanguages.length) {
           console.log(`User ${user.user_id} has no programming languages set, skipping`);
           notificationsSkipped++;
           continue;
         }
 
-        // Skip users who have not enabled email notifications
         if (user.email_notifications_enabled !== true) {
           console.log(`User ${user.user_id} has disabled email notifications, skipping`);
           notificationsSkipped++;
@@ -156,18 +205,18 @@ serve(async (req) => {
         }
 
         // Find languages that match between the post and user's interests - case insensitive comparison
-        const userLanguages = user.programming_languages.map(lang => lang.toLowerCase());
+        const normalizedUserLanguages = userLanguages.map(lang => lang.toLowerCase());
         
         if (debug) {
-          console.log(`User ${user.user_id} is interested in languages: ${userLanguages.join(', ')}`);
+          console.log(`User ${user.user_id} is interested in languages: ${normalizedUserLanguages.join(', ')}`);
           console.log(`Post mentions languages: ${languagesMentioned.join(', ')}`);
         }
         
         const relevantLanguages = languagesMentioned.filter(lang => 
-          userLanguages.includes(lang.toLowerCase())
+          normalizedUserLanguages.includes(lang.toLowerCase())
         );
 
-        console.log(`User ${user.user_id} follows: ${userLanguages.join(', ')}`);
+        console.log(`User ${user.user_id} follows: ${normalizedUserLanguages.join(', ')}`);
         console.log(`Relevant languages for user ${user.user_id}: ${relevantLanguages.join(', ') || 'none'}`);
 
         if (relevantLanguages.length > 0) {

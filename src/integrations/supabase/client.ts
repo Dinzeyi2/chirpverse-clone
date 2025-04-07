@@ -112,28 +112,47 @@ export const parseArrayField = (field: string | null): string[] => {
   }
 };
 
-// Improved language mention extraction - Now correctly extracts @language tags
+// Completely revamped language mention extraction with better regex
 export const extractLanguageMentions = (content: string): string[] => {
   if (!content) return [];
   
   console.log('Extracting language mentions from content:', content);
   
   // Enhanced regex to match @language mentions more accurately
+  // This will capture both @LanguageName and plain LanguageName in the content
   const mentionRegex = /@(\w+)/g;
-  const matches = [];
+  const matches = new Set<string>();
   let match;
   
   while ((match = mentionRegex.exec(content)) !== null) {
     if (match[1]) {
       const language = match[1].toLowerCase().trim();
       console.log('Found language mention:', language);
-      matches.push(language);
+      matches.add(language);
     }
   }
   
-  console.log('All extracted language mentions:', matches);
+  // Also scan for direct language mentions without @ symbol
+  // Common programming languages to check for even without @ symbol
+  const commonLanguages = [
+    'javascript', 'typescript', 'python', 'java', 'c#', 'csharp', 'c++', 'cpp', 
+    'php', 'go', 'ruby', 'swift', 'kotlin', 'rust', 'dart', 'scala', 'r', 
+    'perl', 'haskell', 'lua', 'sql', 'html', 'css'
+  ];
   
-  return matches;
+  commonLanguages.forEach(language => {
+    // Use word boundary to ensure we're matching whole words
+    const regex = new RegExp(`\\b${language}\\b`, 'i');
+    if (regex.test(content.toLowerCase())) {
+      console.log('Found direct language mention:', language);
+      matches.add(language.toLowerCase());
+    }
+  });
+  
+  const uniqueMatches = Array.from(matches);
+  console.log('All extracted language mentions:', uniqueMatches);
+  
+  return uniqueMatches;
 };
 
 // Completely revamped notification system to ensure emails are sent properly
@@ -146,23 +165,27 @@ export const notifyLanguageUsers = async (
   try {
     console.log(`Starting notification process for languages: ${languages.join(', ')} in post ${postId}`);
     
-    // Call the Supabase function to process email notifications immediately with enhanced debugging
-    console.log('Invoking send-language-notifications function...');
-    
-    const { data, error } = await supabase.functions.invoke('send-language-notifications', {
-      body: { 
-        postId,
-        languages, // Pass the detected languages explicitly 
-        content: postContent, // Pass the content for context
-        immediate: true, // Flag to indicate this should be processed immediately
-        debug: true // Enable debug mode for more verbose logging
+    // Directly invoke edge function for email notifications with enhanced debugging
+    try {
+      console.log('Invoking send-language-notifications function...');
+      
+      const { data, error } = await supabase.functions.invoke('send-language-notifications', {
+        body: { 
+          postId,
+          languages, // Pass the detected languages explicitly 
+          content: postContent, // Pass the content for context
+          immediate: true, // Flag to indicate this should be processed immediately
+          debug: true // Enable debug mode for more verbose logging
+        }
+      });
+      
+      if (error) {
+        console.error('Error invoking send-language-notifications function:', error);
+      } else {
+        console.log('Email notifications triggered successfully:', data);
       }
-    });
-    
-    if (error) {
-      console.error('Error invoking send-language-notifications function:', error);
-    } else {
-      console.log('Email notifications triggered successfully:', data);
+    } catch (invokeError) {
+      console.error('Exception invoking send-language-notifications:', invokeError);
     }
     
     // Separately prepare in-app notifications for immediate feedback
@@ -174,31 +197,42 @@ export const notifyLanguageUsers = async (
         const { data: profilesWithLanguage, error: profilesError } = await supabase
           .from('profiles')
           .select('user_id, programming_languages, email, email_notifications_enabled')
-          .not('user_id', 'eq', senderId) // Don't notify the author
-          .eq('email_notifications_enabled', true); // Only fetch profiles with notifications enabled
+          .not('user_id', 'eq', senderId); // Don't notify the author
         
         if (profilesError) {
           console.error(`Error fetching profiles for language ${language}:`, profilesError);
           continue;
         }
         
-        console.log(`Found ${profilesWithLanguage?.length || 0} profiles with notifications enabled`);
+        console.log(`Found ${profilesWithLanguage?.length || 0} profiles to check for language match`);
         
         // Filter users who have the tagged language
         const usersToNotify = profilesWithLanguage?.filter(profile => {
-          const userLanguages = Array.isArray(profile.programming_languages) 
-            ? profile.programming_languages 
-            : parseArrayField(profile.programming_languages as any);
+          // Parse programming_languages properly, handling different storage formats
+          let userLanguages: string[] = [];
+          
+          if (profile.programming_languages) {
+            if (Array.isArray(profile.programming_languages)) {
+              userLanguages = profile.programming_languages;
+            } else if (typeof profile.programming_languages === 'string') {
+              try {
+                const parsed = JSON.parse(profile.programming_languages);
+                userLanguages = Array.isArray(parsed) ? parsed : [profile.programming_languages as string];
+              } catch (e) {
+                userLanguages = [profile.programming_languages as string];
+              }
+            }
+          }
           
           // Case insensitive check to match languages
           const hasLanguage = userLanguages.some(lang => 
             lang.toLowerCase() === language.toLowerCase()
           );
           
-          console.log(`User ${profile.user_id} has languages: ${userLanguages.join(', ')}`);
+          console.log(`User ${profile.user_id} has languages: ${userLanguages.join(', ') || 'none'}`);
           console.log(`User ${profile.user_id} has ${language}? ${hasLanguage}`);
           
-          return hasLanguage;
+          return hasLanguage && profile.email_notifications_enabled === true;
         }) || [];
         
         console.log(`Found ${usersToNotify.length} users to notify about ${language}`);
@@ -231,6 +265,33 @@ export const notifyLanguageUsers = async (
             console.error('Error creating notifications:', notificationError);
           } else {
             console.log(`Successfully created ${notifications.length} notifications`);
+          }
+        }
+        
+        // Directly send emails for immediate delivery
+        for (const user of usersToNotify) {
+          try {
+            console.log(`Sending direct email notification to user ${user.user_id}...`);
+            
+            // Direct email invocation for immediate delivery
+            const { data: emailData, error: emailError } = await supabase.functions.invoke('send-email-notification', {
+              body: {
+                userId: user.user_id,
+                subject: `New post about ${language}`,
+                body: `There's a new post discussing ${language} on iBlue. Check it out and join the conversation!`,
+                postId: postId,
+                priority: 'high',
+                debug: true
+              }
+            });
+            
+            if (emailError) {
+              console.error(`Error sending email to user ${user.user_id}:`, emailError);
+            } else {
+              console.log(`Email sent successfully to user ${user.user_id}:`, emailData);
+            }
+          } catch (emailSendError) {
+            console.error(`Exception sending email to user ${user.user_id}:`, emailSendError);
           }
         }
       } catch (langError) {
