@@ -45,25 +45,68 @@ export const enableRealtimeForTables = () => {
       }, (payload) => {
         console.log('Shoutout change detected:', payload);
         
-        // If a new post is created, check for language mentions in the content
+        // If a new post is created, notify users with matching programming languages
         if (payload.eventType === 'INSERT' && payload.new) {
           const content = payload.new.content;
-          console.log('New post detected, checking for programming languages in content');
+          const postId = payload.new.id;
+          const userId = payload.new.user_id;
           
-          // Extract programming languages mentioned in content
-          const languages = extractLanguageMentions(content);
+          console.log('New post created. Checking for programming languages to notify users.');
+          console.log('Post content:', content);
           
-          if (languages.length > 0) {
-            console.log('Programming languages found in post:', languages);
-            notifyUsersWithSameLanguages(
-              payload.new.user_id, 
-              languages, 
-              content, 
-              payload.new.id
-            );
-          } else {
-            console.log('No programming languages found in post content');
-          }
+          // Get the user's programming languages from their profile
+          supabase
+            .from('profiles')
+            .select('programming_languages')
+            .eq('user_id', userId)
+            .single()
+            .then(({ data: authorProfile, error: profileError }) => {
+              if (profileError) {
+                console.error('Error fetching author profile:', profileError);
+                return;
+              }
+              
+              console.log('Author profile languages:', authorProfile?.programming_languages);
+              
+              // Extract the author's programming languages
+              let authorLanguages: string[] = [];
+              if (authorProfile?.programming_languages) {
+                if (Array.isArray(authorProfile.programming_languages)) {
+                  authorLanguages = authorProfile.programming_languages.map(lang => lang.toLowerCase());
+                } else if (typeof authorProfile.programming_languages === 'string') {
+                  try {
+                    const parsed = JSON.parse(authorProfile.programming_languages);
+                    authorLanguages = Array.isArray(parsed) ? parsed.map(lang => lang.toLowerCase()) : [];
+                  } catch (e) {
+                    authorLanguages = [];
+                  }
+                }
+              }
+              
+              if (authorLanguages.length > 0) {
+                console.log('Author has programming languages:', authorLanguages);
+                
+                // Notify users with matching programming languages via edge function
+                supabase.functions.invoke('send-language-notifications', {
+                  body: { 
+                    postId,
+                    languages: authorLanguages,
+                    content: content,
+                    userId: userId,
+                    immediate: true,
+                    debug: true
+                  }
+                }).then(({ data, error }) => {
+                  if (error) {
+                    console.error('Error sending language notifications:', error);
+                  } else {
+                    console.log('Language notifications sent successfully:', data);
+                  }
+                });
+              } else {
+                console.log('Author has no programming languages set. No notifications will be sent.');
+              }
+            });
         }
       })
       .on('postgres_changes', { 
@@ -165,6 +208,7 @@ export const notifyUsersWithSameLanguages = async (
         postId,
         languages,
         content: postContent,
+        userId: senderId,
         immediate: true,
         debug: true
       }

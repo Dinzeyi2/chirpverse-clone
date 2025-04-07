@@ -42,7 +42,7 @@ serve(async (req) => {
       );
     }
     
-    const { userId, subject, body, postId, priority = 'normal', debug = true } = requestBody;
+    const { userId, subject, body, postId, priority = 'normal', debug = true, recipientName = 'iBlue User' } = requestBody;
 
     if (!userId) {
       console.error('Missing userId in request');
@@ -108,6 +108,7 @@ serve(async (req) => {
               <h2>iBlue Notification</h2>
             </div>
             <div class="content">
+              <p>Hi ${recipientName},</p>
               <p>${body}</p>
               <p style="text-align: center; margin-top: 30px;">
                 <a href="${postUrl}" class="button">View Post</a>
@@ -136,7 +137,7 @@ serve(async (req) => {
     
     // Send email using Resend
     const emailData = {
-      from: 'notifications@i-blue.dev',
+      from: 'iBlue Notifications <notifications@i-blue.dev>',
       to: userData.email,
       subject: subject || 'New iBlue Notification',
       html: htmlEmail,

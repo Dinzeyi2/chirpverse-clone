@@ -42,7 +42,7 @@ serve(async (req) => {
       );
     }
     
-    const { postId, languages = [], content = '', immediate = true, debug = true } = requestBody;
+    const { postId, languages = [], content = '', userId, immediate = true, debug = true } = requestBody;
     
     if (!postId) {
       console.error('Missing postId in request');
@@ -56,7 +56,8 @@ serve(async (req) => {
     }
 
     console.log(`Processing notifications for post: ${postId}`);
-    console.log(`Languages mentioned in post: ${languages.join(', ')}`);
+    console.log(`Languages to notify about: ${languages.join(', ')}`);
+    console.log(`Post author ID: ${userId}`);
 
     // Validate RESEND_API_KEY is set
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
@@ -91,15 +92,29 @@ serve(async (req) => {
       )
     }
 
-    // Get user who created the post to avoid sending them notifications
+    // Get user who created the post
     const postAuthorId = post.user_id;
     console.log(`Post author ID: ${postAuthorId}`);
+    
+    // Get the post author's profile to get their username
+    const { data: authorProfile, error: authorError } = await supabaseClient
+      .from('profiles')
+      .select('full_name, email')
+      .eq('user_id', postAuthorId)
+      .single();
+      
+    if (authorError) {
+      console.error('Error fetching author profile:', authorError);
+    }
+    
+    const authorName = authorProfile?.full_name || 'A community member';
+    console.log(`Post author name: ${authorName}`);
 
-    // Get all users with the relevant programming languages who have enabled notifications
-    // Find all users who have at least one of the languages in the post content in their profile
+    // Find all users who have at least one of the specified programming languages in their profile
+    // Exclude the post author from notifications
     const { data: users, error: usersError } = await supabaseClient
       .from('profiles')
-      .select('user_id, programming_languages, email, email_notifications_enabled')
+      .select('user_id, programming_languages, email, email_notifications_enabled, full_name')
       .not('email', 'is', null)
       .eq('email_notifications_enabled', true) // Only users who enabled email notifications
       .not('user_id', 'eq', postAuthorId); // Don't notify the post author
@@ -122,7 +137,7 @@ serve(async (req) => {
     let notificationsSkipped = 0;
     const notificationResults = [];
 
-    // Send notifications to each user who has the programming languages in their profile
+    // Send notifications to each user who has matching programming languages in their profile
     for (const user of users || []) {
       try {
         // Process user's programming_languages safely
@@ -130,13 +145,13 @@ serve(async (req) => {
         
         if (user.programming_languages) {
           if (Array.isArray(user.programming_languages)) {
-            userLanguages = user.programming_languages;
+            userLanguages = user.programming_languages.map(lang => lang.toLowerCase());
           } else if (typeof user.programming_languages === 'string') {
             try {
               const parsed = JSON.parse(user.programming_languages);
-              userLanguages = Array.isArray(parsed) ? parsed : [user.programming_languages];
+              userLanguages = Array.isArray(parsed) ? parsed.map(lang => lang.toLowerCase()) : [user.programming_languages.toLowerCase()];
             } catch (e) {
-              userLanguages = [user.programming_languages];
+              userLanguages = [user.programming_languages.toLowerCase()];
             }
           }
         }
@@ -148,13 +163,12 @@ serve(async (req) => {
           continue;
         }
 
-        // Convert user languages to lowercase for case-insensitive comparison
-        const userLanguagesLower = userLanguages.map(lang => lang.toLowerCase());
-        console.log(`User ${user.user_id} has languages: ${userLanguagesLower.join(', ')}`);
+        console.log(`User ${user.user_id} has languages: ${userLanguages.join(', ')}`);
+        console.log(`Comparing with requested languages: ${languages.join(', ')}`);
         
-        // Find matching languages between the post and user's interests
+        // Find matching languages between the post author's languages and user's interests
         const matchingLanguages = languages.filter(lang => 
-          userLanguagesLower.includes(lang.toLowerCase())
+          userLanguages.includes(lang.toLowerCase())
         );
         
         console.log(`Matching languages for user ${user.user_id}: ${matchingLanguages.join(', ')}`);
@@ -165,8 +179,8 @@ serve(async (req) => {
           
           // Create a simple message with the programming languages
           const languageList = matchingLanguages.join(', ');
-          const emailSubject = `New post about ${languageList}`;
-          const emailBody = `There's a new post discussing ${languageList} on iBlue. Check it out and join the conversation!`;
+          const emailSubject = `New post about ${languageList} from ${authorName}`;
+          const emailBody = `${authorName} just posted about ${languageList} on iBlue. Check it out and join the conversation!\n\nPost excerpt: "${content.substring(0, 150)}${content.length > 150 ? '...' : ''}"`;
           
           try {
             // Call the send-email-notification function
@@ -184,7 +198,8 @@ serve(async (req) => {
                   body: emailBody,
                   postId: postId,
                   priority: 'high', // Send immediately
-                  debug: debug
+                  debug: debug,
+                  recipientName: user.full_name || 'iBlue user'
                 }),
               }
             );
@@ -216,7 +231,7 @@ serve(async (req) => {
                   recipient_id: user.user_id,
                   sender_id: postAuthorId,
                   type: 'language_mention',
-                  content: `New post about ${languageList}`,
+                  content: `New post about ${languageList} from ${authorName}`,
                   metadata: {
                     languages: matchingLanguages,
                     post_id: postId,
