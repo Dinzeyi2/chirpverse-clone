@@ -14,7 +14,6 @@ import { usePosts } from '@/hooks/use-posts';
 import { Progress } from '@/components/ui/progress';
 import CreatePost from '@/components/feed/CreatePost';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import GenerateAIPost from '@/components/feed/GenerateAIPost';
 import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
@@ -140,7 +139,8 @@ const Index = () => {
     <AppLayout>
       <div className={`sticky top-0 z-20 ${headerBg} border-b ${borderColor}`}>
         <div className="flex justify-between items-center px-4 py-4">
-          <GenerateAIPost onPostGenerated={handlePostCreated} />
+          {/* GenerateAIPost button has been removed */}
+          <div></div> {/* Empty div to maintain layout */}
           <div className="flex items-center gap-4">
             <button
               className="p-2 rounded-md transition-colors hover:bg-gray-200/10"
