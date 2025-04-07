@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
@@ -82,29 +81,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Store subscription in Supabase if user is authenticated
       if (user) {
         try {
-          // Use raw SQL query to store the subscription since it's not in the TypeScript types
-          const { error } = await supabase.rpc('upsert_push_subscription', { 
-            p_user_id: user.id, 
-            p_subscription: JSON.stringify(subscription)
-          } as any);
+          // Direct insert using raw SQL instead of RPC function
+          const subscriptionData = {
+            user_id: user.id,
+            subscription: JSON.stringify(subscription),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
           
-          if (error) {
-            console.error('Error saving subscription using RPC:', error);
+          // Try to insert the subscription data directly
+          const { error: insertError } = await supabase
+            .from('user_push_subscriptions' as any)
+            .upsert(subscriptionData, {
+              onConflict: 'user_id'
+            });
             
-            // Try direct insert with raw SQL if RPC fails
-            const { error: rawError } = await supabase
-              .from('user_push_subscriptions' as any)
-              .upsert({
-                user_id: user.id,
-                subscription: JSON.stringify(subscription),
-                created_at: new Date().toISOString()
-              })
-              .select();
-            
-            if (rawError) {
-              console.error('Error saving subscription with direct insert:', rawError);
-              throw new Error('Failed to save notification subscription');
-            }
+          if (insertError) {
+            console.error('Error saving subscription:', insertError);
+            throw new Error('Failed to save push subscription');
           }
           
           toast.success('Successfully subscribed to notifications');
