@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
@@ -34,7 +33,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return `blue${first2}${last2}`;
   };
 
-  // Function to register service worker and subscribe to push notifications
   const subscribeToNotifications = async () => {
     try {
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -51,7 +49,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       console.log('Subscribing to notifications for user:', user.id);
 
-      // Request notification permission
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
         console.error('Notification permission denied');
@@ -61,22 +58,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       console.log('Notification permission granted');
 
-      // Register service worker
       try {
-        // Attempt to unregister any existing service workers first
         const registrations = await navigator.serviceWorker.getRegistrations();
         for (let registration of registrations) {
           await registration.unregister();
           console.log('Unregistered existing service worker');
         }
         
-        // Register a new service worker
         const registration = await navigator.serviceWorker.register('/service-worker.js', {
           scope: '/'
         });
         console.log('Service Worker registered with scope:', registration.scope);
         
-        // Wait for the service worker to be ready
         await navigator.serviceWorker.ready;
         console.log('Service worker is ready');
       } catch (swError) {
@@ -85,20 +78,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      // Get push subscription
       const registration = await navigator.serviceWorker.ready;
       let subscription = await registration.pushManager.getSubscription();
       
       console.log('Existing subscription:', subscription);
       
       if (subscription) {
-        // If there's an existing subscription, unsubscribe first
         await subscription.unsubscribe();
         console.log('Unsubscribed from existing push subscription');
       }
       
       try {
-        // Get VAPID public key from Supabase function
         const { data, error } = await supabase.functions.invoke('get-vapid-public-key');
         
         if (error) {
@@ -116,7 +106,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
         
-        // Create new subscription
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: convertedVapidKey
@@ -129,9 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      // Store subscription in Supabase
       try {
-        // Format subscription object for storage
         const subscriptionData = {
           user_id: user.id,
           subscription: JSON.stringify(subscription),
@@ -141,11 +128,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         console.log('Saving subscription to database:', subscriptionData);
         
-        // Try to insert the subscription data
         const { error: insertError } = await supabase
-          .from('user_push_subscriptions')
-          .upsert(subscriptionData, {
-            onConflict: 'user_id'
+          .rpc('upsert_push_subscription', { 
+            p_user_id: user.id,
+            p_subscription: JSON.stringify(subscription)
           });
           
         if (insertError) {
@@ -155,7 +141,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         console.log('Successfully saved subscription to database');
         
-        // Send a test notification
         await supabase.functions.invoke('send-push-notification', {
           body: {
             userId: user.id,
@@ -177,7 +162,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Helper function to convert VAPID key
   const urlBase64ToUint8Array = (base64String: string) => {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
     const base64 = (base64String + padding)
@@ -272,7 +256,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error };
       }
       
-      // If user gave consent to notifications, subscribe them
       if (notificationsConsent) {
         setTimeout(() => {
           subscribeToNotifications();

@@ -216,7 +216,7 @@ const ProgrammingLanguageSelector = ({
 };
 
 const Settings = () => {
-  const { user } = useAuth();
+  const { user, subscribeToNotifications } = useAuth();
   const [openPrivacyDialog, setOpenPrivacyDialog] = useState(false);
   const { theme, setTheme } = useTheme();
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
