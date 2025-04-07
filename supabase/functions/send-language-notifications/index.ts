@@ -25,7 +25,7 @@ serve(async (req) => {
     )
 
     // Parse the request body
-    const { postId, immediate = true } = await req.json()
+    const { postId, languages = [], content = '', immediate = true, debug = false } = await req.json()
     
     if (!postId) {
       return new Response(
@@ -37,7 +37,8 @@ serve(async (req) => {
       )
     }
 
-    console.log(`Processing notifications for post: ${postId} (immediate: ${immediate})`)
+    console.log(`Processing notifications for post: ${postId} (immediate: ${immediate}, debug: ${debug})`)
+    console.log(`Languages explicitly passed: ${languages.join(', ') || 'none'}`)
 
     // Get the post details
     const { data: post, error: postError } = await supabaseClient
@@ -57,10 +58,13 @@ serve(async (req) => {
       )
     }
 
-    // Extract programming languages mentioned in the post
-    const mentionRegex = /@(\w+)/g
-    const matches = [...(post.content.matchAll(mentionRegex) || [])]
-    const languagesMentioned = matches.map(match => match[1].toLowerCase())
+    // Extract programming languages mentioned in the post if not provided
+    let languagesMentioned = languages
+    if (!languagesMentioned.length) {
+      const mentionRegex = /@(\w+)/g
+      const matches = [...(post.content.matchAll(mentionRegex) || [])]
+      languagesMentioned = matches.map(match => match[1].toLowerCase())
+    }
 
     console.log(`Languages mentioned in post: ${languagesMentioned.join(', ') || 'none'}`)
 
@@ -75,7 +79,7 @@ serve(async (req) => {
       )
     }
 
-    // Get all users with emails and programming languages
+    // Get all users with emails and programming languages who have enabled notifications
     const { data: users, error: usersError } = await supabaseClient
       .from('profiles')
       .select('user_id, programming_languages, email, email_notifications_enabled')
@@ -95,10 +99,16 @@ serve(async (req) => {
     }
 
     console.log(`Found ${users?.length || 0} users with email notifications enabled`)
+    
+    if (debug) {
+      console.log('User profiles found:', JSON.stringify(users));
+    }
 
     // Process notifications
     let notificationsSent = 0
     let notificationsSkipped = 0
+    let notificationErrors = 0
+    const notificationResults = []
 
     // Process each user
     for (const user of users || []) {
@@ -106,19 +116,25 @@ serve(async (req) => {
         // Skip users without programming languages
         if (!user.programming_languages || !Array.isArray(user.programming_languages) || user.programming_languages.length === 0) {
           console.log(`User ${user.user_id} has no programming languages set, skipping`)
-          notificationsSkipped++;
-          continue;
+          notificationsSkipped++
+          continue
         }
 
         // Skip users who have not enabled email notifications
         if (user.email_notifications_enabled !== true) {
           console.log(`User ${user.user_id} has disabled email notifications, skipping`)
-          notificationsSkipped++;
-          continue;
+          notificationsSkipped++
+          continue
         }
 
         // Find languages that match between the post and user's interests
         const userLanguages = user.programming_languages.map(lang => lang.toLowerCase())
+        
+        if (debug) {
+          console.log(`User ${user.user_id} is interested in languages: ${userLanguages.join(', ')}`)
+          console.log(`Post mentions languages: ${languagesMentioned.join(', ')}`)
+        }
+        
         const relevantLanguages = languagesMentioned.filter(lang => 
           userLanguages.some(userLang => userLang.toLowerCase() === lang.toLowerCase())
         )
@@ -131,48 +147,76 @@ serve(async (req) => {
           
           const languageList = relevantLanguages.join(', ')
           
-          // Call the send-email-notification function
-          const response = await fetch(
-            `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email-notification`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-              },
-              body: JSON.stringify({
-                userId: user.user_id,
-                subject: `New post about ${languageList}`,
-                body: `There's a new post discussing ${languageList} on iBlue. Check it out and join the conversation!`,
-                postId: post.id,
-                priority: immediate ? 'high' : 'normal' // Add priority flag for immediate processing
-              }),
+          try {
+            // Call the send-email-notification function
+            const response = await fetch(
+              `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email-notification`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                },
+                body: JSON.stringify({
+                  userId: user.user_id,
+                  subject: `New post about ${languageList}`,
+                  body: `There's a new post discussing ${languageList} on iBlue. Check it out and join the conversation!`,
+                  postId: post.id,
+                  priority: immediate ? 'high' : 'normal', // Add priority flag for immediate processing
+                  debug: debug // Pass debug flag
+                }),
+              }
+            )
+
+            const responseText = await response.text()
+            let responseJson
+            try {
+              responseJson = JSON.parse(responseText)
+            } catch (e) {
+              responseJson = { text: responseText }
             }
-          )
+            
+            notificationResults.push({
+              userId: user.user_id,
+              email: user.email,
+              languages: relevantLanguages,
+              success: response.ok,
+              response: responseJson
+            })
 
-          const responseText = await response.text();
-          console.log(`Email notification response for user ${user.user_id}:`, responseText);
-
-          if (!response.ok) {
-            console.error(`Failed to send email notification to user ${user.user_id}:`, responseText)
-          } else {
-            console.log(`Successfully sent email notification to user ${user.user_id} about post ${post.id}`)
-            notificationsSent++
+            if (!response.ok) {
+              console.error(`Failed to send email notification to user ${user.user_id}:`, responseText)
+              notificationErrors++
+            } else {
+              console.log(`Successfully sent email notification to user ${user.user_id} about post ${post.id}`)
+              notificationsSent++
+            }
+          } catch (emailError) {
+            console.error(`Error sending email to user ${user.user_id}:`, emailError)
+            notificationErrors++
+            notificationResults.push({
+              userId: user.user_id,
+              email: user.email,
+              languages: relevantLanguages,
+              success: false,
+              error: emailError.message
+            })
           }
         } else {
           console.log(`No relevant languages found for user ${user.user_id}, skipping notification`)
-          notificationsSkipped++;
+          notificationsSkipped++
         }
       } catch (userError) {
         console.error(`Error processing user ${user.user_id}:`, userError)
-        notificationsSkipped++;
+        notificationsSkipped++
       }
     }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Language notifications processed. Sent ${notificationsSent} notifications, skipped ${notificationsSkipped}.` 
+        message: `Language notifications processed. Sent ${notificationsSent} notifications, skipped ${notificationsSkipped}, errors ${notificationErrors}.`,
+        details: debug ? notificationResults : undefined
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

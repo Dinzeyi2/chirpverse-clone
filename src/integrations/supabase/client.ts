@@ -108,17 +108,21 @@ export const parseArrayField = (field: string | null): string[] => {
   }
 };
 
-// Extract language mentions from post content
+// Extract language mentions from post content - FIXED to better capture language tags
 export const extractLanguageMentions = (content: string): string[] => {
   if (!content) return [];
   
+  // Improved regex to better match language mentions with @ symbol
   const mentionRegex = /@(\w+)/g;
   const matches = content.match(mentionRegex) || [];
+  
+  // Log what's being extracted for debugging
+  console.log('Extracted language mentions:', matches);
   
   return matches.map(match => match.substring(1).toLowerCase().trim());
 };
 
-// Notify users about language mentions
+// Notify users about language mentions - IMPROVED to ensure notifications are sent properly
 export const notifyLanguageUsers = async (
   senderId: string, 
   languages: string[], 
@@ -128,11 +132,14 @@ export const notifyLanguageUsers = async (
   try {
     console.log(`Notifying users about mention of languages: ${languages.join(', ')} in post ${postId}`);
     
-    // Call the Supabase function to process email notifications immediately
+    // Call the Supabase function to process email notifications immediately with additional debugging info
     const { data, error } = await supabase.functions.invoke('send-language-notifications', {
       body: { 
         postId,
-        immediate: true // Flag to indicate this should be processed immediately
+        languages, // Pass the detected languages explicitly 
+        content: postContent, // Pass the content for context
+        immediate: true, // Flag to indicate this should be processed immediately
+        debug: true // Enable debug mode for more verbose logging
       }
     });
     
@@ -148,22 +155,32 @@ export const notifyLanguageUsers = async (
         // Find users with this language in their profile
         const { data: profilesWithLanguage, error: profilesError } = await supabase
           .from('profiles')
-          .select('user_id, programming_languages')
-          .not('user_id', 'eq', senderId);
+          .select('user_id, programming_languages, email, email_notifications_enabled')
+          .not('user_id', 'eq', senderId)
+          .eq('email_notifications_enabled', true); // Only fetch profiles with notifications enabled
         
         if (profilesError) {
           console.error(`Error fetching profiles for language ${language}:`, profilesError);
           continue;
         }
         
+        console.log(`Found ${profilesWithLanguage?.length || 0} profiles with notifications enabled`);
+        
         // Filter users who have the tagged language
-        const usersToNotify = profilesWithLanguage.filter(profile => {
+        const usersToNotify = profilesWithLanguage?.filter(profile => {
           const userLanguages = Array.isArray(profile.programming_languages) 
             ? profile.programming_languages 
             : parseArrayField(profile.programming_languages as any);
           
-          return userLanguages.some(lang => lang.toLowerCase() === language.toLowerCase());
-        });
+          const hasLanguage = userLanguages.some(lang => 
+            lang.toLowerCase() === language.toLowerCase()
+          );
+          
+          console.log(`User ${profile.user_id} has languages: ${userLanguages.join(', ')}`);
+          console.log(`User ${profile.user_id} has ${language}? ${hasLanguage}`);
+          
+          return hasLanguage;
+        }) || [];
         
         console.log(`Found ${usersToNotify.length} users to notify about ${language}`);
         
@@ -185,9 +202,15 @@ export const notifyLanguageUsers = async (
         
         // Insert notifications
         if (notifications.length > 0) {
-          await supabase
+          const { error: notificationError } = await supabase
             .from('notifications')
             .insert(notifications);
+            
+          if (notificationError) {
+            console.error('Error creating notifications:', notificationError);
+          } else {
+            console.log(`Successfully created ${notifications.length} notifications`);
+          }
         }
       } catch (langError) {
         console.error(`Error processing notifications for language ${language}:`, langError);

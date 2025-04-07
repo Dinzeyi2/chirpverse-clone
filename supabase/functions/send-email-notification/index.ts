@@ -25,7 +25,7 @@ serve(async (req) => {
     )
 
     // Parse the request body
-    const { userId, subject, body, postId, priority = 'normal' } = await req.json()
+    const { userId, subject, body, postId, priority = 'normal', debug = false } = await req.json()
 
     if (!userId) {
       return new Response(
@@ -34,21 +34,25 @@ serve(async (req) => {
       )
     }
 
-    console.log(`Processing email notification for user ${userId} (priority: ${priority})`)
+    console.log(`Processing email notification for user ${userId} (priority: ${priority}, debug: ${debug})`)
 
     // Get the user's email and notification preferences
     const { data: userData, error: userError } = await supabaseClient
       .from('profiles')
-      .select('email, email_notifications_enabled')
+      .select('email, email_notifications_enabled, programming_languages')
       .eq('user_id', userId)
       .single()
 
     if (userError) {
       console.error('Error fetching user email:', userError)
       return new Response(
-        JSON.stringify({ error: 'Error fetching user email' }),
+        JSON.stringify({ error: 'Error fetching user email', details: userError }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       )
+    }
+
+    if (debug) {
+      console.log('User data found:', JSON.stringify(userData));
     }
 
     // Check if user has email and has notifications enabled
@@ -56,7 +60,7 @@ serve(async (req) => {
       const reason = !userData?.email ? 'No email found for user' : 'Email notifications are disabled for this user'
       console.log(reason)
       return new Response(
-        JSON.stringify({ message: reason }),
+        JSON.stringify({ message: reason, userData: debug ? userData : undefined }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
     }
@@ -114,28 +118,34 @@ serve(async (req) => {
 
     console.log(`Sending email to ${userData.email} with subject: ${subject}`)
     
+    const emailData = {
+      from: 'notifications@i-blue.dev',
+      to: userData.email,
+      subject: subject || 'New iBlue Notification',
+      html: htmlEmail,
+      // Add tracking for email opens and clicks
+      track_opens: true,
+      track_clicks: true
+    };
+    
+    if (debug) {
+      console.log('Email payload:', JSON.stringify(emailData));
+    }
+    
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${resendApiKey}`
       },
-      body: JSON.stringify({
-        from: 'notifications@i-blue.dev',
-        to: userData.email,
-        subject: subject || 'New iBlue Notification',
-        html: htmlEmail,
-        // Add tracking for email opens and clicks
-        track_opens: true,
-        track_clicks: true
-      })
+      body: JSON.stringify(emailData)
     })
 
     if (!emailResponse.ok) {
       const errorData = await emailResponse.text()
       console.error('Failed to send email:', errorData)
       return new Response(
-        JSON.stringify({ error: 'Failed to send email' }),
+        JSON.stringify({ error: 'Failed to send email', details: errorData }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       )
     }
@@ -144,10 +154,10 @@ serve(async (req) => {
     console.log('Email sent successfully:', emailResult)
 
     return new Response(
-      JSON.stringify({ success: true, message: 'Email notification sent successfully' }),
+      JSON.stringify({ success: true, message: 'Email notification sent successfully', result: emailResult }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending email notification:', error)
     
     return new Response(
