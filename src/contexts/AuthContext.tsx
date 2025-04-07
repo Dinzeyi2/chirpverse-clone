@@ -81,31 +81,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Store subscription in Supabase if user is authenticated
       if (user) {
-        // Save the subscription to the user's profile using raw query
-        const { error: upsertError } = await supabase
-          .rpc('upsert_push_subscription', { 
+        try {
+          // Use raw SQL query to store the subscription since it's not in the TypeScript types
+          const { error } = await supabase.rpc('upsert_push_subscription', { 
             p_user_id: user.id, 
             p_subscription: JSON.stringify(subscription)
-          });
-        
-        if (upsertError) {
-          // Fall back to raw SQL if RPC doesn't exist
-          const { error: rawError } = await supabase
-            .from('user_push_subscriptions')
-            .upsert({
-              user_id: user.id,
-              subscription: JSON.stringify(subscription),
-              created_at: new Date().toISOString()
-            })
-            .select();
+          } as any);
           
-          if (rawError) {
-            console.error('Error saving subscription:', rawError);
-            throw new Error('Failed to save notification subscription');
+          if (error) {
+            console.error('Error saving subscription using RPC:', error);
+            
+            // Try direct insert with raw SQL if RPC fails
+            const { error: rawError } = await supabase
+              .from('user_push_subscriptions' as any)
+              .upsert({
+                user_id: user.id,
+                subscription: JSON.stringify(subscription),
+                created_at: new Date().toISOString()
+              })
+              .select();
+            
+            if (rawError) {
+              console.error('Error saving subscription with direct insert:', rawError);
+              throw new Error('Failed to save notification subscription');
+            }
           }
+          
+          toast.success('Successfully subscribed to notifications');
+        } catch (dbError) {
+          console.error('Database error saving subscription:', dbError);
+          toast.error('Failed to store notification subscription');
         }
-        
-        toast.success('Successfully subscribed to notifications');
       }
     } catch (error) {
       console.error('Error subscribing to push notifications:', error);
