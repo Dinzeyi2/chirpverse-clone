@@ -52,9 +52,7 @@ self.addEventListener('push', (event) => {
   let data;
   try {
     data = event.data.json();
-    console.log('Parsed notification data:', data);
   } catch (e) {
-    console.error('Error parsing push data:', e);
     data = {
       title: 'iblue Notification',
       body: event.data ? event.data.text() : 'New notification from iblue',
@@ -132,15 +130,3 @@ self.addEventListener('fetch', (event) => {
     );
   }
 });
-
-// Log any errors that occur during service worker operations
-self.addEventListener('error', (event) => {
-  console.error('Service Worker error:', event.error);
-});
-
-// Log unhandled promise rejections
-self.addEventListener('unhandledrejection', (event) => {
-  console.error('Unhandled promise rejection:', event.reason);
-});
-
-console.log('Service Worker script loaded successfully');

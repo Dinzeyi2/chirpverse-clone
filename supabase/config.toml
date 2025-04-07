@@ -1,17 +1,1 @@
-
 project_id = "vcywiyvbfrylffwfzsny"
-
-[functions.send-push-notification]
-verify_jwt = true
-
-[functions.send-language-notifications]
-verify_jwt = true
-
-[functions.setup-cron]
-verify_jwt = true
-
-[functions.get-vapid-public-key]
-verify_jwt = false
-
-[functions.send-email-notification]
-verify_jwt = true

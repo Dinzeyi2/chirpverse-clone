@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
@@ -86,12 +87,6 @@ const SignUpForm = () => {
     try {
       if (!password) {
         setError('Please fill all required fields');
-        setIsLoading(false);
-        return;
-      }
-      
-      if (!notificationsConsent) {
-        setError('You must consent to receive notifications to continue');
         setIsLoading(false);
         return;
       }
@@ -288,23 +283,17 @@ const SignUpForm = () => {
               </button>
             </div>
 
-            <div className="p-4 bg-xBlue/10 border border-xBlue/20 rounded-md">
-              <div className="flex items-start gap-2">
-                <Checkbox 
-                  id="notifications" 
-                  checked={notificationsConsent}
-                  onCheckedChange={(checked) => setNotificationsConsent(checked === true)} 
-                  className="mt-1 bg-black border-gray-700" 
-                />
-                <div>
-                  <Label htmlFor="notifications" className="text-white text-sm font-bold">
-                    Receive push notifications <RequiredIndicator />
-                  </Label>
-                  <p className="text-gray-400 text-xs mt-1">
-                    You must agree to receive push notifications from iblue to continue. You can manage notification settings later.
-                  </p>
-                </div>
-              </div>
+            <div className="flex items-start gap-2 pt-2">
+              <Checkbox 
+                id="notifications" 
+                checked={notificationsConsent}
+                onCheckedChange={(checked) => setNotificationsConsent(checked === true)} 
+                className="mt-1 bg-black border-gray-700" 
+                required
+              />
+              <Label htmlFor="notifications" className="text-white text-sm">
+                I agree to receive push notifications from iblue. You can opt out anytime in settings. <RequiredIndicator />
+              </Label>
             </div>
 
             <div className="text-sm text-gray-400">

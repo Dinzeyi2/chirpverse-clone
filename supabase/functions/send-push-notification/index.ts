@@ -26,7 +26,6 @@ serve(async (req) => {
 
     // Parse the request body
     const { userId, title, body, url, tag } = await req.json()
-    console.log('Notification request:', { userId, title, body, url, tag })
 
     if (!userId) {
       return new Response(
@@ -51,7 +50,6 @@ serve(async (req) => {
     }
 
     if (!subscriptionData || !subscriptionData.subscription) {
-      console.error('No subscription found for user:', userId)
       return new Response(
         JSON.stringify({ error: 'No subscription found for user' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
@@ -59,17 +57,7 @@ serve(async (req) => {
     }
 
     // Parse the subscription
-    let subscription;
-    try {
-      subscription = JSON.parse(subscriptionData.subscription)
-      console.log('Found subscription:', subscription)
-    } catch (parseError) {
-      console.error('Error parsing subscription:', parseError)
-      return new Response(
-        JSON.stringify({ error: 'Invalid subscription format' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      )
-    }
+    const subscription = JSON.parse(subscriptionData.subscription)
 
     // Prepare notification payload
     const notificationPayload = {
@@ -83,75 +71,35 @@ serve(async (req) => {
       tag: tag || 'iblue-notification',
     }
 
-    // Get VAPID public key from environment or use hardcoded value for testing
-    const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY') || 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U';
-    
-    // Use hardcoded VAPID private key
-    const vapidPrivateKey = 'oCM1aK-uPu7mgypdGtVvJio3zi3xInZfzedCMjGA69Y';
-    
-    console.log('Using VAPID public key:', vapidPublicKey)
-
-    // VAPID keys
+    // VAPID keys (these should be stored securely and not hardcoded)
     const vapidKeys = {
-      publicKey: vapidPublicKey,
-      privateKey: vapidPrivateKey,
+      publicKey: Deno.env.get('VAPID_PUBLIC_KEY'),
+      privateKey: Deno.env.get('VAPID_PRIVATE_KEY'),
       subject: 'mailto:' + (Deno.env.get('VAPID_SUBJECT') || 'contact@i-blue.dev')
     }
 
     // Use the web-push library
     const webPush = await import('https://esm.sh/web-push@3.5.0')
 
-    try {
-      // Set VAPID details
-      webPush.setVapidDetails(
-        vapidKeys.subject,
-        vapidKeys.publicKey,
-        vapidKeys.privateKey
-      )
-    } catch (vapidError) {
-      console.error('Error setting VAPID details:', vapidError)
-      return new Response(
-        JSON.stringify({ error: 'Error setting VAPID details: ' + vapidError.message }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      )
-    }
+    // Set VAPID details
+    webPush.setVapidDetails(
+      vapidKeys.subject,
+      vapidKeys.publicKey,
+      vapidKeys.privateKey
+    )
 
     // Send the notification
-    try {
-      console.log('Sending notification with payload:', notificationPayload)
-      const result = await webPush.sendNotification(
-        subscription,
-        JSON.stringify(notificationPayload)
-      )
+    const result = await webPush.sendNotification(
+      subscription,
+      JSON.stringify(notificationPayload)
+    )
 
-      console.log('Push notification sent successfully:', result)
+    console.log('Push notification sent successfully:', result)
 
-      return new Response(
-        JSON.stringify({ success: true, message: 'Notification sent successfully' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-      )
-    } catch (pushError) {
-      console.error('Push service error:', pushError)
-      
-      // Check if subscription is expired
-      if (pushError.statusCode === 410) {
-        // Subscription has expired or is no longer valid
-        console.log('Subscription is no longer valid, removing it from database')
-        await supabaseClient
-          .from('user_push_subscriptions')
-          .delete()
-          .eq('user_id', userId)
-      }
-      
-      return new Response(
-        JSON.stringify({ 
-          error: 'Push service error', 
-          details: pushError.message,
-          statusCode: pushError.statusCode
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      )
-    }
+    return new Response(
+      JSON.stringify({ success: true, message: 'Notification sent successfully' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+    )
   } catch (error) {
     console.error('Error sending push notification:', error)
     
