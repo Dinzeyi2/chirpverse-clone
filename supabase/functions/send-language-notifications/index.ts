@@ -25,7 +25,7 @@ serve(async (req) => {
     )
 
     // Parse the request body
-    const { postId, languages = [], content = '', immediate = true, debug = false } = await req.json()
+    const { postId, languages = [], content = '', immediate = true, debug = true } = await req.json()
     
     if (!postId) {
       return new Response(
@@ -59,11 +59,15 @@ serve(async (req) => {
     }
 
     // Extract programming languages mentioned in the post if not provided
-    let languagesMentioned = languages
-    if (!languagesMentioned.length) {
+    let languagesMentioned = languages.length > 0 ? languages : []
+    if (languagesMentioned.length === 0) {
       const mentionRegex = /@(\w+)/g
-      const matches = [...(post.content.matchAll(mentionRegex) || [])]
-      languagesMentioned = matches.map(match => match[1].toLowerCase())
+      let match
+      while ((match = mentionRegex.exec(post.content)) !== null) {
+        if (match[1]) {
+          languagesMentioned.push(match[1].toLowerCase())
+        }
+      }
     }
 
     console.log(`Languages mentioned in post: ${languagesMentioned.join(', ') || 'none'}`)
@@ -148,9 +152,12 @@ serve(async (req) => {
           const languageList = relevantLanguages.join(', ')
           
           try {
-            // Call the send-email-notification function
+            // Call the send-email-notification function directly with the full URL
+            const functionUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email-notification`;
+            console.log(`Calling email notification function at: ${functionUrl}`);
+            
             const response = await fetch(
-              `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email-notification`,
+              functionUrl,
               {
                 method: 'POST',
                 headers: {

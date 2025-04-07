@@ -108,21 +108,28 @@ export const parseArrayField = (field: string | null): string[] => {
   }
 };
 
-// Extract language mentions from post content - FIXED to better capture language tags
+// Fixed to better capture language tags with @ symbol and case-insensitivity
 export const extractLanguageMentions = (content: string): string[] => {
   if (!content) return [];
   
-  // Improved regex to better match language mentions with @ symbol
+  // Improved regex to match language mentions with @ symbol
   const mentionRegex = /@(\w+)/g;
-  const matches = content.match(mentionRegex) || [];
+  const matches = [];
+  let match;
+  
+  while ((match = mentionRegex.exec(content)) !== null) {
+    if (match[1]) {
+      matches.push(match[1].toLowerCase().trim());
+    }
+  }
   
   // Log what's being extracted for debugging
   console.log('Extracted language mentions:', matches);
   
-  return matches.map(match => match.substring(1).toLowerCase().trim());
+  return matches;
 };
 
-// Notify users about language mentions - IMPROVED to ensure notifications are sent properly
+// Improved to ensure notifications are sent properly
 export const notifyLanguageUsers = async (
   senderId: string, 
   languages: string[], 
