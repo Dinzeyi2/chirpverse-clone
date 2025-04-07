@@ -25,7 +25,7 @@ serve(async (req) => {
     )
 
     // Parse the request body
-    const { postId, immediate = false } = await req.json()
+    const { postId, immediate = true } = await req.json()
     
     if (!postId) {
       return new Response(
@@ -59,8 +59,10 @@ serve(async (req) => {
 
     // Extract programming languages mentioned in the post
     const mentionRegex = /@(\w+)/g
-    const matches = [...(post.content.match(mentionRegex) || [])]
-    const languagesMentioned = matches.map(match => match.substring(1).toLowerCase())
+    const matches = [...(post.content.matchAll(mentionRegex) || [])]
+    const languagesMentioned = matches.map(match => match[1].toLowerCase())
+
+    console.log(`Languages mentioned in post: ${languagesMentioned.join(', ') || 'none'}`)
 
     if (languagesMentioned.length === 0) {
       console.log('No programming languages mentioned in this post')
@@ -73,12 +75,10 @@ serve(async (req) => {
       )
     }
 
-    console.log(`Languages mentioned in post: ${languagesMentioned.join(', ')}`)
-
     // Get all users with emails and programming languages
     const { data: users, error: usersError } = await supabaseClient
       .from('profiles')
-      .select('user_id, programming_languages, email')
+      .select('user_id, programming_languages, email, email_notifications_enabled')
       .not('email', 'is', null)
       .eq('email_notifications_enabled', true) // Only notify users who have enabled email notifications
       .not('user_id', 'eq', post.user_id) // Don't notify the author
@@ -98,13 +98,23 @@ serve(async (req) => {
 
     // Process notifications
     let notificationsSent = 0
+    let notificationsSkipped = 0
 
     // Process each user
     for (const user of users || []) {
       try {
         // Skip users without programming languages
         if (!user.programming_languages || !Array.isArray(user.programming_languages) || user.programming_languages.length === 0) {
-          continue
+          console.log(`User ${user.user_id} has no programming languages set, skipping`)
+          notificationsSkipped++;
+          continue;
+        }
+
+        // Skip users who have not enabled email notifications
+        if (user.email_notifications_enabled !== true) {
+          console.log(`User ${user.user_id} has disabled email notifications, skipping`)
+          notificationsSkipped++;
+          continue;
         }
 
         // Find languages that match between the post and user's interests
@@ -112,6 +122,9 @@ serve(async (req) => {
         const relevantLanguages = languagesMentioned.filter(lang => 
           userLanguages.some(userLang => userLang.toLowerCase() === lang.toLowerCase())
         )
+
+        console.log(`User ${user.user_id} follows: ${userLanguages.join(', ')}`)
+        console.log(`Relevant languages for user ${user.user_id}: ${relevantLanguages.join(', ') || 'none'}`)
 
         if (relevantLanguages.length > 0) {
           console.log(`Found ${relevantLanguages.length} relevant languages for user ${user.user_id}`)
@@ -137,22 +150,29 @@ serve(async (req) => {
             }
           )
 
+          const responseText = await response.text();
+          console.log(`Email notification response for user ${user.user_id}:`, responseText);
+
           if (!response.ok) {
-            console.error(`Failed to send email notification to user ${user.user_id}:`, await response.text())
+            console.error(`Failed to send email notification to user ${user.user_id}:`, responseText)
           } else {
             console.log(`Successfully sent email notification to user ${user.user_id} about post ${post.id}`)
             notificationsSent++
           }
+        } else {
+          console.log(`No relevant languages found for user ${user.user_id}, skipping notification`)
+          notificationsSkipped++;
         }
       } catch (userError) {
         console.error(`Error processing user ${user.user_id}:`, userError)
+        notificationsSkipped++;
       }
     }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Language notifications processed. Sent ${notificationsSent} notifications.` 
+        message: `Language notifications processed. Sent ${notificationsSent} notifications, skipped ${notificationsSkipped}.` 
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
