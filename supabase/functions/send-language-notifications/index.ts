@@ -25,7 +25,7 @@ serve(async (req) => {
     )
 
     // Parse the request body
-    const { postId } = await req.json()
+    const { postId, immediate = false } = await req.json()
     
     if (!postId) {
       return new Response(
@@ -37,7 +37,7 @@ serve(async (req) => {
       )
     }
 
-    console.log(`Processing notifications for post: ${postId}`)
+    console.log(`Processing notifications for post: ${postId} (immediate: ${immediate})`)
 
     // Get the post details
     const { data: post, error: postError } = await supabaseClient
@@ -80,6 +80,7 @@ serve(async (req) => {
       .from('profiles')
       .select('user_id, programming_languages, email')
       .not('email', 'is', null)
+      .eq('email_notifications_enabled', true) // Only notify users who have enabled email notifications
       .not('user_id', 'eq', post.user_id) // Don't notify the author
 
     if (usersError) {
@@ -93,7 +94,7 @@ serve(async (req) => {
       )
     }
 
-    console.log(`Found ${users?.length || 0} users with email addresses`)
+    console.log(`Found ${users?.length || 0} users with email notifications enabled`)
 
     // Process notifications
     let notificationsSent = 0
@@ -130,7 +131,8 @@ serve(async (req) => {
                 userId: user.user_id,
                 subject: `New post about ${languageList}`,
                 body: `There's a new post discussing ${languageList} on iBlue. Check it out and join the conversation!`,
-                postId: post.id
+                postId: post.id,
+                priority: immediate ? 'high' : 'normal' // Add priority flag for immediate processing
               }),
             }
           )
@@ -160,7 +162,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in send-language-notifications:', error)
     return new Response(
-      JSON.stringify({ error: 'Failed to process notifications' }),
+      JSON.stringify({ error: 'Failed to process notifications: ' + error.message }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500 

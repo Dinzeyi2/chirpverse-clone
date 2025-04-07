@@ -25,7 +25,7 @@ serve(async (req) => {
     )
 
     // Parse the request body
-    const { userId, subject, body, postId } = await req.json()
+    const { userId, subject, body, postId, priority = 'normal' } = await req.json()
 
     if (!userId) {
       return new Response(
@@ -34,10 +34,12 @@ serve(async (req) => {
       )
     }
 
-    // Get the user's email
+    console.log(`Processing email notification for user ${userId} (priority: ${priority})`)
+
+    // Get the user's email and notification preferences
     const { data: userData, error: userError } = await supabaseClient
       .from('profiles')
-      .select('email')
+      .select('email, email_notifications_enabled')
       .eq('user_id', userId)
       .single()
 
@@ -49,10 +51,13 @@ serve(async (req) => {
       )
     }
 
-    if (!userData?.email) {
+    // Check if user has email and has notifications enabled
+    if (!userData?.email || userData.email_notifications_enabled === false) {
+      const reason = !userData?.email ? 'No email found for user' : 'Email notifications are disabled for this user'
+      console.log(reason)
       return new Response(
-        JSON.stringify({ error: 'No email found for user' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+        JSON.stringify({ message: reason }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
     }
 
@@ -107,6 +112,8 @@ serve(async (req) => {
       )
     }
 
+    console.log(`Sending email to ${userData.email} with subject: ${subject}`)
+    
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -117,7 +124,10 @@ serve(async (req) => {
         from: 'notifications@i-blue.dev',
         to: userData.email,
         subject: subject || 'New iBlue Notification',
-        html: htmlEmail
+        html: htmlEmail,
+        // Add tracking for email opens and clicks
+        track_opens: true,
+        track_clicks: true
       })
     })
 
