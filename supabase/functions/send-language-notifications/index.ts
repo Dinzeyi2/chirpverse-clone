@@ -15,8 +15,8 @@ serve(async (req) => {
     // Get all users who have consented to notifications
     const { data: users, error: usersError } = await supabaseClient
       .from('profiles')
-      .select('user_id, programming_languages')
-      .contains('user_metadata', { notifications_consent: true })
+      .select('user_id, programming_languages, email')
+      .not('email', 'is', null)
 
     if (usersError) {
       console.error('Error fetching users:', usersError)
@@ -26,7 +26,7 @@ serve(async (req) => {
       )
     }
 
-    console.log(`Found ${users?.length || 0} users with notification consent`)
+    console.log(`Found ${users?.length || 0} users with email addresses`)
 
     // Get recent posts (last 24 hours)
     const yesterday = new Date()
@@ -66,27 +66,38 @@ serve(async (req) => {
         if (relevantPosts && relevantPosts.length > 0) {
           console.log(`Found ${relevantPosts.length} relevant posts for user ${user.user_id}`)
 
-          // Call the send-push-notification function
-          const response = await fetch(
-            `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-push-notification`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-              },
-              body: JSON.stringify({
-                userId: user.user_id,
-                title: 'New content about your languages',
-                body: `There are ${relevantPosts.length} new posts about languages you follow`,
-                url: '/',
-                tag: 'language-updates'
-              }),
-            }
-          )
+          // For each relevant post, send an email notification
+          for (const post of relevantPosts) {
+            // Get the languages mentioned in this post
+            const mentionedLanguages = userLanguages.filter(lang => 
+              post.content.toLowerCase().includes(lang.toLowerCase())
+            )
+            
+            const languageList = mentionedLanguages.join(', ')
+            
+            // Call the send-email-notification function
+            const response = await fetch(
+              `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email-notification`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                },
+                body: JSON.stringify({
+                  userId: user.user_id,
+                  subject: `New post about ${languageList}`,
+                  body: `There's a new post discussing ${languageList} on iBlue. Check it out and join the conversation!`,
+                  postId: post.id
+                }),
+              }
+            )
 
-          if (!response.ok) {
-            console.error(`Failed to send notification to user ${user.user_id}:`, await response.text())
+            if (!response.ok) {
+              console.error(`Failed to send email notification to user ${user.user_id}:`, await response.text())
+            } else {
+              console.log(`Successfully sent email notification to user ${user.user_id} about post ${post.id}`)
+            }
           }
         }
       } catch (userError) {
