@@ -72,13 +72,18 @@ export const enableRealtimeForTables = () => {
               let authorLanguages: string[] = [];
               if (authorProfile?.programming_languages) {
                 if (Array.isArray(authorProfile.programming_languages)) {
-                  authorLanguages = authorProfile.programming_languages.map(lang => lang.toLowerCase());
+                  authorLanguages = authorProfile.programming_languages.map(lang => 
+                    typeof lang === 'string' ? lang.toLowerCase().trim() : ''
+                  ).filter(Boolean);
                 } else if (typeof authorProfile.programming_languages === 'string') {
                   try {
                     const parsed = JSON.parse(authorProfile.programming_languages);
-                    authorLanguages = Array.isArray(parsed) ? parsed.map(lang => lang.toLowerCase()) : [];
+                    authorLanguages = Array.isArray(parsed) ? 
+                      parsed.map(lang => typeof lang === 'string' ? lang.toLowerCase().trim() : '').filter(Boolean) : 
+                      [];
                   } catch (e) {
-                    authorLanguages = [];
+                    // If it's not valid JSON, treat it as a string
+                    authorLanguages = [authorProfile.programming_languages.toLowerCase().trim()];
                   }
                 }
               }
@@ -86,11 +91,19 @@ export const enableRealtimeForTables = () => {
               if (authorLanguages.length > 0) {
                 console.log('Author has programming languages:', authorLanguages);
                 
+                // Also extract languages from the content
+                const contentLanguages = extractLanguageMentions(content);
+                console.log('Languages extracted from content:', contentLanguages);
+                
+                // Combine languages from both sources and remove duplicates
+                const allLanguages = [...new Set([...authorLanguages, ...contentLanguages])];
+                console.log('Combined languages for notification:', allLanguages);
+                
                 // Notify users with matching programming languages via edge function
                 supabase.functions.invoke('send-language-notifications', {
                   body: { 
                     postId,
-                    languages: authorLanguages,
+                    languages: allLanguages,
                     content: content,
                     userId: userId,
                     immediate: true,
@@ -104,7 +117,33 @@ export const enableRealtimeForTables = () => {
                   }
                 });
               } else {
-                console.log('Author has no programming languages set. No notifications will be sent.');
+                console.log('Author has no programming languages set. Checking content for languages...');
+                // Try to find languages in the content
+                const contentLanguages = extractLanguageMentions(content);
+                
+                if (contentLanguages.length > 0) {
+                  console.log('Languages found in content:', contentLanguages);
+                  
+                  // Notify users with matching programming languages
+                  supabase.functions.invoke('send-language-notifications', {
+                    body: { 
+                      postId,
+                      languages: contentLanguages,
+                      content: content,
+                      userId: userId,
+                      immediate: true,
+                      debug: true
+                    }
+                  }).then(({ data, error }) => {
+                    if (error) {
+                      console.error('Error sending language notifications:', error);
+                    } else {
+                      console.log('Language notifications sent successfully:', data);
+                    }
+                  });
+                } else {
+                  console.log('No programming languages found in author profile or content. No notifications will be sent.');
+                }
               }
             });
         }
@@ -156,7 +195,7 @@ export const parseArrayField = (field: string | null): string[] => {
   }
 };
 
-// Simplified function to extract programming languages from post content
+// Improved function to extract programming languages from post content
 export const extractLanguageMentions = (content: string): string[] => {
   if (!content) return [];
   
@@ -166,7 +205,7 @@ export const extractLanguageMentions = (content: string): string[] => {
   const commonLanguages = [
     'javascript', 'typescript', 'python', 'java', 'c#', 'csharp', 'c++', 'cpp', 
     'php', 'go', 'ruby', 'swift', 'kotlin', 'rust', 'dart', 'scala', 'r', 
-    'perl', 'haskell', 'lua', 'sql', 'html', 'css'
+    'perl', 'haskell', 'lua', 'sql', 'pl/sql', 'html', 'css'
   ];
   
   const matches = new Set<string>();
@@ -176,7 +215,7 @@ export const extractLanguageMentions = (content: string): string[] => {
     const regex = new RegExp(`\\b${language}\\b`, 'i');
     if (regex.test(content.toLowerCase())) {
       console.log(`Found programming language: ${language}`);
-      matches.add(language.toLowerCase());
+      matches.add(language.toLowerCase().trim());
     }
   });
   

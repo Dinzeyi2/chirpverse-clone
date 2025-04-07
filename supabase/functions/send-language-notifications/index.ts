@@ -117,30 +117,31 @@ serve(async (req) => {
     const authorName = authorProfile?.full_name || 'A community member';
     console.log(`Post author name: ${authorName}`);
 
-    // Parse author's programming languages
+    // Parse author's programming languages - normalize to lowercase for case insensitive matching
     let authorLanguages = [];
     if (authorProfile?.programming_languages) {
       if (Array.isArray(authorProfile.programming_languages)) {
         authorLanguages = authorProfile.programming_languages.map(lang => 
-          typeof lang === 'string' ? lang.toLowerCase() : ''
+          typeof lang === 'string' ? lang.toLowerCase().trim() : ''
         ).filter(Boolean);
       } else if (typeof authorProfile.programming_languages === 'string') {
         try {
           const parsed = JSON.parse(authorProfile.programming_languages);
-          authorLanguages = Array.isArray(parsed) ? parsed.map(lang => lang.toLowerCase()) : [];
+          authorLanguages = Array.isArray(parsed) ? parsed.map(lang => lang.toLowerCase().trim()) : [];
         } catch (e) {
-          authorLanguages = [authorProfile.programming_languages.toLowerCase()];
+          // If it's not valid JSON, treat it as a single string
+          authorLanguages = [authorProfile.programming_languages.toLowerCase().trim()];
         }
       }
     }
     
-    console.log(`Author's programming languages: ${authorLanguages.join(', ')}`);
+    console.log(`Author's programming languages (normalized): ${authorLanguages.join(', ')}`);
     
     // If no languages found for author, use the ones from the request or extract from content
     if (authorLanguages.length === 0) {
       if (languages && languages.length > 0) {
-        authorLanguages = languages.map(lang => lang.toLowerCase());
-        console.log(`Using languages from request: ${authorLanguages.join(', ')}`);
+        authorLanguages = languages.map(lang => lang.toLowerCase().trim());
+        console.log(`Using languages from request (normalized): ${authorLanguages.join(', ')}`);
       } else {
         // Extract languages from content as fallback
         const extractLanguagesFromContent = (text) => {
@@ -157,7 +158,7 @@ serve(async (req) => {
           commonLanguages.forEach(language => {
             const regex = new RegExp(`\\b${language}\\b`, 'i');
             if (regex.test(text.toLowerCase())) {
-              matches.add(language.toLowerCase());
+              matches.add(language.toLowerCase().trim());
             }
           });
           
@@ -165,7 +166,7 @@ serve(async (req) => {
         };
         
         authorLanguages = extractLanguagesFromContent(post.content);
-        console.log(`Extracted languages from content: ${authorLanguages.join(', ')}`);
+        console.log(`Extracted languages from content (normalized): ${authorLanguages.join(', ')}`);
       }
     }
     
@@ -180,14 +181,14 @@ serve(async (req) => {
       )
     }
 
-    // Find all users who have at least one of the author's programming languages
+    // IMPROVED: Find all users who have at least one of the author's programming languages
     // Exclude the post author from notifications
     const { data: users, error: usersError } = await supabaseClient
       .from('profiles')
       .select('user_id, programming_languages, email, email_notifications_enabled, full_name')
-      .not('email', 'is', null)
-      .eq('email_notifications_enabled', true) // Only users who enabled email notifications
-      .not('user_id', 'eq', postAuthorId); // Don't notify the post author
+      .not('user_id', 'eq', postAuthorId) // Don't notify the post author
+      .not('email', 'is', null)  // Must have an email
+      .eq('email_notifications_enabled', true); // Only users who enabled email notifications
 
     if (usersError) {
       console.error('Error fetching users:', usersError);
@@ -200,7 +201,19 @@ serve(async (req) => {
       )
     }
 
+    // Detailed logging to help debug
     console.log(`Found ${users?.length || 0} users with email notifications enabled`);
+    if (users?.length) {
+      console.log('Users found:');
+      users.forEach(user => {
+        console.log(`- User ${user.user_id}: Email=${user.email}, NotificationsEnabled=${user.email_notifications_enabled}, Languages=${JSON.stringify(user.programming_languages)}`);
+      });
+    } else {
+      console.log('No users found with email notifications enabled. Check that:');
+      console.log('1. Other user accounts exist');
+      console.log('2. Users have set email_notifications_enabled=true in their profiles');
+      console.log('3. Users have selected programming languages');
+    }
     
     // Process notifications
     let notificationsSent = 0;
@@ -210,20 +223,20 @@ serve(async (req) => {
     // Send notifications to each user who has matching programming languages in their profile
     for (const user of users || []) {
       try {
-        // Process user's programming_languages safely
+        // Process user's programming_languages safely - normalize to lowercase for case insensitive matching
         let userLanguages = [];
         
         if (user.programming_languages) {
           if (Array.isArray(user.programming_languages)) {
             userLanguages = user.programming_languages.map(lang => 
-              typeof lang === 'string' ? lang.toLowerCase() : ''
+              typeof lang === 'string' ? lang.toLowerCase().trim() : ''
             ).filter(Boolean);
           } else if (typeof user.programming_languages === 'string') {
             try {
               const parsed = JSON.parse(user.programming_languages);
-              userLanguages = Array.isArray(parsed) ? parsed.map(lang => lang.toLowerCase()) : [user.programming_languages.toLowerCase()];
+              userLanguages = Array.isArray(parsed) ? parsed.map(lang => lang.toLowerCase().trim()) : [user.programming_languages.toLowerCase().trim()];
             } catch (e) {
-              userLanguages = [user.programming_languages.toLowerCase()];
+              userLanguages = [user.programming_languages.toLowerCase().trim()];
             }
           }
         }
@@ -239,8 +252,9 @@ serve(async (req) => {
         console.log(`Comparing with author languages: ${authorLanguages.join(', ')}`);
         
         // Find matching languages between the post author's languages and user's interests
+        // Using case insensitive comparison
         const matchingLanguages = authorLanguages.filter(lang => 
-          userLanguages.includes(lang.toLowerCase())
+          userLanguages.some(userLang => userLang.toLowerCase().trim() === lang.toLowerCase().trim())
         );
         
         console.log(`Matching languages for user ${user.user_id}: ${matchingLanguages.join(', ')}`);

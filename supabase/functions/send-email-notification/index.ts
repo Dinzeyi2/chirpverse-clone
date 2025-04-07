@@ -54,14 +54,24 @@ serve(async (req) => {
 
     console.log(`Processing email notification for user ${userId}`);
 
-    // Get the user's email and notification preferences
+    // Get the user's email and notification preferences - directly check if email_notifications_enabled is true
     const { data: userData, error: userError } = await supabaseClient
       .from('profiles')
       .select('email, email_notifications_enabled')
       .eq('user_id', userId)
+      .eq('email_notifications_enabled', true)  // Only fetch if notifications are enabled
       .single()
 
     if (userError) {
+      if (userError.code === 'PGRST116') {
+        // This is the "no rows returned" error from PostgREST
+        console.log(`User ${userId} has not enabled email notifications`);
+        return new Response(
+          JSON.stringify({ message: 'User has not enabled email notifications' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        )
+      }
+      
       console.error('Error fetching user email:', userError);
       return new Response(
         JSON.stringify({ error: 'Error fetching user email', details: userError }),
@@ -73,12 +83,11 @@ serve(async (req) => {
       console.log('User data found:', JSON.stringify(userData));
     }
 
-    // Check if user has email and has notifications enabled
-    if (!userData?.email || userData.email_notifications_enabled === false) {
-      const reason = !userData?.email ? 'No email found for user' : 'Email notifications are disabled for this user';
-      console.log(reason);
+    // Check if user has email
+    if (!userData?.email) {
+      console.log('No email found for user');
       return new Response(
-        JSON.stringify({ message: reason }),
+        JSON.stringify({ message: 'No email found for user' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
     }
