@@ -113,7 +113,7 @@ export const parseArrayField = (field: string | null): string[] => {
   }
 };
 
-// Simplified function to extract programming languages from post content
+// Fixed function to extract programming languages from post content
 export const extractLanguageMentions = (content: string): string[] => {
   if (!content) return [];
   
@@ -130,7 +130,8 @@ export const extractLanguageMentions = (content: string): string[] => {
   
   // Scan content for programming language mentions (case insensitive)
   commonLanguages.forEach(language => {
-    const regex = new RegExp(`\\b${language}\\b`, 'i');
+    // Fix: Cast language to string to ensure toLowerCase() is available
+    const regex = new RegExp(`\\b${String(language)}\\b`, 'i');
     if (regex.test(content.toLowerCase())) {
       console.log(`Found programming language: ${language}`);
       matches.add(language.toLowerCase());
@@ -143,7 +144,7 @@ export const extractLanguageMentions = (content: string): string[] => {
   return uniqueMatches;
 };
 
-// Function to notify users who have the same programming languages
+// Enhanced function to notify users who have the same programming languages
 export const notifyUsersWithSameLanguages = async (
   senderId: string, 
   languages: string[], 

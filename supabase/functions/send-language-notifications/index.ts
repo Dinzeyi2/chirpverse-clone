@@ -95,11 +95,23 @@ serve(async (req) => {
     const postAuthorId = post.user_id;
     console.log(`Post author ID: ${postAuthorId}`);
 
-    // Get all users with the relevant programming languages who have enabled notifications
-    // Find all users who have at least one of the languages in the post content in their profile
+    // Get the post author's profile to include in the notification
+    const { data: authorProfile, error: authorError } = await supabaseClient
+      .from('profiles')
+      .select('full_name, email')
+      .eq('user_id', postAuthorId)
+      .single();
+
+    if (authorError) {
+      console.log('Could not fetch author profile:', authorError);
+    }
+
+    const authorName = authorProfile?.full_name || 'Someone';
+    
+    // Get all users with matching programming languages who have enabled notifications
     const { data: users, error: usersError } = await supabaseClient
       .from('profiles')
-      .select('user_id, programming_languages, email, email_notifications_enabled')
+      .select('user_id, programming_languages, email, email_notifications_enabled, full_name')
       .not('email', 'is', null)
       .eq('email_notifications_enabled', true) // Only users who enabled email notifications
       .not('user_id', 'eq', postAuthorId); // Don't notify the post author
@@ -122,7 +134,7 @@ serve(async (req) => {
     let notificationsSkipped = 0;
     const notificationResults = [];
 
-    // Send notifications to each user who has the programming languages in their profile
+    // Send notifications to each user who has matching programming languages
     for (const user of users || []) {
       try {
         // Process user's programming_languages safely
@@ -141,7 +153,7 @@ serve(async (req) => {
           }
         }
         
-        // Skip users without programming languages or who disabled email notifications
+        // Skip users without programming languages
         if (!userLanguages.length) {
           console.log(`User ${user.user_id} has no programming languages set, skipping`);
           notificationsSkipped++;
@@ -163,10 +175,18 @@ serve(async (req) => {
         if (matchingLanguages.length > 0) {
           console.log(`Sending notification to user ${user.user_id} about languages: ${matchingLanguages.join(', ')}`);
           
-          // Create a simple message with the programming languages
+          // Create a personalized message with the programming languages
           const languageList = matchingLanguages.join(', ');
-          const emailSubject = `New post about ${languageList}`;
-          const emailBody = `There's a new post discussing ${languageList} on iBlue. Check it out and join the conversation!`;
+          const emailSubject = `New post about ${languageList} from ${authorName}`;
+          
+          // Truncate content for the email if it's too long
+          const truncatedContent = content.length > 200 ? content.substring(0, 200) + '...' : content;
+          
+          const emailBody = `${authorName} just posted about ${languageList} on iBlue:
+          
+"${truncatedContent}"
+
+Check out the full post and join the conversation!`;
           
           try {
             // Call the send-email-notification function
@@ -200,13 +220,14 @@ serve(async (req) => {
             notificationResults.push({
               userId: user.user_id,
               email: user.email,
+              name: user.full_name,
               languages: matchingLanguages,
               success: response.ok,
               response: responseJson
             });
 
             if (response.ok) {
-              console.log(`Successfully sent email to user ${user.user_id}`);
+              console.log(`Successfully sent email to user ${user.full_name} (${user.user_id})`);
               notificationsSent++;
               
               // Also create an in-app notification
@@ -216,11 +237,12 @@ serve(async (req) => {
                   recipient_id: user.user_id,
                   sender_id: postAuthorId,
                   type: 'language_mention',
-                  content: `New post about ${languageList}`,
+                  content: `New post about ${languageList} from ${authorName}`,
                   metadata: {
                     languages: matchingLanguages,
                     post_id: postId,
-                    post_excerpt: content.substring(0, 100) + (content.length > 100 ? '...' : '')
+                    post_excerpt: content.substring(0, 100) + (content.length > 100 ? '...' : ''),
+                    author_name: authorName
                   }
                 });
                 
