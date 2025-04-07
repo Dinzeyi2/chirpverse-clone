@@ -15,7 +15,7 @@ serve(async (req) => {
     // Get all users who have consented to notifications
     const { data: users, error: usersError } = await supabaseClient
       .from('profiles')
-      .select('user_id, programming_languages')
+      .select('user_id, programming_languages, email')
       .contains('user_metadata', { notifications_consent: true })
 
     if (usersError) {
@@ -65,10 +65,13 @@ serve(async (req) => {
 
         if (relevantPosts && relevantPosts.length > 0) {
           console.log(`Found ${relevantPosts.length} relevant posts for user ${user.user_id}`)
-
-          // Call the send-push-notification function
+          
+          // Get the most recent relevant post to highlight
+          const latestPost = relevantPosts[0]
+          
+          // Call the send-email-notification function
           const response = await fetch(
-            `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-push-notification`,
+            `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email-notification`,
             {
               method: 'POST',
               headers: {
@@ -78,9 +81,8 @@ serve(async (req) => {
               body: JSON.stringify({
                 userId: user.user_id,
                 title: 'New content about your languages',
-                body: `There are ${relevantPosts.length} new posts about languages you follow`,
-                url: '/',
-                tag: 'language-updates'
+                body: `There are ${relevantPosts.length} new posts about languages you follow. Check them out!`,
+                postId: latestPost.id
               }),
             }
           )
