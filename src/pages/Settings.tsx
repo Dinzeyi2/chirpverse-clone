@@ -284,9 +284,7 @@ const Settings = () => {
             setSelectedLanguages(Array.isArray(data.programming_languages) ? data.programming_languages : []);
           }
           
-          if (data.email_notifications_enabled !== null && data.email_notifications_enabled !== undefined) {
-            setEmailNotificationsEnabled(data.email_notifications_enabled);
-          }
+          setEmailNotificationsEnabled(!!data.email_notifications_enabled);
         }
       };
       

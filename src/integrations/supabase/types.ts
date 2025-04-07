@@ -710,6 +710,7 @@ export type Database = {
           description: string | null
           education: Json | null
           email: string | null
+          email_notifications_enabled: boolean | null
           experience: string | null
           experiences: Json | null
           featured_projects: string[] | null
@@ -742,6 +743,7 @@ export type Database = {
           description?: string | null
           education?: Json | null
           email?: string | null
+          email_notifications_enabled?: boolean | null
           experience?: string | null
           experiences?: Json | null
           featured_projects?: string[] | null
@@ -774,6 +776,7 @@ export type Database = {
           description?: string | null
           education?: Json | null
           email?: string | null
+          email_notifications_enabled?: boolean | null
           experience?: string | null
           experiences?: Json | null
           featured_projects?: string[] | null

@@ -15,8 +15,9 @@ serve(async (req) => {
     // Get all users who have consented to notifications
     const { data: users, error: usersError } = await supabaseClient
       .from('profiles')
-      .select('user_id, programming_languages, email')
+      .select('user_id, programming_languages, email, email_notifications_enabled')
       .not('email', 'is', null)
+      .eq('email_notifications_enabled', true) // Only get users who have enabled email notifications
 
     if (usersError) {
       console.error('Error fetching users:', usersError)
@@ -26,7 +27,7 @@ serve(async (req) => {
       )
     }
 
-    console.log(`Found ${users?.length || 0} users with email addresses`)
+    console.log(`Found ${users?.length || 0} users with email notification enabled`)
 
     // Get recent posts (last 24 hours)
     const yesterday = new Date()
