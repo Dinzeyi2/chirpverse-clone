@@ -18,16 +18,34 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Starting send-email-notification function...');
+    
     // Create a Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Parse the request body
-    const { userId, subject, body, postId, priority = 'normal', debug = false } = await req.json()
+    // Parse the request body with careful error handling
+    let requestBody;
+    try {
+      requestBody = await req.json();
+      console.log('Request body:', JSON.stringify(requestBody));
+    } catch (parseError) {
+      console.error('Error parsing request body:', parseError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid request body' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
+    }
+    
+    const { userId, subject, body, postId, priority = 'normal', debug = true } = requestBody;
 
     if (!userId) {
+      console.error('Missing userId in request');
       return new Response(
         JSON.stringify({ error: 'Missing required userId parameter' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -44,7 +62,7 @@ serve(async (req) => {
       .single()
 
     if (userError) {
-      console.error('Error fetching user email:', userError)
+      console.error('Error fetching user email:', userError);
       return new Response(
         JSON.stringify({ error: 'Error fetching user email', details: userError }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
@@ -57,8 +75,8 @@ serve(async (req) => {
 
     // Check if user has email and has notifications enabled
     if (!userData?.email || userData.email_notifications_enabled === false) {
-      const reason = !userData?.email ? 'No email found for user' : 'Email notifications are disabled for this user'
-      console.log(reason)
+      const reason = !userData?.email ? 'No email found for user' : 'Email notifications are disabled for this user';
+      console.log(reason);
       return new Response(
         JSON.stringify({ message: reason, userData: debug ? userData : undefined }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
@@ -66,8 +84,8 @@ serve(async (req) => {
     }
 
     // Create a URL to the post
-    const appUrl = Deno.env.get('APP_URL') || 'https://i-blue.dev'
-    const postUrl = `${appUrl}/post/${postId}`
+    const appUrl = Deno.env.get('APP_URL') || 'https://i-blue.dev';
+    const postUrl = `${appUrl}/post/${postId}`;
 
     // Generate simple HTML email
     const htmlEmail = `
@@ -102,21 +120,19 @@ serve(async (req) => {
           </div>
         </body>
       </html>
-    `
+    `;
 
-    // Use a email sending service (example with a simple fetch to a hypothetical email API)
-    // In a real implementation, you would use a service like SendGrid, Mailgun, Resend, etc.
-    // For this example, we'll use Resend which has a simple API
-    const resendApiKey = Deno.env.get('RESEND_API_KEY')
+    // Check for Resend API key
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
     if (!resendApiKey) {
-      console.error('RESEND_API_KEY is not set')
+      console.error('RESEND_API_KEY is not set');
       return new Response(
         JSON.stringify({ error: 'Email service is not configured' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       )
     }
 
-    console.log(`Sending email to ${userData.email} with subject: ${subject}`)
+    console.log(`Sending email to ${userData.email} with subject: ${subject}`);
     
     const emailData = {
       from: 'notifications@i-blue.dev',
@@ -139,30 +155,30 @@ serve(async (req) => {
         'Authorization': `Bearer ${resendApiKey}`
       },
       body: JSON.stringify(emailData)
-    })
+    });
 
     if (!emailResponse.ok) {
-      const errorData = await emailResponse.text()
-      console.error('Failed to send email:', errorData)
+      const errorResponseText = await emailResponse.text();
+      console.error('Failed to send email:', errorResponseText);
       return new Response(
-        JSON.stringify({ error: 'Failed to send email', details: errorData }),
+        JSON.stringify({ error: 'Failed to send email', details: errorResponseText }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      )
+      );
     }
 
-    const emailResult = await emailResponse.json()
-    console.log('Email sent successfully:', emailResult)
+    const emailResult = await emailResponse.json();
+    console.log('Email sent successfully:', emailResult);
 
     return new Response(
       JSON.stringify({ success: true, message: 'Email notification sent successfully', result: emailResult }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-    )
+    );
   } catch (error: any) {
-    console.error('Error sending email notification:', error)
+    console.error('Error sending email notification:', error);
     
     return new Response(
       JSON.stringify({ error: 'Failed to send notification: ' + error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-    )
+    );
   }
-})
+});

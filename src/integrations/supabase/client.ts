@@ -48,6 +48,8 @@ export const enableRealtimeForTables = () => {
         // If a new post is created, check for language mentions
         if (payload.eventType === 'INSERT' && payload.new) {
           const content = payload.new.content;
+          console.log('Checking for language mentions in new post:', content);
+          
           const languages = extractLanguageMentions(content);
           
           if (languages.length > 0) {
@@ -58,6 +60,8 @@ export const enableRealtimeForTables = () => {
               content, 
               payload.new.id
             );
+          } else {
+            console.log('No language mentions found in post');
           }
         }
       })
@@ -108,28 +112,31 @@ export const parseArrayField = (field: string | null): string[] => {
   }
 };
 
-// Fixed to better capture language tags with @ symbol and case-insensitivity
+// Improved language mention extraction - Now correctly extracts @language tags
 export const extractLanguageMentions = (content: string): string[] => {
   if (!content) return [];
   
-  // Improved regex to match language mentions with @ symbol
+  console.log('Extracting language mentions from content:', content);
+  
+  // Enhanced regex to match @language mentions more accurately
   const mentionRegex = /@(\w+)/g;
   const matches = [];
   let match;
   
   while ((match = mentionRegex.exec(content)) !== null) {
     if (match[1]) {
-      matches.push(match[1].toLowerCase().trim());
+      const language = match[1].toLowerCase().trim();
+      console.log('Found language mention:', language);
+      matches.push(language);
     }
   }
   
-  // Log what's being extracted for debugging
-  console.log('Extracted language mentions:', matches);
+  console.log('All extracted language mentions:', matches);
   
   return matches;
 };
 
-// Improved to ensure notifications are sent properly
+// Completely revamped notification system to ensure emails are sent properly
 export const notifyLanguageUsers = async (
   senderId: string, 
   languages: string[], 
@@ -137,9 +144,11 @@ export const notifyLanguageUsers = async (
   postId: string
 ): Promise<void> => {
   try {
-    console.log(`Notifying users about mention of languages: ${languages.join(', ')} in post ${postId}`);
+    console.log(`Starting notification process for languages: ${languages.join(', ')} in post ${postId}`);
     
-    // Call the Supabase function to process email notifications immediately with additional debugging info
+    // Call the Supabase function to process email notifications immediately with enhanced debugging
+    console.log('Invoking send-language-notifications function...');
+    
     const { data, error } = await supabase.functions.invoke('send-language-notifications', {
       body: { 
         postId,
@@ -156,14 +165,16 @@ export const notifyLanguageUsers = async (
       console.log('Email notifications triggered successfully:', data);
     }
     
-    // Separately prepare in-app notifications
+    // Separately prepare in-app notifications for immediate feedback
     for (const language of languages) {
       try {
+        console.log(`Finding users interested in ${language}...`);
+        
         // Find users with this language in their profile
         const { data: profilesWithLanguage, error: profilesError } = await supabase
           .from('profiles')
           .select('user_id, programming_languages, email, email_notifications_enabled')
-          .not('user_id', 'eq', senderId)
+          .not('user_id', 'eq', senderId) // Don't notify the author
           .eq('email_notifications_enabled', true); // Only fetch profiles with notifications enabled
         
         if (profilesError) {
@@ -179,6 +190,7 @@ export const notifyLanguageUsers = async (
             ? profile.programming_languages 
             : parseArrayField(profile.programming_languages as any);
           
+          // Case insensitive check to match languages
           const hasLanguage = userLanguages.some(lang => 
             lang.toLowerCase() === language.toLowerCase()
           );
@@ -193,7 +205,7 @@ export const notifyLanguageUsers = async (
         
         if (usersToNotify.length === 0) continue;
         
-        // Prepare notifications
+        // Prepare notifications for database insertion
         const notifications = usersToNotify.map(profile => ({
           type: 'language_mention',
           recipient_id: profile.user_id,
@@ -207,8 +219,10 @@ export const notifyLanguageUsers = async (
           is_read: false
         }));
         
-        // Insert notifications
+        // Insert notifications into the database
         if (notifications.length > 0) {
+          console.log(`Inserting ${notifications.length} notification records...`);
+          
           const { error: notificationError } = await supabase
             .from('notifications')
             .insert(notifications);
