@@ -212,7 +212,11 @@ export const extractLanguageMentions = (content: string): string[] => {
   
   // Scan content for programming language mentions (case insensitive)
   commonLanguages.forEach(language => {
-    const regex = new RegExp(`\\b${language}\\b`, 'i');
+    // Fix: TypeScript was inferring a 'never' type here due to regex complexities
+    // Make sure we're using string types explicitly
+    const languagePattern = String(language).toLowerCase();
+    const regex = new RegExp(`\\b${languagePattern}\\b`, 'i');
+    
     if (regex.test(content.toLowerCase())) {
       console.log(`Found programming language: ${language}`);
       matches.add(language.toLowerCase().trim());
