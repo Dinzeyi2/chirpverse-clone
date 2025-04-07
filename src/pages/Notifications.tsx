@@ -28,8 +28,15 @@ const Notifications = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [notifications, setNotifications] = useState<NotificationType[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, subscribeToNotifications } = useAuth();
+  const [notificationPermission, setNotificationPermission] = useState<string | null>(null);
   const navigate = useNavigate();
+  
+  useEffect(() => {
+    if ('Notification' in window) {
+      setNotificationPermission(Notification.permission);
+    }
+  }, []);
   
   useEffect(() => {
     if (!user) return;
@@ -183,6 +190,20 @@ const Notifications = () => {
     };
   }, [user, navigate]);
 
+  const handleSubscribe = async () => {
+    try {
+      await subscribeToNotifications();
+      setNotificationPermission(Notification.permission);
+    } catch (error) {
+      console.error('Error subscribing to notifications:', error);
+      toast({
+        title: "Error",
+        description: "Failed to subscribe to notifications",
+        variant: "destructive"
+      });
+    }
+  };
+
   const getNotificationTitle = (type: string): string => {
     switch (type) {
       case 'like':
@@ -270,6 +291,17 @@ const Notifications = () => {
       <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-md">
         <div className="px-4 py-3 border-b border-xExtraLightGray">
           <h1 className="text-xl font-bold">Notifications</h1>
+          
+          {notificationPermission !== 'granted' && (
+            <div className="mt-2 mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/30 rounded-md">
+              <p className="text-sm text-blue-600 dark:text-blue-400 mb-2">
+                Enable push notifications to stay updated with activity on your posts.
+              </p>
+              <Button size="sm" onClick={handleSubscribe}>
+                Enable Notifications
+              </Button>
+            </div>
+          )}
           
           <Tabs defaultValue="all" className="mt-2" onValueChange={setActiveTab}>
             <TabsList className="w-full bg-transparent border-b border-xExtraLightGray">

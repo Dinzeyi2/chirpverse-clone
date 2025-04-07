@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Shield, ChevronRight, Moon, Sun, Code } from 'lucide-react';
+import { ArrowLeft, Shield, ChevronRight, Moon, Sun, Code, Bell } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -277,6 +277,30 @@ const Settings = () => {
     }
   };
 
+  const handleTestNotification = async () => {
+    if (!user) {
+      toast.error("You must be logged in to test notifications");
+      return;
+    }
+    
+    try {
+      await supabase.functions.invoke('send-push-notification', {
+        body: {
+          userId: user.id,
+          title: 'Test Notification',
+          body: 'This is a test notification from iblue',
+          url: '/notifications',
+          tag: 'test-notification'
+        }
+      });
+      
+      toast.success('Test notification sent');
+    } catch (error) {
+      console.error('Error sending test notification:', error);
+      toast.error('Failed to send test notification');
+    }
+  };
+
   const textColor = theme === 'dark' ? 'text-white' : 'text-foreground';
   const mutedTextColor = theme === 'dark' ? 'text-xGray-dark' : 'text-muted-foreground';
   const headerBg = theme === 'dark' ? 'bg-black/80' : 'bg-lightBeige/80';
@@ -337,6 +361,28 @@ const Settings = () => {
                         <span className="ml-2">Dark</span>
                       </ToggleGroupItem>
                     </ToggleGroup>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <Separator className={borderColor} />
+            
+            <div className="p-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2">
+                  <Bell className={cn("h-6 w-6", iconColor)} />
+                </div>
+                <div className="flex flex-col text-left">
+                  <span className={cn("font-medium text-lg", textColor)}>Notifications</span>
+                  <span className={mutedTextColor}>Manage your notification preferences</span>
+                  <div className="mt-3">
+                    <Button 
+                      onClick={handleTestNotification} 
+                      className="mt-2"
+                    >
+                      Test Push Notification
+                    </Button>
                   </div>
                 </div>
               </div>

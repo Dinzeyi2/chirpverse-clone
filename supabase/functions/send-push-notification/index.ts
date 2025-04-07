@@ -71,10 +71,21 @@ serve(async (req) => {
       tag: tag || 'iblue-notification',
     }
 
-    // VAPID keys (these should be stored securely and not hardcoded)
+    // Get VAPID keys from environment
+    const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
+    const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY');
+    
+    if (!vapidPublicKey || !vapidPrivateKey) {
+      return new Response(
+        JSON.stringify({ error: 'VAPID keys are not properly configured' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
+    }
+
+    // VAPID keys
     const vapidKeys = {
-      publicKey: Deno.env.get('VAPID_PUBLIC_KEY'),
-      privateKey: Deno.env.get('VAPID_PRIVATE_KEY'),
+      publicKey: vapidPublicKey,
+      privateKey: vapidPrivateKey,
       subject: 'mailto:' + (Deno.env.get('VAPID_SUBJECT') || 'contact@i-blue.dev')
     }
 

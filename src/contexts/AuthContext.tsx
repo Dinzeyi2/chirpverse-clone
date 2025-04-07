@@ -57,8 +57,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let subscription = await registration.pushManager.getSubscription();
       
       if (!subscription) {
-        // Get VAPID public key from server
-        const vapidPublicKey = 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U';
+        // Get VAPID public key from Supabase
+        const { data, error } = await supabase.functions.invoke('get-vapid-public-key');
+        
+        if (error) {
+          console.error('Error getting VAPID public key:', error);
+          throw new Error('Could not retrieve VAPID public key');
+        }
+        
+        const vapidPublicKey = data.vapidPublicKey;
+        if (!vapidPublicKey) {
+          throw new Error('VAPID public key not available');
+        }
+        
         const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
         
         // Create subscription
@@ -71,15 +82,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Store subscription in Supabase if user is authenticated
       if (user) {
         // Save the subscription to the user's profile
-        // Use a type assertion to work around the TypeScript error
-        await supabase.from('user_push_subscriptions' as any).upsert(
-          {
-            user_id: user.id,
-            subscription: JSON.stringify(subscription),
-            created_at: new Date().toISOString()
-          },
-          { onConflict: 'user_id' }
-        );
+        const { error: upsertError } = await supabase
+          .from('user_push_subscriptions')
+          .upsert(
+            {
+              user_id: user.id,
+              subscription: JSON.stringify(subscription),
+              created_at: new Date().toISOString()
+            },
+            { onConflict: 'user_id' }
+          );
+        
+        if (upsertError) {
+          console.error('Error saving subscription:', upsertError);
+          throw new Error('Failed to save notification subscription');
+        }
         
         toast.success('Successfully subscribed to notifications');
       }
