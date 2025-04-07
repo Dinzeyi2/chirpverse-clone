@@ -52,12 +52,12 @@ serve(async (req) => {
       )
     }
 
-    console.log(`Processing email notification for user ${userId} (priority: ${priority}, debug: ${debug})`)
+    console.log(`Processing email notification for user ${userId}`);
 
     // Get the user's email and notification preferences
     const { data: userData, error: userError } = await supabaseClient
       .from('profiles')
-      .select('email, email_notifications_enabled, programming_languages')
+      .select('email, email_notifications_enabled')
       .eq('user_id', userId)
       .single()
 
@@ -78,7 +78,7 @@ serve(async (req) => {
       const reason = !userData?.email ? 'No email found for user' : 'Email notifications are disabled for this user';
       console.log(reason);
       return new Response(
-        JSON.stringify({ message: reason, userData: debug ? userData : undefined }),
+        JSON.stringify({ message: reason }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
     }
@@ -134,6 +134,7 @@ serve(async (req) => {
 
     console.log(`Sending email to ${userData.email} with subject: ${subject}`);
     
+    // Send email using Resend
     const emailData = {
       from: 'notifications@i-blue.dev',
       to: userData.email,
@@ -148,6 +149,7 @@ serve(async (req) => {
       console.log('Email payload:', JSON.stringify(emailData));
     }
     
+    // Send the email
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -157,6 +159,7 @@ serve(async (req) => {
       body: JSON.stringify(emailData)
     });
 
+    // Handle response
     if (!emailResponse.ok) {
       const errorResponseText = await emailResponse.text();
       console.error('Failed to send email:', errorResponseText);

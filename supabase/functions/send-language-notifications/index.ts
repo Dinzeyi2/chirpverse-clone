@@ -55,8 +55,8 @@ serve(async (req) => {
       )
     }
 
-    console.log(`Processing notifications for post: ${postId} (immediate: ${immediate}, debug: ${debug})`)
-    console.log(`Languages explicitly passed: ${languages.join(', ') || 'none'}`)
+    console.log(`Processing notifications for post: ${postId}`);
+    console.log(`Languages mentioned in post: ${languages.join(', ')}`);
 
     // Validate RESEND_API_KEY is set
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
@@ -91,63 +91,18 @@ serve(async (req) => {
       )
     }
 
-    console.log('Post content:', post.content);
+    // Get user who created the post to avoid sending them notifications
+    const postAuthorId = post.user_id;
+    console.log(`Post author ID: ${postAuthorId}`);
 
-    // Extract programming languages mentioned in the post if not provided
-    let languagesMentioned = languages.length > 0 ? languages : [];
-    if (languagesMentioned.length === 0) {
-      console.log('No languages explicitly provided, extracting from content...');
-      
-      // Enhanced language detection - look for both @language and direct mentions
-      const mentionRegex = /@(\w+)/g;
-      let match;
-      while ((match = mentionRegex.exec(post.content)) !== null) {
-        if (match[1]) {
-          const language = match[1].toLowerCase().trim();
-          languagesMentioned.push(language);
-          console.log(`Found language mention: ${language}`);
-        }
-      }
-      
-      // Add common languages detection without @ symbol
-      const commonLanguages = [
-        'javascript', 'typescript', 'python', 'java', 'c#', 'csharp', 'c++', 'cpp', 
-        'php', 'go', 'ruby', 'swift', 'kotlin', 'rust', 'dart', 'scala', 'r', 
-        'perl', 'haskell', 'lua', 'sql', 'html', 'css'
-      ];
-      
-      commonLanguages.forEach(language => {
-        const regex = new RegExp(`\\b${language}\\b`, 'i');
-        if (regex.test(post.content.toLowerCase()) && !languagesMentioned.includes(language.toLowerCase())) {
-          languagesMentioned.push(language.toLowerCase());
-          console.log(`Found direct language mention: ${language}`);
-        }
-      });
-    }
-
-    // Remove duplicates
-    languagesMentioned = [...new Set(languagesMentioned)];
-    
-    console.log(`Languages mentioned in post: ${languagesMentioned.join(', ') || 'none'}`);
-
-    if (languagesMentioned.length === 0) {
-      console.log('No programming languages mentioned in this post');
-      return new Response(
-        JSON.stringify({ success: true, message: 'No programming languages to notify about' }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 200 
-        }
-      )
-    }
-
-    // Get all users with emails and programming languages who have enabled notifications
+    // Get all users with the relevant programming languages who have enabled notifications
+    // Find all users who have at least one of the languages in the post content in their profile
     const { data: users, error: usersError } = await supabaseClient
       .from('profiles')
       .select('user_id, programming_languages, email, email_notifications_enabled')
       .not('email', 'is', null)
-      .eq('email_notifications_enabled', true) // Only notify users who have enabled email notifications
-      .not('user_id', 'eq', post.user_id) // Don't notify the author
+      .eq('email_notifications_enabled', true) // Only users who enabled email notifications
+      .not('user_id', 'eq', postAuthorId); // Don't notify the post author
 
     if (usersError) {
       console.error('Error fetching users:', usersError);
@@ -162,17 +117,12 @@ serve(async (req) => {
 
     console.log(`Found ${users?.length || 0} users with email notifications enabled`);
     
-    if (debug) {
-      console.log('User profiles found:', JSON.stringify(users));
-    }
-
     // Process notifications
     let notificationsSent = 0;
     let notificationsSkipped = 0;
-    let notificationErrors = 0;
     const notificationResults = [];
 
-    // Process each user
+    // Send notifications to each user who has the programming languages in their profile
     for (const user of users || []) {
       try {
         // Process user's programming_languages safely
@@ -191,46 +141,37 @@ serve(async (req) => {
           }
         }
         
-        // Validation: Skip users without programming languages or email notifications disabled
+        // Skip users without programming languages or who disabled email notifications
         if (!userLanguages.length) {
           console.log(`User ${user.user_id} has no programming languages set, skipping`);
           notificationsSkipped++;
           continue;
         }
 
-        if (user.email_notifications_enabled !== true) {
-          console.log(`User ${user.user_id} has disabled email notifications, skipping`);
-          notificationsSkipped++;
-          continue;
-        }
-
-        // Find languages that match between the post and user's interests - case insensitive comparison
-        const normalizedUserLanguages = userLanguages.map(lang => lang.toLowerCase());
+        // Convert user languages to lowercase for case-insensitive comparison
+        const userLanguagesLower = userLanguages.map(lang => lang.toLowerCase());
+        console.log(`User ${user.user_id} has languages: ${userLanguagesLower.join(', ')}`);
         
-        if (debug) {
-          console.log(`User ${user.user_id} is interested in languages: ${normalizedUserLanguages.join(', ')}`);
-          console.log(`Post mentions languages: ${languagesMentioned.join(', ')}`);
-        }
-        
-        const relevantLanguages = languagesMentioned.filter(lang => 
-          normalizedUserLanguages.includes(lang.toLowerCase())
+        // Find matching languages between the post and user's interests
+        const matchingLanguages = languages.filter(lang => 
+          userLanguagesLower.includes(lang.toLowerCase())
         );
-
-        console.log(`User ${user.user_id} follows: ${normalizedUserLanguages.join(', ')}`);
-        console.log(`Relevant languages for user ${user.user_id}: ${relevantLanguages.join(', ') || 'none'}`);
-
-        if (relevantLanguages.length > 0) {
-          console.log(`Found ${relevantLanguages.length} relevant languages for user ${user.user_id}`);
+        
+        console.log(`Matching languages for user ${user.user_id}: ${matchingLanguages.join(', ')}`);
+        
+        // Only send notification if there are matching languages
+        if (matchingLanguages.length > 0) {
+          console.log(`Sending notification to user ${user.user_id} about languages: ${matchingLanguages.join(', ')}`);
           
-          const languageList = relevantLanguages.join(', ');
+          // Create a simple message with the programming languages
+          const languageList = matchingLanguages.join(', ');
+          const emailSubject = `New post about ${languageList}`;
+          const emailBody = `There's a new post discussing ${languageList} on iBlue. Check it out and join the conversation!`;
           
           try {
-            // Call the send-email-notification function directly with the full URL
-            const functionUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email-notification`;
-            console.log(`Calling email notification function at: ${functionUrl}`);
-            
+            // Call the send-email-notification function
             const response = await fetch(
-              functionUrl,
+              `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email-notification`,
               {
                 method: 'POST',
                 headers: {
@@ -239,18 +180,16 @@ serve(async (req) => {
                 },
                 body: JSON.stringify({
                   userId: user.user_id,
-                  subject: `New post about ${languageList}`,
-                  body: `There's a new post discussing ${languageList} on iBlue. Check it out and join the conversation!`,
-                  postId: post.id,
-                  priority: immediate ? 'high' : 'normal', // Add priority flag for immediate processing
-                  debug: debug // Pass debug flag
+                  subject: emailSubject,
+                  body: emailBody,
+                  postId: postId,
+                  priority: 'high', // Send immediately
+                  debug: debug
                 }),
               }
             );
 
             const responseText = await response.text();
-            console.log(`Email notification response: ${responseText}`);
-            
             let responseJson;
             try {
               responseJson = JSON.parse(responseText);
@@ -261,31 +200,43 @@ serve(async (req) => {
             notificationResults.push({
               userId: user.user_id,
               email: user.email,
-              languages: relevantLanguages,
+              languages: matchingLanguages,
               success: response.ok,
               response: responseJson
             });
 
-            if (!response.ok) {
-              console.error(`Failed to send email notification to user ${user.user_id}:`, responseText);
-              notificationErrors++;
-            } else {
-              console.log(`Successfully sent email notification to user ${user.user_id} about post ${post.id}`);
+            if (response.ok) {
+              console.log(`Successfully sent email to user ${user.user_id}`);
               notificationsSent++;
+              
+              // Also create an in-app notification
+              const { error: notifError } = await supabaseClient
+                .from('notifications')
+                .insert({
+                  recipient_id: user.user_id,
+                  sender_id: postAuthorId,
+                  type: 'language_mention',
+                  content: `New post about ${languageList}`,
+                  metadata: {
+                    languages: matchingLanguages,
+                    post_id: postId,
+                    post_excerpt: content.substring(0, 100) + (content.length > 100 ? '...' : '')
+                  }
+                });
+                
+              if (notifError) {
+                console.error(`Error creating in-app notification for user ${user.user_id}:`, notifError);
+              } else {
+                console.log(`Created in-app notification for user ${user.user_id}`);
+              }
+            } else {
+              console.error(`Error sending email to user ${user.user_id}:`, responseText);
             }
           } catch (emailError) {
-            console.error(`Error sending email to user ${user.user_id}:`, emailError);
-            notificationErrors++;
-            notificationResults.push({
-              userId: user.user_id,
-              email: user.email,
-              languages: relevantLanguages,
-              success: false,
-              error: emailError.message
-            });
+            console.error(`Exception sending email to user ${user.user_id}:`, emailError);
           }
         } else {
-          console.log(`No relevant languages found for user ${user.user_id}, skipping notification`);
+          console.log(`No matching languages for user ${user.user_id}, skipping notification`);
           notificationsSkipped++;
         }
       } catch (userError) {
@@ -294,10 +245,11 @@ serve(async (req) => {
       }
     }
 
+    // Return success response
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Language notifications processed. Sent ${notificationsSent} notifications, skipped ${notificationsSkipped}, errors ${notificationErrors}.`,
+        message: `Notifications processed. Sent ${notificationsSent}, skipped ${notificationsSkipped}`,
         details: debug ? notificationResults : undefined
       }),
       { 
