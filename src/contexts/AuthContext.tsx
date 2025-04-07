@@ -119,24 +119,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       try {
-        const subscriptionData = {
-          user_id: user.id,
-          subscription: JSON.stringify(subscription),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
+        const subscriptionString = JSON.stringify(subscription);
         
-        console.log('Saving subscription to database:', subscriptionData);
-        
-        const { error: insertError } = await supabase
-          .rpc('upsert_push_subscription', { 
-            p_user_id: user.id,
-            p_subscription: JSON.stringify(subscription)
-          });
+        const { data: existingSubscription } = await supabase
+          .from('user_push_subscriptions')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
           
-        if (insertError) {
-          console.error('Error saving subscription:', insertError);
-          throw new Error('Failed to save push subscription');
+        if (existingSubscription) {
+          const { error: updateError } = await supabase
+            .from('user_push_subscriptions')
+            .update({
+              subscription: subscriptionString,
+              updated_at: new Date().toISOString()
+            })
+            .eq('user_id', user.id);
+            
+          if (updateError) {
+            console.error('Error updating subscription:', updateError);
+            throw new Error('Failed to update push subscription');
+          }
+        } else {
+          const { error: insertError } = await supabase
+            .from('user_push_subscriptions')
+            .insert({
+              user_id: user.id,
+              subscription: subscriptionString,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+            
+          if (insertError) {
+            console.error('Error inserting subscription:', insertError);
+            throw new Error('Failed to save push subscription');
+          }
         }
         
         console.log('Successfully saved subscription to database');
