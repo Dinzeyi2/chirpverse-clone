@@ -2,7 +2,21 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.36.0'
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
 serve(async (req) => {
+  // Handle OPTIONS request for CORS
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      headers: corsHeaders,
+      status: 204
+    })
+  }
+
   try {
     // Create a Supabase client
     const supabaseClient = createClient(
@@ -10,44 +24,79 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    console.log('Starting language notification process')
+    // Parse the request body
+    const { postId } = await req.json()
+    
+    if (!postId) {
+      return new Response(
+        JSON.stringify({ error: 'Post ID is required' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      )
+    }
+
+    console.log(`Processing notifications for post: ${postId}`)
+
+    // Get the post details
+    const { data: post, error: postError } = await supabaseClient
+      .from('shoutouts')
+      .select('id, content, created_at, user_id')
+      .eq('id', postId)
+      .single()
+
+    if (postError || !post) {
+      console.error('Error fetching post:', postError)
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch post details' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 500 
+        }
+      )
+    }
+
+    // Extract programming languages mentioned in the post
+    const mentionRegex = /@(\w+)/g
+    const matches = [...(post.content.match(mentionRegex) || [])]
+    const languagesMentioned = matches.map(match => match.substring(1).toLowerCase())
+
+    if (languagesMentioned.length === 0) {
+      console.log('No programming languages mentioned in this post')
+      return new Response(
+        JSON.stringify({ success: true, message: 'No programming languages to notify about' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 200 
+        }
+      )
+    }
+
+    console.log(`Languages mentioned in post: ${languagesMentioned.join(', ')}`)
 
     // Get all users with emails and programming languages
     const { data: users, error: usersError } = await supabaseClient
       .from('profiles')
       .select('user_id, programming_languages, email')
       .not('email', 'is', null)
-      // No longer filtering by email_notifications_enabled
+      .not('user_id', 'eq', post.user_id) // Don't notify the author
 
     if (usersError) {
       console.error('Error fetching users:', usersError)
       return new Response(
         JSON.stringify({ error: 'Failed to fetch users' }),
-        { status: 500 }
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500 
+        }
       )
     }
 
     console.log(`Found ${users?.length || 0} users with email addresses`)
 
-    // Get recent posts (last 24 hours)
-    const yesterday = new Date()
-    yesterday.setDate(yesterday.getDate() - 1)
-
-    const { data: recentPosts, error: postsError } = await supabaseClient
-      .from('shoutouts')
-      .select('id, content, created_at, user_id')
-      .gt('created_at', yesterday.toISOString())
-      .order('created_at', { ascending: false })
-
-    if (postsError) {
-      console.error('Error fetching recent posts:', postsError)
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch recent posts' }),
-        { status: 500 }
-      )
-    }
-
-    console.log(`Found ${recentPosts?.length || 0} recent posts`)
+    // Process notifications
+    let notificationsSent = 0
 
     // Process each user
     for (const user of users || []) {
@@ -57,48 +106,40 @@ serve(async (req) => {
           continue
         }
 
-        // Find posts mentioning user's languages
+        // Find languages that match between the post and user's interests
         const userLanguages = user.programming_languages.map(lang => lang.toLowerCase())
-        const relevantPosts = recentPosts?.filter(post => {
-          const content = post.content.toLowerCase()
-          return userLanguages.some(lang => content.includes(lang.toLowerCase()))
-        })
+        const relevantLanguages = languagesMentioned.filter(lang => 
+          userLanguages.some(userLang => userLang.toLowerCase() === lang.toLowerCase())
+        )
 
-        if (relevantPosts && relevantPosts.length > 0) {
-          console.log(`Found ${relevantPosts.length} relevant posts for user ${user.user_id}`)
-
-          // For each relevant post, send an email notification
-          for (const post of relevantPosts) {
-            // Get the languages mentioned in this post
-            const mentionedLanguages = userLanguages.filter(lang => 
-              post.content.toLowerCase().includes(lang.toLowerCase())
-            )
-            
-            const languageList = mentionedLanguages.join(', ')
-            
-            // Call the send-email-notification function
-            const response = await fetch(
-              `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email-notification`,
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-                },
-                body: JSON.stringify({
-                  userId: user.user_id,
-                  subject: `New post about ${languageList}`,
-                  body: `There's a new post discussing ${languageList} on iBlue. Check it out and join the conversation!`,
-                  postId: post.id
-                }),
-              }
-            )
-
-            if (!response.ok) {
-              console.error(`Failed to send email notification to user ${user.user_id}:`, await response.text())
-            } else {
-              console.log(`Successfully sent email notification to user ${user.user_id} about post ${post.id}`)
+        if (relevantLanguages.length > 0) {
+          console.log(`Found ${relevantLanguages.length} relevant languages for user ${user.user_id}`)
+          
+          const languageList = relevantLanguages.join(', ')
+          
+          // Call the send-email-notification function
+          const response = await fetch(
+            `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email-notification`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+              },
+              body: JSON.stringify({
+                userId: user.user_id,
+                subject: `New post about ${languageList}`,
+                body: `There's a new post discussing ${languageList} on iBlue. Check it out and join the conversation!`,
+                postId: post.id
+              }),
             }
+          )
+
+          if (!response.ok) {
+            console.error(`Failed to send email notification to user ${user.user_id}:`, await response.text())
+          } else {
+            console.log(`Successfully sent email notification to user ${user.user_id} about post ${post.id}`)
+            notificationsSent++
           }
         }
       } catch (userError) {
@@ -107,14 +148,23 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, message: 'Language notifications processed' }),
-      { status: 200 }
+      JSON.stringify({ 
+        success: true, 
+        message: `Language notifications processed. Sent ${notificationsSent} notifications.` 
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200 
+      }
     )
   } catch (error) {
     console.error('Error in send-language-notifications:', error)
     return new Response(
       JSON.stringify({ error: 'Failed to process notifications' }),
-      { status: 500 }
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500 
+      }
     )
   }
 })

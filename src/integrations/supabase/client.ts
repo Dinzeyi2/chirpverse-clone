@@ -139,6 +139,11 @@ export const notifyLanguageUsers = async (
       await supabase
         .from('notifications')
         .insert(notifications);
+      
+      // Trigger email notifications for this post
+      await supabase.functions.invoke('send-language-notifications', {
+        body: { postId }
+      });
     }
   } catch (error) {
     console.error('Error in notifyLanguageUsers:', error);
