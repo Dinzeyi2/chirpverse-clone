@@ -150,35 +150,46 @@ serve(async (req) => {
       console.log('Email payload:', JSON.stringify(emailData));
     }
     
-    // Send the email
-    const emailResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${resendApiKey}`
-      },
-      body: JSON.stringify(emailData)
-    });
+    try {
+      // Send the email
+      const emailResponse = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${resendApiKey}`
+        },
+        body: JSON.stringify(emailData)
+      });
 
-    // Handle response
-    if (!emailResponse.ok) {
-      const errorResponseText = await emailResponse.text();
-      console.error('Failed to send email:', errorResponseText);
+      // Handle response
+      if (!emailResponse.ok) {
+        const errorResponseText = await emailResponse.text();
+        console.error('Failed to send email:', errorResponseText);
+        return new Response(
+          JSON.stringify({ error: 'Failed to send email', details: errorResponseText }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+
+      const emailResult = await emailResponse.json();
+      console.log('Email sent successfully:', emailResult);
+
       return new Response(
-        JSON.stringify({ error: 'Failed to send email', details: errorResponseText }),
+        JSON.stringify({ success: true, message: 'Email notification sent successfully', result: emailResult }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    } catch (emailError) {
+      console.error('Error sending email via Resend:', emailError);
+      console.error(emailError.stack);
+      
+      return new Response(
+        JSON.stringify({ error: 'Failed to send email: ' + emailError.message }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
-
-    const emailResult = await emailResponse.json();
-    console.log('Email sent successfully:', emailResult);
-
-    return new Response(
-      JSON.stringify({ success: true, message: 'Email notification sent successfully', result: emailResult }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-    );
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error sending email notification:', error);
+    console.error(error.stack);
     
     return new Response(
       JSON.stringify({ error: 'Failed to send notification: ' + error.message }),

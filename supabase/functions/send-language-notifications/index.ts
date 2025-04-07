@@ -96,21 +96,91 @@ serve(async (req) => {
     const postAuthorId = post.user_id;
     console.log(`Post author ID: ${postAuthorId}`);
     
-    // Get the post author's profile to get their username
+    // Get the post author's profile to get their programming languages
     const { data: authorProfile, error: authorError } = await supabaseClient
       .from('profiles')
-      .select('full_name, email')
+      .select('full_name, email, programming_languages')
       .eq('user_id', postAuthorId)
       .single();
       
     if (authorError) {
       console.error('Error fetching author profile:', authorError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch author profile', details: authorError }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500 
+        }
+      )
     }
     
     const authorName = authorProfile?.full_name || 'A community member';
     console.log(`Post author name: ${authorName}`);
 
-    // Find all users who have at least one of the specified programming languages in their profile
+    // Parse author's programming languages
+    let authorLanguages = [];
+    if (authorProfile?.programming_languages) {
+      if (Array.isArray(authorProfile.programming_languages)) {
+        authorLanguages = authorProfile.programming_languages.map(lang => 
+          typeof lang === 'string' ? lang.toLowerCase() : ''
+        ).filter(Boolean);
+      } else if (typeof authorProfile.programming_languages === 'string') {
+        try {
+          const parsed = JSON.parse(authorProfile.programming_languages);
+          authorLanguages = Array.isArray(parsed) ? parsed.map(lang => lang.toLowerCase()) : [];
+        } catch (e) {
+          authorLanguages = [authorProfile.programming_languages.toLowerCase()];
+        }
+      }
+    }
+    
+    console.log(`Author's programming languages: ${authorLanguages.join(', ')}`);
+    
+    // If no languages found for author, use the ones from the request or extract from content
+    if (authorLanguages.length === 0) {
+      if (languages && languages.length > 0) {
+        authorLanguages = languages.map(lang => lang.toLowerCase());
+        console.log(`Using languages from request: ${authorLanguages.join(', ')}`);
+      } else {
+        // Extract languages from content as fallback
+        const extractLanguagesFromContent = (text) => {
+          if (!text) return [];
+          
+          const commonLanguages = [
+            'javascript', 'typescript', 'python', 'java', 'c#', 'csharp', 'c++', 'cpp', 
+            'php', 'go', 'ruby', 'swift', 'kotlin', 'rust', 'dart', 'scala', 'r', 
+            'perl', 'haskell', 'lua', 'sql', 'html', 'css'
+          ];
+          
+          const matches = new Set();
+          
+          commonLanguages.forEach(language => {
+            const regex = new RegExp(`\\b${language}\\b`, 'i');
+            if (regex.test(text.toLowerCase())) {
+              matches.add(language.toLowerCase());
+            }
+          });
+          
+          return Array.from(matches);
+        };
+        
+        authorLanguages = extractLanguagesFromContent(post.content);
+        console.log(`Extracted languages from content: ${authorLanguages.join(', ')}`);
+      }
+    }
+    
+    if (authorLanguages.length === 0) {
+      console.log('No programming languages found for the author. No notifications will be sent.');
+      return new Response(
+        JSON.stringify({ message: 'No programming languages found for the author' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        }
+      )
+    }
+
+    // Find all users who have at least one of the author's programming languages
     // Exclude the post author from notifications
     const { data: users, error: usersError } = await supabaseClient
       .from('profiles')
@@ -141,11 +211,13 @@ serve(async (req) => {
     for (const user of users || []) {
       try {
         // Process user's programming_languages safely
-        let userLanguages: string[] = [];
+        let userLanguages = [];
         
         if (user.programming_languages) {
           if (Array.isArray(user.programming_languages)) {
-            userLanguages = user.programming_languages.map(lang => lang.toLowerCase());
+            userLanguages = user.programming_languages.map(lang => 
+              typeof lang === 'string' ? lang.toLowerCase() : ''
+            ).filter(Boolean);
           } else if (typeof user.programming_languages === 'string') {
             try {
               const parsed = JSON.parse(user.programming_languages);
@@ -164,10 +236,10 @@ serve(async (req) => {
         }
 
         console.log(`User ${user.user_id} has languages: ${userLanguages.join(', ')}`);
-        console.log(`Comparing with requested languages: ${languages.join(', ')}`);
+        console.log(`Comparing with author languages: ${authorLanguages.join(', ')}`);
         
         // Find matching languages between the post author's languages and user's interests
-        const matchingLanguages = languages.filter(lang => 
+        const matchingLanguages = authorLanguages.filter(lang => 
           userLanguages.includes(lang.toLowerCase())
         );
         
@@ -180,7 +252,7 @@ serve(async (req) => {
           // Create a simple message with the programming languages
           const languageList = matchingLanguages.join(', ');
           const emailSubject = `New post about ${languageList} from ${authorName}`;
-          const emailBody = `${authorName} just posted about ${languageList} on iBlue. Check it out and join the conversation!\n\nPost excerpt: "${content.substring(0, 150)}${content.length > 150 ? '...' : ''}"`;
+          const emailBody = `${authorName} just posted about ${languageList} on iBlue. Check it out and join the conversation!\n\nPost excerpt: "${post.content.substring(0, 150)}${post.content.length > 150 ? '...' : ''}"`;
           
           try {
             // Call the send-email-notification function
@@ -212,6 +284,8 @@ serve(async (req) => {
               responseJson = { text: responseText };
             }
             
+            console.log(`Email notification response for user ${user.user_id}:`, responseJson);
+            
             notificationResults.push({
               userId: user.user_id,
               email: user.email,
@@ -230,12 +304,12 @@ serve(async (req) => {
                 .insert({
                   recipient_id: user.user_id,
                   sender_id: postAuthorId,
-                  type: 'language_mention',
+                  type: 'language_match',
                   content: `New post about ${languageList} from ${authorName}`,
                   metadata: {
                     languages: matchingLanguages,
                     post_id: postId,
-                    post_excerpt: content.substring(0, 100) + (content.length > 100 ? '...' : '')
+                    post_excerpt: post.content.substring(0, 100) + (post.content.length > 100 ? '...' : '')
                   }
                 });
                 
@@ -249,6 +323,7 @@ serve(async (req) => {
             }
           } catch (emailError) {
             console.error(`Exception sending email to user ${user.user_id}:`, emailError);
+            console.error(emailError.stack);
           }
         } else {
           console.log(`No matching languages for user ${user.user_id}, skipping notification`);
@@ -256,6 +331,7 @@ serve(async (req) => {
         }
       } catch (userError) {
         console.error(`Error processing user ${user.user_id}:`, userError);
+        console.error(userError.stack);
         notificationsSkipped++;
       }
     }
@@ -274,6 +350,7 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Error in send-language-notifications:', error);
+    console.error(error.stack);
     return new Response(
       JSON.stringify({ error: 'Failed to process notifications: ' + error.message }),
       { 
