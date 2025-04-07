@@ -211,15 +211,7 @@ const Index = () => {
           </Alert>
         )}
         
-        {userLanguages && userLanguages.length > 0 && (
-          <div className="px-4 pt-3 pb-1">
-            <p className="text-sm text-neutral-500">
-              Your feed is personalized for: {userLanguages.map(lang => 
-                `#${lang}`
-              ).join(', ')}
-            </p>
-          </div>
-        )}
+        {/* Removed the personalized feed message as requested */}
         
         {posts.length > 0 && (
           <div className={`pt-0 ${bgColor}`}>
