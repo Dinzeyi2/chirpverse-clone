@@ -1,9 +1,10 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Image, X, Video, Code, Smile } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { toast } from 'sonner';
 import { DialogClose } from '@/components/ui/dialog';
-import { supabase, notifyUsersWithSameLanguages } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import CodeEditorDialog from '@/components/code/CodeEditorDialog';
@@ -221,19 +222,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       
       resetForm();
       
-      const { data, error } = await supabase
-        .from('shoutouts')
-        .insert({
-          content: postContent,
-          user_id: user?.id,
-          media: null
-        })
-        .select('id')
-        .single();
-        
-      if (error) throw error;
-      
-      const postId = data.id;
+      const postId = await createPost();
       
       let mediaUrls: {type: string, url: string}[] = [];
       if (mediaFiles.length > 0) {
@@ -253,36 +242,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
       
       if (allMedia.length > 0) {
         await updatePostWithMedia(postId, allMedia);
-      }
-      
-      try {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('programming_languages')
-          .eq('user_id', user.id)
-          .single();
-          
-        if (profile?.programming_languages) {
-          let languages: string[] = [];
-          
-          if (Array.isArray(profile.programming_languages)) {
-            languages = profile.programming_languages;
-          } else if (typeof profile.programming_languages === 'string') {
-            try {
-              const parsed = JSON.parse(profile.programming_languages);
-              languages = Array.isArray(parsed) ? parsed : [profile.programming_languages];
-            } catch (e) {
-              languages = [profile.programming_languages];
-            }
-          }
-          
-          if (languages.length > 0) {
-            console.log(`Sending notifications for languages: ${languages.join(', ')}`);
-            await notifyUsersWithSameLanguages(user.id, languages, postContent, postId);
-          }
-        }
-      } catch (notifyError) {
-        console.error('Error sending language notifications:', notifyError);
       }
       
       toast.success('Post sent successfully!');

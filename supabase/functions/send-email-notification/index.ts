@@ -42,7 +42,7 @@ serve(async (req) => {
       );
     }
     
-    const { userId, subject, body, postId, priority = 'normal', debug = true, recipientName = 'iBlue User' } = requestBody;
+    const { userId, subject, body, postId, priority = 'normal', debug = true } = requestBody;
 
     if (!userId) {
       console.error('Missing userId in request');
@@ -54,24 +54,14 @@ serve(async (req) => {
 
     console.log(`Processing email notification for user ${userId}`);
 
-    // Get the user's email and notification preferences - directly check if email_notifications_enabled is true
+    // Get the user's email and notification preferences
     const { data: userData, error: userError } = await supabaseClient
       .from('profiles')
       .select('email, email_notifications_enabled')
       .eq('user_id', userId)
-      .eq('email_notifications_enabled', true)  // Only fetch if notifications are enabled
       .single()
 
     if (userError) {
-      if (userError.code === 'PGRST116') {
-        // This is the "no rows returned" error from PostgREST
-        console.log(`User ${userId} has not enabled email notifications`);
-        return new Response(
-          JSON.stringify({ message: 'User has not enabled email notifications' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-        )
-      }
-      
       console.error('Error fetching user email:', userError);
       return new Response(
         JSON.stringify({ error: 'Error fetching user email', details: userError }),
@@ -83,11 +73,12 @@ serve(async (req) => {
       console.log('User data found:', JSON.stringify(userData));
     }
 
-    // Check if user has email
-    if (!userData?.email) {
-      console.log('No email found for user');
+    // Check if user has email and has notifications enabled
+    if (!userData?.email || userData.email_notifications_enabled === false) {
+      const reason = !userData?.email ? 'No email found for user' : 'Email notifications are disabled for this user';
+      console.log(reason);
       return new Response(
-        JSON.stringify({ message: 'No email found for user' }),
+        JSON.stringify({ message: reason }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
     }
@@ -117,7 +108,6 @@ serve(async (req) => {
               <h2>iBlue Notification</h2>
             </div>
             <div class="content">
-              <p>Hi ${recipientName},</p>
               <p>${body}</p>
               <p style="text-align: center; margin-top: 30px;">
                 <a href="${postUrl}" class="button">View Post</a>
@@ -146,7 +136,7 @@ serve(async (req) => {
     
     // Send email using Resend
     const emailData = {
-      from: 'iBlue Notifications <notifications@i-blue.dev>',
+      from: 'notifications@i-blue.dev',
       to: userData.email,
       subject: subject || 'New iBlue Notification',
       html: htmlEmail,
@@ -159,46 +149,35 @@ serve(async (req) => {
       console.log('Email payload:', JSON.stringify(emailData));
     }
     
-    try {
-      // Send the email
-      const emailResponse = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${resendApiKey}`
-        },
-        body: JSON.stringify(emailData)
-      });
+    // Send the email
+    const emailResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${resendApiKey}`
+      },
+      body: JSON.stringify(emailData)
+    });
 
-      // Handle response
-      if (!emailResponse.ok) {
-        const errorResponseText = await emailResponse.text();
-        console.error('Failed to send email:', errorResponseText);
-        return new Response(
-          JSON.stringify({ error: 'Failed to send email', details: errorResponseText }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-        );
-      }
-
-      const emailResult = await emailResponse.json();
-      console.log('Email sent successfully:', emailResult);
-
+    // Handle response
+    if (!emailResponse.ok) {
+      const errorResponseText = await emailResponse.text();
+      console.error('Failed to send email:', errorResponseText);
       return new Response(
-        JSON.stringify({ success: true, message: 'Email notification sent successfully', result: emailResult }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-      );
-    } catch (emailError) {
-      console.error('Error sending email via Resend:', emailError);
-      console.error(emailError.stack);
-      
-      return new Response(
-        JSON.stringify({ error: 'Failed to send email: ' + emailError.message }),
+        JSON.stringify({ error: 'Failed to send email', details: errorResponseText }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
-  } catch (error) {
+
+    const emailResult = await emailResponse.json();
+    console.log('Email sent successfully:', emailResult);
+
+    return new Response(
+      JSON.stringify({ success: true, message: 'Email notification sent successfully', result: emailResult }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+    );
+  } catch (error: any) {
     console.error('Error sending email notification:', error);
-    console.error(error.stack);
     
     return new Response(
       JSON.stringify({ error: 'Failed to send notification: ' + error.message }),
