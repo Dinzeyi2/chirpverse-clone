@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import Index from "./pages/Index";
 import Profile from "./pages/Profile";
@@ -83,6 +83,14 @@ const AppContent = () => {
         } 
       />
       
+      {/* Direct UUID route - will redirect to proper post format */}
+      <Route 
+        path="/:uuid" 
+        element={
+          <UUIDRedirect />
+        } 
+      />
+      
       {/* Protected routes (require login) */}
       <Route 
         path="/profile/:userId?" 
@@ -127,6 +135,28 @@ const AppContent = () => {
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
+};
+
+// UUID pattern for validating direct UUID routes
+const UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
+
+// Component to handle direct UUID paths and redirect them to the proper post format
+const UUIDRedirect = () => {
+  const { pathname, hash } = window.location;
+  const uuid = pathname.substring(1); // Remove the leading slash
+  
+  console.log("UUID Redirect - Checking path:", pathname);
+  console.log("UUID Redirect - Extracted UUID:", uuid);
+  
+  // If the path is a valid UUID, redirect to the post page
+  if (UUID_PATTERN.test(uuid)) {
+    console.log(`UUID Redirect - Valid UUID detected: ${uuid}, redirecting to /post/${uuid}${hash}`);
+    return <Navigate to={`/post/${uuid}${hash}`} replace />;
+  }
+  
+  // If it's not a UUID, show the 404 page
+  console.log("UUID Redirect - Not a valid UUID, showing 404");
+  return <NotFound />;
 };
 
 const App = () => (

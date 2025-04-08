@@ -157,11 +157,11 @@ serve(async (req) => {
       }
     }
 
-    // Create a URL to the post with an anchor to jump to comments section
+    // Get the app base URL from environment variables
     const appUrl = Deno.env.get('APP_URL') || 'https://i-blue.dev';
     
-    // CRITICAL: Create the absolute URL with the exact correct format for React Router
-    // Format must be: https://domain.com/post/{postId}#comments
+    // CRITICAL: Create the absolute URL with the EXACT correct format for post links
+    // Format: https://domain.com/post/{postId}#comments (NOT just the UUID)
     const postUrl = postId ? `${appUrl}/post/${postId}#comments` : appUrl;
     
     console.log('Generated post URL with comment section anchor:', postUrl);

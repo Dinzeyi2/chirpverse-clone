@@ -1,17 +1,27 @@
 
-import { useLocation, Link } from "react-router-dom";
+import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
 
 const NotFound = () => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     console.error(
       "404 Error: User attempted to access non-existent route:",
       location.pathname
     );
-  }, [location.pathname]);
+    
+    // If path is a UUID, automatically redirect to correct format
+    const uuid = location.pathname.substring(1); // Remove leading slash
+    const uuidPattern = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
+    
+    if (uuidPattern.test(uuid)) {
+      console.log(`Auto-redirecting from raw UUID path to /post/${uuid}${location.hash}`);
+      navigate(`/post/${uuid}${location.hash}`, { replace: true });
+    }
+  }, [location.pathname, location.hash, navigate]);
 
   // Enhanced post ID extraction to handle multiple URL formats
   const extractPostId = () => {
@@ -50,7 +60,7 @@ const NotFound = () => {
         {postId && (
           <div className="mb-4 p-4 bg-blue-100 dark:bg-blue-900/30 rounded-md">
             <p className="text-sm text-blue-800 dark:text-blue-200">
-              It looks like you're trying to access a post. Try the corrected link below:
+              It looks like you're trying to access a post. Click below to go to the correct post URL:
             </p>
             <Link 
               to={`/post/${postId}#comments`} 
