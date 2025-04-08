@@ -72,6 +72,7 @@ serve(async (req) => {
     console.log('User data found:', JSON.stringify(userData));
     console.log('User programming languages:', userData.programming_languages);
     console.log('Email notifications enabled:', userData.email_notifications_enabled);
+    console.log('User email from database:', userData.email);
 
     // Check if user has email and has notifications enabled
     if (!userData?.email || userData.email_notifications_enabled === false) {

@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.36.0'
 
@@ -252,7 +251,7 @@ Check out the full post and join the conversation!`;
           
           try {
             // Call the send-email-notification function
-            console.log(`Calling send-email-notification for user ${user.user_id}`);
+            console.log(`Calling send-email-notification for user ${user.user_id} with email ${user.email}`);
             const response = await fetch(
               `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email-notification`,
               {
