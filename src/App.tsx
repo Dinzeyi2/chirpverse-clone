@@ -14,7 +14,6 @@ import PostPage from "./pages/PostPage";
 import Auth from "./pages/Auth";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications"; 
-import ForYou from "./pages/ForYou"; // Import the new ForYou page
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { useEffect } from "react";
@@ -90,14 +89,6 @@ const AppContent = () => {
         />
         
         {/* Protected routes (require login) */}
-        <Route 
-          path="/for-you" 
-          element={
-            <ProtectedRoute requireAuth={true}>
-              <ForYou />
-            </ProtectedRoute>
-          } 
-        />
         <Route 
           path="/profile/:userId?" 
           element={

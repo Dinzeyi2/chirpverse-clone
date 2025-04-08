@@ -1,305 +1,394 @@
 
 import React, { useState, useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { useTheme } from '@/components/theme/theme-provider';
+import { Home, Search, User, Bookmark, Settings, PlusCircle, LogOut, LogIn, Menu, Bell } from 'lucide-react';
+import Button from '@/components/common/Button';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  Home, 
-  Search, 
-  Bookmark, 
-  MessageSquare, 
-  User,
-  UserPlus, 
-  Settings, 
-  LogOut, 
-  Bell,
-  Code,
-  Sparkles
-} from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-
-// Standard profile image - blue smile face
-const blueProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import CreatePost from '@/components/feed/CreatePost';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Badge } from '@/components/ui/badge';
+import { supabase } from "@/integrations/supabase/client";
+import { Avatar, AvatarImage } from '@/components/ui/avatar';
 
 export const Sidebar = () => {
   const location = useLocation();
-  const { theme } = useTheme();
-  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { user, signOut, displayName } = useAuth();
+  const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const isMobile = useIsMobile();
+  const profilePath = '/profile';
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+  useEffect(() => {
+    if (isMobile) {
+      setIsCollapsed(true);
+    } else {
+      setIsCollapsed(false);
+    }
+  }, [isMobile]);
   
-  // Get unread notification count for the badge
   useEffect(() => {
     if (!user) return;
     
-    const getUnreadNotificationCount = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('notifications')
-          .select('count')
-          .eq('recipient_id', user.id)
-          .eq('is_read', false)
-          .single();
-          
-        if (error) {
-          console.error('Error fetching unread notifications:', error);
-          return;
-        }
+    const checkUnreadNotifications = async () => {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('count')
+        .eq('recipient_id', user.id)
+        .eq('is_read', false);
         
-        if (data && data.count) {
-          setUnreadNotifications(data.count);
-        }
-      } catch (err) {
-        console.error('Failed to fetch notification count:', err);
+      if (!error && data) {
+        setUnreadNotifications(data.length);
       }
     };
     
-    getUnreadNotificationCount();
+    checkUnreadNotifications();
     
-    // Subscribe to realtime updates for notifications
-    const channel = supabase
-      .channel('public:notifications')
-      .on('postgres_changes', { 
-        event: 'INSERT', 
-        schema: 'public', 
+    const notificationsChannel = supabase
+      .channel('notification-changes')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
         table: 'notifications',
-        filter: `recipient_id=eq.${user.id}`
+        filter: `recipient_id=eq.${user.id}`,
       }, () => {
-        getUnreadNotificationCount();
-      })
-      .on('postgres_changes', { 
-        event: 'UPDATE', 
-        schema: 'public', 
-        table: 'notifications',
-        filter: `recipient_id=eq.${user.id}`
-      }, () => {
-        getUnreadNotificationCount();
+        setUnreadNotifications(prev => prev + 1);
       })
       .subscribe();
       
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(notificationsChannel);
     };
   }, [user]);
-  
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      toast.success('Successfully logged out');
-    } catch (error) {
-      toast.error('Failed to log out. Please try again.');
-      console.error('Logout error:', error);
+
+  const navigation = [
+    { name: 'Home', icon: Home, href: '/' },
+    { name: 'Explore', icon: Search, href: '/explore' },
+    { name: 'Bookmarks', icon: Bookmark, href: '/bookmarks' },
+    { name: 'Profile', icon: User, href: profilePath },
+    { name: 'Settings', icon: Settings, href: '/settings' },
+  ];
+
+  // Add notifications separately since it has a different structure
+  const notificationsItem = {
+    name: "Notifications",
+    href: "/notifications",
+    icon: Bell,
+    count: unreadNotifications > 0 ? unreadNotifications : undefined
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
+  };
+
+  const handleSignIn = () => {
+    navigate('/auth');
+  };
+
+  const handlePostCreated = () => {
+    setIsPostDialogOpen(false);
+  };
+
+  const handleProfileClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!user) {
+      e.preventDefault();
+      navigate('/auth');
+    } else {
+      navigate(`/profile/${user.id}`);
     }
   };
-  
-  const isDarkTheme = theme === 'dark';
-  const bgColor = isDarkTheme ? 'bg-black' : 'bg-lightBeige';
-  const textColor = isDarkTheme ? 'text-white' : 'text-gray-900';
-  const logoSrc = isDarkTheme 
-    ? '/lovable-uploads/6cd6103f-8ab6-49f9-b4cc-8d47775646bd.png' 
-    : '/lovable-uploads/3466f833-541a-44f1-86a1-5e3f5ed4d8ed.png';
-  
-  const navItems = [
-    { 
-      path: '/', 
-      label: 'Home', 
-      icon: Home, 
-      requiresAuth: false,
-      mobile: true
-    },
-    { 
-      path: '/for-you', 
-      label: 'For You', 
-      icon: Sparkles, 
-      requiresAuth: true,
-      mobile: true
-    },
-    { 
-      path: '/explore', 
-      label: 'Explore', 
-      icon: Search, 
-      requiresAuth: false,
-      mobile: true
-    },
-    { 
-      path: '/notifications', 
-      label: 'Notifications', 
-      icon: Bell, 
-      requiresAuth: true,
-      badge: unreadNotifications > 0 ? unreadNotifications : null,
-      mobile: true
-    },
-    { 
-      path: '/bookmarks', 
-      label: 'Bookmarks', 
-      icon: Bookmark, 
-      requiresAuth: true,
-      mobile: true
-    },
-    { 
-      path: '/profile', 
-      label: 'Profile', 
-      icon: User, 
-      requiresAuth: true,
-      mobile: true
-    },
-    { 
-      path: '/settings', 
-      label: 'Settings', 
-      icon: Settings, 
-      requiresAuth: true,
-      mobile: false
-    },
-  ];
-  
-  return (
-    <>
-      {/* Desktop Sidebar */}
-      <aside className={`${bgColor} fixed left-0 top-0 z-40 hidden h-screen w-64 flex-col border-r border-neutral-800 pt-5 md:flex`}>
-        <div className="flex h-full flex-col px-4">
-          {/* Logo */}
-          <div className="mb-6 flex items-center justify-start pl-1">
-            <img src={logoSrc} alt="Logo" className="h-8" />
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const sidebarClasses = cn(
+    "bg-background border-r border-border transition-all duration-300 ease-in-out z-40",
+    isMobile ? (
+      isMobileMenuOpen 
+        ? "fixed inset-0 w-full h-screen" 
+        : "fixed bottom-0 left-0 right-0 h-16 border-t border-b-0"
+    ) : (
+      isCollapsed ? "fixed left-0 top-0 h-screen w-20" : "fixed left-0 top-0 h-screen w-[275px]"
+    )
+  );
+
+  if (isMobile && !isMobileMenuOpen) {
+    return (
+      <div className={sidebarClasses}>
+        <div className="flex items-center justify-around h-full px-2">
+          {navigation.slice(0, 4).map((item) => {
+            const isActive = location.pathname === item.href || 
+              (item.href !== '/' && location.pathname.startsWith(item.href));
+            const IconComponent = item.icon;
+              
+            return (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={cn(
+                  "flex flex-col items-center justify-center p-2 rounded-full transition-colors relative",
+                  isActive ? "text-primary" : "text-foreground hover:text-primary"
+                )}
+              >
+                <IconComponent size={24} className={isActive ? "text-primary" : "text-muted-foreground"} />
+              </Link>
+            );
+          })}
+          
+          <button 
+            onClick={toggleMobileMenu}
+            className="flex flex-col items-center justify-center p-2 rounded-full transition-colors"
+          >
+            <Menu size={24} className="text-muted-foreground" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isMobile && isMobileMenuOpen) {
+    return (
+      <div className={sidebarClasses}>
+        <div className="flex flex-col h-full p-6">
+          <div className="flex items-center justify-between mb-8">
+            <Link to="/" className="p-2 rounded-full hover:bg-blue-500/10 transition-colors">
+              <span className="font-bold text-2xl tracking-tight bg-gradient-to-r from-[#4285F4] to-[#8AB4F8] bg-clip-text text-transparent">iblue</span>
+            </Link>
+            <button 
+              onClick={toggleMobileMenu}
+              className="p-2 rounded-full hover:bg-secondary/70 transition-colors"
+            >
+              <Menu size={24} className="text-muted-foreground" />
+            </button>
           </div>
           
-          {/* Nav Links */}
-          <nav className="space-y-1.5">
-            {navItems.map((item) => {
-              // Skip items that require auth if user is not logged in
-              if (item.requiresAuth && !user) return null;
-              
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
+          <nav className="space-y-4 mb-8">
+            {navigation.map((item) => {
+              const isActive = location.pathname === item.href || 
+                (item.href !== '/' && location.pathname.startsWith(item.href));
+              const IconComponent = item.icon;
+                
+              if (item.name === 'Profile') {
+                return (
+                  <a
+                    key={item.name}
+                    onClick={handleProfileClick}
+                    className={cn(
+                      "flex items-center p-3 text-xl font-medium rounded-full transition-colors relative",
+                      isActive ? "font-bold" : "text-foreground hover:bg-secondary/70"
+                    )}
+                  >
+                    <IconComponent size={24} className={isActive ? "text-primary" : "text-muted-foreground"} />
+                    <span className="ml-4 font-heading tracking-wide text-lg uppercase">{item.name}</span>
+                  </a>
+                );
+              }
               
               return (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className={({ isActive }) => cn(
-                    'flex items-center gap-4 rounded-lg px-3 py-2.5 text-base transition-colors',
-                    isActive 
-                      ? isDarkTheme 
-                        ? 'bg-neutral-800 text-white' 
-                        : 'bg-gray-200 text-gray-900'
-                      : isDarkTheme
-                        ? 'text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100'
-                        : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={cn(
+                    "flex items-center p-3 text-xl font-medium rounded-full transition-colors relative",
+                    isActive ? "font-bold" : "text-foreground hover:bg-secondary/70"
                   )}
                 >
-                  <Icon className={cn(
-                    'h-5 w-5',
-                    isActive 
-                      ? '' 
-                      : isDarkTheme
-                        ? 'text-neutral-400' 
-                        : 'text-gray-500'
-                  )} />
-                  <span>{item.label}</span>
-                  
-                  {/* Notification Badge */}
-                  {item.badge && (
-                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-xBlue px-1.5 text-xs font-medium text-white">
-                      {item.badge > 99 ? '99+' : item.badge}
-                    </span>
-                  )}
-                </NavLink>
+                  <IconComponent size={24} className={isActive ? "text-primary" : "text-muted-foreground"} />
+                  <span className="ml-4 font-heading tracking-wide text-lg uppercase">{item.name}</span>
+                </Link>
               );
             })}
+
+            {/* Add Notifications Link */}
+            <Link
+              to={notificationsItem.href}
+              className={cn(
+                "flex items-center p-3 text-xl font-medium rounded-full transition-colors relative",
+                location.pathname.startsWith(notificationsItem.href) ? "font-bold" : "text-foreground hover:bg-secondary/70"
+              )}
+            >
+              <Bell size={24} className={location.pathname.startsWith(notificationsItem.href) ? "text-primary" : "text-muted-foreground"} />
+              <span className="ml-4 font-heading tracking-wide text-lg uppercase">{notificationsItem.name}</span>
+              {notificationsItem.count && (
+                <Badge className="ml-auto bg-primary text-primary-foreground">{notificationsItem.count}</Badge>
+              )}
+            </Link>
           </nav>
           
-          {/* User Section */}
-          <div className="mt-auto mb-8">
-            {user ? (
-              <>
-                <div className="mb-4 flex items-center gap-2 rounded-lg px-3 py-2.5">
-                  <img 
-                    src={blueProfileImage}
-                    alt="Profile" 
-                    className="h-8 w-8 rounded-full"
-                  />
-                  <div className="flex flex-col">
-                    <span className={`text-sm font-medium ${textColor}`}>
-                      {user.user_metadata?.full_name || 'User'}
-                    </span>
-                    <span className="text-xs text-neutral-400">
-                      @{user.id?.substring(0, 8) || 'user'}
-                    </span>
-                  </div>
-                </div>
-                <Button
-                  onClick={handleLogout}
-                  variant="outline"
-                  className="w-full justify-start gap-2 border-neutral-800"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Sign out
-                </Button>
-              </>
-            ) : (
-              <div className="space-y-2">
-                <NavLink to="/auth">
-                  <Button variant="outline" className="w-full justify-start gap-2">
-                    <UserPlus className="h-4 w-4" />
-                    Log in
-                  </Button>
-                </NavLink>
-              </div>
-            )}
-          </div>
+          <Dialog open={isPostDialogOpen} onOpenChange={setIsPostDialogOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                variant="outline"
+                size="lg"
+                className="w-full font-bold bg-primary text-white hover:bg-primary/90 hover:text-white border-0 px-6 py-3 rounded-full mb-6"
+              >
+                <PlusCircle size={24} />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[600px] p-0 rounded-2xl bg-background border-border">
+              <CreatePost onPostCreated={handlePostCreated} inDialog={true} />
+            </DialogContent>
+          </Dialog>
+          
+          {user ? (
+            <button
+              onClick={handleSignOut}
+              className="flex items-center p-3 text-xl font-medium rounded-full transition-colors text-foreground hover:bg-secondary/70"
+            >
+              <LogOut size={24} className="text-muted-foreground" />
+              <span className="ml-4 font-heading tracking-wide text-lg uppercase">Sign out</span>
+            </button>
+          ) : (
+            <button
+              onClick={handleSignIn}
+              className="flex items-center p-3 text-xl font-medium rounded-full transition-colors text-foreground hover:bg-secondary/70"
+            >
+              <LogIn size={24} className="text-muted-foreground" />
+              <span className="ml-4 font-heading tracking-wide text-lg uppercase">Sign in</span>
+            </button>
+          )}
         </div>
-      </aside>
-      
-      {/* Mobile Navigation */}
-      <div className={`fixed bottom-0 left-0 right-0 z-40 border-t ${bgColor} border-neutral-800 md:hidden`}>
-        <nav className="flex justify-around p-2">
-          {navItems
-            .filter(item => item.mobile)
-            .map((item) => {
-              // Skip items that require auth if user is not logged in
-              if (item.requiresAuth && !user) return null;
-              
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
-              
-              return (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className="relative flex flex-col items-center p-1"
-                >
-                  <Icon className={cn(
-                    'h-6 w-6',
-                    isActive 
-                      ? 'text-white' 
-                      : isDarkTheme 
-                        ? 'text-neutral-400' 
-                        : 'text-gray-500'
-                  )} />
-                  
-                  {/* Notification Badge (mobile) */}
-                  {item.badge && (
-                    <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-xBlue px-1 text-xs font-medium text-white">
-                      {item.badge > 9 ? '9+' : item.badge}
-                    </span>
-                  )}
-                  
-                  <span className={cn(
-                    'text-xs',
-                    isActive 
-                      ? 'text-white' 
-                      : isDarkTheme 
-                        ? 'text-neutral-400' 
-                        : 'text-gray-500'
-                  )}>
-                    {item.label}
-                  </span>
-                </NavLink>
-              );
-            })}
-        </nav>
       </div>
-    </>
+    );
+  }
+
+  return (
+    <div 
+      className={cn(
+        sidebarClasses,
+        isCollapsed ? "w-20" : "w-[275px]"
+      )}
+    >
+      <div className="flex flex-col h-full px-3 py-5">
+        <div className="mb-6 flex justify-center lg:justify-start">
+          <Link to="/" className="p-2 rounded-full hover:bg-blue-500/10 transition-colors">
+            <span className={cn(
+              "font-bold text-2xl tracking-tight bg-gradient-to-r from-[#4285F4] to-[#8AB4F8] bg-clip-text text-transparent",
+              isCollapsed && "sr-only"
+            )}>iblue</span>
+            <span className="sr-only">Home</span>
+          </Link>
+        </div>
+        
+        <nav className="space-y-1.5">
+          {navigation.map((item) => {
+            const isActive = location.pathname === item.href || 
+              (item.href !== '/' && location.pathname.startsWith(item.href));
+            const IconComponent = item.icon;
+              
+            if (item.name === 'Profile') {
+              return (
+                <a
+                  key={item.name}
+                  onClick={handleProfileClick}
+                  className={cn(
+                    "flex items-center p-3 text-lg font-medium rounded-full transition-colors cursor-pointer relative",
+                    isActive 
+                      ? "font-bold" 
+                      : "text-foreground hover:bg-secondary/70",
+                    isCollapsed && "justify-center"
+                  )}
+                >
+                  <IconComponent size={24} className={isActive ? "text-foreground" : "text-muted-foreground"} />
+
+                  {!isCollapsed && (
+                    <span className="ml-4 font-heading tracking-wide text-lg uppercase">{item.name}</span>
+                  )}
+                </a>
+              );
+            }
+            
+            return (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={cn(
+                  "flex items-center p-3 text-lg font-medium rounded-full transition-colors relative",
+                  isActive 
+                    ? "font-bold" 
+                    : "text-foreground hover:bg-secondary/70",
+                  isCollapsed && "justify-center"
+                )}
+              >
+                <IconComponent size={24} className={isActive ? "text-foreground" : "text-muted-foreground"} />
+                
+                {!isCollapsed && (
+                  <span className="ml-4 font-heading tracking-wide text-lg uppercase">{item.name}</span>
+                )}
+              </Link>
+            );
+          })}
+
+          {/* Add Notifications Link */}
+          <Link
+            to={notificationsItem.href}
+            className={cn(
+              "flex items-center p-3 text-lg font-medium rounded-full transition-colors relative",
+              location.pathname.startsWith(notificationsItem.href) 
+                ? "font-bold" 
+                : "text-foreground hover:bg-secondary/70",
+              isCollapsed && "justify-center"
+            )}
+          >
+            <Bell size={24} className={location.pathname.startsWith(notificationsItem.href) ? "text-foreground" : "text-muted-foreground"} />
+            
+            {!isCollapsed && (
+              <span className="ml-4 font-heading tracking-wide text-lg uppercase">{notificationsItem.name}</span>
+            )}
+            
+            {notificationsItem.count && (
+              <Badge 
+                className={cn(
+                  "bg-primary text-primary-foreground",
+                  isCollapsed ? "absolute -top-1 -right-1" : "ml-auto"
+                )}
+              >
+                {notificationsItem.count}
+              </Badge>
+            )}
+          </Link>
+
+          {user ? (
+            <button
+              onClick={handleSignOut}
+              className={cn(
+                "flex items-center p-3 text-lg font-medium rounded-full transition-colors text-foreground hover:bg-secondary/70",
+                isCollapsed && "justify-center w-full"
+              )}
+            >
+              <LogOut size={24} className="text-muted-foreground" />
+              {!isCollapsed && (
+                <span className="ml-4 font-heading tracking-wide text-lg uppercase">Sign out</span>
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={handleSignIn}
+              className={cn(
+                "flex items-center p-3 text-lg font-medium rounded-full transition-colors text-foreground hover:bg-secondary/70",
+                isCollapsed && "justify-center w-full"
+              )}
+            >
+              <LogIn size={24} className="text-muted-foreground" />
+              {!isCollapsed && (
+                <span className="ml-4 font-heading tracking-wide text-lg uppercase">Sign in</span>
+              )}
+            </button>
+          )}
+        </nav>
+        
+        <div className="mt-auto">
+          
+        </div>
+      </div>
+    </div>
   );
 };
+
+export default Sidebar;
