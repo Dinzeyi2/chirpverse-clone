@@ -220,7 +220,7 @@ const TestEmailNotification = () => {
         Make sure to mention programming languages like JavaScript, Python, React, etc. to trigger language-based notifications.
       </p>
       
-      <Alert variant="info" className="bg-blue-50 text-blue-800 border-blue-200">
+      <Alert variant="default" className="bg-blue-50 text-blue-800 border-blue-200">
         <Info className="h-4 w-4" />
         <AlertTitle>Important</AlertTitle>
         <AlertDescription>
