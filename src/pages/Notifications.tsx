@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Bell, ChevronDown } from 'lucide-react';
@@ -10,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 
 interface NotificationType {
   id: string;
-  type: 'like' | 'reply' | 'mention' | 'retweet' | 'bookmark' | 'reaction';
+  type: 'like' | 'reply' | 'mention' | 'retweet' | 'bookmark' | 'reaction' | 'language_mention';
   user: {
     name: string;
     username: string;
@@ -85,7 +86,7 @@ const Notifications = () => {
 
           return {
             id: notification.id,
-            type: notification.type as 'like' | 'reply' | 'mention' | 'retweet' | 'bookmark' | 'reaction',
+            type: notification.type as 'like' | 'reply' | 'mention' | 'retweet' | 'bookmark' | 'reaction' | 'language_mention',
             user: {
               name: notification.sender?.full_name || 'Anonymous User',
               username: notification.sender?.user_id?.substring(0, 8) || 'user',
@@ -146,7 +147,7 @@ const Notifications = () => {
 
             const formattedNotification = {
               id: newNotification.id,
-              type: newNotification.type as 'like' | 'reply' | 'mention' | 'retweet' | 'bookmark' | 'reaction',
+              type: newNotification.type as 'like' | 'reply' | 'mention' | 'retweet' | 'bookmark' | 'reaction' | 'language_mention',
               user: {
                 name: profile?.full_name || 'Anonymous User',
                 username: profile?.user_id?.substring(0, 8) || 'user',
@@ -199,8 +200,6 @@ const Notifications = () => {
         return 'New Reaction';
       case 'language_mention':
         return 'Language Mention';
-      case 'company_mention':
-        return 'Company Mention';
       default:
         return 'New Notification';
     }

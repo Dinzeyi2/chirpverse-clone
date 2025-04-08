@@ -13,6 +13,7 @@ import NotFound from "./pages/NotFound";
 import PostPage from "./pages/PostPage";
 import Auth from "./pages/Auth";
 import Settings from "./pages/Settings";
+import Notifications from "./pages/Notifications"; // Import the Notifications page
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { useEffect } from "react";
@@ -112,6 +113,14 @@ const AppContent = () => {
         element={
           <ProtectedRoute requireAuth={true}>
             <Settings />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/notifications" 
+        element={
+          <ProtectedRoute requireAuth={true}>
+            <Notifications />
           </ProtectedRoute>
         } 
       />

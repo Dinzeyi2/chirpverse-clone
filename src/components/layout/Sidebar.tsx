@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Home, Search, User, Bookmark, Settings, PlusCircle, LogOut, LogIn, Menu } from 'lucide-react';
+import { Home, Search, User, Bookmark, Settings, PlusCircle, LogOut, LogIn, Menu, Bell } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
@@ -20,7 +20,8 @@ export const Sidebar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
   const profilePath = '/profile';
-  
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+
   useEffect(() => {
     if (isMobile) {
       setIsCollapsed(true);
@@ -29,12 +30,53 @@ export const Sidebar = () => {
     }
   }, [isMobile]);
   
+  useEffect(() => {
+    if (!user) return;
+    
+    const checkUnreadNotifications = async () => {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('count')
+        .eq('recipient_id', user.id)
+        .eq('is_read', false)
+        .execute();
+        
+      if (!error && data) {
+        setUnreadNotifications(data.length);
+      }
+    };
+    
+    checkUnreadNotifications();
+    
+    const notificationsChannel = supabase
+      .channel('notification-changes')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: `recipient_id=eq.${user.id}`,
+      }, () => {
+        setUnreadNotifications(prev => prev + 1);
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(notificationsChannel);
+    };
+  }, [user]);
+
   const navigation = [
     { name: 'Home', icon: Home, href: '/' },
     { name: 'Explore', icon: Search, href: '/explore' },
     { name: 'Bookmarks', icon: Bookmark, href: '/bookmarks' },
     { name: 'Profile', icon: User, href: profilePath },
     { name: 'Settings', icon: Settings, href: '/settings' },
+    {
+      icon: <Bell size={20} className="mr-4" />,
+      label: "Notifications",
+      path: "/notifications",
+      count: unreadNotifications > 0 ? unreadNotifications : undefined
+    },
   ];
 
   const handleSignOut = async () => {
