@@ -68,18 +68,22 @@ const ForYou = () => {
       setIsLoading(true);
       
       try {
-        // Get posts from the shoutouts table that have metadata.languages
-        // that match any of the user's programming_languages
+        // Get posts from the shoutouts table
         const { data: posts, error: postsError } = await supabase
           .from('shoutouts')
           .select(`
-            *,
+            id,
+            content,
+            created_at,
+            user_id,
+            media,
+            metadata,
             user:user_id (
               id, 
               email,
-              user_metadata->>full_name as name,
-              user_metadata->>username as username,
-              user_metadata->>avatar_url as avatar
+              user_metadata->full_name,
+              user_metadata->username,
+              user_metadata->avatar_url
             )
           `)
           .order('created_at', { ascending: false });
@@ -93,7 +97,9 @@ const ForYou = () => {
         
         // Filter posts that have languages in metadata matching user's languages
         const matchingPosts = posts.filter(post => {
-          const postLanguages = post.metadata?.languages || [];
+          if (!post.metadata?.languages) return false;
+          
+          const postLanguages = post.metadata.languages || [];
           
           // Check if any of the post's languages match user's languages (case insensitive)
           return postLanguages.some((lang: string) => 
@@ -148,10 +154,10 @@ const ForYou = () => {
               replies: 0,
               views: 0,
               user: {
-                id: post.user.id,
-                name: post.user.name || 'User',
-                username: post.user.username || post.user.id.substring(0, 8),
-                avatar: post.user.avatar || "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
+                id: post.user?.id,
+                name: post.user?.user_metadata_full_name || 'User',
+                username: post.user?.user_metadata_username || post.user_id.substring(0, 8),
+                avatar: post.user?.user_metadata_avatar_url || "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
                 verified: false,
                 followers: 0,
                 following: 0,
@@ -184,18 +190,22 @@ const ForYou = () => {
       }
       
       try {
-        // Get posts from the shoutouts table that have metadata.languages
-        // that match any of the user's programming_languages
+        // Get posts from the shoutouts table
         const { data: posts, error: postsError } = await supabase
           .from('shoutouts')
           .select(`
-            *,
+            id,
+            content,
+            created_at,
+            user_id,
+            media,
+            metadata,
             user:user_id (
               id, 
               email,
-              user_metadata->>full_name as name,
-              user_metadata->>username as username,
-              user_metadata->>avatar_url as avatar
+              user_metadata->full_name,
+              user_metadata->username,
+              user_metadata->avatar_url
             )
           `)
           .order('created_at', { ascending: false });
@@ -209,7 +219,9 @@ const ForYou = () => {
         
         // Filter posts that have languages in metadata matching user's languages
         const matchingPosts = posts.filter(post => {
-          const postLanguages = post.metadata?.languages || [];
+          if (!post.metadata?.languages) return false;
+          
+          const postLanguages = post.metadata.languages || [];
           
           // Check if any of the post's languages match user's languages (case insensitive)
           return postLanguages.some((lang: string) => 
@@ -262,10 +274,10 @@ const ForYou = () => {
               replies: 0,
               views: 0,
               user: {
-                id: post.user.id,
-                name: post.user.name || 'User',
-                username: post.user.username || post.user.id.substring(0, 8),
-                avatar: post.user.avatar || "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
+                id: post.user?.id,
+                name: post.user?.user_metadata_full_name || 'User',
+                username: post.user?.user_metadata_username || post.user_id.substring(0, 8),
+                avatar: post.user?.user_metadata_avatar_url || "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
                 verified: false,
                 followers: 0,
                 following: 0,
