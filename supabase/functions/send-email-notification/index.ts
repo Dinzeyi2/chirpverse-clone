@@ -57,7 +57,7 @@ serve(async (req) => {
     // Get the user's email and notification preferences
     const { data: userData, error: userError } = await supabaseClient
       .from('profiles')
-      .select('email, email_notifications_enabled')
+      .select('email, email_notifications_enabled, full_name')
       .eq('user_id', userId)
       .single()
 
@@ -108,6 +108,7 @@ serve(async (req) => {
               <h2>iBlue Notification</h2>
             </div>
             <div class="content">
+              <p>Hello ${userData.full_name || 'there'},</p>
               <p>${body}</p>
               <p style="text-align: center; margin-top: 30px;">
                 <a href="${postUrl}" class="button">View Post</a>

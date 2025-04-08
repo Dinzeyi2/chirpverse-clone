@@ -63,7 +63,10 @@ serve(async (req) => {
     if (!resendApiKey) {
       console.error('RESEND_API_KEY environment variable is not set');
       return new Response(
-        JSON.stringify({ error: 'Email service API key is not configured' }),
+        JSON.stringify({ 
+          error: 'Email service API key is not configured',
+          instructions: 'Please set the RESEND_API_KEY secret in the Supabase dashboard'
+        }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 500 
@@ -108,7 +111,7 @@ serve(async (req) => {
 
     const authorName = authorProfile?.full_name || 'Someone';
     
-    // Get all users with matching programming languages who have enabled notifications
+    // Get all users with email notifications enabled
     const { data: users, error: usersError } = await supabaseClient
       .from('profiles')
       .select('user_id, programming_languages, email, email_notifications_enabled, full_name')
@@ -128,6 +131,20 @@ serve(async (req) => {
     }
 
     console.log(`Found ${users?.length || 0} users with email notifications enabled`);
+    if (users?.length === 0) {
+      console.log('No users have email notifications enabled');
+      return new Response(
+        JSON.stringify({ 
+          message: 'No users have email notifications enabled',
+          status: 'success',
+          usersCount: 0
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        }
+      )
+    }
     
     // Process notifications
     let notificationsSent = 0;
@@ -139,6 +156,7 @@ serve(async (req) => {
       try {
         // Process user's programming_languages safely
         let userLanguages: string[] = [];
+        console.log(`Processing user ${user.user_id} with programming_languages:`, user.programming_languages);
         
         if (user.programming_languages) {
           if (Array.isArray(user.programming_languages)) {
@@ -190,6 +208,7 @@ Check out the full post and join the conversation!`;
           
           try {
             // Call the send-email-notification function
+            console.log(`Calling send-email-notification for user ${user.user_id}`);
             const response = await fetch(
               `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email-notification`,
               {
@@ -210,6 +229,8 @@ Check out the full post and join the conversation!`;
             );
 
             const responseText = await response.text();
+            console.log(`Email notification response: ${responseText}`);
+            
             let responseJson;
             try {
               responseJson = JSON.parse(responseText);

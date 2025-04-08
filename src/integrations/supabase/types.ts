@@ -1190,6 +1190,30 @@ export type Database = {
           },
         ]
       }
+      user_push_subscriptions: {
+        Row: {
+          created_at: string
+          id: string
+          subscription: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          subscription: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          subscription?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_resumes: {
         Row: {
           created_at: string
@@ -1314,6 +1338,10 @@ export type Database = {
       }
       manually_cleanup_expired_content: {
         Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      save_push_subscription: {
+        Args: { p_user_id: string; p_subscription: string }
         Returns: undefined
       }
     }

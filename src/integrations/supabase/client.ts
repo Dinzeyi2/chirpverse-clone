@@ -55,12 +55,17 @@ export const enableRealtimeForTables = () => {
           
           if (languages.length > 0) {
             console.log('Programming languages found in post:', languages);
+            // Directly call the function to send notifications
             notifyUsersWithSameLanguages(
               payload.new.user_id, 
               languages, 
               content, 
               payload.new.id
-            );
+            ).then(() => {
+              console.log('Notification function completed');
+            }).catch(err => {
+              console.error('Error in notification process:', err);
+            });
           } else {
             console.log('No programming languages found in post content');
           }
@@ -160,7 +165,7 @@ export const notifyUsersWithSameLanguages = async (
       return;
     }
     
-    // Invoke edge function to handle email notifications
+    // Make a direct call to our edge function
     const { data, error } = await supabase.functions.invoke('send-language-notifications', {
       body: { 
         postId,
@@ -174,9 +179,83 @@ export const notifyUsersWithSameLanguages = async (
     if (error) {
       console.error('Error invoking notification function:', error);
     } else {
-      console.log('Email notifications initiated successfully:', data);
+      console.log('Notification function response:', data);
+    }
+
+    // Also manually trigger email notifications for testing
+    try {
+      // Get users with matching programming languages
+      const { data: users, error: userError } = await supabase
+        .from('profiles')
+        .select('user_id, email, programming_languages, email_notifications_enabled')
+        .eq('email_notifications_enabled', true)
+        .not('user_id', 'eq', senderId);
+
+      if (userError) {
+        console.error('Error fetching users:', userError);
+        return;
+      }
+
+      console.log(`Found ${users?.length || 0} users with notifications enabled`);
+      
+      if (users && users.length > 0) {
+        // Find users with matching languages
+        const matchingUsers = users.filter(user => {
+          // Parse programming languages
+          let userLanguages: string[] = [];
+          
+          if (user.programming_languages) {
+            if (Array.isArray(user.programming_languages)) {
+              userLanguages = user.programming_languages;
+            } else if (typeof user.programming_languages === 'string') {
+              try {
+                userLanguages = JSON.parse(user.programming_languages);
+              } catch {
+                userLanguages = [user.programming_languages];
+              }
+            }
+          }
+          
+          // Convert to lowercase for case-insensitive comparison
+          const userLangsLower = userLanguages.map(l => l.toLowerCase());
+          
+          // Check if any language matches
+          return languages.some(lang => 
+            userLangsLower.includes(lang.toLowerCase())
+          );
+        });
+        
+        console.log(`Found ${matchingUsers.length} users with matching languages`);
+        
+        // Send a test email to each matching user
+        for (const user of matchingUsers) {
+          if (user.email) {
+            console.log(`Attempting to send email notification to ${user.email}`);
+            
+            // Send direct email notification
+            const { data: emailData, error: emailError } = await supabase.functions.invoke('send-email-notification', {
+              body: {
+                userId: user.user_id,
+                subject: `New post about programming languages you know`,
+                body: `Someone just posted about programming languages you're interested in: ${languages.join(', ')}. Check it out!`,
+                postId: postId,
+                priority: 'high'
+              }
+            });
+            
+            if (emailError) {
+              console.error(`Error sending email to ${user.email}:`, emailError);
+            } else {
+              console.log(`Email sent to ${user.email}:`, emailData);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error in backup notification process:', err);
     }
   } catch (error) {
     console.error('Error in notifyUsersWithSameLanguages:', error);
   }
 };
+
