@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, Suspense, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
@@ -57,6 +56,34 @@ const ForYou = () => {
     fetchUserLanguages();
   }, [user]);
   
+  // Helper function to check if post matches user languages
+  const postMatchesUserLanguages = (postMetadata: any, userLangs: string[]) => {
+    if (!postMetadata) return false;
+    
+    // Make sure metadata is treated as an object
+    const metadata = typeof postMetadata === 'string' 
+      ? JSON.parse(postMetadata) 
+      : postMetadata;
+      
+    // Check if metadata has languages array
+    if (!metadata.languages || !Array.isArray(metadata.languages)) {
+      return false;
+    }
+    
+    // Case insensitive comparison
+    // Check if ANY post language matches ANY user language
+    for (const postLang of metadata.languages) {
+      for (const userLang of userLangs) {
+        if (postLang.toLowerCase() === userLang.toLowerCase()) {
+          console.log(`Match found: Post language ${postLang} matches user language ${userLang}`);
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  };
+  
   // Fetch posts that match user's programming languages
   useEffect(() => {
     const fetchForYouPosts = async () => {
@@ -96,30 +123,11 @@ const ForYou = () => {
         
         // Filter posts that have languages in metadata matching user's languages
         const matchingPosts = posts.filter(post => {
-          if (!post.metadata) return false;
-          
-          // Make sure metadata is treated as an object
-          const metadata = typeof post.metadata === 'string' 
-            ? JSON.parse(post.metadata) 
-            : post.metadata;
-            
-          if (!metadata.languages || !Array.isArray(metadata.languages)) {
-            console.log('Post has no languages or invalid format:', post.id);
-            return false;
+          const matches = postMatchesUserLanguages(post.metadata, userLanguages);
+          if (matches) {
+            console.log('Found matching post:', post.id, 'with metadata:', post.metadata);
           }
-          
-          // Case insensitive comparison
-          const match = metadata.languages.some((lang: string) => 
-            userLanguages.some(userLang => 
-              userLang.toLowerCase() === lang.toLowerCase()
-            )
-          );
-          
-          if (match) {
-            console.log('Found matching post:', post.id, 'with languages:', metadata.languages);
-          }
-          
-          return match;
+          return matches;
         });
         
         console.log('Matching posts count:', matchingPosts.length);
@@ -163,8 +171,8 @@ const ForYou = () => {
               createdAt: post.created_at,
               userId: post.user_id,
               images: post.media,
-              languages: metadata.languages || [],
-              codeBlocks: metadata.code_blocks || [],
+              languages: metadata?.languages || [],
+              codeBlocks: metadata?.code_blocks || [],
               likes: likesCount || 0,
               comments: commentsCount || 0,
               reposts: repostsCount || 0,
@@ -235,29 +243,11 @@ const ForYou = () => {
         
         // Filter posts that have languages in metadata matching user's languages
         const matchingPosts = posts.filter(post => {
-          if (!post.metadata) return false;
-          
-          // Make sure metadata is treated as an object
-          const metadata = typeof post.metadata === 'string' 
-            ? JSON.parse(post.metadata) 
-            : post.metadata;
-            
-          if (!metadata.languages || !Array.isArray(metadata.languages)) {
-            return false;
+          const matches = postMatchesUserLanguages(post.metadata, userLanguages);
+          if (matches) {
+            console.log('Found matching post on refresh:', post.id, 'with metadata:', post.metadata);
           }
-          
-          // Case insensitive comparison
-          const match = metadata.languages.some((lang: string) => 
-            userLanguages.some(userLang => 
-              userLang.toLowerCase() === lang.toLowerCase()
-            )
-          );
-          
-          if (match) {
-            console.log('Found matching post on refresh:', post.id, 'with languages:', metadata.languages);
-          }
-          
-          return match;
+          return matches;
         });
         
         console.log('Matching posts count on refresh:', matchingPosts.length);
@@ -301,8 +291,8 @@ const ForYou = () => {
               createdAt: post.created_at,
               userId: post.user_id,
               images: post.media,
-              languages: metadata.languages || [],
-              codeBlocks: metadata.code_blocks || [],
+              languages: metadata?.languages || [],
+              codeBlocks: metadata?.code_blocks || [],
               likes: likesCount || 0,
               comments: commentsCount || 0,
               reposts: repostsCount || 0,
