@@ -3,18 +3,19 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
-// Enhanced function to normalize post URLs with comment fragments
+// Enhanced URL normalization function that handles all possible URL formats
 const normalizePostUrl = (url) => {
   // Get the current URL components
   const pathname = url.pathname;
   const hash = url.hash;
   const search = url.search;
   
-  // Special handling for direct URLs with www prefix
-  if (url.hostname.startsWith('www.') && pathname.includes('post/')) {
-    console.log("URL already has www prefix and correct path format");
-    return null; // Already correct format
-  }
+  // Handle URLs with or without www prefix
+  const hostname = url.hostname;
+  const isHttpsProtocol = url.protocol === 'https:';
+  
+  // Debug the URL being normalized
+  console.log(`Normalizing URL: ${url.toString()}, Pathname: ${pathname}, Hostname: ${hostname}`);
   
   // Match UUID pattern in the URL
   const uuidMatch = pathname.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
@@ -52,7 +53,7 @@ const normalizePostUrl = (url) => {
   return null;
 }
 
-// Function to set up URL normalization
+// Enhanced function to set up URL normalization with protocol handling
 const setupUrlNormalization = () => {
   // Fix URLs on initial page load
   const currentUrl = new URL(window.location.href);
@@ -63,21 +64,25 @@ const setupUrlNormalization = () => {
     window.history.replaceState({}, '', normalizedUrl);
   }
   
-  // Store the pathname and hash in session storage to survive reloads
+  // Store the full URL in session storage to survive reloads
   const storeCurrentPath = () => {
+    // Store both pathname and full URL
     const path = window.location.pathname + window.location.hash + window.location.search;
+    const fullUrl = window.location.href;
     
     // Only store paths that are for posts/comments
     if (path.includes('/post/') || path.match(/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i)) {
       console.log("Storing current path in session storage:", path);
+      console.log("Storing full URL in session storage:", fullUrl);
       sessionStorage.setItem('lastPath', path);
+      sessionStorage.setItem('fullUrl', fullUrl);
     }
   };
   
   // Store path when navigating
   window.addEventListener('popstate', storeCurrentPath);
   
-  // Handle clicks on anchor elements
+  // Enhanced link click handler with protocol preservation
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
     const anchor = target.closest('a');
@@ -89,9 +94,18 @@ const setupUrlNormalization = () => {
         
         if (normalizedUrl) {
           e.preventDefault();
+          // Get the current protocol and host to preserve them
+          const currentProtocol = window.location.protocol;
+          const currentHostname = window.location.hostname;
+          
           console.log(`Link clicked: Redirecting ${url.pathname}${url.hash} → ${normalizedUrl}`);
-          // Store the path before navigating
+          console.log(`Using protocol: ${currentProtocol}, hostname: ${currentHostname}`);
+          
+          // Store the full URL before navigating
+          const fullUrl = `${currentProtocol}//${currentHostname}${normalizedUrl}`;
           sessionStorage.setItem('lastPath', normalizedUrl);
+          sessionStorage.setItem('fullUrl', fullUrl);
+          
           window.history.pushState({}, '', normalizedUrl);
           window.dispatchEvent(new PopStateEvent('popstate'));
         }
@@ -116,19 +130,49 @@ const setupUrlNormalization = () => {
   window.addEventListener('beforeunload', storeCurrentPath);
 }
 
-// Enhanced reload path restoration
+// Enhanced reload path restoration that maintains protocol and hostname
 const restorePathAfterReload = () => {
-  // Check if we're on the root path but have a stored path
-  const currentPath = window.location.pathname + window.location.hash + window.location.search;
+  // Check for stored full URL first
+  const fullUrl = sessionStorage.getItem('fullUrl');
   const lastPath = sessionStorage.getItem('lastPath');
+  const currentPath = window.location.pathname + window.location.hash + window.location.search;
+  
+  console.log("Checking for path restoration:");
+  console.log("Current path:", currentPath);
+  console.log("Stored path:", lastPath);
+  console.log("Stored full URL:", fullUrl);
   
   // Only restore if we're at root or 404 and have a stored path
-  if (lastPath && (window.location.pathname === '/' || window.location.pathname === '/404') && lastPath !== currentPath) {
-    console.log('Restoring path after reload:', lastPath);
-    window.history.replaceState(null, '', lastPath);
-    
-    // Force a render update by dispatching a popstate event
-    window.dispatchEvent(new PopStateEvent('popstate'));
+  if (window.location.pathname === '/' || window.location.pathname === '/404') {
+    if (fullUrl && fullUrl !== window.location.href) {
+      console.log('Restoring full URL after reload:', fullUrl);
+      
+      try {
+        // Extract the path part from the full URL to avoid cross-origin issues
+        const urlObj = new URL(fullUrl);
+        const pathToRestore = urlObj.pathname + urlObj.hash + urlObj.search;
+        
+        console.log('Restoring path component:', pathToRestore);
+        window.history.replaceState(null, '', pathToRestore);
+        
+        // Force a render update by dispatching a popstate event
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      } catch (error) {
+        console.error("Error restoring full URL:", error);
+        
+        // Fallback to path-only restoration
+        if (lastPath && lastPath !== currentPath) {
+          console.log('Fallback: Restoring path after reload:', lastPath);
+          window.history.replaceState(null, '', lastPath);
+          window.dispatchEvent(new PopStateEvent('popstate'));
+        }
+      }
+    } else if (lastPath && lastPath !== currentPath) {
+      // Fallback to path-only restoration if no full URL is available
+      console.log('Restoring path after reload (no full URL):', lastPath);
+      window.history.replaceState(null, '', lastPath);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }
   }
 };
 

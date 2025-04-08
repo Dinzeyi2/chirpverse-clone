@@ -49,11 +49,23 @@ const NotFound = () => {
   useEffect(() => {
     console.log("NotFound component rendered for path:", location.pathname, "hash:", location.hash);
     
+    // Get original protocol and hostname from session storage if available
+    const originalProtocol = sessionStorage.getItem('originalProtocol') || window.location.protocol;
+    const originalHostname = sessionStorage.getItem('originalHostname') || window.location.hostname;
+    
+    console.log("Original protocol:", originalProtocol);
+    console.log("Original hostname:", originalHostname);
+    
     // Store the current URL attempt in sessionStorage to help recover after reloads
     if (location.pathname.includes('/post/') || extractPostId()) {
       const path = location.pathname + location.hash + location.search;
       console.log("Storing attempted path in sessionStorage:", path);
       sessionStorage.setItem('lastPath', path);
+      
+      // Also store the full URL with original protocol and hostname
+      const fullUrl = `${originalProtocol}//${originalHostname}${path}`;
+      console.log("Storing full URL in sessionStorage:", fullUrl);
+      sessionStorage.setItem('fullUrl', fullUrl);
     }
     
     // If path is a UUID, automatically redirect to correct format
@@ -61,8 +73,15 @@ const NotFound = () => {
     const uuidPattern = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
     
     if (uuidPattern.test(uuid)) {
-      console.log(`Auto-redirecting from raw UUID path to /post/${uuid}${location.hash || ''}${location.search || ''}`);
-      navigate(`/post/${uuid}${location.hash || ''}${location.search || ''}`, { replace: true });
+      const normalizedPath = `/post/${uuid}${location.hash || ''}${location.search || ''}`;
+      console.log(`Auto-redirecting from raw UUID path to ${normalizedPath}`);
+      
+      // Store both path and full URL for future reference
+      sessionStorage.setItem('lastPath', normalizedPath);
+      const fullUrl = `${originalProtocol}//${originalHostname}${normalizedPath}`;
+      sessionStorage.setItem('fullUrl', fullUrl);
+      
+      navigate(normalizedPath, { replace: true });
       toast.success("Redirected to post");
       return;
     }
@@ -79,6 +98,10 @@ const NotFound = () => {
       sessionStorage.setItem('lastPath', normalizedPath);
       sessionStorage.setItem('commentHash', `#comment-${commentId}`);
       
+      // Store full URL with protocol and hostname
+      const fullUrl = `${originalProtocol}//${originalHostname}${normalizedPath}`;
+      sessionStorage.setItem('fullUrl', fullUrl);
+      
       navigate(normalizedPath, { replace: true });
       toast.success("Redirected to comment");
       return;
@@ -94,6 +117,8 @@ const NotFound = () => {
       
       // Store the path before navigating
       sessionStorage.setItem('lastPath', normalizedPath);
+      const fullUrl = `${originalProtocol}//${originalHostname}${normalizedPath}`;
+      sessionStorage.setItem('fullUrl', fullUrl);
       
       navigate(normalizedPath, { replace: true });
       toast.success("Redirected to the correct post format");
@@ -103,9 +128,15 @@ const NotFound = () => {
   const postId = extractPostId();
   const commentId = extractCommentId();
   
+  // Get original protocol and hostname from session storage
+  const originalProtocol = sessionStorage.getItem('originalProtocol') || window.location.protocol;
+  const originalHostname = sessionStorage.getItem('originalHostname') || window.location.hostname;
+  
   console.log("NotFound - Current path:", location.pathname);
   console.log("NotFound - Extracted post ID:", postId);
   console.log("NotFound - Extracted comment ID:", commentId);
+  console.log("NotFound - Original protocol:", originalProtocol);
+  console.log("NotFound - Original hostname:", originalHostname);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -128,6 +159,10 @@ const NotFound = () => {
                 // Store the path being navigated to
                 const path = `/post/${postId}${location.hash || ''}${location.search || ''}`;
                 sessionStorage.setItem('lastPath', path);
+                
+                // Store full URL with original protocol and hostname
+                const fullUrl = `${originalProtocol}//${originalHostname}${path}`;
+                sessionStorage.setItem('fullUrl', fullUrl);
               }}
             >
               Go to post
@@ -141,6 +176,10 @@ const NotFound = () => {
                   const path = `/post/${postId}#comment-${commentId}`;
                   sessionStorage.setItem('lastPath', path);
                   sessionStorage.setItem('commentHash', `#comment-${commentId}`);
+                  
+                  // Store full URL with original protocol and hostname
+                  const fullUrl = `${originalProtocol}//${originalHostname}${path}`;
+                  sessionStorage.setItem('fullUrl', fullUrl);
                 }}
               >
                 Go to specific comment
@@ -152,6 +191,10 @@ const NotFound = () => {
                 onClick={() => {
                   const path = `/post/${postId}#comments`;
                   sessionStorage.setItem('lastPath', path);
+                  
+                  // Store full URL with original protocol and hostname
+                  const fullUrl = `${originalProtocol}//${originalHostname}${path}`;
+                  sessionStorage.setItem('fullUrl', fullUrl);
                 }}
               >
                 Go to post comments

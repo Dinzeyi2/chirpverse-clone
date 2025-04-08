@@ -33,13 +33,20 @@ const queryClient = new QueryClient({
 // UUID pattern for validating direct UUID routes
 const UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 
-// Enhanced redirect component that handles all post URL formats
+// Enhanced redirect component that handles all post URL formats with protocol preservation
 const PostRedirect = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { pathname, hash, search } = location;
   
   useEffect(() => {
+    // Get original protocol and hostname from session storage
+    const originalProtocol = sessionStorage.getItem('originalProtocol') || window.location.protocol;
+    const originalHostname = sessionStorage.getItem('originalHostname') || window.location.hostname;
+    
+    console.log("PostRedirect - Original protocol:", originalProtocol);
+    console.log("PostRedirect - Original hostname:", originalHostname);
+    
     // For /p/:uuid or /posts/:uuid or /:uuid paths, extract the UUID
     let uuid = "";
     let redirectPath = "";
@@ -68,6 +75,12 @@ const PostRedirect = () => {
     
     if (redirectPath) {
       console.log(`PostRedirect: Redirecting from ${pathname} to ${redirectPath}`);
+      
+      // Store both path and full URL for future reference
+      sessionStorage.setItem('lastPath', redirectPath);
+      const fullUrl = `${originalProtocol}//${originalHostname}${redirectPath}`;
+      sessionStorage.setItem('fullUrl', fullUrl);
+      
       navigate(redirectPath, { replace: true });
     }
   }, [pathname, hash, search, navigate]);
@@ -97,6 +110,21 @@ const AppContent = () => {
     };
     
     testRealtime();
+    
+    // Listen for messages from service worker
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'STORE_URL_INFO') {
+          console.log('Received URL info from service worker:', event.data);
+          sessionStorage.setItem('originalProtocol', event.data.protocol);
+          sessionStorage.setItem('originalHostname', event.data.hostname);
+          
+          if (event.data.fullUrl) {
+            sessionStorage.setItem('fullUrl', event.data.fullUrl);
+          }
+        }
+      });
+    }
   }, []);
 
   return (
