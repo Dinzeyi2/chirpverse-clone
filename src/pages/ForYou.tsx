@@ -51,17 +51,17 @@ const ForYou = () => {
           return;
         }
 
-        // Fetch posts that match user's languages
+        // Fetch posts with user profile information
         const { data: postsData, error: postsError } = await supabase
           .from('shoutouts')
           .select(`
-            id, 
-            content, 
+            id,
+            content,
             created_at,
             metadata,
             media,
             user_id,
-            profiles:profiles!user_id(id, full_name, username, avatar_url)
+            profiles(id, full_name, username, avatar_url)
           `)
           .order('created_at', { ascending: false })
           .limit(20);
@@ -79,14 +79,24 @@ const ForYou = () => {
 
         // Filter posts by preferred languages (using metadata)
         const filteredPosts = postsData.filter(post => {
-          const postLanguages = post.metadata?.languages || [];
-          return postLanguages.some(lang => 
+          const postMetadata = post.metadata as Record<string, any> || {};
+          const postLanguages = postMetadata.languages || [];
+          return postLanguages.some((lang: string) => 
             preferredLanguages.includes(lang.toLowerCase())
           );
         });
 
         // Get reactions for the filtered posts
         const postIds = filteredPosts.map(post => post.id);
+        
+        // Early return if no matching posts
+        if (postIds.length === 0) {
+          setPosts([]);
+          setLoading(false);
+          return;
+        }
+        
+        // Fetch reactions
         const { data: reactionsData, error: reactionsError } = await supabase
           .from('post_reactions')
           .select('*')
@@ -110,9 +120,9 @@ const ForYou = () => {
         // Get comment counts for posts
         const { data: commentsData, error: commentsError } = await supabase
           .from('comments')
-          .select('shoutout_id, count')
+          .select('shoutout_id, count(*)')
           .in('shoutout_id', postIds)
-          .group('shoutout_id');
+          .groupBy('shoutout_id');
 
         if (commentsError) {
           console.error('Error fetching comment counts:', commentsError);
@@ -133,19 +143,20 @@ const ForYou = () => {
           const bookmarks = postReactions.filter(r => r.emoji === 'bookmark').length;
           const isLiked = postReactions.some(r => r.emoji === 'like' && r.user_id === user.id);
           const isBookmarked = postReactions.some(r => r.emoji === 'bookmark' && r.user_id === user.id);
+          const postMetadata = post.metadata as Record<string, any> || {};
           
           return {
             id: post.id,
             content: post.content,
             userId: post.user_id,
-            createdAt: new Date(post.created_at),
+            createdAt: post.created_at,
             user: {
               id: post.profiles?.id,
               name: post.profiles?.full_name || post.profiles?.username,
               image: post.profiles?.avatar_url,
             },
             images: post.media || [],
-            languages: post.metadata?.languages || [],
+            languages: postMetadata.languages || [],
             likes: likes,
             bookmarks: bookmarks,
             comments: commentsMap.get(post.id) || 0,
