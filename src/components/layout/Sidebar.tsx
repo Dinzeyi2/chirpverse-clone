@@ -10,6 +10,7 @@ import CreatePost from '@/components/feed/CreatePost';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from "@/integrations/supabase/client";
+import { Avatar, AvatarImage } from '@/components/ui/avatar';
 
 export const Sidebar = () => {
   const location = useLocation();
@@ -112,7 +113,10 @@ export const Sidebar = () => {
       <div className={sidebarClasses}>
         <div className="flex flex-col h-full p-6">
           <div className="flex items-center justify-between mb-8">
-            <Link to="/" className="p-2 rounded-full hover:bg-blue-500/10 transition-colors">
+            <Link to="/" className="flex items-center p-2 rounded-full hover:bg-blue-500/10 transition-colors">
+              <Avatar className="h-8 w-8 mr-2">
+                <AvatarImage src="/lovable-uploads/3466f833-541a-44f1-86a1-5e3f5ed4d8ed.png" alt="iblue logo" />
+              </Avatar>
               <span className="font-bold text-2xl tracking-tight bg-gradient-to-r from-[#4285F4] to-[#8AB4F8] bg-clip-text text-transparent">iblue</span>
             </Link>
             <button 
@@ -206,8 +210,13 @@ export const Sidebar = () => {
     >
       <div className="flex flex-col h-full px-3 py-5">
         <div className="mb-6 flex justify-center lg:justify-start">
-          <Link to="/" className="p-2 rounded-full hover:bg-blue-500/10 transition-colors">
-            <span className="font-bold text-2xl tracking-tight bg-gradient-to-r from-[#4285F4] to-[#8AB4F8] bg-clip-text text-transparent">iblue</span>
+          <Link to="/" className="flex items-center p-2 rounded-full hover:bg-blue-500/10 transition-colors">
+            <Avatar className="h-8 w-8 mr-2">
+              <AvatarImage src="/lovable-uploads/3466f833-541a-44f1-86a1-5e3f5ed4d8ed.png" alt="iblue logo" />
+            </Avatar>
+            {!isCollapsed && (
+              <span className="font-bold text-2xl tracking-tight bg-gradient-to-r from-[#4285F4] to-[#8AB4F8] bg-clip-text text-transparent">iblue</span>
+            )}
             <span className="sr-only">Home</span>
           </Link>
         </div>
