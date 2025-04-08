@@ -87,6 +87,7 @@ serve(async (req) => {
     const appUrl = Deno.env.get('APP_URL') || 'https://i-blue.dev';
     const postUrl = `${appUrl}/post/${postId}`;
     console.log('Generated post URL:', postUrl);
+    console.log(`Will send email to: ${userData.email}`);
 
     // Generate simple HTML email
     const htmlEmail = `

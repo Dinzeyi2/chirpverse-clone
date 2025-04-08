@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -13,13 +13,49 @@ const TestEmailNotification = () => {
   const [loading, setLoading] = useState(false);
   const [testContent, setTestContent] = useState<string>("I'm working on a React and TypeScript project using Node.js and Express.");
   const [testResult, setTestResult] = useState<{success: boolean; message: string} | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const { user } = useAuth();
+
+  // Fetch the user's actual email on component mount
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('user_id', user.id)
+          .single();
+          
+        if (error) {
+          console.error('Error fetching user email:', error);
+          return;
+        }
+        
+        setUserEmail(data?.email || null);
+      } catch (err) {
+        console.error('Error in fetchUserProfile:', err);
+      }
+    };
+    
+    fetchUserProfile();
+  }, [user]);
 
   const sendTestNotification = async () => {
     if (!user) {
       toast({
         title: "Not logged in",
         description: "You must be logged in to test notifications",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!userEmail) {
+      toast({
+        title: "No email found",
+        description: "You don't have an email address in your profile. Please add one in your settings.",
         variant: "destructive"
       });
       return;
@@ -199,6 +235,12 @@ const TestEmailNotification = () => {
         Use this to test that your email notification system is working properly.
       </p>
       
+      {userEmail && (
+        <p className="text-sm">
+          Emails will be sent to: <span className="font-medium">{userEmail}</span>
+        </p>
+      )}
+      
       {testResult && (
         <Alert variant={testResult.success ? "default" : "destructive"}>
           <AlertCircle className="h-4 w-4" />
@@ -235,7 +277,7 @@ const TestEmailNotification = () => {
       
       <Button 
         onClick={sendTestNotification} 
-        disabled={loading || !testContent.trim()}
+        disabled={loading || !testContent.trim() || !userEmail}
         className="w-full"
       >
         {loading ? "Sending..." : "Send Test Notification"}

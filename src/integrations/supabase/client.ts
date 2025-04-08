@@ -143,7 +143,7 @@ export const extractLanguageMentions = (content: string): string[] => {
       if (regex.test(content.toLowerCase())) {
         console.log(`Found programming language: ${language}`);
         // Normalize language name for consistency
-        if (language === 'c\\+\\+') {
+        if (language === 'c\\+\\+' || language === 'cpp') {
           matches.add('c++');
         } else if (language === 'csharp') {
           matches.add('c#');
