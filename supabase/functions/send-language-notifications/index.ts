@@ -104,7 +104,7 @@ serve(async (req) => {
     // Get the post author's profile to include in the notification
     const { data: authorProfile, error: authorError } = await supabaseClient
       .from('profiles')
-      .select('full_name, email')
+      .select('full_name')
       .eq('user_id', postAuthorId)
       .single();
 
@@ -112,12 +112,19 @@ serve(async (req) => {
       console.log('Could not fetch author profile:', authorError);
     }
 
+    // Get author's auth email 
+    const { data: authorAuthData, error: authorAuthError } = await supabaseClient.auth.admin.getUserById(postAuthorId);
+    
+    if (authorAuthError) {
+      console.log('Could not fetch author auth data:', authorAuthError);
+    }
+
     const authorName = authorProfile?.full_name || 'Someone';
     console.log(`Post author name: ${authorName}`);
     
     // Debug: Test direct email sending with the author's email if available
-    if (authorProfile?.email && debug) {
-      console.log(`DEBUG: Testing direct email to author: ${authorProfile.email}`);
+    if (authorAuthData?.user?.email && debug) {
+      console.log(`DEBUG: Testing direct email to author: ${authorAuthData.user.email}`);
       try {
         const testEmailResponse = await fetch(
           `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email-notification`,
@@ -148,8 +155,7 @@ serve(async (req) => {
     console.log('Fetching users with email notifications enabled...');
     const { data: users, error: usersError } = await supabaseClient
       .from('profiles')
-      .select('user_id, programming_languages, email, email_notifications_enabled, full_name')
-      .not('email', 'is', null)
+      .select('user_id, programming_languages, email_notifications_enabled, full_name')
       .eq('email_notifications_enabled', true) // Only users who enabled email notifications
       .not('user_id', 'eq', postAuthorId); // Don't notify the post author
 
@@ -169,7 +175,7 @@ serve(async (req) => {
     // Debug: log all users and their programming languages
     if (debug && users) {
       for (const user of users) {
-        console.log(`User ${user.user_id} (${user.full_name || 'unnamed'}) - Email: ${user.email}`);
+        console.log(`User ${user.user_id} (${user.full_name || 'unnamed'})`);
         console.log(`Programming languages:`, user.programming_languages);
       }
     }
@@ -252,7 +258,7 @@ Check out the full post and join the conversation!`;
           
           try {
             // Call the send-email-notification function
-            console.log(`Calling send-email-notification for user ${user.user_id} with email ${user.email}`);
+            console.log(`Calling send-email-notification for user ${user.user_id}`);
             const response = await fetch(
               `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email-notification`,
               {
@@ -285,7 +291,6 @@ Check out the full post and join the conversation!`;
             
             notificationResults.push({
               userId: user.user_id,
-              email: user.email,
               name: user.full_name,
               languages: matchingLanguages,
               success: response.ok,
@@ -293,7 +298,7 @@ Check out the full post and join the conversation!`;
             });
 
             if (response.ok) {
-              console.log(`Successfully sent email to user ${user.full_name} (${user.user_id}) at ${user.email}`);
+              console.log(`Successfully sent email to user ${user.full_name} (${user.user_id})`);
               notificationsSent++;
               
               // Also create an in-app notification
@@ -321,7 +326,6 @@ Check out the full post and join the conversation!`;
               console.error(`Error sending email to user ${user.user_id}:`, responseText);
               notificationErrors.push({
                 userId: user.user_id,
-                email: user.email,
                 error: responseText
               });
             }
@@ -329,7 +333,6 @@ Check out the full post and join the conversation!`;
             console.error(`Exception sending email to user ${user.user_id}:`, emailError);
             notificationErrors.push({
               userId: user.user_id,
-              email: user.email,
               error: emailError.message
             });
           }

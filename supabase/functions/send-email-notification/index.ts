@@ -54,28 +54,42 @@ serve(async (req) => {
 
     console.log(`Processing email notification for user ${userId}`);
 
-    // Get the user's email and notification preferences
+    // First get the user's auth email directly from auth.users table
     const { data: userData, error: userError } = await supabaseClient
       .from('profiles')
-      .select('email, email_notifications_enabled, full_name, programming_languages')
+      .select('full_name, email_notifications_enabled, programming_languages')
       .eq('user_id', userId)
       .single()
 
     if (userError) {
-      console.error('Error fetching user email:', userError);
+      console.error('Error fetching user profile:', userError);
       return new Response(
-        JSON.stringify({ error: 'Error fetching user email', details: userError }),
+        JSON.stringify({ error: 'Error fetching user profile', details: userError }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       )
     }
 
-    console.log('User data found:', JSON.stringify(userData));
-    console.log('User programming languages:', userData.programming_languages);
-    console.log('Email notifications enabled:', userData.email_notifications_enabled);
-    console.log('User email from database:', userData.email);
+    // Now get the actual auth email from auth.users
+    const { data: authUser, error: authError } = await supabaseClient.auth.admin.getUserById(userId);
+    
+    if (authError || !authUser || !authUser.user) {
+      console.error('Error fetching user auth details:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Error fetching user auth email', details: authError }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
+    }
+
+    // Use the actual auth email for sending
+    const userEmail = authUser.user.email;
+    
+    console.log('User profile data found:', JSON.stringify(userData));
+    console.log('User programming languages:', userData?.programming_languages);
+    console.log('Email notifications enabled:', userData?.email_notifications_enabled);
+    console.log('User auth email:', userEmail);
 
     // Check if user has email and has notifications enabled
-    if (!userData?.email) {
+    if (!userEmail) {
       console.log('No email found for user');
       return new Response(
         JSON.stringify({ message: 'No email found for user' }),
@@ -83,7 +97,7 @@ serve(async (req) => {
       )
     }
     
-    if (userData.email_notifications_enabled === false) {
+    if (userData?.email_notifications_enabled === false) {
       console.log('Email notifications are disabled for this user');
       return new Response(
         JSON.stringify({ message: 'Email notifications are disabled for this user' }),
@@ -95,7 +109,7 @@ serve(async (req) => {
     const appUrl = Deno.env.get('APP_URL') || 'https://i-blue.dev';
     const postUrl = `${appUrl}/post/${postId}`;
     console.log('Generated post URL:', postUrl);
-    console.log(`Will send email to: ${userData.email}`);
+    console.log(`Will send email to: ${userEmail}`);
 
     // Generate simple HTML email
     const htmlEmail = `
@@ -118,7 +132,7 @@ serve(async (req) => {
               <h2>iBlue Notification</h2>
             </div>
             <div class="content">
-              <p>Hello ${userData.full_name || 'there'},</p>
+              <p>Hello ${userData?.full_name || 'there'},</p>
               <p>${body}</p>
               <p style="text-align: center; margin-top: 30px;">
                 <a href="${postUrl}" class="button">View Post</a>
@@ -146,12 +160,12 @@ serve(async (req) => {
       )
     }
 
-    console.log(`Sending email to ${userData.email} with subject: ${subject}`);
+    console.log(`Sending email to ${userEmail} with subject: ${subject}`);
     
     // Send email using Resend
     const emailData = {
       from: 'notifications@i-blue.dev',
-      to: userData.email,
+      to: userEmail,
       subject: subject || 'New iBlue Notification',
       html: htmlEmail,
       // Add tracking for email opens and clicks
@@ -207,7 +221,7 @@ serve(async (req) => {
         .insert({
           type: 'email',
           recipient_id: userId,
-          email: userData.email,
+          email: userEmail,
           subject: subject,
           status: 'sent',
           metadata: {
@@ -232,8 +246,8 @@ serve(async (req) => {
         result: emailResult, 
         recipient: {
           userId: userId,
-          email: userData.email,
-          name: userData.full_name
+          email: userEmail,
+          name: userData?.full_name
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }

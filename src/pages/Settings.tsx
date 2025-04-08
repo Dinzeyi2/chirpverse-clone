@@ -20,7 +20,6 @@ const Settings = () => {
     avatar_url: string | null;
     email_notifications_enabled: boolean | null;
     programming_languages: string[] | null;
-    email: string | null;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [languageDialogOpen, setLanguageDialogOpen] = useState(false);
@@ -41,7 +40,7 @@ const Settings = () => {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, avatar_url, email_notifications_enabled, programming_languages, email')
+          .select('full_name, avatar_url, email_notifications_enabled, programming_languages')
           .eq('user_id', user.id)
           .single();
 
@@ -58,8 +57,7 @@ const Settings = () => {
           full_name: null, 
           avatar_url: null, 
           email_notifications_enabled: false, 
-          programming_languages: [], 
-          email: null 
+          programming_languages: [] 
         });
       } finally {
         setLoading(false);
@@ -164,9 +162,9 @@ const Settings = () => {
                 <p className="text-sm text-muted-foreground">
                   Receive email notifications when users post about programming languages you know
                 </p>
-                {profile.email ? (
+                {user?.email ? (
                   <p className="text-xs text-muted-foreground mt-1">
-                    Notifications will be sent to: {profile.email}
+                    Notifications will be sent to: {user.email}
                   </p>
                 ) : (
                   <p className="text-xs text-red-500 mt-1">
@@ -203,7 +201,7 @@ const Settings = () => {
                   }
                 }}
                 aria-label="Toggle email notifications"
-                disabled={!profile.email}
+                disabled={!user?.email}
               />
             </div>
           </div>

@@ -18,29 +18,36 @@ const TestEmailNotification = () => {
 
   // Fetch the user's actual email on component mount
   useEffect(() => {
-    const fetchUserProfile = async () => {
+    const fetchUserData = async () => {
       if (!user) return;
       
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('user_id', user.id)
-          .single();
+      // The authenticated email is already available in the user object
+      if (user.email) {
+        console.log('Using auth email from user object:', user.email);
+        setUserEmail(user.email);
+      } else {
+        // Fallback to profile email if user.email is not available for some reason
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('user_id', user.id)
+            .single();
+            
+          if (error) {
+            console.error('Error fetching user email:', error);
+            return;
+          }
           
-        if (error) {
-          console.error('Error fetching user email:', error);
-          return;
+          console.log('Fetched user email from profile:', data?.email);
+          setUserEmail(data?.email || null);
+        } catch (err) {
+          console.error('Error in fetchUserProfile:', err);
         }
-        
-        console.log('Fetched user email from profile:', data?.email);
-        setUserEmail(data?.email || null);
-      } catch (err) {
-        console.error('Error in fetchUserProfile:', err);
       }
     };
     
-    fetchUserProfile();
+    fetchUserData();
   }, [user]);
 
   const sendTestNotification = async () => {
@@ -108,27 +115,12 @@ const TestEmailNotification = () => {
       // Get user's email settings
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('email, email_notifications_enabled')
+        .select('email_notifications_enabled')
         .eq('user_id', user.id)
         .single();
         
       if (profileError) {
         throw new Error(`Failed to get user profile: ${profileError.message}`);
-      }
-      
-      if (!profile.email) {
-        setTestResult({
-          success: false,
-          message: "No email address found in your profile. Please add an email address in your profile settings."
-        });
-        
-        toast({
-          title: "No email address",
-          description: "You need to add an email address to your profile to receive notifications.",
-          variant: "destructive"
-        });
-        setLoading(false);
-        return;
       }
       
       if (!profile.email_notifications_enabled) {
@@ -167,7 +159,7 @@ const TestEmailNotification = () => {
       });
       
       console.log('Calling send-email-notification for direct test...');
-      console.log('Using user email from profile:', profile.email);
+      console.log('Using auth email:', userEmail);
       
       const emailResponse = await supabase.functions.invoke('send-email-notification', {
         body: {
@@ -206,12 +198,12 @@ const TestEmailNotification = () => {
       // Update the result with the actual user email
       setTestResult({
         success: true,
-        message: `Test email sent to ${profile.email}. It may take a few minutes to arrive.`
+        message: `Test email sent to ${userEmail}. It may take a few minutes to arrive.`
       });
       
       toast({
         title: "Test Complete",
-        description: `Email sent to ${profile.email}. It may take a few minutes to arrive.`,
+        description: `Email sent to ${userEmail}. It may take a few minutes to arrive.`,
       });
       
     } catch (error: any) {
@@ -241,7 +233,7 @@ const TestEmailNotification = () => {
       
       {userEmail && (
         <p className="text-sm">
-          Emails will be sent to: <span className="font-medium">{userEmail}</span>
+          Emails will be sent to: <span className="font-medium">{userEmail}</span> (from your account)
         </p>
       )}
       
@@ -272,7 +264,7 @@ const TestEmailNotification = () => {
         <AlertDescription>
           For this test to work, make sure:
           <ul className="list-disc pl-5 mt-2 space-y-1">
-            <li>You have an email address in your profile</li>
+            <li>You have an email address linked to your account</li>
             <li>Email notifications are enabled (toggle above)</li>
             <li>You've added programming languages to your profile</li>
           </ul>
