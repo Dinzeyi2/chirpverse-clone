@@ -25,7 +25,7 @@ const ForYou = () => {
         const { data: userData, error: userError } = await supabase
           .from('profiles')
           .select('programming_languages')
-          .eq('id', user.id)
+          .eq('user_id', user.id)
           .single();
 
         if (userError) {
@@ -39,7 +39,7 @@ const ForYou = () => {
           return;
         }
 
-        const preferredLanguages = userData.programming_languages || [];
+        const preferredLanguages = userData?.programming_languages || [];
 
         if (preferredLanguages.length === 0) {
           toast({
@@ -55,11 +55,14 @@ const ForYou = () => {
         const { data: postsData, error: postsError } = await supabase
           .from('shoutouts')
           .select(`
-            *,
-            profiles:user_id(id, full_name, username, avatar_url),
-            reactions:reactions(id, reaction_type, user_id)
+            id, 
+            content, 
+            created_at,
+            metadata,
+            media,
+            user_id,
+            profiles:profiles!user_id(id, full_name, username, avatar_url)
           `)
-          .overlaps('languages', preferredLanguages)
           .order('created_at', { ascending: false })
           .limit(20);
 
@@ -74,23 +77,83 @@ const ForYou = () => {
           return;
         }
 
-        const formattedPosts = postsData.map(post => ({
-          id: post.id,
-          user: {
-            id: post.profiles.id,
-            name: post.profiles.full_name || post.profiles.username,
-            image: post.profiles.avatar_url
-          },
-          content: post.content,
-          images: post.images || [],
-          languages: post.languages || [],
-          createdAt: new Date(post.created_at),
-          likes: post.reactions.filter(r => r.reaction_type === 'like').length,
-          bookmarks: post.reactions.filter(r => r.reaction_type === 'bookmark').length,
-          comments: post.comment_count || 0,
-          isLiked: post.reactions.some(r => r.reaction_type === 'like' && r.user_id === user.id),
-          isBookmarked: post.reactions.some(r => r.reaction_type === 'bookmark' && r.user_id === user.id),
-        }));
+        // Filter posts by preferred languages (using metadata)
+        const filteredPosts = postsData.filter(post => {
+          const postLanguages = post.metadata?.languages || [];
+          return postLanguages.some(lang => 
+            preferredLanguages.includes(lang.toLowerCase())
+          );
+        });
+
+        // Get reactions for the filtered posts
+        const postIds = filteredPosts.map(post => post.id);
+        const { data: reactionsData, error: reactionsError } = await supabase
+          .from('post_reactions')
+          .select('*')
+          .in('post_id', postIds);
+
+        if (reactionsError) {
+          console.error('Error fetching reactions:', reactionsError);
+        }
+
+        // Create a map of reactions by post_id
+        const reactionsMap = new Map();
+        if (reactionsData) {
+          reactionsData.forEach(reaction => {
+            if (!reactionsMap.has(reaction.post_id)) {
+              reactionsMap.set(reaction.post_id, []);
+            }
+            reactionsMap.get(reaction.post_id).push(reaction);
+          });
+        }
+
+        // Get comment counts for posts
+        const { data: commentsData, error: commentsError } = await supabase
+          .from('comments')
+          .select('shoutout_id, count')
+          .in('shoutout_id', postIds)
+          .group('shoutout_id');
+
+        if (commentsError) {
+          console.error('Error fetching comment counts:', commentsError);
+        }
+
+        // Create a map of comment counts by post_id
+        const commentsMap = new Map();
+        if (commentsData) {
+          commentsData.forEach(comment => {
+            commentsMap.set(comment.shoutout_id, parseInt(comment.count));
+          });
+        }
+
+        // Format posts to match the Post interface
+        const formattedPosts = filteredPosts.map(post => {
+          const postReactions = reactionsMap.get(post.id) || [];
+          const likes = postReactions.filter(r => r.emoji === 'like').length;
+          const bookmarks = postReactions.filter(r => r.emoji === 'bookmark').length;
+          const isLiked = postReactions.some(r => r.emoji === 'like' && r.user_id === user.id);
+          const isBookmarked = postReactions.some(r => r.emoji === 'bookmark' && r.user_id === user.id);
+          
+          return {
+            id: post.id,
+            content: post.content,
+            userId: post.user_id,
+            createdAt: new Date(post.created_at),
+            user: {
+              id: post.profiles?.id,
+              name: post.profiles?.full_name || post.profiles?.username,
+              image: post.profiles?.avatar_url,
+            },
+            images: post.media || [],
+            languages: post.metadata?.languages || [],
+            likes: likes,
+            bookmarks: bookmarks,
+            comments: commentsMap.get(post.id) || 0,
+            replies: 0, // Required by Post type
+            isLiked: isLiked,
+            isBookmarked: isBookmarked,
+          } as Post;
+        });
 
         setPosts(formattedPosts);
         setLoading(false);
