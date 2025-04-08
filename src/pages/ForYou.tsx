@@ -111,7 +111,7 @@ const ForYou = () => {
           supabase
             .from('post_reactions')
             .select('*')
-            .eq('post_id', postId)
+            .eq('post_id', postId.toString()) // Ensure postId is a string
             .eq('emoji', 'like')
         );
 
@@ -119,7 +119,7 @@ const ForYou = () => {
           supabase
             .from('post_reactions')
             .select('*')
-            .eq('post_id', postId)
+            .eq('post_id', postId.toString()) // Ensure postId is a string
             .eq('emoji', 'bookmark')
         );
 
@@ -173,10 +173,10 @@ const ForYou = () => {
           const postMetadata = post.metadata as Record<string, any> || {};
           const postLanguages = postMetadata.languages || [];
           
-          const postId = post.id as string; // Ensure postId is treated as a string
+          const postId = post.id; // Use the post.id directly, Maps can use any type as keys
           
           return {
-            id: postId,
+            id: postId.toString(), // Ensure id is a string for the Post interface
             content: post.content,
             userId: post.user_id,
             createdAt: post.created_at,
