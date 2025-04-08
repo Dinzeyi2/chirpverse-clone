@@ -122,47 +122,20 @@ serve(async (req) => {
     const authorName = authorProfile?.full_name || 'Someone';
     console.log(`Post author name: ${authorName}`);
     
-    // Debug: Test direct email sending with the author's email if available
-    if (authorAuthData?.user?.email && debug) {
-      console.log(`DEBUG: Testing direct email to author: ${authorAuthData.user.email}`);
-      try {
-        const testEmailResponse = await fetch(
-          `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email-notification`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-            },
-            body: JSON.stringify({
-              userId: postAuthorId,
-              subject: `TEST - Email Notification System Check`,
-              body: `This is a test of the email notification system. It was triggered by your post about: ${languages.join(', ')}`,
-              postId: postId,
-              debug: true
-            }),
-          }
-        );
-        
-        const testResponseText = await testEmailResponse.text();
-        console.log(`TEST email response: ${testResponseText}`);
-      } catch (testError) {
-        console.error(`Error sending test email: ${testError}`);
-      }
-    }
-    
-    // Get all users with email notifications enabled
+    // Get all users with email notifications enabled, but also join with auth.users to get the real email
     console.log('Fetching users with email notifications enabled...');
-    const { data: users, error: usersError } = await supabaseClient
+    
+    // First, get all profiles with notifications enabled
+    const { data: profilesWithNotifications, error: profilesError } = await supabaseClient
       .from('profiles')
       .select('user_id, programming_languages, email_notifications_enabled, full_name')
       .eq('email_notifications_enabled', true) // Only users who enabled email notifications
       .not('user_id', 'eq', postAuthorId); // Don't notify the post author
 
-    if (usersError) {
-      console.error('Error fetching users:', usersError);
+    if (profilesError) {
+      console.error('Error fetching user profiles:', profilesError);
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch users', details: usersError }),
+        JSON.stringify({ error: 'Failed to fetch user profiles', details: profilesError }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 500 
@@ -170,17 +143,9 @@ serve(async (req) => {
       )
     }
 
-    console.log(`Found ${users?.length || 0} users with email notifications enabled`);
+    console.log(`Found ${profilesWithNotifications?.length || 0} users with email notifications enabled`);
     
-    // Debug: log all users and their programming languages
-    if (debug && users) {
-      for (const user of users) {
-        console.log(`User ${user.user_id} (${user.full_name || 'unnamed'})`);
-        console.log(`Programming languages:`, user.programming_languages);
-      }
-    }
-    
-    if (users?.length === 0) {
+    if (!profilesWithNotifications || profilesWithNotifications.length === 0) {
       console.log('No users have email notifications enabled');
       return new Response(
         JSON.stringify({ 
@@ -202,46 +167,62 @@ serve(async (req) => {
     const notificationErrors = [];
 
     // Send notifications to each user who has matching programming languages
-    for (const user of users || []) {
+    for (const profile of profilesWithNotifications) {
       try {
+        // Get the real email from auth.users for this profile
+        const { data: userData, error: userError } = await supabaseClient.auth.admin.getUserById(profile.user_id);
+        
+        if (userError || !userData || !userData.user || !userData.user.email) {
+          console.error(`Error fetching auth email for user ${profile.user_id}:`, userError);
+          notificationsSkipped++;
+          notificationErrors.push({
+            userId: profile.user_id,
+            error: userError?.message || "No email found in auth record"
+          });
+          continue;
+        }
+        
+        const userEmail = userData.user.email;
+        console.log(`Processing user ${profile.user_id} (${profile.full_name || 'unnamed'}) with email: ${userEmail}`);
+        
         // Process user's programming_languages safely
         let userLanguages: string[] = [];
-        console.log(`Processing user ${user.user_id} with programming_languages:`, user.programming_languages);
+        console.log(`User programming_languages:`, profile.programming_languages);
         
-        if (user.programming_languages) {
-          if (Array.isArray(user.programming_languages)) {
-            userLanguages = user.programming_languages;
-          } else if (typeof user.programming_languages === 'string') {
+        if (profile.programming_languages) {
+          if (Array.isArray(profile.programming_languages)) {
+            userLanguages = profile.programming_languages;
+          } else if (typeof profile.programming_languages === 'string') {
             try {
-              const parsed = JSON.parse(user.programming_languages);
-              userLanguages = Array.isArray(parsed) ? parsed : [user.programming_languages];
+              const parsed = JSON.parse(profile.programming_languages);
+              userLanguages = Array.isArray(parsed) ? parsed : [profile.programming_languages];
             } catch (e) {
-              userLanguages = [user.programming_languages];
+              userLanguages = [profile.programming_languages];
             }
           }
         }
         
         // Skip users without programming languages
         if (!userLanguages.length) {
-          console.log(`User ${user.user_id} has no programming languages set, skipping`);
+          console.log(`User ${profile.user_id} has no programming languages set, skipping`);
           notificationsSkipped++;
           continue;
         }
 
         // Convert user languages to lowercase for case-insensitive comparison
         const userLanguagesLower = userLanguages.map(lang => lang.toLowerCase());
-        console.log(`User ${user.user_id} has languages: ${userLanguagesLower.join(', ')}`);
+        console.log(`User ${profile.user_id} has languages: ${userLanguagesLower.join(', ')}`);
         
         // Find matching languages between the post and user's interests
         const matchingLanguages = languages.filter(lang => 
           userLanguagesLower.includes(lang.toLowerCase())
         );
         
-        console.log(`Matching languages for user ${user.user_id}: ${matchingLanguages.join(', ')}`);
+        console.log(`Matching languages for user ${profile.user_id}: ${matchingLanguages.join(', ')}`);
         
         // Only send notification if there are matching languages
         if (matchingLanguages.length > 0) {
-          console.log(`Sending notification to user ${user.user_id} about languages: ${matchingLanguages.join(', ')}`);
+          console.log(`Sending notification to user ${profile.user_id} about languages: ${matchingLanguages.join(', ')}`);
           
           // Create a personalized message with the programming languages
           const languageList = matchingLanguages.join(', ');
@@ -258,7 +239,7 @@ Check out the full post and join the conversation!`;
           
           try {
             // Call the send-email-notification function
-            console.log(`Calling send-email-notification for user ${user.user_id}`);
+            console.log(`Calling send-email-notification for user ${profile.user_id}`);
             const response = await fetch(
               `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email-notification`,
               {
@@ -268,7 +249,7 @@ Check out the full post and join the conversation!`;
                   'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
                 },
                 body: JSON.stringify({
-                  userId: user.user_id,
+                  userId: profile.user_id,
                   subject: emailSubject,
                   body: emailBody,
                   postId: postId,
@@ -290,22 +271,23 @@ Check out the full post and join the conversation!`;
             }
             
             notificationResults.push({
-              userId: user.user_id,
-              name: user.full_name,
+              userId: profile.user_id,
+              name: profile.full_name,
+              email: userEmail,
               languages: matchingLanguages,
               success: response.ok,
               response: responseJson
             });
 
             if (response.ok) {
-              console.log(`Successfully sent email to user ${user.full_name} (${user.user_id})`);
+              console.log(`Successfully sent email to user ${profile.full_name} (${profile.user_id}) at ${userEmail}`);
               notificationsSent++;
               
               // Also create an in-app notification
               const { error: notifError } = await supabaseClient
                 .from('notifications')
                 .insert({
-                  recipient_id: user.user_id,
+                  recipient_id: profile.user_id,
                   sender_id: postAuthorId,
                   type: 'language_mention',
                   content: `New post about ${languageList} from ${authorName}`,
@@ -318,33 +300,33 @@ Check out the full post and join the conversation!`;
                 });
                 
               if (notifError) {
-                console.error(`Error creating in-app notification for user ${user.user_id}:`, notifError);
+                console.error(`Error creating in-app notification for user ${profile.user_id}:`, notifError);
               } else {
-                console.log(`Created in-app notification for user ${user.user_id}`);
+                console.log(`Created in-app notification for user ${profile.user_id}`);
               }
             } else {
-              console.error(`Error sending email to user ${user.user_id}:`, responseText);
+              console.error(`Error sending email to user ${profile.user_id}:`, responseText);
               notificationErrors.push({
-                userId: user.user_id,
+                userId: profile.user_id,
                 error: responseText
               });
             }
           } catch (emailError) {
-            console.error(`Exception sending email to user ${user.user_id}:`, emailError);
+            console.error(`Exception sending email to user ${profile.user_id}:`, emailError);
             notificationErrors.push({
-              userId: user.user_id,
+              userId: profile.user_id,
               error: emailError.message
             });
           }
         } else {
-          console.log(`No matching languages for user ${user.user_id}, skipping notification`);
+          console.log(`No matching languages for user ${profile.user_id}, skipping notification`);
           notificationsSkipped++;
         }
       } catch (userError) {
-        console.error(`Error processing user ${user.user_id}:`, userError);
+        console.error(`Error processing user ${profile.user_id}:`, userError);
         notificationsSkipped++;
         notificationErrors.push({
-          userId: user.user_id,
+          userId: profile.user_id,
           error: userError.message
         });
       }
@@ -362,7 +344,7 @@ Check out the full post and join the conversation!`;
           authorName: authorName
         },
         stats: {
-          total_users: users?.length || 0,
+          total_users: profilesWithNotifications?.length || 0,
           notifications_sent: notificationsSent,
           notifications_skipped: notificationsSkipped,
           errors: notificationErrors.length

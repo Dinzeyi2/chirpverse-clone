@@ -18,36 +18,27 @@ const TestEmailNotification = () => {
 
   // Fetch the user's actual email on component mount
   useEffect(() => {
-    const fetchUserData = async () => {
-      if (!user) return;
+    const fetchUserEmail = async () => {
+      if (!user?.id) return;
       
-      // The authenticated email is already available in the user object
-      if (user.email) {
-        console.log('Using auth email from user object:', user.email);
-        setUserEmail(user.email);
-      } else {
-        // Fallback to profile email if user.email is not available for some reason
-        try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('email')
-            .eq('user_id', user.id)
-            .single();
+      try {
+        // Always get the email directly from auth, not from the profile
+        const { data, error } = await supabase.auth.getUser();
             
-          if (error) {
-            console.error('Error fetching user email:', error);
-            return;
-          }
-          
-          console.log('Fetched user email from profile:', data?.email);
-          setUserEmail(data?.email || null);
-        } catch (err) {
-          console.error('Error in fetchUserProfile:', err);
+        if (error) {
+          console.error('Error fetching user email:', error);
+          return;
         }
+        
+        const email = data?.user?.email;
+        console.log('Using auth email:', email);
+        setUserEmail(email || null);
+      } catch (err) {
+        console.error('Error in fetchUserEmail:', err);
       }
     };
     
-    fetchUserData();
+    fetchUserEmail();
   }, [user]);
 
   const sendTestNotification = async () => {
@@ -63,7 +54,7 @@ const TestEmailNotification = () => {
     if (!userEmail) {
       toast({
         title: "No email found",
-        description: "You don't have an email address in your profile. Please add one in your settings.",
+        description: "We couldn't find your email address. Please contact support.",
         variant: "destructive"
       });
       return;

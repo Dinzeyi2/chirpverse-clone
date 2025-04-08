@@ -54,7 +54,7 @@ serve(async (req) => {
 
     console.log(`Processing email notification for user ${userId}`);
 
-    // First get the user's auth email directly from auth.users table
+    // First get the user's profile data
     const { data: userData, error: userError } = await supabaseClient
       .from('profiles')
       .select('full_name, email_notifications_enabled, programming_languages')
@@ -72,7 +72,7 @@ serve(async (req) => {
     // Now get the actual auth email from auth.users
     const { data: authUser, error: authError } = await supabaseClient.auth.admin.getUserById(userId);
     
-    if (authError || !authUser || !authUser.user) {
+    if (authError || !authUser || !authUser.user || !authUser.user.email) {
       console.error('Error fetching user auth details:', authError);
       return new Response(
         JSON.stringify({ error: 'Error fetching user auth email', details: authError }),
@@ -80,7 +80,7 @@ serve(async (req) => {
       )
     }
 
-    // Use the actual auth email for sending
+    // Use the actual auth email for sending - this is the user's real email used for login
     const userEmail = authUser.user.email;
     
     console.log('User profile data found:', JSON.stringify(userData));
