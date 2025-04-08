@@ -58,7 +58,7 @@ serve(async (req) => {
     console.log(`Processing notifications for post: ${postId}`);
     console.log(`Languages mentioned in post: ${languages.join(', ')}`);
 
-    // Validate RESEND_API_KEY is set
+    // Check edge function secrets
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
     if (!resendApiKey) {
       console.error('RESEND_API_KEY environment variable is not set');
@@ -75,6 +75,9 @@ serve(async (req) => {
     } else {
       console.log('RESEND_API_KEY is properly configured');
     }
+
+    const appUrl = Deno.env.get('APP_URL');
+    console.log('APP_URL configuration:', appUrl || 'Not set, will use default');
 
     // Get the post details
     const { data: post, error: postError } = await supabaseClient
@@ -110,8 +113,39 @@ serve(async (req) => {
     }
 
     const authorName = authorProfile?.full_name || 'Someone';
+    console.log(`Post author name: ${authorName}`);
+    
+    // Debug: Test direct email sending with the author's email if available
+    if (authorProfile?.email && debug) {
+      console.log(`DEBUG: Testing direct email to author: ${authorProfile.email}`);
+      try {
+        const testEmailResponse = await fetch(
+          `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email-notification`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+            },
+            body: JSON.stringify({
+              userId: postAuthorId,
+              subject: `TEST - Email Notification System Check`,
+              body: `This is a test of the email notification system. It was triggered by your post about: ${languages.join(', ')}`,
+              postId: postId,
+              debug: true
+            }),
+          }
+        );
+        
+        const testResponseText = await testEmailResponse.text();
+        console.log(`TEST email response: ${testResponseText}`);
+      } catch (testError) {
+        console.error(`Error sending test email: ${testError}`);
+      }
+    }
     
     // Get all users with email notifications enabled
+    console.log('Fetching users with email notifications enabled...');
     const { data: users, error: usersError } = await supabaseClient
       .from('profiles')
       .select('user_id, programming_languages, email, email_notifications_enabled, full_name')
@@ -131,6 +165,15 @@ serve(async (req) => {
     }
 
     console.log(`Found ${users?.length || 0} users with email notifications enabled`);
+    
+    // Debug: log all users and their programming languages
+    if (debug && users) {
+      for (const user of users) {
+        console.log(`User ${user.user_id} (${user.full_name || 'unnamed'}) - Email: ${user.email}`);
+        console.log(`Programming languages:`, user.programming_languages);
+      }
+    }
+    
     if (users?.length === 0) {
       console.log('No users have email notifications enabled');
       return new Response(
@@ -150,6 +193,7 @@ serve(async (req) => {
     let notificationsSent = 0;
     let notificationsSkipped = 0;
     const notificationResults = [];
+    const notificationErrors = [];
 
     // Send notifications to each user who has matching programming languages
     for (const user of users || []) {
@@ -228,8 +272,9 @@ Check out the full post and join the conversation!`;
               }
             );
 
+            // Get the full response text for better debugging
             const responseText = await response.text();
-            console.log(`Email notification response: ${responseText}`);
+            console.log(`Email notification raw response: ${responseText}`);
             
             let responseJson;
             try {
@@ -274,9 +319,19 @@ Check out the full post and join the conversation!`;
               }
             } else {
               console.error(`Error sending email to user ${user.user_id}:`, responseText);
+              notificationErrors.push({
+                userId: user.user_id,
+                email: user.email,
+                error: responseText
+              });
             }
           } catch (emailError) {
             console.error(`Exception sending email to user ${user.user_id}:`, emailError);
+            notificationErrors.push({
+              userId: user.user_id,
+              email: user.email,
+              error: emailError.message
+            });
           }
         } else {
           console.log(`No matching languages for user ${user.user_id}, skipping notification`);
@@ -285,15 +340,34 @@ Check out the full post and join the conversation!`;
       } catch (userError) {
         console.error(`Error processing user ${user.user_id}:`, userError);
         notificationsSkipped++;
+        notificationErrors.push({
+          userId: user.user_id,
+          error: userError.message
+        });
       }
     }
 
-    // Return success response
+    // Return success response with detailed information
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: `Notifications processed. Sent ${notificationsSent}, skipped ${notificationsSkipped}`,
-        details: debug ? notificationResults : undefined
+        post: {
+          id: postId,
+          languages: languages,
+          authorId: postAuthorId,
+          authorName: authorName
+        },
+        stats: {
+          total_users: users?.length || 0,
+          notifications_sent: notificationsSent,
+          notifications_skipped: notificationsSkipped,
+          errors: notificationErrors.length
+        },
+        details: debug ? {
+          results: notificationResults,
+          errors: notificationErrors
+        } : undefined
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -303,7 +377,10 @@ Check out the full post and join the conversation!`;
   } catch (error) {
     console.error('Error in send-language-notifications:', error);
     return new Response(
-      JSON.stringify({ error: 'Failed to process notifications: ' + error.message }),
+      JSON.stringify({ 
+        error: 'Failed to process notifications: ' + error.message,
+        stack: error.stack 
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500 

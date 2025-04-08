@@ -12,6 +12,7 @@ import { usePushNotifications } from '@/hooks/use-push-notifications';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { X, Plus } from 'lucide-react';
 import { Input } from "@/components/ui/input";
+import TestEmailNotification from '@/components/TestEmailNotification';
 
 const Settings = () => {
   const [profile, setProfile] = useState<{
@@ -268,6 +269,9 @@ const Settings = () => {
               </div>
             </div>
           </div>
+          
+          {/* Add the test component */}
+          <TestEmailNotification />
         </div>
       </div>
       

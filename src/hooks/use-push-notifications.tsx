@@ -70,37 +70,48 @@ export function usePushNotifications() {
     if (!user || !supported || permission !== 'granted') return;
     
     try {
+      console.log('Starting push notification subscription process...');
+      
       // Get service worker registration
       const registration = await navigator.serviceWorker.ready;
+      console.log('Service worker ready');
       
       // Get public VAPID key from the server
+      console.log('Requesting VAPID public key...');
       const { data: { vapidPublicKey }, error: vapidError } = await supabase.functions.invoke('get-vapid-public-key');
       
       if (vapidError || !vapidPublicKey) {
+        console.error('Failed to get VAPID public key:', vapidError);
         throw new Error('Failed to get VAPID public key');
       }
       
+      console.log('Received VAPID public key, converting to Uint8Array...');
       // Convert VAPID key to Uint8Array
       const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
       
       // Subscribe to push notifications
+      console.log('Subscribing to push notifications...');
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey,
       });
       
+      console.log('Push subscription successful:', subscription);
       setSubscription(subscription);
       
       // Save subscription to database using a dedicated RPC function
+      console.log('Saving subscription to database...');
       const { error: saveError } = await supabase.rpc('save_push_subscription', {
         p_user_id: user.id,
         p_subscription: JSON.stringify(subscription)
       });
       
       if (saveError) {
+        console.error('Failed to save subscription to database:', saveError);
         throw new Error('Failed to save subscription to database');
       }
       
+      console.log('Subscription saved successfully to database');
       toast({
         title: "Notifications Enabled",
         description: "You'll now receive notifications about new posts and activity.",
@@ -123,17 +134,20 @@ export function usePushNotifications() {
     if (!subscription || !user) return;
     
     try {
+      console.log('Unsubscribing from push notifications...');
       await subscription.unsubscribe();
       setSubscription(null);
       
-      // Remove subscription from database using a direct delete query
-      const { error } = await supabase
-        .from('user_push_subscriptions')
-        .delete()
-        .match({ user_id: user.id });
+      // Remove subscription from database using RPC function
+      console.log('Removing subscription from database...');
+      const { error } = await supabase.rpc('delete_push_subscription', {
+        p_user_id: user.id
+      });
       
       if (error) {
         console.error('Error removing subscription from database:', error);
+      } else {
+        console.log('Subscription successfully removed from database');
       }
       
       toast({
