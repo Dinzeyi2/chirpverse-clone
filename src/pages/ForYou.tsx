@@ -40,6 +40,7 @@ const ForYou = () => {
         }
 
         const preferredLanguages = userData?.programming_languages || [];
+        console.log('User preferred languages:', preferredLanguages);
 
         if (preferredLanguages.length === 0) {
           toast({
@@ -63,8 +64,7 @@ const ForYou = () => {
             user_id,
             profiles(id, full_name, avatar_url)
           `)
-          .order('created_at', { ascending: false })
-          .limit(20);
+          .order('created_at', { ascending: false });
 
         if (postsError) {
           console.error('Error fetching posts:', postsError);
@@ -77,10 +77,14 @@ const ForYou = () => {
           return;
         }
 
+        console.log('Total posts fetched:', postsData.length);
+
         // Filter posts by preferred languages (using metadata)
         const filteredPosts = postsData.filter(post => {
           const postMetadata = post.metadata as Record<string, any> || {};
           const postLanguages = postMetadata.languages || [];
+          console.log('Post ID:', post.id, 'Languages:', postLanguages);
+          
           // Convert everything to lowercase for case-insensitive comparison
           return postLanguages.some((lang: string) => 
             preferredLanguages.some(prefLang => 
@@ -89,6 +93,8 @@ const ForYou = () => {
           );
         });
 
+        console.log('Filtered posts count:', filteredPosts.length);
+
         // Get reactions for the filtered posts
         const postIds = filteredPosts.map(post => post.id);
         
@@ -96,6 +102,7 @@ const ForYou = () => {
         if (postIds.length === 0) {
           setPosts([]);
           setLoading(false);
+          console.log('No posts match your language preferences');
           return;
         }
         
@@ -166,8 +173,10 @@ const ForYou = () => {
           const postMetadata = post.metadata as Record<string, any> || {};
           const postLanguages = postMetadata.languages || [];
           
+          const postId = post.id as string; // Ensure postId is treated as a string
+          
           return {
-            id: post.id,
+            id: postId,
             content: post.content,
             userId: post.user_id,
             createdAt: post.created_at,
@@ -181,12 +190,12 @@ const ForYou = () => {
             },
             images: post.media || [],
             languages: postLanguages,
-            likes: likesMap.get(post.id) || 0,
-            bookmarks: bookmarksMap.get(post.id) || 0,
-            comments: commentsMap.get(post.id) || 0,
+            likes: likesMap.get(postId) || 0,
+            bookmarks: bookmarksMap.get(postId) || 0,
+            comments: commentsMap.get(postId) || 0,
             replies: 0, // Required by Post type
-            isLiked: userLikedMap.get(post.id) || false,
-            isBookmarked: userBookmarkedMap.get(post.id) || false,
+            isLiked: userLikedMap.get(postId) || false,
+            isBookmarked: userBookmarkedMap.get(postId) || false,
           } as Post;
         });
 
@@ -211,8 +220,16 @@ const ForYou = () => {
         
         {loading ? (
           <PostSkeleton count={3} />
-        ) : (
+        ) : posts.length > 0 ? (
           <SwipeablePostView posts={posts} />
+        ) : (
+          <div className="p-6 text-center bg-muted rounded-lg">
+            <p className="text-lg font-medium mb-2">No matching posts found</p>
+            <p className="text-muted-foreground">
+              No posts with your preferred programming languages were found. Try adding more languages 
+              in your profile settings or check back later.
+            </p>
+          </div>
         )}
       </div>
     </AppLayout>
