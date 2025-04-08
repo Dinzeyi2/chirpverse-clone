@@ -125,8 +125,8 @@ serve(async (req) => {
     // Create a URL to the post - ensure it matches the app's routing structure
     const appUrl = Deno.env.get('APP_URL') || 'https://i-blue.dev';
     
-    // Ensure we're using a consistent format for the post URL
-    // IMPORTANT: We need to make sure this URL format matches what the app is expecting
+    // FIXED: Ensure we're using the EXACT format that matches the React Router route
+    // This must be exactly '/post/{postId}' to match the route in App.tsx
     const postUrl = postId ? `${appUrl}/post/${postId}` : appUrl;
     
     console.log('Generated post URL:', postUrl);
