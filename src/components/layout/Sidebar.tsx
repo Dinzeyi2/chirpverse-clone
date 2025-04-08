@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -36,10 +37,9 @@ export const Sidebar = () => {
     const checkUnreadNotifications = async () => {
       const { data, error } = await supabase
         .from('notifications')
-        .select('count')
+        .select('*')
         .eq('recipient_id', user.id)
-        .eq('is_read', false)
-        .execute();
+        .eq('is_read', false);
         
       if (!error && data) {
         setUnreadNotifications(data.length);
@@ -71,10 +71,10 @@ export const Sidebar = () => {
     { name: 'Bookmarks', icon: Bookmark, href: '/bookmarks' },
     { name: 'Profile', icon: User, href: profilePath },
     { name: 'Settings', icon: Settings, href: '/settings' },
-    {
-      icon: <Bell size={20} className="mr-4" />,
-      label: "Notifications",
-      path: "/notifications",
+    { 
+      name: 'Notifications',
+      icon: Bell,
+      href: '/notifications',
       count: unreadNotifications > 0 ? unreadNotifications : undefined
     },
   ];
@@ -133,7 +133,10 @@ export const Sidebar = () => {
                   isActive ? "text-primary" : "text-foreground hover:text-primary"
                 )}
               >
-                <item.icon size={24} className={isActive ? "text-primary" : "text-muted-foreground"} />
+                {React.createElement(item.icon, { 
+                  size: 24,
+                  className: isActive ? "text-primary" : "text-muted-foreground"
+                })}
               </Link>
             );
           })}
@@ -180,8 +183,14 @@ export const Sidebar = () => {
                       isActive ? "font-bold" : "text-foreground hover:bg-secondary/70"
                     )}
                   >
-                    <item.icon size={24} className={isActive ? "text-primary" : "text-muted-foreground"} />
+                    {React.createElement(item.icon, { 
+                      size: 24,
+                      className: isActive ? "text-primary" : "text-muted-foreground"
+                    })}
                     <span className="ml-4 font-heading tracking-wide text-lg uppercase">{item.name}</span>
+                    {item.count && (
+                      <Badge className="ml-auto bg-primary text-primary-foreground">{item.count}</Badge>
+                    )}
                   </a>
                 );
               }
@@ -195,8 +204,14 @@ export const Sidebar = () => {
                     isActive ? "font-bold" : "text-foreground hover:bg-secondary/70"
                   )}
                 >
-                  <item.icon size={24} className={isActive ? "text-primary" : "text-muted-foreground"} />
+                  {React.createElement(item.icon, { 
+                    size: 24,
+                    className: isActive ? "text-primary" : "text-muted-foreground"
+                  })}
                   <span className="ml-4 font-heading tracking-wide text-lg uppercase">{item.name}</span>
+                  {item.count && (
+                    <Badge className="ml-auto bg-primary text-primary-foreground">{item.count}</Badge>
+                  )}
                 </Link>
               );
             })}
@@ -275,10 +290,21 @@ export const Sidebar = () => {
                     isCollapsed && "justify-center"
                   )}
                 >
-                  <item.icon size={24} className={isActive ? "text-foreground" : "text-muted-foreground"} />
+                  {React.createElement(item.icon, { 
+                    size: 24,
+                    className: isActive ? "text-foreground" : "text-muted-foreground"
+                  })}
 
                   {!isCollapsed && (
                     <span className="ml-4 font-heading tracking-wide text-lg uppercase">{item.name}</span>
+                  )}
+                  
+                  {!isCollapsed && item.count && (
+                    <Badge className="ml-auto bg-primary text-primary-foreground">{item.count}</Badge>
+                  )}
+                  
+                  {isCollapsed && item.count && (
+                    <Badge className="absolute -top-1 -right-1 bg-primary text-primary-foreground">{item.count}</Badge>
                   )}
                 </a>
               );
@@ -296,10 +322,21 @@ export const Sidebar = () => {
                   isCollapsed && "justify-center"
                 )}
               >
-                <item.icon size={24} className={isActive ? "text-foreground" : "text-muted-foreground"} />
+                {React.createElement(item.icon, { 
+                  size: 24,
+                  className: isActive ? "text-foreground" : "text-muted-foreground"
+                })}
                 
                 {!isCollapsed && (
                   <span className="ml-4 font-heading tracking-wide text-lg uppercase">{item.name}</span>
+                )}
+                
+                {!isCollapsed && item.count && (
+                  <Badge className="ml-auto bg-primary text-primary-foreground">{item.count}</Badge>
+                )}
+                
+                {isCollapsed && item.count && (
+                  <Badge className="absolute -top-1 -right-1 bg-primary text-primary-foreground">{item.count}</Badge>
                 )}
               </Link>
             );
