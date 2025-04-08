@@ -13,7 +13,7 @@ import NotFound from "./pages/NotFound";
 import PostPage from "./pages/PostPage";
 import Auth from "./pages/Auth";
 import Settings from "./pages/Settings";
-import Notifications from "./pages/Notifications"; // Import the Notifications page
+import Notifications from "./pages/Notifications"; 
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { useEffect } from "react";

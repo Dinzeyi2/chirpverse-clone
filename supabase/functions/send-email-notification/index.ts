@@ -105,8 +105,12 @@ serve(async (req) => {
       )
     }
 
-    // Create a URL to the post
+    // Create a URL to the post - ensure it matches the app's routing structure
+    // Post links should be in the format: https://yourdomain.com/post/{postId}
     const appUrl = Deno.env.get('APP_URL') || 'https://i-blue.dev';
+    
+    // Ensure the URL uses the correct format for the app routes
+    // Important: Make sure this path matches exactly how your React Router is configured
     const postUrl = `${appUrl}/post/${postId}`;
     console.log('Generated post URL:', postUrl);
     console.log(`Will send email to: ${userEmail}`);
