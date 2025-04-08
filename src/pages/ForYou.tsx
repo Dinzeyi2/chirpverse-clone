@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, Suspense, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
@@ -68,6 +69,8 @@ const ForYou = () => {
       setError(null);
       
       try {
+        console.log('Fetching posts with languages:', userLanguages);
+        
         // Get posts from the shoutouts table
         const { data: posts, error: postsError } = await supabase
           .from('shoutouts')
@@ -89,26 +92,37 @@ const ForYou = () => {
           return;
         }
         
+        console.log('Total posts found:', posts?.length);
+        
         // Filter posts that have languages in metadata matching user's languages
         const matchingPosts = posts.filter(post => {
           if (!post.metadata) return false;
           
-          // Make sure metadata is treated as an object and languages exists
+          // Make sure metadata is treated as an object
           const metadata = typeof post.metadata === 'string' 
             ? JSON.parse(post.metadata) 
             : post.metadata;
             
-          if (!metadata.languages || !Array.isArray(metadata.languages)) return false;
+          if (!metadata.languages || !Array.isArray(metadata.languages)) {
+            console.log('Post has no languages or invalid format:', post.id);
+            return false;
+          }
           
-          // Check if any of the post's languages match user's languages (case insensitive)
-          return metadata.languages.some((lang: string) => 
+          // Case insensitive comparison
+          const match = metadata.languages.some((lang: string) => 
             userLanguages.some(userLang => 
               userLang.toLowerCase() === lang.toLowerCase()
             )
           );
+          
+          if (match) {
+            console.log('Found matching post:', post.id, 'with languages:', metadata.languages);
+          }
+          
+          return match;
         });
         
-        console.log('Matching posts:', matchingPosts);
+        console.log('Matching posts count:', matchingPosts.length);
         
         // Fetch engagement data for each post
         const postsWithEngagement = await Promise.all(
@@ -194,6 +208,8 @@ const ForYou = () => {
       }
       
       try {
+        console.log('Refreshing posts with languages:', userLanguages);
+        
         // Get posts from the shoutouts table
         const { data: posts, error: postsError } = await supabase
           .from('shoutouts')
@@ -215,24 +231,36 @@ const ForYou = () => {
           return;
         }
         
+        console.log('Total posts found on refresh:', posts?.length);
+        
         // Filter posts that have languages in metadata matching user's languages
         const matchingPosts = posts.filter(post => {
           if (!post.metadata) return false;
           
-          // Make sure metadata is treated as an object and languages exists
+          // Make sure metadata is treated as an object
           const metadata = typeof post.metadata === 'string' 
             ? JSON.parse(post.metadata) 
             : post.metadata;
             
-          if (!metadata.languages || !Array.isArray(metadata.languages)) return false;
+          if (!metadata.languages || !Array.isArray(metadata.languages)) {
+            return false;
+          }
           
-          // Check if any of the post's languages match user's languages (case insensitive)
-          return metadata.languages.some((lang: string) => 
+          // Case insensitive comparison
+          const match = metadata.languages.some((lang: string) => 
             userLanguages.some(userLang => 
               userLang.toLowerCase() === lang.toLowerCase()
             )
           );
+          
+          if (match) {
+            console.log('Found matching post on refresh:', post.id, 'with languages:', metadata.languages);
+          }
+          
+          return match;
         });
+        
+        console.log('Matching posts count on refresh:', matchingPosts.length);
         
         // Fetch engagement data for each post
         const postsWithEngagement = await Promise.all(
