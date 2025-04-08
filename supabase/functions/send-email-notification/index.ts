@@ -125,7 +125,8 @@ serve(async (req) => {
     // Create a URL to the post with an anchor to jump to comments section
     const appUrl = Deno.env.get('APP_URL') || 'https://i-blue.dev';
     
-    // Modified to direct to comment section using fragment identifier
+    // ENSURE we're using the EXACT format that matches the React Router route
+    // This must be exactly '/post/{postId}#comments' to match the route in App.tsx
     const postUrl = postId ? `${appUrl}/post/${postId}#comments` : appUrl;
     
     console.log('Generated post URL with comment section anchor:', postUrl);

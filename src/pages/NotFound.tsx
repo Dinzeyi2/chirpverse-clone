@@ -53,10 +53,10 @@ const NotFound = () => {
               It looks like you're trying to access a post. Try the corrected link below:
             </p>
             <Link 
-              to={`/post/${postId}`} 
+              to={`/post/${postId}#comments`} 
               className="mt-2 text-xBlue hover:underline font-medium block"
             >
-              Go to post {postId}
+              Go to post comments
             </Link>
           </div>
         )}
