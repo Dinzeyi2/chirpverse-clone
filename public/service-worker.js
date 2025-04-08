@@ -1,7 +1,7 @@
 
 // Service Worker for iblue Web Push Notifications
 
-const CACHE_NAME = 'iblue-v1';
+const CACHE_NAME = 'iblue-v2'; // Updated version
 const OFFLINE_URL = '/offline.html';
 
 // Installation event
@@ -115,40 +115,54 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// Fetch event for SPA navigation - IMPORTANT FOR RELOAD
+// Fetch event for SPA navigation - IMPROVED FOR COMMENT LINKS
 self.addEventListener('fetch', (event) => {
-  // For SPA navigation requests, redirect to index.html
   if (event.request.mode === 'navigate') {
     const url = new URL(event.request.url);
+    console.log('Service worker intercepting navigation to:', url.pathname + url.hash);
     
-    // Check if this is a direct UUID path or a post URL
+    // Check if this is a direct UUID path, post URL, or comment URL
     const uuidPattern = /^\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:#.*)?$/i;
     const postPattern = /^\/(post|p|posts)\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:#.*)?$/i;
+    const commentPattern = /^\/(post|p|posts)\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}#comment-[a-f0-9-]+$/i;
     
-    if (url.pathname !== '/' && 
-        !url.pathname.startsWith('/auth') && 
-        !url.pathname.startsWith('/explorer') && 
-        !url.pathname.startsWith('/settings') && 
-        !url.pathname.startsWith('/profile') && 
-        !url.pathname.startsWith('/bookmarks') && 
-        !url.pathname.startsWith('/notifications') && 
-        !postPattern.test(url.pathname) && 
-        !uuidPattern.test(url.pathname)) {
-      
-      // For all other routes, check if we have a cached response
+    // Special handling for comment URLs
+    if (commentPattern.test(url.pathname + url.hash)) {
+      console.log('Comment URL detected, passing to app for handling');
+      // Let the app handle comment URLs
       event.respondWith(
-        caches.match('/').then(response => {
-          return response || fetch(event.request)
-            .catch(() => caches.match(OFFLINE_URL));
+        fetch(event.request).catch(() => {
+          return caches.match('/');
         })
       );
       return;
     }
     
-    // Let the browser handle all other navigations
+    // Check for valid app routes
+    if (url.pathname === '/' || 
+        url.pathname.startsWith('/auth') || 
+        url.pathname.startsWith('/explore') || 
+        url.pathname.startsWith('/settings') || 
+        url.pathname.startsWith('/profile') || 
+        url.pathname.startsWith('/bookmarks') || 
+        url.pathname.startsWith('/notifications') || 
+        postPattern.test(url.pathname) || 
+        uuidPattern.test(url.pathname)) {
+      
+      // For standard app routes, let the browser handle it
+      event.respondWith(
+        fetch(event.request).catch(() => {
+          return caches.match('/');
+        })
+      );
+      return;
+    }
+    
+    // For all other routes, check if we have a cached response
     event.respondWith(
-      fetch(event.request).catch(() => {
-        return caches.match('/');
+      caches.match('/').then(response => {
+        return response || fetch(event.request)
+          .catch(() => caches.match(OFFLINE_URL));
       })
     );
   }

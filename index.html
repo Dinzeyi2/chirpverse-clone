@@ -16,6 +16,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="iblue">
     <link rel="apple-touch-icon" href="/lovable-uploads/3466f833-541a-44f1-86a1-5e3f5ed4d8ed.png">
+    <!-- Base URL for SPA routing -->
+    <base href="/">
   </head>
 
   <body>
@@ -32,6 +34,11 @@
           return /[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i.test(pathname);
         }
         
+        // Check for comment hash patterns
+        function containsCommentHash(hash) {
+          return hash && hash.startsWith('#comment-');
+        }
+        
         // For direct loading of non-root URLs
         if (window.location.pathname !== '/' && 
             !window.location.pathname.startsWith('/auth') && 
@@ -39,11 +46,37 @@
             (window.location.pathname.startsWith('/post/') || 
              window.location.pathname.startsWith('/p/') || 
              window.location.pathname.startsWith('/posts/') || 
-             containsUUID(window.location.pathname))) {
+             containsUUID(window.location.pathname) ||
+             containsCommentHash(window.location.hash))) {
           
-          console.log('Direct URL access detected: ' + window.location.pathname);
+          console.log('Direct URL access detected: ' + window.location.pathname + window.location.hash);
+          
+          // Special handling for direct comment URLs
+          if (containsCommentHash(window.location.hash)) {
+            console.log('Comment hash detected: ' + window.location.hash);
+          }
         }
       })();
+    </script>
+    <!-- Reload handling for SPA -->
+    <script>
+      // This script helps ensure page reloads maintain the correct path
+      window.addEventListener('beforeunload', function() {
+        // Store the current path+hash in sessionStorage before reload
+        sessionStorage.setItem('lastPath', window.location.pathname + window.location.hash + window.location.search);
+      });
+      
+      document.addEventListener('DOMContentLoaded', function() {
+        // Check if we're coming back from a reload
+        const lastPath = sessionStorage.getItem('lastPath');
+        const currentPath = window.location.pathname + window.location.hash + window.location.search;
+        
+        if (lastPath && lastPath !== currentPath && window.location.pathname === '/') {
+          console.log('Restoring path after reload:', lastPath);
+          // Use history API to restore the path without a reload
+          window.history.replaceState(null, '', lastPath);
+        }
+      });
     </script>
   </body>
 </html>

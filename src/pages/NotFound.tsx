@@ -38,8 +38,16 @@ const NotFound = () => {
     return null;
   };
 
+  // Extract comment ID from hash if present
+  const extractCommentId = () => {
+    if (location.hash && location.hash.startsWith('#comment-')) {
+      return location.hash.substring('#comment-'.length);
+    }
+    return null;
+  };
+
   useEffect(() => {
-    console.log("NotFound component rendered for path:", location.pathname);
+    console.log("NotFound component rendered for path:", location.pathname, "hash:", location.hash);
     
     // If path is a UUID, automatically redirect to correct format
     const uuid = location.pathname.substring(1); // Remove leading slash
@@ -49,6 +57,17 @@ const NotFound = () => {
       console.log(`Auto-redirecting from raw UUID path to /post/${uuid}${location.hash || ''}${location.search || ''}`);
       navigate(`/post/${uuid}${location.hash || ''}${location.search || ''}`, { replace: true });
       toast.success("Redirected to post");
+      return;
+    }
+    
+    // Handle comment URLs more specifically
+    const commentId = extractCommentId();
+    const postId = extractPostId();
+    
+    if (commentId && postId) {
+      console.log(`Found comment ID: ${commentId} for post: ${postId}, redirecting`);
+      navigate(`/post/${postId}#comment-${commentId}${location.search || ''}`, { replace: true });
+      toast.success("Redirected to comment");
       return;
     }
     
@@ -63,9 +82,11 @@ const NotFound = () => {
   }, [location.pathname, location.hash, location.search, navigate]);
 
   const postId = extractPostId();
+  const commentId = extractCommentId();
   
   console.log("NotFound - Current path:", location.pathname);
   console.log("NotFound - Extracted post ID:", postId);
+  console.log("NotFound - Extracted comment ID:", commentId);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -73,7 +94,7 @@ const NotFound = () => {
         <h1 className="text-6xl font-bold mb-4 text-red-500">404</h1>
         <p className="text-xl text-foreground mb-6">Oops! Page not found</p>
         <p className="text-muted-foreground mb-6">
-          The route <span className="font-mono bg-background px-2 py-1 rounded">{location.pathname}</span> does not exist or you may not have permission to access it.
+          The route <span className="font-mono bg-background px-2 py-1 rounded">{location.pathname}{location.hash}</span> does not exist or you may not have permission to access it.
         </p>
         
         {postId && (
@@ -87,12 +108,22 @@ const NotFound = () => {
             >
               Go to post
             </Link>
-            <Link 
-              to={`/post/${postId}#comments`} 
-              className="mt-2 text-xBlue hover:underline font-medium block"
-            >
-              Go to post comments
-            </Link>
+            
+            {commentId ? (
+              <Link 
+                to={`/post/${postId}#comment-${commentId}`} 
+                className="mt-2 text-xBlue hover:underline font-medium block"
+              >
+                Go to specific comment
+              </Link>
+            ) : (
+              <Link 
+                to={`/post/${postId}#comments`} 
+                className="mt-2 text-xBlue hover:underline font-medium block"
+              >
+                Go to post comments
+              </Link>
+            )}
           </div>
         )}
         

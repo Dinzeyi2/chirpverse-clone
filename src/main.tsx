@@ -3,9 +3,10 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
-// Create a function to normalize post URLs
+// Enhanced function to normalize post URLs with comment fragments
 const normalizePostUrl = (url) => {
   const pathname = url.pathname;
+  const hash = url.hash;
   const uuidMatch = pathname.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
   
   if (uuidMatch) {
@@ -19,8 +20,14 @@ const normalizePostUrl = (url) => {
         pathname.startsWith('/p/') || 
         pathname.startsWith('/posts/')) {
       
-      return `/post/${uuidMatch[1]}${url.hash || ''}${url.search || ''}`;
+      return `/post/${uuidMatch[1]}${hash || ''}${url.search || ''}`;
     }
+  }
+  
+  // Check for comment hash in incorrect URL format
+  const commentMatch = hash && hash.match(/#comment-([a-f0-9-]+)/);
+  if (commentMatch && uuidMatch) {
+    return `/post/${uuidMatch[1]}${hash}${url.search || ''}`;
   }
   
   return null;
@@ -33,7 +40,7 @@ const setupUrlNormalization = () => {
   const normalizedUrl = normalizePostUrl(currentUrl);
   
   if (normalizedUrl) {
-    console.log(`Initial load: Redirecting ${currentUrl.pathname} → ${normalizedUrl}`);
+    console.log(`Initial load: Redirecting ${currentUrl.pathname}${currentUrl.hash} → ${normalizedUrl}`);
     window.history.replaceState({}, '', normalizedUrl);
   }
   
@@ -49,7 +56,7 @@ const setupUrlNormalization = () => {
         
         if (normalizedUrl) {
           e.preventDefault();
-          console.log(`Link clicked: Redirecting ${url.pathname} → ${normalizedUrl}`);
+          console.log(`Link clicked: Redirecting ${url.pathname}${url.hash} → ${normalizedUrl}`);
           window.history.pushState({}, '', normalizedUrl);
           window.dispatchEvent(new PopStateEvent('popstate'));
         }
@@ -65,7 +72,7 @@ const setupUrlNormalization = () => {
     const normalizedUrl = normalizePostUrl(currentUrl);
     
     if (normalizedUrl) {
-      console.log(`Popstate: Redirecting ${currentUrl.pathname} → ${normalizedUrl}`);
+      console.log(`Popstate: Redirecting ${currentUrl.pathname}${currentUrl.hash} → ${normalizedUrl}`);
       window.history.replaceState({}, '', normalizedUrl);
     }
   });
