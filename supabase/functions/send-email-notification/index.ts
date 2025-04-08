@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.36.0'
 
@@ -159,14 +160,14 @@ serve(async (req) => {
     // Get the app base URL from environment variables
     const appUrl = Deno.env.get('APP_URL') || 'https://i-blue.dev';
     
-    // CRITICAL: Create the absolute URL with the EXACT correct format for post links
-    // Format: https://domain.com/post/{postId}#comments (NOT just the UUID)
-    const postUrl = postId ? `${appUrl}/post/${postId}#comments` : appUrl;
+    // UPDATED: Create the absolute URL without the #comments anchor
+    // Format is now: https://domain.com/post/{postId}
+    const postUrl = postId ? `${appUrl}/post/${postId}` : appUrl;
     
-    console.log('Generated post URL with comment section anchor:', postUrl);
+    console.log('Generated post URL:', postUrl);
     console.log(`Will send email to: ${userEmail}`);
 
-    // Generate simple HTML email with a button that links directly to comments
+    // Update button label and generate simple HTML email with a button that links directly to the post
     const htmlEmail = `
       <!DOCTYPE html>
       <html>
@@ -191,7 +192,7 @@ serve(async (req) => {
               <p>Hello ${userData?.full_name || 'there'},</p>
               <p>${body}</p>
               <p style="text-align: center; margin-top: 30px;">
-                <a href="${postUrl}" class="button">View Comments</a>
+                <a href="${postUrl}" class="button">View Post</a>
               </p>
               <p class="post-url">
                 If the button doesn't work, copy and paste this URL into your browser: ${postUrl}
