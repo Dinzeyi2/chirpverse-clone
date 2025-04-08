@@ -127,7 +127,7 @@ const ForYou = () => {
           supabase
             .from('comments')
             .select('count')
-            .eq('shoutout_id', postId)
+            .eq('shoutout_id', postId.toString()) // Fix here: Ensure postId is a string
         );
 
         // Resolve all promises
