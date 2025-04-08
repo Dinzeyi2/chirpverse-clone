@@ -1,6 +1,5 @@
 
-import { useLocation, Link, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useLocation, Link, useNavigate, useEffect } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
@@ -8,33 +7,7 @@ const NotFound = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    console.error(
-      "404 Error: User attempted to access non-existent route:",
-      location.pathname
-    );
-    
-    // If path is a UUID, automatically redirect to correct format
-    const uuid = location.pathname.substring(1); // Remove leading slash
-    const uuidPattern = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
-    
-    if (uuidPattern.test(uuid)) {
-      console.log(`Auto-redirecting from raw UUID path to /post/${uuid}${location.hash || ''}${location.search || ''}`);
-      navigate(`/post/${uuid}${location.hash || ''}${location.search || ''}`, { replace: true });
-      return;
-    }
-    
-    // Check if the path itself contains a UUID anywhere - more aggressive matching
-    const uuidInPathMatch = location.pathname.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
-    if (uuidInPathMatch) {
-      const extractedUuid = uuidInPathMatch[1];
-      console.log(`Found UUID in path: ${extractedUuid}, redirecting to proper format`);
-      navigate(`/post/${extractedUuid}${location.hash || ''}${location.search || ''}`, { replace: true });
-      toast.success("Redirected to the correct post format");
-    }
-  }, [location.pathname, location.hash, location.search, navigate]);
-
-  // Enhanced post ID extraction to handle multiple URL formats
+  // Enhanced UUID extraction with better pattern matching
   const extractPostId = () => {
     // First try standard format - /post/{uuid}
     const standardMatch = location.pathname.match(/\/post\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
@@ -63,6 +36,30 @@ const NotFound = () => {
     
     return null;
   };
+
+  useEffect(() => {
+    console.log("NotFound component rendered for path:", location.pathname);
+    
+    // If path is a UUID, automatically redirect to correct format
+    const uuid = location.pathname.substring(1); // Remove leading slash
+    const uuidPattern = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
+    
+    if (uuidPattern.test(uuid)) {
+      console.log(`Auto-redirecting from raw UUID path to /post/${uuid}${location.hash || ''}${location.search || ''}`);
+      navigate(`/post/${uuid}${location.hash || ''}${location.search || ''}`, { replace: true });
+      toast.success("Redirected to post");
+      return;
+    }
+    
+    // Check if the path contains a UUID anywhere - more aggressive matching
+    const uuidInPathMatch = location.pathname.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
+    if (uuidInPathMatch) {
+      const extractedUuid = uuidInPathMatch[1];
+      console.log(`Found UUID in path: ${extractedUuid}, redirecting to proper format`);
+      navigate(`/post/${extractedUuid}${location.hash || ''}${location.search || ''}`, { replace: true });
+      toast.success("Redirected to the correct post format");
+    }
+  }, [location.pathname, location.hash, location.search, navigate]);
 
   const postId = extractPostId();
   

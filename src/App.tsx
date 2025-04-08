@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import Index from "./pages/Index";
 import Profile from "./pages/Profile";
@@ -29,6 +29,52 @@ const queryClient = new QueryClient({
     }
   }
 });
+
+// UUID pattern for validating direct UUID routes
+const UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
+
+// Enhanced redirect component that handles all post URL formats
+const PostRedirect = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { pathname, hash, search } = location;
+  
+  useEffect(() => {
+    // For /p/:uuid or /posts/:uuid or /:uuid paths, extract the UUID
+    let uuid = "";
+    let redirectPath = "";
+    
+    // Handle direct UUID path
+    if (pathname.length > 30 && pathname.charAt(0) === '/' && UUID_PATTERN.test(pathname.substring(1))) {
+      uuid = pathname.substring(1);
+      redirectPath = `/post/${uuid}${hash || ''}${search || ''}`;
+    } 
+    // Handle /p/ or /posts/ format
+    else if (pathname.startsWith('/p/') || pathname.startsWith('/posts/')) {
+      const parts = pathname.split('/');
+      if (parts.length > 2 && UUID_PATTERN.test(parts[2])) {
+        uuid = parts[2];
+        redirectPath = `/post/${uuid}${hash || ''}${search || ''}`;
+      }
+    } 
+    // Check for UUID anywhere in the path (if no direct match)
+    else {
+      const uuidMatch = pathname.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
+      if (uuidMatch) {
+        uuid = uuidMatch[1];
+        redirectPath = `/post/${uuid}${hash || ''}${search || ''}`;
+      }
+    }
+    
+    if (redirectPath) {
+      console.log(`PostRedirect: Redirecting from ${pathname} to ${redirectPath}`);
+      navigate(redirectPath, { replace: true });
+    }
+  }, [pathname, hash, search, navigate]);
+  
+  // This component will render while the redirect is happening
+  return <div className="min-h-screen flex items-center justify-center">Redirecting...</div>;
+};
 
 const AppContent = () => {
   useEffect(() => {
@@ -83,12 +129,10 @@ const AppContent = () => {
         } 
       />
       
-      {/* Direct UUID routes - handle raw UUID formats */}
-      <Route path="/:uuid" element={<UUIDRedirect />} />
-      
-      {/* Add additional direct format handlers */}
-      <Route path="/p/:uuid" element={<UUIDRedirect />} />
-      <Route path="/posts/:uuid" element={<UUIDRedirect />} />
+      {/* Direct UUID routes - handle all formats with a single component */}
+      <Route path="/:uuid" element={<PostRedirect />} />
+      <Route path="/p/:uuid" element={<PostRedirect />} />
+      <Route path="/posts/:uuid" element={<PostRedirect />} />
       
       {/* Protected routes (require login) */}
       <Route 
@@ -131,45 +175,11 @@ const AppContent = () => {
           </ProtectedRoute>
         } 
       />
+      
+      {/* Catch-all 404 route */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
-};
-
-// UUID pattern for validating direct UUID routes
-const UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
-
-// Component to handle direct UUID paths and redirect them to the proper post format
-const UUIDRedirect = () => {
-  const { pathname, hash, search } = window.location;
-  // For /p/:uuid or /posts/:uuid paths, extract the UUID
-  let uuid = pathname.substring(1); // Remove the leading slash
-  
-  // Handle /p/:uuid or /posts/:uuid formats
-  if (pathname.startsWith('/p/') || pathname.startsWith('/posts/')) {
-    uuid = pathname.split('/').pop() || '';
-  }
-  
-  console.log("UUID Redirect - Checking path:", pathname);
-  console.log("UUID Redirect - Extracted UUID:", uuid);
-  
-  // If the path is a valid UUID, redirect to the post page
-  if (UUID_PATTERN.test(uuid)) {
-    console.log(`UUID Redirect - Valid UUID detected: ${uuid}, redirecting to /post/${uuid}${hash || ''}${search || ''}`);
-    return <Navigate to={`/post/${uuid}${hash || ''}${search || ''}`} replace />;
-  }
-  
-  // Even if it's not exactly a UUID, check if there's a UUID in the path
-  const uuidInPathMatch = pathname.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
-  if (uuidInPathMatch) {
-    const extractedUuid = uuidInPathMatch[1];
-    console.log(`UUID Redirect - Found UUID in path: ${extractedUuid}, redirecting to proper format`);
-    return <Navigate to={`/post/${extractedUuid}${hash || ''}${search || ''}`} replace />;
-  }
-  
-  // If it's not a UUID, show the 404 page
-  console.log("UUID Redirect - Not a valid UUID, showing 404");
-  return <NotFound />;
 };
 
 const App = () => (

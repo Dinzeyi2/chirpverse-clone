@@ -115,18 +115,41 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// Fetch event for offline support
+// Fetch event for SPA navigation - IMPORTANT FOR RELOAD
 self.addEventListener('fetch', (event) => {
-  // Skip cross-origin requests
+  // For SPA navigation requests, redirect to index.html
   if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request)
-        .catch(() => {
-          return caches.open(CACHE_NAME)
-            .then((cache) => {
-              return cache.match(OFFLINE_URL);
-            });
+    const url = new URL(event.request.url);
+    
+    // Check if this is a direct UUID path or a post URL
+    const uuidPattern = /^\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:#.*)?$/i;
+    const postPattern = /^\/(post|p|posts)\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:#.*)?$/i;
+    
+    if (url.pathname !== '/' && 
+        !url.pathname.startsWith('/auth') && 
+        !url.pathname.startsWith('/explorer') && 
+        !url.pathname.startsWith('/settings') && 
+        !url.pathname.startsWith('/profile') && 
+        !url.pathname.startsWith('/bookmarks') && 
+        !url.pathname.startsWith('/notifications') && 
+        !postPattern.test(url.pathname) && 
+        !uuidPattern.test(url.pathname)) {
+      
+      // For all other routes, check if we have a cached response
+      event.respondWith(
+        caches.match('/').then(response => {
+          return response || fetch(event.request)
+            .catch(() => caches.match(OFFLINE_URL));
         })
+      );
+      return;
+    }
+    
+    // Let the browser handle all other navigations
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        return caches.match('/');
+      })
     );
   }
 });

@@ -9,6 +9,13 @@
     <meta name="author" content="Lovable" />
     <meta property="og:image" content="/og-image.png" />
     <link rel="icon" href="/lovable-uploads/3466f833-541a-44f1-86a1-5e3f5ed4d8ed.png" type="image/png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#000000">
+    <!-- PWA meta tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="iblue">
+    <link rel="apple-touch-icon" href="/lovable-uploads/3466f833-541a-44f1-86a1-5e3f5ed4d8ed.png">
   </head>
 
   <body>
@@ -16,5 +23,27 @@
     <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
     <script type="module" src="/src/main.tsx"></script>
+    <!-- Script to handle direct URL loads -->
+    <script>
+      // This script ensures that direct URLs for this SPA are handled correctly
+      (function() {
+        // Check for UUID patterns in the URL
+        function containsUUID(pathname) {
+          return /[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i.test(pathname);
+        }
+        
+        // For direct loading of non-root URLs
+        if (window.location.pathname !== '/' && 
+            !window.location.pathname.startsWith('/auth') && 
+            !window.location.pathname.startsWith('/explore') && 
+            (window.location.pathname.startsWith('/post/') || 
+             window.location.pathname.startsWith('/p/') || 
+             window.location.pathname.startsWith('/posts/') || 
+             containsUUID(window.location.pathname))) {
+          
+          console.log('Direct URL access detected: ' + window.location.pathname);
+        }
+      })();
+    </script>
   </body>
 </html>
