@@ -7,19 +7,17 @@ import { Post } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import SwipeablePostView from '@/components/feed/SwipeablePostView';
 import PostSkeleton from '@/components/feed/PostSkeleton';
-import { useNavigate } from 'react-router-dom';
 
 const ForYou = () => {
   const { user } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (!user) return;
 
-    const fetchUserLanguages = async () => {
+    const fetchPosts = async () => {
       try {
         // Get user's preferred programming languages
         const { data: userData, error: userError } = await supabase
@@ -51,7 +49,7 @@ const ForYou = () => {
           return;
         }
 
-        // Fetch posts with user profile information
+        // Fetch posts
         const { data: postsData, error: postsError } = await supabase
           .from('shoutouts')
           .select(`
@@ -60,8 +58,7 @@ const ForYou = () => {
             created_at,
             metadata,
             media,
-            user_id,
-            profiles(id, full_name, username, avatar_url)
+            user_id
           `)
           .order('created_at', { ascending: false })
           .limit(20);
@@ -77,26 +74,44 @@ const ForYou = () => {
           return;
         }
 
-        // Filter posts by preferred languages (using metadata)
+        // Filter posts by preferred languages
         const filteredPosts = postsData.filter(post => {
           const postMetadata = post.metadata as Record<string, any> || {};
-          const postLanguages = postMetadata.languages || [];
-          return postLanguages.some((lang: string) => 
+          const postLanguages = postLanguages = postMetadata.languages || [];
+          // Check if any of the post languages match user's preferred languages
+          return Array.isArray(postLanguages) && postLanguages.some((lang: string) => 
             preferredLanguages.includes(lang.toLowerCase())
           );
         });
 
-        // Get reactions for the filtered posts
-        const postIds = filteredPosts.map(post => post.id);
-        
-        // Early return if no matching posts
-        if (postIds.length === 0) {
+        // If no posts match, return early
+        if (filteredPosts.length === 0) {
           setPosts([]);
           setLoading(false);
           return;
         }
-        
-        // Fetch reactions
+
+        // Now fetch the user profile information for these posts
+        const postUserIds = [...new Set(filteredPosts.map(post => post.user_id))];
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, user_id, full_name, username, avatar_url')
+          .in('user_id', postUserIds);
+
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
+        }
+
+        // Create a map of profiles by user_id
+        const profilesMap = new Map();
+        if (profilesData) {
+          profilesData.forEach(profile => {
+            profilesMap.set(profile.user_id, profile);
+          });
+        }
+
+        // Fetch reactions for these posts
+        const postIds = filteredPosts.map(post => post.id);
         const { data: reactionsData, error: reactionsError } = await supabase
           .from('post_reactions')
           .select('*')
@@ -117,12 +132,13 @@ const ForYou = () => {
           });
         }
 
-        // Get comment counts for posts
+        // Fetch comment counts
         const { data: commentsData, error: commentsError } = await supabase
           .from('comments')
-          .select('shoutout_id, count(*)')
+          .select('shoutout_id, count')
           .in('shoutout_id', postIds)
-          .groupBy('shoutout_id');
+          .select('count(*)')
+          .group('shoutout_id');
 
         if (commentsError) {
           console.error('Error fetching comment counts:', commentsError);
@@ -137,12 +153,13 @@ const ForYou = () => {
         }
 
         // Format posts to match the Post interface
-        const formattedPosts = filteredPosts.map(post => {
+        const formattedPosts: Post[] = filteredPosts.map(post => {
           const postReactions = reactionsMap.get(post.id) || [];
           const likes = postReactions.filter(r => r.emoji === 'like').length;
           const bookmarks = postReactions.filter(r => r.emoji === 'bookmark').length;
           const isLiked = postReactions.some(r => r.emoji === 'like' && r.user_id === user.id);
           const isBookmarked = postReactions.some(r => r.emoji === 'bookmark' && r.user_id === user.id);
+          const profile = profilesMap.get(post.user_id);
           const postMetadata = post.metadata as Record<string, any> || {};
           
           return {
@@ -151,16 +168,20 @@ const ForYou = () => {
             userId: post.user_id,
             createdAt: post.created_at,
             user: {
-              id: post.profiles?.id,
-              name: post.profiles?.full_name || post.profiles?.username,
-              image: post.profiles?.avatar_url,
+              id: profile?.id || post.user_id,
+              name: profile?.full_name || profile?.username || "User",
+              image: profile?.avatar_url,
+              username: profile?.username || "user",
+              email: "",
+              avatar: profile?.avatar_url || "",
+              verified: false
             },
             images: post.media || [],
             languages: postMetadata.languages || [],
             likes: likes,
             bookmarks: bookmarks,
             comments: commentsMap.get(post.id) || 0,
-            replies: 0, // Required by Post type
+            replies: 0,
             isLiked: isLiked,
             isBookmarked: isBookmarked,
           } as Post;
@@ -174,7 +195,7 @@ const ForYou = () => {
       }
     };
 
-    fetchUserLanguages();
+    fetchPosts();
   }, [user, toast]);
 
   return (
