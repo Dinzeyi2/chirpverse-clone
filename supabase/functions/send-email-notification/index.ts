@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.36.0'
 
@@ -102,6 +103,41 @@ serve(async (req) => {
         JSON.stringify({ message: 'Email notifications are disabled for this user' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
+    }
+
+    // DUPLICATE CHECK: Check if we've recently sent a similar email to prevent duplicates
+    // Look for similar email sent in the last 5 minutes
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const { data: recentEmails, error: recentEmailsError } = await supabaseClient
+      .from('notification_logs')
+      .select('id, created_at, subject, metadata')
+      .eq('recipient_id', userId)
+      .eq('type', 'email')
+      .eq('status', 'sent')
+      .gte('created_at', fiveMinutesAgo)
+      .order('created_at', { ascending: false });
+      
+    if (recentEmailsError) {
+      console.error('Error checking for recent emails:', recentEmailsError);
+    } else if (recentEmails && recentEmails.length > 0) {
+      // Check if any recent email has the same subject and postId
+      const duplicateEmail = recentEmails.find(email => 
+        email.subject === subject && 
+        email.metadata?.postId === postId
+      );
+      
+      if (duplicateEmail) {
+        console.log(`Duplicate email detected, skipping. Original sent at ${duplicateEmail.created_at}`);
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: 'Skipped sending duplicate email notification',
+            duplicateOf: duplicateEmail.id,
+            sentAt: duplicateEmail.created_at
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
+      }
     }
 
     // Make sure the postId exists

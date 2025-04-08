@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.36.0'
 
@@ -149,6 +150,24 @@ serve(async (req) => {
       )
     }
     
+    // Get list of users who have already been notified about this post to prevent duplicates
+    const { data: alreadyNotified, error: notificationCheckError } = await supabaseClient
+      .from('notification_logs')
+      .select('recipient_id')
+      .eq('type', 'email')
+      .eq('status', 'sent')
+      .eq('metadata->postId', postId);
+      
+    if (notificationCheckError) {
+      console.error('Error checking for existing notifications:', notificationCheckError);
+    }
+    
+    // Create a set of user IDs who have already been notified for fast lookups
+    const alreadyNotifiedUserIds = new Set(
+      alreadyNotified?.map(notification => notification.recipient_id) || []
+    );
+    console.log(`Found ${alreadyNotifiedUserIds.size} users already notified about this post`);
+    
     let notificationsSent = 0;
     let notificationsSkipped = 0;
     const notificationResults = [];
@@ -156,6 +175,13 @@ serve(async (req) => {
 
     for (const profile of profilesWithNotifications) {
       try {
+        // Skip users who have already been notified about this post
+        if (alreadyNotifiedUserIds.has(profile.user_id)) {
+          console.log(`User ${profile.user_id} already notified about this post, skipping`);
+          notificationsSkipped++;
+          continue;
+        }
+        
         const { data: userData, error: userError } = await supabaseClient.auth.admin.getUserById(profile.user_id);
         
         if (userError || !userData || !userData.user || !userData.user.email) {
