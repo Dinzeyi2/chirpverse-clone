@@ -65,6 +65,7 @@ const ForYou = () => {
       }
       
       setIsLoading(true);
+      setError(null);
       
       try {
         // Get posts from the shoutouts table
@@ -77,13 +78,7 @@ const ForYou = () => {
             user_id,
             media,
             metadata,
-            user:user_id (
-              id, 
-              email,
-              user_metadata->full_name,
-              user_metadata->username,
-              user_metadata->avatar_url
-            )
+            user:profiles(id, full_name, avatar_url)
           `)
           .order('created_at', { ascending: false });
         
@@ -164,9 +159,9 @@ const ForYou = () => {
               views: 0,
               user: {
                 id: post.user?.id,
-                name: post.user?.user_metadata_full_name || 'User',
-                username: post.user?.user_metadata_username || post.user_id.substring(0, 8),
-                avatar: post.user?.user_metadata_avatar_url || "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
+                name: post.user?.full_name || 'User',
+                username: post.user_id?.substring(0, 8) || 'user',
+                avatar: post.user?.avatar_url || "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
                 verified: false,
                 followers: 0,
                 following: 0,
@@ -209,13 +204,7 @@ const ForYou = () => {
             user_id,
             media,
             metadata,
-            user:user_id (
-              id, 
-              email,
-              user_metadata->full_name,
-              user_metadata->username,
-              user_metadata->avatar_url
-            )
+            user:profiles(id, full_name, avatar_url)
           `)
           .order('created_at', { ascending: false });
         
@@ -294,9 +283,9 @@ const ForYou = () => {
               views: 0,
               user: {
                 id: post.user?.id,
-                name: post.user?.user_metadata_full_name || 'User',
-                username: post.user?.user_metadata_username || post.user_id.substring(0, 8),
-                avatar: post.user?.user_metadata_avatar_url || "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
+                name: post.user?.full_name || 'User',
+                username: post.user_id?.substring(0, 8) || 'user',
+                avatar: post.user?.avatar_url || "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
                 verified: false,
                 followers: 0,
                 following: 0,
