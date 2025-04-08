@@ -81,8 +81,11 @@ const ForYou = () => {
         const filteredPosts = postsData.filter(post => {
           const postMetadata = post.metadata as Record<string, any> || {};
           const postLanguages = postMetadata.languages || [];
+          // Convert everything to lowercase for case-insensitive comparison
           return postLanguages.some((lang: string) => 
-            preferredLanguages.includes(lang.toLowerCase())
+            preferredLanguages.some(prefLang => 
+              prefLang.toLowerCase() === lang.toLowerCase()
+            )
           );
         });
 
@@ -171,9 +174,8 @@ const ForYou = () => {
             user: {
               id: post.profiles?.id || '',
               name: post.profiles?.full_name || 'User',
-              image: post.profiles?.avatar_url || '',
-              username: '', // Required by User type
-              email: '',    // Required by User type
+              username: post.user_id?.substring(0, 8) || '', // Required by User type
+              email: '', // Required by User type
               avatar: post.profiles?.avatar_url || '',
               verified: false
             },
