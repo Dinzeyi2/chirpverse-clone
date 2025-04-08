@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -113,10 +112,7 @@ export const Sidebar = () => {
       <div className={sidebarClasses}>
         <div className="flex flex-col h-full p-6">
           <div className="flex items-center justify-between mb-8">
-            <Link to="/" className="flex items-center p-2 rounded-full hover:bg-blue-500/10 transition-colors">
-              <Avatar className="h-8 w-8 mr-2">
-                <AvatarImage src="/lovable-uploads/3466f833-541a-44f1-86a1-5e3f5ed4d8ed.png" alt="iblue logo" />
-              </Avatar>
+            <Link to="/" className="p-2 rounded-full hover:bg-blue-500/10 transition-colors">
               <span className="font-bold text-2xl tracking-tight bg-gradient-to-r from-[#4285F4] to-[#8AB4F8] bg-clip-text text-transparent">iblue</span>
             </Link>
             <button 
@@ -210,13 +206,11 @@ export const Sidebar = () => {
     >
       <div className="flex flex-col h-full px-3 py-5">
         <div className="mb-6 flex justify-center lg:justify-start">
-          <Link to="/" className="flex items-center p-2 rounded-full hover:bg-blue-500/10 transition-colors">
-            <Avatar className="h-8 w-8 mr-2">
-              <AvatarImage src="/lovable-uploads/3466f833-541a-44f1-86a1-5e3f5ed4d8ed.png" alt="iblue logo" />
-            </Avatar>
-            {!isCollapsed && (
-              <span className="font-bold text-2xl tracking-tight bg-gradient-to-r from-[#4285F4] to-[#8AB4F8] bg-clip-text text-transparent">iblue</span>
-            )}
+          <Link to="/" className="p-2 rounded-full hover:bg-blue-500/10 transition-colors">
+            <span className={cn(
+              "font-bold text-2xl tracking-tight bg-gradient-to-r from-[#4285F4] to-[#8AB4F8] bg-clip-text text-transparent",
+              isCollapsed && "sr-only"
+            )}>iblue</span>
             <span className="sr-only">Home</span>
           </Link>
         </div>
