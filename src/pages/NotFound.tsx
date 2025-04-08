@@ -2,6 +2,7 @@
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
 
 const NotFound = () => {
   const location = useLocation();
@@ -18,8 +19,8 @@ const NotFound = () => {
     const uuidPattern = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
     
     if (uuidPattern.test(uuid)) {
-      console.log(`Auto-redirecting from raw UUID path to /post/${uuid}${location.hash}`);
-      navigate(`/post/${uuid}${location.hash}`, { replace: true });
+      console.log(`Auto-redirecting from raw UUID path to /post/${uuid}${location.hash || ''}${location.search || ''}`);
+      navigate(`/post/${uuid}${location.hash || ''}${location.search || ''}`, { replace: true });
       return;
     }
     
@@ -28,15 +29,20 @@ const NotFound = () => {
     if (uuidInPathMatch) {
       const extractedUuid = uuidInPathMatch[1];
       console.log(`Found UUID in path: ${extractedUuid}, redirecting to proper format`);
-      navigate(`/post/${extractedUuid}${location.hash}`, { replace: true });
+      navigate(`/post/${extractedUuid}${location.hash || ''}${location.search || ''}`, { replace: true });
+      toast.success("Redirected to the correct post format");
     }
-  }, [location.pathname, location.hash, navigate]);
+  }, [location.pathname, location.hash, location.search, navigate]);
 
   // Enhanced post ID extraction to handle multiple URL formats
   const extractPostId = () => {
     // First try standard format - /post/{uuid}
     const standardMatch = location.pathname.match(/\/post\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
     if (standardMatch) return standardMatch[1];
+    
+    // Try alternative formats - /p/{uuid} or /posts/{uuid}
+    const altFormatMatch = location.pathname.match(/\/(p|posts)\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
+    if (altFormatMatch) return altFormatMatch[2];
     
     // Try to see if the path itself is a UUID (happens when email link is malformed)
     const uuidPattern = /^\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i;
@@ -77,6 +83,12 @@ const NotFound = () => {
             <p className="text-sm text-blue-800 dark:text-blue-200">
               It looks like you're trying to access a post. Click below to go to the correct post URL:
             </p>
+            <Link 
+              to={`/post/${postId}${location.hash || ''}${location.search || ''}`} 
+              className="mt-2 text-xBlue hover:underline font-medium block"
+            >
+              Go to post
+            </Link>
             <Link 
               to={`/post/${postId}#comments`} 
               className="mt-2 text-xBlue hover:underline font-medium block"

@@ -83,13 +83,12 @@ const AppContent = () => {
         } 
       />
       
-      {/* Direct UUID route - will redirect to proper post format */}
-      <Route 
-        path="/:uuid" 
-        element={
-          <UUIDRedirect />
-        } 
-      />
+      {/* Direct UUID routes - handle raw UUID formats */}
+      <Route path="/:uuid" element={<UUIDRedirect />} />
+      
+      {/* Add additional direct format handlers */}
+      <Route path="/p/:uuid" element={<UUIDRedirect />} />
+      <Route path="/posts/:uuid" element={<UUIDRedirect />} />
       
       {/* Protected routes (require login) */}
       <Route 
@@ -142,16 +141,22 @@ const UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{
 
 // Component to handle direct UUID paths and redirect them to the proper post format
 const UUIDRedirect = () => {
-  const { pathname, hash } = window.location;
-  const uuid = pathname.substring(1); // Remove the leading slash
+  const { pathname, hash, search } = window.location;
+  // For /p/:uuid or /posts/:uuid paths, extract the UUID
+  let uuid = pathname.substring(1); // Remove the leading slash
+  
+  // Handle /p/:uuid or /posts/:uuid formats
+  if (pathname.startsWith('/p/') || pathname.startsWith('/posts/')) {
+    uuid = pathname.split('/').pop() || '';
+  }
   
   console.log("UUID Redirect - Checking path:", pathname);
   console.log("UUID Redirect - Extracted UUID:", uuid);
   
   // If the path is a valid UUID, redirect to the post page
   if (UUID_PATTERN.test(uuid)) {
-    console.log(`UUID Redirect - Valid UUID detected: ${uuid}, redirecting to /post/${uuid}${hash}`);
-    return <Navigate to={`/post/${uuid}${hash}`} replace />;
+    console.log(`UUID Redirect - Valid UUID detected: ${uuid}, redirecting to /post/${uuid}${hash || ''}${search || ''}`);
+    return <Navigate to={`/post/${uuid}${hash || ''}${search || ''}`} replace />;
   }
   
   // Even if it's not exactly a UUID, check if there's a UUID in the path
@@ -159,7 +164,7 @@ const UUIDRedirect = () => {
   if (uuidInPathMatch) {
     const extractedUuid = uuidInPathMatch[1];
     console.log(`UUID Redirect - Found UUID in path: ${extractedUuid}, redirecting to proper format`);
-    return <Navigate to={`/post/${extractedUuid}${hash}`} replace />;
+    return <Navigate to={`/post/${extractedUuid}${hash || ''}${search || ''}`} replace />;
   }
   
   // If it's not a UUID, show the 404 page
