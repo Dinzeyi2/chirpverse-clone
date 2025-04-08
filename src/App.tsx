@@ -18,6 +18,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { useEffect } from "react";
 import { enableRealtimeForTables, supabase } from "./integrations/supabase/client";
+import { UrlHandler } from "./components/routing/UrlHandler";
 
 // Create a new query client with better cache settings
 const queryClient = new QueryClient({
@@ -29,65 +30,6 @@ const queryClient = new QueryClient({
     }
   }
 });
-
-// UUID pattern for validating direct UUID routes
-const UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
-
-// Enhanced redirect component that handles all post URL formats with protocol preservation
-const PostRedirect = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { pathname, hash, search } = location;
-  
-  useEffect(() => {
-    // Get original protocol and hostname from session storage
-    const originalProtocol = sessionStorage.getItem('originalProtocol') || window.location.protocol;
-    const originalHostname = sessionStorage.getItem('originalHostname') || window.location.hostname;
-    
-    console.log("PostRedirect - Original protocol:", originalProtocol);
-    console.log("PostRedirect - Original hostname:", originalHostname);
-    
-    // For /p/:uuid or /posts/:uuid or /:uuid paths, extract the UUID
-    let uuid = "";
-    let redirectPath = "";
-    
-    // Handle direct UUID path
-    if (pathname.length > 30 && pathname.charAt(0) === '/' && UUID_PATTERN.test(pathname.substring(1))) {
-      uuid = pathname.substring(1);
-      redirectPath = `/post/${uuid}${hash || ''}${search || ''}`;
-    } 
-    // Handle /p/ or /posts/ format
-    else if (pathname.startsWith('/p/') || pathname.startsWith('/posts/')) {
-      const parts = pathname.split('/');
-      if (parts.length > 2 && UUID_PATTERN.test(parts[2])) {
-        uuid = parts[2];
-        redirectPath = `/post/${uuid}${hash || ''}${search || ''}`;
-      }
-    } 
-    // Check for UUID anywhere in the path (if no direct match)
-    else {
-      const uuidMatch = pathname.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
-      if (uuidMatch) {
-        uuid = uuidMatch[1];
-        redirectPath = `/post/${uuid}${hash || ''}${search || ''}`;
-      }
-    }
-    
-    if (redirectPath) {
-      console.log(`PostRedirect: Redirecting from ${pathname} to ${redirectPath}`);
-      
-      // Store both path and full URL for future reference
-      sessionStorage.setItem('lastPath', redirectPath);
-      const fullUrl = `${originalProtocol}//${originalHostname}${redirectPath}`;
-      sessionStorage.setItem('fullUrl', fullUrl);
-      
-      navigate(redirectPath, { replace: true });
-    }
-  }, [pathname, hash, search, navigate]);
-  
-  // This component will render while the redirect is happening
-  return <div className="min-h-screen flex items-center justify-center">Redirecting...</div>;
-};
 
 const AppContent = () => {
   useEffect(() => {
@@ -110,103 +52,93 @@ const AppContent = () => {
     };
     
     testRealtime();
-    
-    // Listen for messages from service worker
-    if (navigator.serviceWorker) {
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data && event.data.type === 'STORE_URL_INFO') {
-          console.log('Received URL info from service worker:', event.data);
-          sessionStorage.setItem('originalProtocol', event.data.protocol);
-          sessionStorage.setItem('originalHostname', event.data.hostname);
-          
-          if (event.data.fullUrl) {
-            sessionStorage.setItem('fullUrl', event.data.fullUrl);
-          }
-        }
-      });
-    }
   }, []);
 
   return (
-    <Routes>
-      <Route path="/auth" element={<Auth />} />
+    <>
+      {/* UrlHandler component to manage URL normalization and persistence */}
+      <UrlHandler />
       
-      {/* Public routes (accessible without login) */}
-      <Route 
-        path="/" 
-        element={
-          <ProtectedRoute>
-            <Index />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/explore" 
-        element={
-          <ProtectedRoute>
-            <Explore />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/post/:postId" 
-        element={
-          <ProtectedRoute>
-            <PostPage />
-          </ProtectedRoute>
-        } 
-      />
-      
-      {/* Direct UUID routes - handle all formats with a single component */}
-      <Route path="/:uuid" element={<PostRedirect />} />
-      <Route path="/p/:uuid" element={<PostRedirect />} />
-      <Route path="/posts/:uuid" element={<PostRedirect />} />
-      
-      {/* Protected routes (require login) */}
-      <Route 
-        path="/profile/:userId?" 
-        element={
-          <ProtectedRoute requireAuth={true}>
-            <Profile />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/profile" 
-        element={
-          <ProtectedRoute requireAuth={true}>
-            <Profile />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/bookmarks" 
-        element={
-          <ProtectedRoute requireAuth={true}>
-            <Bookmarks />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/settings" 
-        element={
-          <ProtectedRoute requireAuth={true}>
-            <Settings />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/notifications" 
-        element={
-          <ProtectedRoute requireAuth={true}>
-            <Notifications />
-          </ProtectedRoute>
-        } 
-      />
-      
-      {/* Catch-all 404 route */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+      <Routes>
+        <Route path="/auth" element={<Auth />} />
+        
+        {/* Public routes (accessible without login) */}
+        <Route 
+          path="/" 
+          element={
+            <ProtectedRoute>
+              <Index />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/explore" 
+          element={
+            <ProtectedRoute>
+              <Explore />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/post/:postId" 
+          element={
+            <ProtectedRoute>
+              <PostPage />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Protected routes (require login) */}
+        <Route 
+          path="/profile/:userId?" 
+          element={
+            <ProtectedRoute requireAuth={true}>
+              <Profile />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/profile" 
+          element={
+            <ProtectedRoute requireAuth={true}>
+              <Profile />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/bookmarks" 
+          element={
+            <ProtectedRoute requireAuth={true}>
+              <Bookmarks />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/settings" 
+          element={
+            <ProtectedRoute requireAuth={true}>
+              <Settings />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/notifications" 
+          element={
+            <ProtectedRoute requireAuth={true}>
+              <Notifications />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* UUID routes - catch all patterns and redirect through UrlHandler */}
+        <Route path="/:uuid" element={<NotFound />} />
+        <Route path="/p/:uuid" element={<NotFound />} />
+        <Route path="/posts/:uuid" element={<NotFound />} />
+        
+        {/* Catch-all 404 route */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   );
 };
 

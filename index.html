@@ -26,165 +26,45 @@
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- Enhanced script to handle direct URL loads and comments with protocol preservation -->
+    <!-- Simple script to handle reload persistence -->
     <script>
-      // This script ensures that direct URLs for this SPA are handled correctly
-      (function() {
-        // Check for UUID patterns in the URL
-        function containsUUID(pathname) {
-          return /[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i.test(pathname);
-        }
-        
-        // Check for comment hash patterns
-        function containsCommentHash(hash) {
-          return hash && hash.startsWith('#comment-');
-        }
-        
-        // Store the current URL in sessionStorage for reload persistence
-        function storeCurrentPath() {
-          const pathWithHash = window.location.pathname + window.location.hash + window.location.search;
-          const fullUrl = window.location.href;
-          
-          // Only store post and comment URLs
-          if (window.location.pathname.includes('/post/') || 
-              containsUUID(window.location.pathname) ||
-              containsCommentHash(window.location.hash)) {
-            console.log('Storing current path in sessionStorage:', pathWithHash);
-            console.log('Storing full URL in sessionStorage:', fullUrl);
-            sessionStorage.setItem('lastPath', pathWithHash);
-            sessionStorage.setItem('fullUrl', fullUrl);
-            sessionStorage.setItem('originalProtocol', window.location.protocol);
-            sessionStorage.setItem('originalHostname', window.location.hostname);
-          }
-        }
-        
-        // Listen for messages from service worker
-        navigator.serviceWorker.addEventListener('message', function(event) {
-          if (event.data && event.data.type === 'STORE_URL_INFO') {
-            console.log('Received URL info from service worker:', event.data);
-            sessionStorage.setItem('originalProtocol', event.data.protocol);
-            sessionStorage.setItem('originalHostname', event.data.hostname);
-            
-            if (event.data.fullUrl) {
-              sessionStorage.setItem('fullUrl', event.data.fullUrl);
-            }
-          }
-        });
-        
-        // Store current path when the page is about to unload (reload)
-        window.addEventListener('beforeunload', storeCurrentPath);
-        
-        // For direct loading of non-root URLs
-        if (window.location.pathname !== '/' && 
-            !window.location.pathname.startsWith('/auth') && 
-            !window.location.pathname.startsWith('/explore') && 
-            (window.location.pathname.startsWith('/post/') || 
-             window.location.pathname.startsWith('/p/') || 
-             window.location.pathname.startsWith('/posts/') || 
-             containsUUID(window.location.pathname) ||
-             containsCommentHash(window.location.hash))) {
-          
-          console.log('Direct URL access detected: ' + window.location.href);
-          storeCurrentPath();
-          
-          // Also store protocol and hostname
-          sessionStorage.setItem('originalProtocol', window.location.protocol);
-          sessionStorage.setItem('originalHostname', window.location.hostname);
-          
-          // Special handling for direct comment URLs
-          if (containsCommentHash(window.location.hash)) {
-            console.log('Comment hash detected: ' + window.location.hash);
-            
-            // Store the full path with comment hash
-            sessionStorage.setItem('commentHash', window.location.hash);
-          }
-        }
-      })();
-    </script>
-    
-    <!-- Enhanced reload handling for SPA with protocol preservation -->
-    <script>
-      // This script helps ensure page reloads maintain the correct path
+      // Attempt to restore from localStorage on initial load
       document.addEventListener('DOMContentLoaded', function() {
-        // Check if we're coming back from a reload
-        const lastPath = sessionStorage.getItem('lastPath');
-        const fullUrl = sessionStorage.getItem('fullUrl');
-        const originalProtocol = sessionStorage.getItem('originalProtocol');
-        const originalHostname = sessionStorage.getItem('originalHostname');
-        const currentPath = window.location.pathname + window.location.hash + window.location.search;
-        const commentHash = sessionStorage.getItem('commentHash');
+        const path = localStorage.getItem('lastPath');
+        const timestamp = localStorage.getItem('lastPathTimestamp');
         
-        console.log('Page loaded. Current path:', currentPath);
-        console.log('Stored path:', lastPath);
-        console.log('Stored full URL:', fullUrl);
-        console.log('Original protocol:', originalProtocol);
-        console.log('Original hostname:', originalHostname);
+        // Only restore if path was saved recently (within last 5 minutes)
+        const isRecent = timestamp && (Date.now() - parseInt(timestamp)) < 5 * 60 * 1000;
         
-        if ((lastPath && lastPath !== currentPath) || (fullUrl && fullUrl !== window.location.href)) {
-          // If on root but we have a stored path (likely came from reload)
-          if (window.location.pathname === '/' || window.location.pathname === '/404') {
-            console.log('Restoring path after reload or navigation');
-            
-            // Use a timeout to make sure the app has loaded
-            setTimeout(function() {
-              // First try to use the full URL if available
-              if (fullUrl) {
-                try {
-                  // Parse the full URL to extract just the path part to avoid cross-origin issues
-                  const urlObj = new URL(fullUrl);
-                  const pathToRestore = urlObj.pathname + urlObj.hash + urlObj.search;
-                  
-                  console.log('Restoring path component from full URL:', pathToRestore);
-                  window.history.replaceState(null, '', pathToRestore);
-                } catch (error) {
-                  console.error('Error parsing full URL:', error);
-                  // Fallback to just the path
-                  if (lastPath) {
-                    console.log('Fallback to lastPath:', lastPath);
-                    window.history.replaceState(null, '', lastPath);
-                  }
-                }
-              } else if (lastPath) {
-                console.log('Using lastPath (no full URL available):', lastPath);
-                window.history.replaceState(null, '', lastPath);
+        if (isRecent && path && path.includes('/post/') && window.location.pathname === '/') {
+          console.log('Restoring path from localStorage:', path);
+          window.history.replaceState(null, '', path);
+        }
+        
+        // Handle comment hash scroll after page load
+        if (window.location.hash && window.location.hash.startsWith('#comment-')) {
+          setTimeout(function() {
+            const commentElement = document.querySelector(window.location.hash);
+            if (commentElement) {
+              console.log('Scrolling to comment:', window.location.hash);
+              commentElement.scrollIntoView({ behavior: 'smooth' });
+            } else {
+              console.log('Comment element not found, scrolling to comments section');
+              const commentsSection = document.getElementById('comments');
+              if (commentsSection) {
+                commentsSection.scrollIntoView({ behavior: 'smooth' });
               }
-              
-              // Dispatch a popstate event to help React Router detect the change
-              window.dispatchEvent(new PopStateEvent('popstate'));
-              
-              // If there was a comment hash, ensure we scroll to it after a delay
-              if (commentHash) {
-                setTimeout(function() {
-                  const commentElement = document.querySelector(commentHash);
-                  if (commentElement) {
-                    console.log('Scrolling to comment element:', commentHash);
-                    commentElement.scrollIntoView({ behavior: 'smooth' });
-                  } else {
-                    console.log('Comment element not found:', commentHash);
-                    // Try scrolling to comments section instead
-                    const commentsSection = document.getElementById('comments');
-                    if (commentsSection) {
-                      commentsSection.scrollIntoView({ behavior: 'smooth' });
-                    }
-                  }
-                }, 1000); // Delay to ensure the page has fully rendered
-              }
-            }, 100); // Small delay to ensure app has initialized
-          }
+            }
+          }, 1000);
         }
-        
-        // Clear comment hash once it's been used
-        if (commentHash && window.location.hash === commentHash) {
-          sessionStorage.removeItem('commentHash');
-        }
-        
-        // Special handling for direct access to www vs non-www hostnames
-        // If current URL doesn't match the original protocol/hostname, store it for future reference
-        if (originalHostname && originalHostname !== window.location.hostname) {
-          console.log(`Hostname mismatch: Original ${originalHostname}, Current ${window.location.hostname}`);
-        }
-        if (originalProtocol && originalProtocol !== window.location.protocol) {
-          console.log(`Protocol mismatch: Original ${originalProtocol}, Current ${window.location.protocol}`);
+      });
+      
+      // Store current URL before unload
+      window.addEventListener('beforeunload', function() {
+        if (window.location.pathname.includes('/post/')) {
+          localStorage.setItem('lastUrl', window.location.href);
+          localStorage.setItem('lastPath', window.location.pathname + window.location.hash + window.location.search);
+          localStorage.setItem('lastPathTimestamp', Date.now().toString());
         }
       });
     </script>

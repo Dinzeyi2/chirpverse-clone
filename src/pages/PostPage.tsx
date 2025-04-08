@@ -99,6 +99,13 @@ const PostPage: React.FC = () => {
   useEffect(() => {
     processedCommentIdsRef.current.clear();
     
+    if (postId) {
+      const currentPath = location.pathname + location.hash + location.search;
+      localStorage.setItem('lastPath', currentPath);
+      localStorage.setItem('lastUrl', window.location.href);
+      localStorage.setItem('lastPathTimestamp', Date.now().toString());
+    }
+    
     const fetchPostAndComments = async () => {
       if (!postId) return;
       
@@ -266,7 +273,7 @@ const PostPage: React.FC = () => {
         supabase.removeChannel(commentsChannelRef.current);
       }
     };
-  }, [postId]);
+  }, [postId, location]);
   
   useEffect(() => {
     if (!loading && commentsRef.current) {
