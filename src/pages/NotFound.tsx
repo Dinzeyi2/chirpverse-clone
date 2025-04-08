@@ -1,5 +1,6 @@
 
-import { useLocation, Link, useNavigate, useEffect } from "react-router-dom";
+import { useLocation, Link, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
