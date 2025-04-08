@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Home, Search, User, Bookmark, Settings, PlusCircle, LogOut, LogIn, Menu, Bell } from 'lucide-react';
+import { Home, Search, User, Bookmark, Settings, PlusCircle, LogOut, LogIn, Menu, Bell, Sparkles } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
@@ -67,6 +67,7 @@ export const Sidebar = () => {
 
   const navigation = [
     { name: 'Home', icon: Home, href: '/' },
+    { name: 'For You', icon: Sparkles, href: '/for-you' },
     { name: 'Explore', icon: Search, href: '/explore' },
     { name: 'Bookmarks', icon: Bookmark, href: '/bookmarks' },
     { name: 'Profile', icon: User, href: profilePath },
