@@ -25,7 +25,8 @@
     <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
     <script type="module" src="/src/main.tsx"></script>
-    <!-- Script to handle direct URL loads -->
+    
+    <!-- Enhanced script to handle direct URL loads and comments -->
     <script>
       // This script ensures that direct URLs for this SPA are handled correctly
       (function() {
@@ -39,6 +40,22 @@
           return hash && hash.startsWith('#comment-');
         }
         
+        // Store the current URL in sessionStorage for reload persistence
+        function storeCurrentPath() {
+          const pathWithHash = window.location.pathname + window.location.hash + window.location.search;
+          
+          // Only store post and comment URLs
+          if (window.location.pathname.includes('/post/') || 
+              containsUUID(window.location.pathname) ||
+              containsCommentHash(window.location.hash)) {
+            console.log('Storing current path in sessionStorage:', pathWithHash);
+            sessionStorage.setItem('lastPath', pathWithHash);
+          }
+        }
+        
+        // Store current path when the page is about to unload (reload)
+        window.addEventListener('beforeunload', storeCurrentPath);
+        
         // For direct loading of non-root URLs
         if (window.location.pathname !== '/' && 
             !window.location.pathname.startsWith('/auth') && 
@@ -50,31 +67,68 @@
              containsCommentHash(window.location.hash))) {
           
           console.log('Direct URL access detected: ' + window.location.pathname + window.location.hash);
+          storeCurrentPath();
           
           // Special handling for direct comment URLs
           if (containsCommentHash(window.location.hash)) {
             console.log('Comment hash detected: ' + window.location.hash);
+            
+            // Store the full path with comment hash
+            sessionStorage.setItem('commentHash', window.location.hash);
           }
         }
       })();
     </script>
-    <!-- Reload handling for SPA -->
+    
+    <!-- Enhanced reload handling for SPA -->
     <script>
       // This script helps ensure page reloads maintain the correct path
-      window.addEventListener('beforeunload', function() {
-        // Store the current path+hash in sessionStorage before reload
-        sessionStorage.setItem('lastPath', window.location.pathname + window.location.hash + window.location.search);
-      });
-      
       document.addEventListener('DOMContentLoaded', function() {
         // Check if we're coming back from a reload
         const lastPath = sessionStorage.getItem('lastPath');
         const currentPath = window.location.pathname + window.location.hash + window.location.search;
+        const commentHash = sessionStorage.getItem('commentHash');
         
-        if (lastPath && lastPath !== currentPath && window.location.pathname === '/') {
-          console.log('Restoring path after reload:', lastPath);
-          // Use history API to restore the path without a reload
-          window.history.replaceState(null, '', lastPath);
+        console.log('Page loaded. Current path:', currentPath);
+        console.log('Stored path:', lastPath);
+        
+        if (lastPath && lastPath !== currentPath) {
+          // If on root but we have a stored path (likely came from reload)
+          if (window.location.pathname === '/' || window.location.pathname === '/404') {
+            console.log('Restoring path after reload or navigation:', lastPath);
+            
+            // Use a timeout to make sure the app has loaded
+            setTimeout(function() {
+              // Use history API to restore the path without a reload
+              window.history.replaceState(null, '', lastPath);
+              
+              // Dispatch a popstate event to help React Router detect the change
+              window.dispatchEvent(new PopStateEvent('popstate'));
+              
+              // If there was a comment hash, ensure we scroll to it after a delay
+              if (commentHash) {
+                setTimeout(function() {
+                  const commentElement = document.querySelector(commentHash);
+                  if (commentElement) {
+                    console.log('Scrolling to comment element:', commentHash);
+                    commentElement.scrollIntoView({ behavior: 'smooth' });
+                  } else {
+                    console.log('Comment element not found:', commentHash);
+                    // Try scrolling to comments section instead
+                    const commentsSection = document.getElementById('comments');
+                    if (commentsSection) {
+                      commentsSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }
+                }, 1000); // Delay to ensure the page has fully rendered
+              }
+            }, 100); // Small delay to ensure app has initialized
+          }
+        }
+        
+        // Clear comment hash once it's been used
+        if (commentHash && window.location.hash === commentHash) {
+          sessionStorage.removeItem('commentHash');
         }
       });
     </script>

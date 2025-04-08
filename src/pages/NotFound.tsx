@@ -49,6 +49,13 @@ const NotFound = () => {
   useEffect(() => {
     console.log("NotFound component rendered for path:", location.pathname, "hash:", location.hash);
     
+    // Store the current URL attempt in sessionStorage to help recover after reloads
+    if (location.pathname.includes('/post/') || extractPostId()) {
+      const path = location.pathname + location.hash + location.search;
+      console.log("Storing attempted path in sessionStorage:", path);
+      sessionStorage.setItem('lastPath', path);
+    }
+    
     // If path is a UUID, automatically redirect to correct format
     const uuid = location.pathname.substring(1); // Remove leading slash
     const uuidPattern = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
@@ -66,7 +73,13 @@ const NotFound = () => {
     
     if (commentId && postId) {
       console.log(`Found comment ID: ${commentId} for post: ${postId}, redirecting`);
-      navigate(`/post/${postId}#comment-${commentId}${location.search || ''}`, { replace: true });
+      const normalizedPath = `/post/${postId}#comment-${commentId}${location.search || ''}`;
+      
+      // Store the path before navigating to help with reload persistence
+      sessionStorage.setItem('lastPath', normalizedPath);
+      sessionStorage.setItem('commentHash', `#comment-${commentId}`);
+      
+      navigate(normalizedPath, { replace: true });
       toast.success("Redirected to comment");
       return;
     }
@@ -75,8 +88,14 @@ const NotFound = () => {
     const uuidInPathMatch = location.pathname.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
     if (uuidInPathMatch) {
       const extractedUuid = uuidInPathMatch[1];
+      const normalizedPath = `/post/${extractedUuid}${location.hash || ''}${location.search || ''}`;
+      
       console.log(`Found UUID in path: ${extractedUuid}, redirecting to proper format`);
-      navigate(`/post/${extractedUuid}${location.hash || ''}${location.search || ''}`, { replace: true });
+      
+      // Store the path before navigating
+      sessionStorage.setItem('lastPath', normalizedPath);
+      
+      navigate(normalizedPath, { replace: true });
       toast.success("Redirected to the correct post format");
     }
   }, [location.pathname, location.hash, location.search, navigate]);
@@ -105,6 +124,11 @@ const NotFound = () => {
             <Link 
               to={`/post/${postId}${location.hash || ''}${location.search || ''}`} 
               className="mt-2 text-xBlue hover:underline font-medium block"
+              onClick={() => {
+                // Store the path being navigated to
+                const path = `/post/${postId}${location.hash || ''}${location.search || ''}`;
+                sessionStorage.setItem('lastPath', path);
+              }}
             >
               Go to post
             </Link>
@@ -113,6 +137,11 @@ const NotFound = () => {
               <Link 
                 to={`/post/${postId}#comment-${commentId}`} 
                 className="mt-2 text-xBlue hover:underline font-medium block"
+                onClick={() => {
+                  const path = `/post/${postId}#comment-${commentId}`;
+                  sessionStorage.setItem('lastPath', path);
+                  sessionStorage.setItem('commentHash', `#comment-${commentId}`);
+                }}
               >
                 Go to specific comment
               </Link>
@@ -120,6 +149,10 @@ const NotFound = () => {
               <Link 
                 to={`/post/${postId}#comments`} 
                 className="mt-2 text-xBlue hover:underline font-medium block"
+                onClick={() => {
+                  const path = `/post/${postId}#comments`;
+                  sessionStorage.setItem('lastPath', path);
+                }}
               >
                 Go to post comments
               </Link>

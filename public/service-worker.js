@@ -1,7 +1,7 @@
 
 // Service Worker for iblue Web Push Notifications
 
-const CACHE_NAME = 'iblue-v2'; // Updated version
+const CACHE_NAME = 'iblue-v3'; // Updated version
 const OFFLINE_URL = '/offline.html';
 
 // Installation event
@@ -115,6 +115,40 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
+// Improved function to normalize post URLs
+function normalizePostUrl(url) {
+  // Extract URL components
+  const pathname = url.pathname;
+  const hash = url.hash;
+  const search = url.search;
+  
+  // Match UUID pattern
+  const uuidMatch = pathname.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
+  
+  if (uuidMatch) {
+    const uuid = uuidMatch[1];
+    
+    // Check if already in correct format
+    if (pathname.startsWith('/post/') && pathname.includes(uuid)) {
+      return null; // Already in correct format
+    }
+    
+    // Handle raw UUID or alternative formats
+    if (pathname === `/${uuid}` || 
+        pathname.startsWith('/p/') || 
+        pathname.startsWith('/posts/')) {
+      return `/post/${uuid}${hash || ''}${search || ''}`;
+    }
+  }
+  
+  // Handle comment hash with UUID
+  if (hash && hash.match(/#comment-([a-f0-9-]+)/) && uuidMatch) {
+    return `/post/${uuidMatch[1]}${hash}${search || ''}`;
+  }
+  
+  return null;
+}
+
 // Fetch event for SPA navigation - IMPROVED FOR COMMENT LINKS
 self.addEventListener('fetch', (event) => {
   if (event.request.mode === 'navigate') {
@@ -124,14 +158,30 @@ self.addEventListener('fetch', (event) => {
     // Check if this is a direct UUID path, post URL, or comment URL
     const uuidPattern = /^\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:#.*)?$/i;
     const postPattern = /^\/(post|p|posts)\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?:#.*)?$/i;
-    const commentPattern = /^\/(post|p|posts)\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}#comment-[a-f0-9-]+$/i;
+    const commentPattern = /#comment-[a-f0-9-]+$/i;
+    
+    // Look for comment hash
+    const hasCommentHash = commentPattern.test(url.hash);
+    
+    // Normalize the URL if needed
+    const normalizedUrl = normalizePostUrl(url);
+    if (normalizedUrl) {
+      console.log('Service worker normalizing URL to:', normalizedUrl);
+      
+      // Use respondWith to return a redirected response
+      event.respondWith(
+        Response.redirect(normalizedUrl, 302)
+      );
+      return;
+    }
     
     // Special handling for comment URLs
-    if (commentPattern.test(url.pathname + url.hash)) {
+    if (hasCommentHash && url.pathname.includes('/post/')) {
       console.log('Comment URL detected, passing to app for handling');
       // Let the app handle comment URLs
       event.respondWith(
         fetch(event.request).catch(() => {
+          console.log('Fetch failed for comment URL, falling back to root');
           return caches.match('/');
         })
       );
@@ -152,6 +202,7 @@ self.addEventListener('fetch', (event) => {
       // For standard app routes, let the browser handle it
       event.respondWith(
         fetch(event.request).catch(() => {
+          console.log('Fetch failed for app route, falling back to root');
           return caches.match('/');
         })
       );
