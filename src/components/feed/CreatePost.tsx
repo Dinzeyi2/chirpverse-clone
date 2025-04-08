@@ -1,10 +1,9 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Image, X, Video, Code, Smile } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { toast } from 'sonner';
 import { DialogClose } from '@/components/ui/dialog';
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, extractLanguageMentions, notifyUsersWithSameLanguages } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import CodeEditorDialog from '@/components/code/CodeEditorDialog';
@@ -117,6 +116,23 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         .single();
         
       if (error) throw error;
+      
+      const languages = extractLanguageMentions(postContent);
+      if (languages.length > 0 && user?.id) {
+        console.log(`Post contains programming languages: ${languages.join(', ')}`);
+        
+        notifyUsersWithSameLanguages(
+          user.id,
+          languages,
+          postContent,
+          data.id
+        ).then(() => {
+          console.log('Notifications sent to users with matching programming languages');
+        }).catch(err => {
+          console.error('Error sending notifications:', err);
+        });
+      }
+      
       return data.id;
     } catch (err) {
       console.error('Error creating post:', err);
@@ -244,7 +260,12 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
         await updatePostWithMedia(postId, allMedia);
       }
       
-      toast.success('Post sent successfully!');
+      const languages = extractLanguageMentions(postContent);
+      if (languages.length > 0) {
+        toast.success(`Post sent! Users interested in ${languages.join(', ')} will be notified.`);
+      } else {
+        toast.success('Post sent successfully!');
+      }
     } catch (error) {
       console.error('Error creating post:', error);
       toast.error('Failed to create post. Please try again.');

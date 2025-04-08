@@ -184,7 +184,9 @@ export const notifyUsersWithSameLanguages = async (
     console.log('Calling send-language-notifications edge function with:', {
       postId,
       languages,
-      content: postContent.substring(0, 50) + '...'
+      content: postContent.substring(0, 50) + '...',
+      immediate: true,
+      debug: true
     });
     
     // Make a direct call to our edge function
@@ -262,7 +264,7 @@ export const notifyUsersWithSameLanguages = async (
         // Send a test email to each matching user
         for (const user of matchingUsers) {
           if (user.email) {
-            console.log(`Attempting to send direct email notification to ${user.email}`);
+            console.log(`Sending direct email notification to ${user.email}`);
             
             // Prepare the languages list for the subject
             const languageList = languages.join(', ');
@@ -284,8 +286,10 @@ export const notifyUsersWithSameLanguages = async (
             if (emailError) {
               console.error(`Error sending email to ${user.email}:`, emailError);
             } else {
-              console.log(`Email sent to ${user.email}:`, emailData);
+              console.log(`Email sent successfully to ${user.email}:`, emailData);
             }
+          } else {
+            console.log(`User ${user.user_id} has no email address, skipping notification`);
           }
         }
       }

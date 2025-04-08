@@ -75,11 +75,18 @@ serve(async (req) => {
     console.log('User email from database:', userData.email);
 
     // Check if user has email and has notifications enabled
-    if (!userData?.email || userData.email_notifications_enabled === false) {
-      const reason = !userData?.email ? 'No email found for user' : 'Email notifications are disabled for this user';
-      console.log(reason);
+    if (!userData?.email) {
+      console.log('No email found for user');
       return new Response(
-        JSON.stringify({ message: reason }),
+        JSON.stringify({ message: 'No email found for user' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      )
+    }
+    
+    if (userData.email_notifications_enabled === false) {
+      console.log('Email notifications are disabled for this user');
+      return new Response(
+        JSON.stringify({ message: 'Email notifications are disabled for this user' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
     }

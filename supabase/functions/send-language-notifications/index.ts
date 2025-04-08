@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.36.0'
 
@@ -292,7 +293,7 @@ Check out the full post and join the conversation!`;
             });
 
             if (response.ok) {
-              console.log(`Successfully sent email to user ${user.full_name} (${user.user_id})`);
+              console.log(`Successfully sent email to user ${user.full_name} (${user.user_id}) at ${user.email}`);
               notificationsSent++;
               
               // Also create an in-app notification
