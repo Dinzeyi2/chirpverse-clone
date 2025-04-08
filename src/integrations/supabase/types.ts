@@ -1340,6 +1340,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      save_push_subscription: {
+        Args: { p_user_id: string; p_subscription: string }
+        Returns: undefined
+      }
     }
     Enums: {
       message_role: "user" | "assistant"

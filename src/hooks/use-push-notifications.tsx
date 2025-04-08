@@ -91,28 +91,20 @@ export function usePushNotifications() {
       
       setSubscription(pushSubscription);
       
-      // Save subscription to database using RPC or direct SQL
-      const { error: saveError } = await supabase.rpc('save_push_subscription', {
-        p_user_id: user.id,
-        p_subscription: JSON.stringify(pushSubscription)
-      });
+      // Save subscription to database using direct insert/update
+      const { error: upsertError } = await supabase
+        .from('user_push_subscriptions')
+        .upsert({
+          user_id: user.id,
+          subscription: JSON.stringify(pushSubscription),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id'
+        });
       
-      if (saveError) {
-        // Fallback to direct insert/update
-        const { error: upsertError } = await supabase
-          .from('user_push_subscriptions')
-          .upsert({
-            user_id: user.id,
-            subscription: JSON.stringify(pushSubscription),
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }, {
-            onConflict: 'user_id'
-          });
-        
-        if (upsertError) {
-          throw new Error('Failed to save subscription to database');
-        }
+      if (upsertError) {
+        throw new Error('Failed to save subscription to database');
       }
       
       toast({
