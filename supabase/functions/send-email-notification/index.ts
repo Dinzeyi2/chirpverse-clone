@@ -105,13 +105,30 @@ serve(async (req) => {
       )
     }
 
+    // Make sure the postId exists
+    if (postId) {
+      // Verify the post exists
+      const { data: postData, error: postError } = await supabaseClient
+        .from('shoutouts')
+        .select('id')
+        .eq('id', postId)
+        .single();
+        
+      if (postError || !postData) {
+        console.error('Post not found or error fetching post:', postError);
+        console.log('Invalid postId:', postId);
+      } else {
+        console.log('Post found with ID:', postData.id);
+      }
+    }
+
     // Create a URL to the post - ensure it matches the app's routing structure
-    // Post links should be in the format: https://yourdomain.com/post/{postId}
     const appUrl = Deno.env.get('APP_URL') || 'https://i-blue.dev';
     
-    // Ensure the URL uses the correct format for the app routes
-    // Important: Make sure this path matches exactly how your React Router is configured
-    const postUrl = `${appUrl}/post/${postId}`;
+    // Ensure we're using a consistent format for the post URL
+    // IMPORTANT: We need to make sure this URL format matches what the app is expecting
+    const postUrl = postId ? `${appUrl}/post/${postId}` : appUrl;
+    
     console.log('Generated post URL:', postUrl);
     console.log(`Will send email to: ${userEmail}`);
 

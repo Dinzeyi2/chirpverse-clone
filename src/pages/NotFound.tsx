@@ -13,14 +13,30 @@ const NotFound = () => {
     );
   }, [location.pathname]);
 
-  // Extract post ID if the URL pattern matches /post/{uuid}
+  // Enhanced post ID extraction to handle more URL formats 
   const extractPostId = () => {
-    // Match UUID pattern in the URL
-    const match = location.pathname.match(/\/post\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
-    return match ? match[1] : null;
+    // First try standard format - /post/{uuid}
+    const standardMatch = location.pathname.match(/\/post\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
+    if (standardMatch) return standardMatch[1];
+    
+    // Try alternative format - if the path itself is a UUID (happens when email link is clicked)
+    const uuidPattern = /^\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i;
+    const altMatch = location.pathname.match(uuidPattern);
+    if (altMatch) return altMatch[1];
+    
+    // Try to see if the entire path excluding the first slash is a UUID
+    const rawPath = location.pathname.substring(1); // Remove the leading slash
+    if (/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(rawPath)) {
+      return rawPath;
+    }
+    
+    return null;
   };
 
   const postId = extractPostId();
+  
+  console.log("NotFound - Current path:", location.pathname);
+  console.log("NotFound - Extracted post ID:", postId);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
