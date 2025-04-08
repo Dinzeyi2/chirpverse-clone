@@ -33,6 +33,7 @@ const TestEmailNotification = () => {
           return;
         }
         
+        console.log('Fetched user email from profile:', data?.email);
         setUserEmail(data?.email || null);
       } catch (err) {
         console.error('Error in fetchUserProfile:', err);
@@ -166,6 +167,8 @@ const TestEmailNotification = () => {
       });
       
       console.log('Calling send-email-notification for direct test...');
+      console.log('Using user email from profile:', profile.email);
+      
       const emailResponse = await supabase.functions.invoke('send-email-notification', {
         body: {
           userId: user.id,
@@ -200,6 +203,7 @@ const TestEmailNotification = () => {
       
       console.log('Notification response:', data);
       
+      // Update the result with the actual user email
       setTestResult({
         success: true,
         message: `Test email sent to ${profile.email}. It may take a few minutes to arrive.`
