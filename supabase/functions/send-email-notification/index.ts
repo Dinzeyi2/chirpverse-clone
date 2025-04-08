@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.36.0'
 
@@ -125,14 +124,14 @@ serve(async (req) => {
     // Create a URL to the post with an anchor to jump to comments section
     const appUrl = Deno.env.get('APP_URL') || 'https://i-blue.dev';
     
-    // ENSURE we're using the EXACT format that matches the React Router route
-    // This must be exactly '/post/{postId}#comments' to match the route in App.tsx
+    // CRITICAL: Create the absolute URL with the exact correct format for React Router
+    // Format must be: https://domain.com/post/{postId}#comments
     const postUrl = postId ? `${appUrl}/post/${postId}#comments` : appUrl;
     
     console.log('Generated post URL with comment section anchor:', postUrl);
     console.log(`Will send email to: ${userEmail}`);
 
-    // Generate simple HTML email
+    // Generate simple HTML email with a button that links directly to comments
     const htmlEmail = `
       <!DOCTYPE html>
       <html>
@@ -145,6 +144,7 @@ serve(async (req) => {
             .button { display: inline-block; padding: 10px 20px; background-color: #3b82f6; color: white; 
                     text-decoration: none; border-radius: 4px; font-weight: bold; }
             .footer { font-size: 12px; color: #666; margin-top: 30px; text-align: center; }
+            .post-url { word-break: break-all; color: #666; margin-top: 10px; font-size: 12px; }
           </style>
         </head>
         <body>
@@ -157,6 +157,9 @@ serve(async (req) => {
               <p>${body}</p>
               <p style="text-align: center; margin-top: 30px;">
                 <a href="${postUrl}" class="button">View Comments</a>
+              </p>
+              <p class="post-url">
+                If the button doesn't work, copy and paste this URL into your browser: ${postUrl}
               </p>
             </div>
             <div class="footer">

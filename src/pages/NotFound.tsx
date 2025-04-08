@@ -13,16 +13,16 @@ const NotFound = () => {
     );
   }, [location.pathname]);
 
-  // Enhanced post ID extraction to handle more URL formats 
+  // Enhanced post ID extraction to handle multiple URL formats
   const extractPostId = () => {
     // First try standard format - /post/{uuid}
     const standardMatch = location.pathname.match(/\/post\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
     if (standardMatch) return standardMatch[1];
     
-    // Try alternative format - if the path itself is a UUID (happens when email link is clicked)
+    // Try to see if the path itself is a UUID (happens when email link is malformed)
     const uuidPattern = /^\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i;
-    const altMatch = location.pathname.match(uuidPattern);
-    if (altMatch) return altMatch[1];
+    const directMatch = location.pathname.match(uuidPattern);
+    if (directMatch) return directMatch[1];
     
     // Try to see if the entire path excluding the first slash is a UUID
     const rawPath = location.pathname.substring(1); // Remove the leading slash

@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import CommentList from '@/components/comments/CommentList';
@@ -32,6 +31,7 @@ interface SupabaseComment {
 const PostPage: React.FC = () => {
   const { postId } = useParams<{ postId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   
   const [post, setPost] = useState<any>(null);
@@ -41,6 +41,7 @@ const PostPage: React.FC = () => {
   
   const processedCommentIdsRef = useRef<Set<string>>(new Set());
   const commentsChannelRef = useRef<any>(null);
+  const commentsRef = useRef<HTMLDivElement>(null);
   const blueProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
   
   const addUniqueComments = (newComments: any[], existingComments: any[]) => {
@@ -267,6 +268,15 @@ const PostPage: React.FC = () => {
     };
   }, [postId]);
   
+  useEffect(() => {
+    if (!loading && location.hash === '#comments' && commentsRef.current) {
+      console.log('Scrolling to comments section');
+      setTimeout(() => {
+        commentsRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 500);
+    }
+  }, [loading, location.hash]);
+  
   const handleCommentAdded = async (content: string, media?: {type: string, url: string}[]) => {
     if (!user || !postId) return;
     
@@ -413,8 +423,7 @@ const PostPage: React.FC = () => {
         {post && <PostCard post={post} />}
       </div>
       
-      {/* Add id="comments" to the comment container div for fragment navigation */}
-      <div id="comments" className="comment-container">
+      <div id="comments" ref={commentsRef} className="comment-container">
         {user && (
           <div className="comment-form">
             {replyingTo && (
