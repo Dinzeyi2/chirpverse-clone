@@ -138,11 +138,12 @@ export function usePushNotifications() {
       await subscription.unsubscribe();
       setSubscription(null);
       
-      // Remove subscription from database using RPC function
+      // Instead of using RPC, use a direct DELETE query
       console.log('Removing subscription from database...');
-      const { error } = await supabase.rpc('delete_push_subscription', {
-        p_user_id: user.id
-      });
+      const { error } = await supabase
+        .from('user_push_subscriptions')
+        .delete()
+        .eq('user_id', user.id);
       
       if (error) {
         console.error('Error removing subscription from database:', error);
