@@ -122,14 +122,13 @@ serve(async (req) => {
       }
     }
 
-    // Create a URL to the post - ensure it matches the app's routing structure
+    // Create a URL to the post with an anchor to jump to comments section
     const appUrl = Deno.env.get('APP_URL') || 'https://i-blue.dev';
     
-    // FIXED: Ensure we're using the EXACT format that matches the React Router route
-    // This must be exactly '/post/{postId}' to match the route in App.tsx
-    const postUrl = postId ? `${appUrl}/post/${postId}` : appUrl;
+    // Modified to direct to comment section using fragment identifier
+    const postUrl = postId ? `${appUrl}/post/${postId}#comments` : appUrl;
     
-    console.log('Generated post URL:', postUrl);
+    console.log('Generated post URL with comment section anchor:', postUrl);
     console.log(`Will send email to: ${userEmail}`);
 
     // Generate simple HTML email
@@ -156,7 +155,7 @@ serve(async (req) => {
               <p>Hello ${userData?.full_name || 'there'},</p>
               <p>${body}</p>
               <p style="text-align: center; margin-top: 30px;">
-                <a href="${postUrl}" class="button">View Post</a>
+                <a href="${postUrl}" class="button">View Comments</a>
               </p>
             </div>
             <div class="footer">

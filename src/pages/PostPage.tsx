@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -412,7 +413,8 @@ const PostPage: React.FC = () => {
         {post && <PostCard post={post} />}
       </div>
       
-      <div className="comment-container">
+      {/* Add id="comments" to the comment container div for fragment navigation */}
+      <div id="comments" className="comment-container">
         {user && (
           <div className="comment-form">
             {replyingTo && (
