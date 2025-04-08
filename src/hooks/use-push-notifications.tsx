@@ -91,15 +91,11 @@ export function usePushNotifications() {
       
       setSubscription(subscription);
       
-      // Save subscription to database
-      const { error: saveError } = await supabase
-        .from('user_push_subscriptions')
-        .upsert({
-          user_id: user.id,
-          subscription: JSON.stringify(subscription),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        });
+      // Save subscription to database using a dedicated RPC function
+      const { error: saveError } = await supabase.rpc('save_push_subscription', {
+        p_user_id: user.id,
+        p_subscription: JSON.stringify(subscription)
+      });
       
       if (saveError) {
         throw new Error('Failed to save subscription to database');
@@ -130,11 +126,15 @@ export function usePushNotifications() {
       await subscription.unsubscribe();
       setSubscription(null);
       
-      // Remove subscription from database
-      await supabase
+      // Remove subscription from database using a direct delete query
+      const { error } = await supabase
         .from('user_push_subscriptions')
         .delete()
-        .eq('user_id', user.id);
+        .match({ user_id: user.id });
+      
+      if (error) {
+        console.error('Error removing subscription from database:', error);
+      }
       
       toast({
         title: "Notifications Disabled",

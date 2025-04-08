@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -38,8 +39,7 @@ export const Sidebar = () => {
         .from('notifications')
         .select('count')
         .eq('recipient_id', user.id)
-        .eq('is_read', false)
-        .execute();
+        .eq('is_read', false);
         
       if (!error && data) {
         setUnreadNotifications(data.length);
@@ -71,13 +71,15 @@ export const Sidebar = () => {
     { name: 'Bookmarks', icon: Bookmark, href: '/bookmarks' },
     { name: 'Profile', icon: User, href: profilePath },
     { name: 'Settings', icon: Settings, href: '/settings' },
-    {
-      icon: <Bell size={20} className="mr-4" />,
-      label: "Notifications",
-      path: "/notifications",
-      count: unreadNotifications > 0 ? unreadNotifications : undefined
-    },
   ];
+
+  // Add notifications separately since it has a different structure
+  const notificationsItem = {
+    name: "Notifications",
+    href: "/notifications",
+    icon: Bell,
+    count: unreadNotifications > 0 ? unreadNotifications : undefined
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -123,6 +125,7 @@ export const Sidebar = () => {
           {navigation.slice(0, 4).map((item) => {
             const isActive = location.pathname === item.href || 
               (item.href !== '/' && location.pathname.startsWith(item.href));
+            const IconComponent = item.icon;
               
             return (
               <Link
@@ -133,7 +136,7 @@ export const Sidebar = () => {
                   isActive ? "text-primary" : "text-foreground hover:text-primary"
                 )}
               >
-                <item.icon size={24} className={isActive ? "text-primary" : "text-muted-foreground"} />
+                <IconComponent size={24} className={isActive ? "text-primary" : "text-muted-foreground"} />
               </Link>
             );
           })}
@@ -169,6 +172,7 @@ export const Sidebar = () => {
             {navigation.map((item) => {
               const isActive = location.pathname === item.href || 
                 (item.href !== '/' && location.pathname.startsWith(item.href));
+              const IconComponent = item.icon;
                 
               if (item.name === 'Profile') {
                 return (
@@ -180,7 +184,7 @@ export const Sidebar = () => {
                       isActive ? "font-bold" : "text-foreground hover:bg-secondary/70"
                     )}
                   >
-                    <item.icon size={24} className={isActive ? "text-primary" : "text-muted-foreground"} />
+                    <IconComponent size={24} className={isActive ? "text-primary" : "text-muted-foreground"} />
                     <span className="ml-4 font-heading tracking-wide text-lg uppercase">{item.name}</span>
                   </a>
                 );
@@ -195,11 +199,26 @@ export const Sidebar = () => {
                     isActive ? "font-bold" : "text-foreground hover:bg-secondary/70"
                   )}
                 >
-                  <item.icon size={24} className={isActive ? "text-primary" : "text-muted-foreground"} />
+                  <IconComponent size={24} className={isActive ? "text-primary" : "text-muted-foreground"} />
                   <span className="ml-4 font-heading tracking-wide text-lg uppercase">{item.name}</span>
                 </Link>
               );
             })}
+
+            {/* Add Notifications Link */}
+            <Link
+              to={notificationsItem.href}
+              className={cn(
+                "flex items-center p-3 text-xl font-medium rounded-full transition-colors relative",
+                location.pathname.startsWith(notificationsItem.href) ? "font-bold" : "text-foreground hover:bg-secondary/70"
+              )}
+            >
+              <Bell size={24} className={location.pathname.startsWith(notificationsItem.href) ? "text-primary" : "text-muted-foreground"} />
+              <span className="ml-4 font-heading tracking-wide text-lg uppercase">{notificationsItem.name}</span>
+              {notificationsItem.count && (
+                <Badge className="ml-auto bg-primary text-primary-foreground">{notificationsItem.count}</Badge>
+              )}
+            </Link>
           </nav>
           
           <Dialog open={isPostDialogOpen} onOpenChange={setIsPostDialogOpen}>
@@ -261,6 +280,7 @@ export const Sidebar = () => {
           {navigation.map((item) => {
             const isActive = location.pathname === item.href || 
               (item.href !== '/' && location.pathname.startsWith(item.href));
+            const IconComponent = item.icon;
               
             if (item.name === 'Profile') {
               return (
@@ -275,7 +295,7 @@ export const Sidebar = () => {
                     isCollapsed && "justify-center"
                   )}
                 >
-                  <item.icon size={24} className={isActive ? "text-foreground" : "text-muted-foreground"} />
+                  <IconComponent size={24} className={isActive ? "text-foreground" : "text-muted-foreground"} />
 
                   {!isCollapsed && (
                     <span className="ml-4 font-heading tracking-wide text-lg uppercase">{item.name}</span>
@@ -296,7 +316,7 @@ export const Sidebar = () => {
                   isCollapsed && "justify-center"
                 )}
               >
-                <item.icon size={24} className={isActive ? "text-foreground" : "text-muted-foreground"} />
+                <IconComponent size={24} className={isActive ? "text-foreground" : "text-muted-foreground"} />
                 
                 {!isCollapsed && (
                   <span className="ml-4 font-heading tracking-wide text-lg uppercase">{item.name}</span>
@@ -304,6 +324,35 @@ export const Sidebar = () => {
               </Link>
             );
           })}
+
+          {/* Add Notifications Link */}
+          <Link
+            to={notificationsItem.href}
+            className={cn(
+              "flex items-center p-3 text-lg font-medium rounded-full transition-colors relative",
+              location.pathname.startsWith(notificationsItem.href) 
+                ? "font-bold" 
+                : "text-foreground hover:bg-secondary/70",
+              isCollapsed && "justify-center"
+            )}
+          >
+            <Bell size={24} className={location.pathname.startsWith(notificationsItem.href) ? "text-foreground" : "text-muted-foreground"} />
+            
+            {!isCollapsed && (
+              <span className="ml-4 font-heading tracking-wide text-lg uppercase">{notificationsItem.name}</span>
+            )}
+            
+            {notificationsItem.count && (
+              <Badge 
+                className={cn(
+                  "bg-primary text-primary-foreground",
+                  isCollapsed ? "absolute -top-1 -right-1" : "ml-auto"
+                )}
+              >
+                {notificationsItem.count}
+              </Badge>
+            )}
+          </Link>
 
           {user ? (
             <button
