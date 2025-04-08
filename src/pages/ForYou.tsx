@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, Suspense, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
@@ -97,12 +96,17 @@ const ForYou = () => {
         
         // Filter posts that have languages in metadata matching user's languages
         const matchingPosts = posts.filter(post => {
-          if (!post.metadata?.languages) return false;
+          if (!post.metadata) return false;
           
-          const postLanguages = post.metadata.languages || [];
+          // Make sure metadata is treated as an object and languages exists
+          const metadata = typeof post.metadata === 'string' 
+            ? JSON.parse(post.metadata) 
+            : post.metadata;
+            
+          if (!metadata.languages || !Array.isArray(metadata.languages)) return false;
           
           // Check if any of the post's languages match user's languages (case insensitive)
-          return postLanguages.some((lang: string) => 
+          return metadata.languages.some((lang: string) => 
             userLanguages.some(userLang => 
               userLang.toLowerCase() === lang.toLowerCase()
             )
@@ -137,6 +141,11 @@ const ForYou = () => {
               .from('bookmarks')
               .select('id', { count: 'exact', head: true })
               .eq('post_id', post.id.toString());
+              
+            // Ensure metadata is treated as an object
+            const metadata = typeof post.metadata === 'string' 
+              ? JSON.parse(post.metadata) 
+              : post.metadata;
             
             // Format the post for our components
             return {
@@ -145,8 +154,8 @@ const ForYou = () => {
               createdAt: post.created_at,
               userId: post.user_id,
               images: post.media,
-              languages: post.metadata?.languages || [],
-              codeBlocks: post.metadata?.code_blocks || [],
+              languages: metadata.languages || [],
+              codeBlocks: metadata.code_blocks || [],
               likes: likesCount || 0,
               comments: commentsCount || 0,
               reposts: repostsCount || 0,
@@ -219,12 +228,17 @@ const ForYou = () => {
         
         // Filter posts that have languages in metadata matching user's languages
         const matchingPosts = posts.filter(post => {
-          if (!post.metadata?.languages) return false;
+          if (!post.metadata) return false;
           
-          const postLanguages = post.metadata.languages || [];
+          // Make sure metadata is treated as an object and languages exists
+          const metadata = typeof post.metadata === 'string' 
+            ? JSON.parse(post.metadata) 
+            : post.metadata;
+            
+          if (!metadata.languages || !Array.isArray(metadata.languages)) return false;
           
           // Check if any of the post's languages match user's languages (case insensitive)
-          return postLanguages.some((lang: string) => 
+          return metadata.languages.some((lang: string) => 
             userLanguages.some(userLang => 
               userLang.toLowerCase() === lang.toLowerCase()
             )
@@ -257,6 +271,11 @@ const ForYou = () => {
               .from('bookmarks')
               .select('id', { count: 'exact', head: true })
               .eq('post_id', post.id.toString());
+              
+            // Ensure metadata is treated as an object
+            const metadata = typeof post.metadata === 'string' 
+              ? JSON.parse(post.metadata) 
+              : post.metadata;
             
             // Format the post for our components
             return {
@@ -265,8 +284,8 @@ const ForYou = () => {
               createdAt: post.created_at,
               userId: post.user_id,
               images: post.media,
-              languages: post.metadata?.languages || [],
-              codeBlocks: post.metadata?.code_blocks || [],
+              languages: metadata.languages || [],
+              codeBlocks: metadata.code_blocks || [],
               likes: likesCount || 0,
               comments: commentsCount || 0,
               reposts: repostsCount || 0,
