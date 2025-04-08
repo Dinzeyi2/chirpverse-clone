@@ -269,11 +269,13 @@ const PostPage: React.FC = () => {
   }, [postId]);
   
   useEffect(() => {
-    if (!loading && location.hash === '#comments' && commentsRef.current) {
-      console.log('Scrolling to comments section');
-      setTimeout(() => {
-        commentsRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 500);
+    if (!loading && commentsRef.current) {
+      if (location.hash === '#comments') {
+        console.log('Scrolling to comments section based on URL hash');
+        setTimeout(() => {
+          commentsRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 500);
+      }
     }
   }, [loading, location.hash]);
   

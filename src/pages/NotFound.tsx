@@ -20,6 +20,15 @@ const NotFound = () => {
     if (uuidPattern.test(uuid)) {
       console.log(`Auto-redirecting from raw UUID path to /post/${uuid}${location.hash}`);
       navigate(`/post/${uuid}${location.hash}`, { replace: true });
+      return;
+    }
+    
+    // Check if the path itself contains a UUID anywhere - more aggressive matching
+    const uuidInPathMatch = location.pathname.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
+    if (uuidInPathMatch) {
+      const extractedUuid = uuidInPathMatch[1];
+      console.log(`Found UUID in path: ${extractedUuid}, redirecting to proper format`);
+      navigate(`/post/${extractedUuid}${location.hash}`, { replace: true });
     }
   }, [location.pathname, location.hash, navigate]);
 
@@ -38,6 +47,12 @@ const NotFound = () => {
     const rawPath = location.pathname.substring(1); // Remove the leading slash
     if (/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(rawPath)) {
       return rawPath;
+    }
+    
+    // Check for UUID anywhere in the path (more aggressive matching)
+    const uuidInPathMatch = location.pathname.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
+    if (uuidInPathMatch) {
+      return uuidInPathMatch[1];
     }
     
     return null;

@@ -154,6 +154,14 @@ const UUIDRedirect = () => {
     return <Navigate to={`/post/${uuid}${hash}`} replace />;
   }
   
+  // Even if it's not exactly a UUID, check if there's a UUID in the path
+  const uuidInPathMatch = pathname.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
+  if (uuidInPathMatch) {
+    const extractedUuid = uuidInPathMatch[1];
+    console.log(`UUID Redirect - Found UUID in path: ${extractedUuid}, redirecting to proper format`);
+    return <Navigate to={`/post/${extractedUuid}${hash}`} replace />;
+  }
+  
   // If it's not a UUID, show the 404 page
   console.log("UUID Redirect - Not a valid UUID, showing 404");
   return <NotFound />;
