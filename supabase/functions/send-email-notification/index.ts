@@ -127,7 +127,7 @@ serve(async (req) => {
     if (!resendApiKey) {
       console.error('RESEND_API_KEY is not set');
       return new Response(
-        JSON.stringify({ error: 'Email service is not configured' }),
+        JSON.stringify({ error: 'Email service is not configured - RESEND_API_KEY is missing' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       )
     }

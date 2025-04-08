@@ -39,16 +39,16 @@ export const enableRealtimeForTables = () => {
     // Subscribe to all relevant tables for engagement data
     const channel = supabase.channel('public:realtime')
       .on('postgres_changes', { 
-        event: '*', 
+        event: 'INSERT', 
         schema: 'public', 
         table: 'shoutouts' 
       }, (payload) => {
-        console.log('Shoutout change detected:', payload);
+        console.log('New shoutout detected:', payload);
         
         // If a new post is created, check for language mentions in the content
-        if (payload.eventType === 'INSERT' && payload.new) {
+        if (payload.new) {
           const content = payload.new.content;
-          console.log('New post detected, checking for programming languages in content');
+          console.log('Checking for programming languages in content:', content);
           
           // Extract programming languages mentioned in content
           const languages = extractLanguageMentions(content);
@@ -113,7 +113,7 @@ export const parseArrayField = (field: string | null): string[] => {
   }
 };
 
-// Fixed function to extract programming languages from post content
+// Improved function to extract programming languages from post content
 export const extractLanguageMentions = (content: string): string[] => {
   if (!content) return [];
   
@@ -130,7 +130,7 @@ export const extractLanguageMentions = (content: string): string[] => {
   
   // Scan content for programming language mentions (case insensitive)
   commonLanguages.forEach(language => {
-    // Fix: Cast language to string to ensure toLowerCase() is available
+    // Use word boundaries for more accurate matching
     const regex = new RegExp(`\\b${String(language)}\\b`, 'i');
     if (regex.test(content.toLowerCase())) {
       console.log(`Found programming language: ${language}`);
