@@ -13,7 +13,7 @@ import NotFound from "./pages/NotFound";
 import PostPage from "./pages/PostPage";
 import Auth from "./pages/Auth";
 import Settings from "./pages/Settings";
-import Notifications from "./pages/Notifications";
+import Notifications from "./pages/Notifications"; // Import the Notifications page
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { useEffect } from "react";
@@ -34,17 +34,6 @@ const AppContent = () => {
   useEffect(() => {
     // Enable realtime updates when the app loads
     enableRealtimeForTables();
-    
-    // Register service worker for push notifications
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/service-worker.js')
-        .then(registration => {
-          console.log('Service Worker registered with scope:', registration.scope);
-        })
-        .catch(error => {
-          console.error('Service Worker registration failed:', error);
-        });
-    }
     
     // Test connectivity
     const testRealtime = async () => {

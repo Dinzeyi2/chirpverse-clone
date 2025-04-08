@@ -74,36 +74,34 @@ export function usePushNotifications() {
       const registration = await navigator.serviceWorker.ready;
       
       // Get public VAPID key from the server
-      const vapidResponse = await supabase.functions.invoke('get-vapid-public-key');
+      const { data: { vapidPublicKey }, error: vapidError } = await supabase.functions.invoke('get-vapid-public-key');
       
-      if (vapidResponse.error || !vapidResponse.data?.vapidPublicKey) {
+      if (vapidError || !vapidPublicKey) {
         throw new Error('Failed to get VAPID public key');
       }
       
       // Convert VAPID key to Uint8Array
-      const applicationServerKey = urlBase64ToUint8Array(vapidResponse.data.vapidPublicKey);
+      const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
       
       // Subscribe to push notifications
-      const pushSubscription = await registration.pushManager.subscribe({
+      const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey,
       });
       
-      setSubscription(pushSubscription);
+      setSubscription(subscription);
       
-      // Save subscription to database using direct insert/update
-      const { error: upsertError } = await supabase
+      // Save subscription to database
+      const { error: saveError } = await supabase
         .from('user_push_subscriptions')
         .upsert({
           user_id: user.id,
-          subscription: JSON.stringify(pushSubscription),
+          subscription: JSON.stringify(subscription),
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'user_id'
         });
       
-      if (upsertError) {
+      if (saveError) {
         throw new Error('Failed to save subscription to database');
       }
       
@@ -133,14 +131,10 @@ export function usePushNotifications() {
       setSubscription(null);
       
       // Remove subscription from database
-      const { error } = await supabase
+      await supabase
         .from('user_push_subscriptions')
         .delete()
         .eq('user_id', user.id);
-      
-      if (error) {
-        console.error('Error removing subscription from database:', error);
-      }
       
       toast({
         title: "Notifications Disabled",
