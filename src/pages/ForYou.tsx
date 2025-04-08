@@ -61,7 +61,7 @@ const ForYou = () => {
             metadata,
             media,
             user_id,
-            profiles(id, full_name, username, avatar_url)
+            profiles(id, full_name, avatar_url)
           `)
           .order('created_at', { ascending: false })
           .limit(20);
@@ -96,54 +96,72 @@ const ForYou = () => {
           return;
         }
         
-        // Fetch reactions
-        const { data: reactionsData, error: reactionsError } = await supabase
-          .from('post_reactions')
-          .select('*')
-          .in('post_id', postIds);
+        // Fetch reactions using separate queries instead of JOINs to avoid schema errors
+        const likesPromises = postIds.map(postId => 
+          supabase
+            .from('post_reactions')
+            .select('*')
+            .eq('post_id', postId)
+            .eq('emoji', 'like')
+        );
 
-        if (reactionsError) {
-          console.error('Error fetching reactions:', reactionsError);
-        }
+        const bookmarksPromises = postIds.map(postId => 
+          supabase
+            .from('post_reactions')
+            .select('*')
+            .eq('post_id', postId)
+            .eq('emoji', 'bookmark')
+        );
 
-        // Create a map of reactions by post_id
-        const reactionsMap = new Map();
-        if (reactionsData) {
-          reactionsData.forEach(reaction => {
-            if (!reactionsMap.has(reaction.post_id)) {
-              reactionsMap.set(reaction.post_id, []);
-            }
-            reactionsMap.get(reaction.post_id).push(reaction);
-          });
-        }
+        const commentsPromises = postIds.map(postId => 
+          supabase
+            .from('comments')
+            .select('count')
+            .eq('shoutout_id', postId)
+        );
 
-        // Get comment counts for posts
-        const { data: commentsData, error: commentsError } = await supabase
-          .from('comments')
-          .select('shoutout_id, count(*)')
-          .in('shoutout_id', postIds)
-          .groupBy('shoutout_id');
+        // Resolve all promises
+        const likesResults = await Promise.all(likesPromises);
+        const bookmarksResults = await Promise.all(bookmarksPromises);
+        const commentsResults = await Promise.all(commentsPromises);
 
-        if (commentsError) {
-          console.error('Error fetching comment counts:', commentsError);
-        }
-
-        // Create a map of comment counts by post_id
+        // Create maps for likes, bookmarks, and comments counts
+        const likesMap = new Map();
+        const bookmarksMap = new Map();
         const commentsMap = new Map();
-        if (commentsData) {
-          commentsData.forEach(comment => {
-            commentsMap.set(comment.shoutout_id, parseInt(comment.count));
-          });
-        }
+        const userLikedMap = new Map();
+        const userBookmarkedMap = new Map();
+
+        // Process likes results
+        likesResults.forEach((result, index) => {
+          if (!result.error) {
+            const postId = postIds[index];
+            likesMap.set(postId, result.data.length);
+            userLikedMap.set(postId, result.data.some(like => like.user_id === user.id));
+          }
+        });
+
+        // Process bookmarks results
+        bookmarksResults.forEach((result, index) => {
+          if (!result.error) {
+            const postId = postIds[index];
+            bookmarksMap.set(postId, result.data.length);
+            userBookmarkedMap.set(postId, result.data.some(bookmark => bookmark.user_id === user.id));
+          }
+        });
+
+        // Process comments results
+        commentsResults.forEach((result, index) => {
+          if (!result.error && result.data.length > 0) {
+            const postId = postIds[index];
+            commentsMap.set(postId, parseInt(result.data[0].count) || 0);
+          }
+        });
 
         // Format posts to match the Post interface
         const formattedPosts = filteredPosts.map(post => {
-          const postReactions = reactionsMap.get(post.id) || [];
-          const likes = postReactions.filter(r => r.emoji === 'like').length;
-          const bookmarks = postReactions.filter(r => r.emoji === 'bookmark').length;
-          const isLiked = postReactions.some(r => r.emoji === 'like' && r.user_id === user.id);
-          const isBookmarked = postReactions.some(r => r.emoji === 'bookmark' && r.user_id === user.id);
           const postMetadata = post.metadata as Record<string, any> || {};
+          const postLanguages = postMetadata.languages || [];
           
           return {
             id: post.id,
@@ -151,18 +169,22 @@ const ForYou = () => {
             userId: post.user_id,
             createdAt: post.created_at,
             user: {
-              id: post.profiles?.id,
-              name: post.profiles?.full_name || post.profiles?.username,
-              image: post.profiles?.avatar_url,
+              id: post.profiles?.id || '',
+              name: post.profiles?.full_name || 'User',
+              image: post.profiles?.avatar_url || '',
+              username: '', // Required by User type
+              email: '',    // Required by User type
+              avatar: post.profiles?.avatar_url || '',
+              verified: false
             },
             images: post.media || [],
-            languages: postMetadata.languages || [],
-            likes: likes,
-            bookmarks: bookmarks,
+            languages: postLanguages,
+            likes: likesMap.get(post.id) || 0,
+            bookmarks: bookmarksMap.get(post.id) || 0,
             comments: commentsMap.get(post.id) || 0,
             replies: 0, // Required by Post type
-            isLiked: isLiked,
-            isBookmarked: isBookmarked,
+            isLiked: userLikedMap.get(post.id) || false,
+            isBookmarked: userBookmarkedMap.get(post.id) || false,
           } as Post;
         });
 
