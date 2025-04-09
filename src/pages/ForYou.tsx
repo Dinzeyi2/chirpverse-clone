@@ -65,9 +65,8 @@ const ForYou = () => {
     const normalizedUserLangs = userLangs.map(lang => lang.toLowerCase().trim());
     
     if (post.metadata) {
-      let metadata;
       try {
-        metadata = typeof post.metadata === 'string' 
+        const metadata = typeof post.metadata === 'string' 
           ? JSON.parse(post.metadata) 
           : post.metadata;
           
@@ -75,13 +74,32 @@ const ForYou = () => {
           for (const postLang of metadata.languages) {
             const postLangLower = postLang.toLowerCase().trim();
             if (normalizedUserLangs.includes(postLangLower)) {
-              console.log(`Strict match found in metadata: Post has ${postLang}, user has ${normalizedUserLangs.join(', ')}`);
+              console.log(`Match found in metadata: Post has ${postLang}, user has ${normalizedUserLangs.join(', ')}`);
               return true;
             }
           }
         }
       } catch (e) {
         console.error('Error parsing post metadata:', e);
+      }
+    }
+    
+    if (post.languages && Array.isArray(post.languages)) {
+      for (const postLang of post.languages) {
+        const postLangLower = postLang.toLowerCase().trim();
+        if (normalizedUserLangs.includes(postLangLower)) {
+          console.log(`Match found in languages array: Post has ${postLang}, user has ${normalizedUserLangs.join(', ')}`);
+          return true;
+        }
+      }
+    }
+    
+    if (post.content) {
+      for (const userLang of normalizedUserLangs) {
+        if (post.content.toLowerCase().includes(`@${userLang}`)) {
+          console.log(`Match found in content: Post has @${userLang} mention, user has ${normalizedUserLangs.join(', ')}`);
+          return true;
+        }
       }
     }
     
