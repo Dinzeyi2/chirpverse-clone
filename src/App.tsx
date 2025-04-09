@@ -19,6 +19,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { useEffect } from "react";
 import { enableRealtimeForTables, supabase } from "./integrations/supabase/client";
 import { UrlHandler } from "./components/routing/UrlHandler";
+import AppLayout from "./components/layout/AppLayout";
 
 // Create a new query client with better cache settings
 const queryClient = new QueryClient({
@@ -63,74 +64,18 @@ const AppContent = () => {
         <Route path="/auth" element={<Auth />} />
         
         {/* Public routes (accessible without login) */}
-        <Route 
-          path="/" 
-          element={
-            <ProtectedRoute>
-              <Index />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/explore" 
-          element={
-            <ProtectedRoute>
-              <Explore />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/post/:postId" 
-          element={
-            <ProtectedRoute>
-              <PostPage />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Add ForYou route */}
-        <Route 
-          path="/for-you" 
-          element={
-            <ProtectedRoute>
-              <ForYou />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Protected routes (require login) */}
-        <Route 
-          path="/profile/:userId?" 
-          element={
-            <ProtectedRoute requireAuth={true}>
-              <Profile />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/profile" 
-          element={
-            <ProtectedRoute requireAuth={true}>
-              <Profile />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/bookmarks" 
-          element={
-            <ProtectedRoute requireAuth={true}>
-              <Bookmarks />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/settings" 
-          element={
-            <ProtectedRoute requireAuth={true}>
-              <Settings />
-            </ProtectedRoute>
-          } 
-        />
+        <Route path="/" element={<AppLayout />}>
+          <Route index element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          <Route path="/explore" element={<ProtectedRoute><Explore /></ProtectedRoute>} />
+          <Route path="/post/:postId" element={<ProtectedRoute><PostPage /></ProtectedRoute>} />
+          <Route path="/for-you" element={<ProtectedRoute><ForYou /></ProtectedRoute>} />
+          
+          {/* Protected routes (require login) */}
+          <Route path="/profile/:userId?" element={<ProtectedRoute requireAuth={true}><Profile /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute requireAuth={true}><Profile /></ProtectedRoute>} />
+          <Route path="/bookmarks" element={<ProtectedRoute requireAuth={true}><Bookmarks /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute requireAuth={true}><Settings /></ProtectedRoute>} />
+        </Route>
         
         {/* UUID routes - catch all patterns and redirect through UrlHandler */}
         <Route path="/:uuid" element={<NotFound />} />

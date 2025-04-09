@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -22,7 +23,8 @@ export const Sidebar = () => {
   const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
-  const profilePath = '/profile';
+  // Set profilePath to user-specific path if user exists, or generic path if not
+  const profilePath = user ? `/profile/${user.id}` : '/profile';
 
   useEffect(() => {
     if (isMobile) {
@@ -370,7 +372,24 @@ export const Sidebar = () => {
         </nav>
         
         <div className="mt-auto">
-          
+          <Dialog open={isPostDialogOpen} onOpenChange={setIsPostDialogOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                variant="outline"
+                size="lg"
+                className={cn(
+                  "w-full font-bold bg-primary text-white hover:bg-primary/90 hover:text-white border-0 px-6 py-3 rounded-full",
+                  isCollapsed && "p-3"
+                )}
+              >
+                <PlusCircle size={24} />
+                {!isCollapsed && <span className="ml-2">Create Post</span>}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[600px] p-0 rounded-2xl bg-background border-border">
+              <CreatePost onPostCreated={handlePostCreated} inDialog={true} />
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </div>
