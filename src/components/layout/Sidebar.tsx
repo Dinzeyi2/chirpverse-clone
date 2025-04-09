@@ -7,12 +7,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import CreatePost from '@/components/feed/CreatePost';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import { UserSession } from '@/types/userSessions';
-
-const SUPABASE_URL = "https://vcywiyvbfrylffwfzsny.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjeXdpeXZiZnJ5bGZmd2Z6c255Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc0ODA3MDIsImV4cCI6MjA1MzA1NjcwMn0.rZUZjLf4j6h0lhl53PhKJ0eARsBXdmlPOtIAHTJQxNE";
+import { toast } from '@/hooks/use-toast';
 
 export const Sidebar = () => {
   const location = useLocation();
@@ -42,8 +40,8 @@ export const Sidebar = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'apikey': SUPABASE_PUBLISHABLE_KEY,
+            'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
             'Prefer': 'resolution=merge-duplicates'
           },
           body: JSON.stringify({
@@ -79,8 +77,8 @@ export const Sidebar = () => {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`
+            'apikey': SUPABASE_PUBLISHABLE_KEY,
+            'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
           },
           body: JSON.stringify({
             is_online: false
@@ -106,49 +104,97 @@ export const Sidebar = () => {
     if (!user) return;
     
     const checkUnreadNotifications = async () => {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('count')
-        .eq('recipient_id', user.id)
-        .eq('is_read', false);
+      try {
+        console.log('Checking for unread notifications for user:', user.id);
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('id')
+          .eq('recipient_id', user.id)
+          .eq('is_read', false);
+          
+        if (error) {
+          console.error('Error checking notifications:', error);
+          return;
+        }
         
-      if (!error && data) {
-        setHasUnreadNotifications(data.length > 0);
+        const hasUnread = data && data.length > 0;
+        console.log(`Found ${data?.length || 0} unread notifications, setting indicator to: ${hasUnread}`);
+        setHasUnreadNotifications(hasUnread);
+      } catch (error) {
+        console.error('Exception checking notifications:', error);
       }
     };
     
     checkUnreadNotifications();
     
     const notificationsChannel = supabase
-      .channel('notification-changes')
+      .channel('sidebar-notification-changes')
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
         table: 'notifications',
         filter: `recipient_id=eq.${user.id}`,
-      }, () => {
+      }, (payload) => {
+        console.log('New notification received:', payload);
         setHasUnreadNotifications(true);
+        
+        toast({
+          title: "New Notification",
+          description: payload.new.content,
+          action: (
+            <Button 
+              onClick={() => navigate('/notifications')}
+              variant="outline"
+              size="sm"
+            >
+              View
+            </Button>
+          )
+        });
+      })
+      .subscribe();
+      
+    const notificationUpdatesChannel = supabase
+      .channel('sidebar-notification-updates')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'notifications',
+        filter: `recipient_id=eq.${user.id}`,
+      }, () => {
+        checkUnreadNotifications();
       })
       .subscribe();
       
     if (location.pathname === '/notifications') {
-      setHasUnreadNotifications(false);
-      
-      const updateNotificationsToRead = async () => {
-        await supabase
-          .from('notifications')
-          .update({ is_read: true })
-          .eq('recipient_id', user.id)
-          .eq('is_read', false);
+      const markNotificationsAsRead = async () => {
+        console.log('On notifications page, marking notifications as read');
+        try {
+          const { error } = await supabase
+            .from('notifications')
+            .update({ is_read: true })
+            .eq('recipient_id', user.id)
+            .eq('is_read', false);
+            
+          if (error) {
+            console.error('Error marking notifications as read:', error);
+            return;
+          }
+          
+          setHasUnreadNotifications(false);
+        } catch (error) {
+          console.error('Exception marking notifications as read:', error);
+        }
       };
       
-      updateNotificationsToRead();
+      markNotificationsAsRead();
     }
       
     return () => {
       supabase.removeChannel(notificationsChannel);
+      supabase.removeChannel(notificationUpdatesChannel);
     };
-  }, [user, location.pathname]);
+  }, [user, location.pathname, navigate]);
 
   const navigation = [
     { name: 'Home', icon: Home, href: '/' },
