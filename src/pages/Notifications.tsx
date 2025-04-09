@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Bell, ChevronDown } from 'lucide-react';
@@ -65,7 +66,6 @@ const Notifications = () => {
     const fetchNotifications = async () => {
       setLoading(true);
       try {
-        console.log('Fetching notifications for user:', user.id);
         const { data, error } = await supabase
           .from('notifications')
           .select(`
@@ -86,33 +86,16 @@ const Notifications = () => {
         const now = new Date();
         localStorage.setItem(`notifications_last_visited_${user.id}`, now.toISOString());
 
-        // Identify unread notifications
         const unreadNotifications = data.filter(notification => !notification.is_read);
-        console.log(`Found ${unreadNotifications.length} unread notifications to mark as read`);
-        
         if (unreadNotifications.length > 0) {
           const unreadIds = unreadNotifications.map(notification => notification.id);
           
-          // Mark all notifications as read in batch
-          const { error: updateError } = await supabase
+          await supabase
             .from('notifications')
             .update({ is_read: true })
             .in('id', unreadIds);
             
-          if (updateError) {
-            console.error('Error marking notifications as read:', updateError);
-          } else {
-            console.log(`Marked ${unreadIds.length} notifications as read`);
-            
-            // Explicitly emit an update event that the sidebar can listen for
-            await supabase
-              .from('notifications')
-              .select('id')
-              .limit(1)
-              .then(() => {
-                console.log('Triggered notification state update for sidebar');
-              });
-          }
+          console.log(`Marked ${unreadIds.length} notifications as read`);
         }
 
         const formattedNotifications = data.map(notification => {
@@ -144,7 +127,7 @@ const Notifications = () => {
             post: postExcerpt,
             postId: postId,
             time: formatTimeAgo(new Date(notification.created_at)),
-            isRead: true, // Mark all as read in UI once viewed
+            isRead: true,
           };
         });
 
@@ -163,43 +146,22 @@ const Notifications = () => {
 
     fetchNotifications();
 
-    // Listen for new notifications
     const notificationsChannel = supabase
-      .channel('notification-changes-page')
+      .channel('notification-changes')
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
         table: 'notifications',
         filter: `recipient_id=eq.${user.id}`,
       }, (payload) => {
-        console.log('New notification received on notifications page:', payload);
         const newNotification = payload.new;
         
-        // Immediately mark as read since we're on the notifications page
-        supabase
-          .from('notifications')
-          .update({ is_read: true })
-          .eq('id', newNotification.id)
-          .then(({ error }) => {
-            if (error) {
-              console.error('Error marking new notification as read:', error);
-            } else {
-              console.log('Automatically marked new notification as read');
-            }
-          });
-        
-        // Fetch sender profile
         supabase
           .from('profiles')
           .select('full_name, user_id, avatar_url')
           .eq('user_id', newNotification.sender_id)
           .single()
-          .then(({ data: profile, error }) => {
-            if (error) {
-              console.error('Error fetching sender profile:', error);
-              return;
-            }
-            
+          .then(({ data: profile }) => {
             let postExcerpt: string | undefined = undefined;
             let postId: string | undefined = undefined;
             
@@ -228,10 +190,26 @@ const Notifications = () => {
               post: postExcerpt,
               postId: postId,
               time: formatTimeAgo(new Date(newNotification.created_at)),
-              isRead: true,
+              isRead: false,
             };
             
             setNotifications(prev => [formattedNotification, ...prev]);
+            
+            // Modified toast notification content to remove names
+            let toastDescription = contentWithoutNames;
+            
+            toast({
+              title: getNotificationTitle(newNotification.type),
+              description: toastDescription,
+              action: (
+                <a 
+                  onClick={() => navigate(postId ? `/post/${postId}` : '/notifications')}
+                  className="cursor-pointer bg-blue-500 text-white px-2 py-1 rounded text-xs"
+                >
+                  View
+                </a>
+              )
+            });
           });
       })
       .subscribe();

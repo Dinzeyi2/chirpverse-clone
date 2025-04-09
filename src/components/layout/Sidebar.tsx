@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -8,10 +7,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import CreatePost from '@/components/feed/CreatePost';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import { UserSession } from '@/types/userSessions';
-import { toast } from '@/hooks/use-toast';
+
+const SUPABASE_URL = "https://vcywiyvbfrylffwfzsny.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjeXdpeXZiZnJ5bGZmd2Z6c255Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc0ODA3MDIsImV4cCI6MjA1MzA1NjcwMn0.rZUZjLf4j6h0lhl53PhKJ0eARsBXdmlPOtIAHTJQxNE";
 
 export const Sidebar = () => {
   const location = useLocation();
@@ -37,35 +38,32 @@ export const Sidebar = () => {
     
     const updateUserActiveStatus = async () => {
       try {
-        console.log('Updating user active status for user:', user.id);
-        
-        // Use directly the supabase client which has RLS instead of fetch
-        const { error } = await supabase
-          .from('user_sessions')
-          .upsert({
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/user_sessions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify({
             user_id: user.id,
             last_active: new Date().toISOString(),
             is_online: true
-          }, {
-            onConflict: 'user_id',
-            ignoreDuplicates: false
-          });
+          })
+        });
           
-        if (error) {
-          console.error('Error updating user active status:', error);
-        } else {
-          console.log('Successfully updated user active status');
+        if (!response.ok) {
+          console.error('Error updating user active status:', await response.text());
         }
       } catch (err) {
         console.error('Exception updating user active status:', err);
       }
     };
     
-    // Update immediately on mount
     updateUserActiveStatus();
     
-    // Then update every 30 seconds (more frequent to ensure accuracy)
-    const intervalId = setInterval(updateUserActiveStatus, 30 * 1000);
+    const intervalId = setInterval(updateUserActiveStatus, 60 * 1000);
     
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -77,18 +75,20 @@ export const Sidebar = () => {
     
     const setUserOffline = async () => {
       try {
-        console.log('Setting user offline before unmount:', user.id);
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/user_sessions?user_id=eq.${user.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          },
+          body: JSON.stringify({
+            is_online: false
+          })
+        });
         
-        // Use supabase client directly instead of fetch
-        const { error } = await supabase
-          .from('user_sessions')
-          .update({ is_online: false })
-          .eq('user_id', user.id);
-        
-        if (error) {
-          console.error('Error setting user offline:', error);
-        } else {
-          console.log('Successfully set user offline');
+        if (!response.ok) {
+          console.error('Error setting user offline:', await response.text());
         }
       } catch (err) {
         console.error('Error setting user offline:', err);
@@ -106,97 +106,49 @@ export const Sidebar = () => {
     if (!user) return;
     
     const checkUnreadNotifications = async () => {
-      try {
-        console.log('Checking for unread notifications for user:', user.id);
-        const { data, error } = await supabase
-          .from('notifications')
-          .select('id')
-          .eq('recipient_id', user.id)
-          .eq('is_read', false);
-          
-        if (error) {
-          console.error('Error checking notifications:', error);
-          return;
-        }
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('count')
+        .eq('recipient_id', user.id)
+        .eq('is_read', false);
         
-        const hasUnread = data && data.length > 0;
-        console.log(`Found ${data?.length || 0} unread notifications, setting indicator to: ${hasUnread}`);
-        setHasUnreadNotifications(hasUnread);
-      } catch (error) {
-        console.error('Exception checking notifications:', error);
+      if (!error && data) {
+        setHasUnreadNotifications(data.length > 0);
       }
     };
     
     checkUnreadNotifications();
     
     const notificationsChannel = supabase
-      .channel('sidebar-notification-changes')
+      .channel('notification-changes')
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
         table: 'notifications',
         filter: `recipient_id=eq.${user.id}`,
-      }, (payload) => {
-        console.log('New notification received:', payload);
-        setHasUnreadNotifications(true);
-        
-        toast({
-          title: "New Notification",
-          description: payload.new.content,
-          action: (
-            <Button 
-              onClick={() => navigate('/notifications')}
-              variant="outline"
-              size="sm"
-            >
-              View
-            </Button>
-          )
-        });
-      })
-      .subscribe();
-      
-    const notificationUpdatesChannel = supabase
-      .channel('sidebar-notification-updates')
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'notifications',
-        filter: `recipient_id=eq.${user.id}`,
       }, () => {
-        checkUnreadNotifications();
+        setHasUnreadNotifications(true);
       })
       .subscribe();
       
     if (location.pathname === '/notifications') {
-      const markNotificationsAsRead = async () => {
-        console.log('On notifications page, marking notifications as read');
-        try {
-          const { error } = await supabase
-            .from('notifications')
-            .update({ is_read: true })
-            .eq('recipient_id', user.id)
-            .eq('is_read', false);
-            
-          if (error) {
-            console.error('Error marking notifications as read:', error);
-            return;
-          }
-          
-          setHasUnreadNotifications(false);
-        } catch (error) {
-          console.error('Exception marking notifications as read:', error);
-        }
+      setHasUnreadNotifications(false);
+      
+      const updateNotificationsToRead = async () => {
+        await supabase
+          .from('notifications')
+          .update({ is_read: true })
+          .eq('recipient_id', user.id)
+          .eq('is_read', false);
       };
       
-      markNotificationsAsRead();
+      updateNotificationsToRead();
     }
       
     return () => {
       supabase.removeChannel(notificationsChannel);
-      supabase.removeChannel(notificationUpdatesChannel);
     };
-  }, [user, location.pathname, navigate]);
+  }, [user, location.pathname]);
 
   const navigation = [
     { name: 'Home', icon: Home, href: '/' },

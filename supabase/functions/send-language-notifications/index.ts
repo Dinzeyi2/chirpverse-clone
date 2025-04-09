@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.36.0'
 
@@ -94,6 +95,7 @@ serve(async (req) => {
     const postAuthorId = post.user_id;
     console.log(`Post author ID: ${postAuthorId}`);
 
+    // We still fetch the author information for logging purposes
     const { data: authorProfile, error: authorError } = await supabaseClient
       .from('profiles')
       .select('full_name')
@@ -149,6 +151,7 @@ serve(async (req) => {
       )
     }
     
+    // Get list of users who have already been notified about this post to prevent duplicates
     const { data: alreadyNotified, error: notificationCheckError } = await supabaseClient
       .from('notification_logs')
       .select('recipient_id')
@@ -160,40 +163,34 @@ serve(async (req) => {
       console.error('Error checking for existing notifications:', notificationCheckError);
     }
     
+    // Create a set of user IDs who have already been notified for fast lookups
     const alreadyNotifiedUserIds = new Set(
       alreadyNotified?.map(notification => notification.recipient_id) || []
     );
     console.log(`Found ${alreadyNotifiedUserIds.size} users already notified about this post`);
     
-    const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000).toISOString();
-    const { data: activeSessionsData, error: activeError } = await supabaseClient
+    // NEW: Check for currently active users
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const { data: activeUsers, error: activeError } = await supabaseClient
       .from('user_sessions')
-      .select('user_id, is_online, last_active')
-      .or(`is_online.eq.true,last_active.gte.${threeMinutesAgo}`);
+      .select('user_id, last_active')
+      .gte('last_active', fiveMinutesAgo);
       
-    if (activeError) {
-      console.error('Error checking for active users:', activeError);
-    }
-    
-    const activeUserMap = new Map();
-    activeSessionsData?.forEach(session => {
-      activeUserMap.set(session.user_id, {
-        is_online: session.is_online,
-        last_active: session.last_active
-      });
-    });
-    
-    console.log(`Found ${activeUserMap.size} currently active users who will receive in-app notifications only`);
+    // Create a set of active user IDs for fast lookups
+    const activeUserIds = new Set(
+      activeUsers?.map(session => session.user_id) || []
+    );
+    console.log(`Found ${activeUserIds.size} currently active users who will receive in-app notifications only`);
     
     let notificationsSent = 0;
     let notificationsSkipped = 0;
-    let skippedDueToActiveStatus = 0;
     let inAppNotificationsCreated = 0;
     const notificationResults = [];
     const notificationErrors = [];
 
     for (const profile of profilesWithNotifications) {
       try {
+        // Skip users who have already been notified about this post
         if (alreadyNotifiedUserIds.has(profile.user_id)) {
           console.log(`User ${profile.user_id} already notified about this post, skipping`);
           notificationsSkipped++;
@@ -251,31 +248,36 @@ serve(async (req) => {
           
           const languageList = matchingLanguages.join(', ');
           
+          // Modified: Remove author name from email subject
           const emailSubject = `New post about ${languageList}`;
           
           const truncatedContent = content.length > 200 ? content.substring(0, 200) + '...' : content;
           
+          // Modified: Remove author name from email body
           const emailBody = `New post about ${languageList} on iBlue:
           
 "${truncatedContent}"
 
 Check out the full post and join the conversation!`;
 
-          const notificationsUrl = `${appUrl}/notifications?postId=${postId}`;
+          // Direct to the notifications page instead of the post
+          const notificationsUrl = `${appUrl}/notifications`;
           
           try {
+            // ALWAYS create an in-app notification regardless of email status
             const { error: notifError } = await supabaseClient
               .from('notifications')
               .insert({
                 recipient_id: profile.user_id,
                 sender_id: postAuthorId,
                 type: 'language_mention',
+                // Modified: Remove author name from notification content
                 content: `New post about ${languageList}`,
                 metadata: {
                   languages: matchingLanguages,
                   post_id: postId,
                   post_excerpt: content.substring(0, 100) + (content.length > 100 ? '...' : ''),
-                  author_name: authorName
+                  author_name: authorName // We still store this internally, but don't show it
                 }
               });
               
@@ -286,27 +288,11 @@ Check out the full post and join the conversation!`;
               inAppNotificationsCreated++;
             }
 
-            const userActiveData = activeUserMap.get(profile.user_id);
-            const isUserActive = userActiveData !== undefined;
+            // Check if user is currently active - if so, skip the email
+            const isUserActive = activeUserIds.has(profile.user_id);
             
             if (isUserActive) {
-              console.log(`User ${profile.user_id} is currently active in the app (online: ${userActiveData.is_online}, last active: ${userActiveData.last_active}). Skipping email notification.`);
-              
-              await supabaseClient
-                .from('notification_logs')
-                .insert({
-                  type: 'email',
-                  recipient_id: profile.user_id,
-                  email: userEmail,
-                  subject: emailSubject,
-                  status: 'skipped_active_user',
-                  metadata: {
-                    postId: postId,
-                    is_online: userActiveData.is_online,
-                    last_active: userActiveData.last_active
-                  }
-                });
-              
+              console.log(`User ${profile.user_id} is currently active in the app. Skipping email notification.`);
               notificationResults.push({
                 userId: profile.user_id,
                 name: profile.full_name,
@@ -315,14 +301,12 @@ Check out the full post and join the conversation!`;
                 success: true,
                 active: true,
                 emailSent: false,
-                message: "User is active, skipped email notification",
-                activeDetails: userActiveData
+                message: "User is active, skipped email notification"
               });
-              
-              skippedDueToActiveStatus++;
-              continue;
+              continue; // Skip email sending for active users
             }
 
+            // Send email notification only to non-active users
             const response = await fetch(
               `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email-notification`,
               {
@@ -337,7 +321,7 @@ Check out the full post and join the conversation!`;
                   body: emailBody,
                   postId: postId,
                   priority: 'high',
-                  skipEmailIfActive: true,
+                  skipEmailIfActive: true, // Tell the email function to check for active users
                   viewUrl: `${appUrl}/notifications?source=email&postId=${postId}`,
                   debug: debug
                 }),
@@ -398,7 +382,7 @@ Check out the full post and join the conversation!`;
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Notifications processed. Sent ${notificationsSent} emails, created ${inAppNotificationsCreated} in-app notifications, skipped ${notificationsSkipped} (${skippedDueToActiveStatus} due to active status)`,
+        message: `Notifications processed. Sent ${notificationsSent} emails, created ${inAppNotificationsCreated} in-app notifications, skipped ${notificationsSkipped}`,
         post: {
           id: postId,
           languages: languages,
@@ -410,8 +394,7 @@ Check out the full post and join the conversation!`;
           notifications_sent: notificationsSent,
           in_app_notifications_created: inAppNotificationsCreated,
           notifications_skipped: notificationsSkipped,
-          skipped_active_users: skippedDueToActiveStatus,
-          active_users_count: activeUserMap.size,
+          active_users: activeUserIds.size,
           errors: notificationErrors.length
         },
         details: debug ? {
