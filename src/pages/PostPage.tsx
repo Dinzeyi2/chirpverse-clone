@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -48,12 +49,12 @@ const PostPage = () => {
         likes: 0, // Will fetch counts separately
         replies: 0,
         user: {
-          id: data.user.user_id,
-          username: data.user.username || '',
+          id: data.user.user_id || data.user.id,
+          username: data.user.user_id || '',
           name: data.user.full_name,
           avatar: data.user.avatar_url || '',
           email: data.user.email || '',
-          verified: !!data.user.verified,
+          verified: false,
           profession: data.user.profession
         },
         images: data.media?.images || [],
@@ -73,19 +74,24 @@ const PostPage = () => {
   const { data: likeCounts } = useQuery({
     queryKey: ['likeCounts', postId],
     queryFn: async () => {
-      if (!postId) return null;
+      if (!postId) return 0;
       
-      const { data, error } = await supabase
-        .from('shoutout_likes')
-        .select('count(*)')
-        .eq('shoutout_id', postId);
+      try {
+        const { data, error } = await supabase
+          .from('likes')
+          .select('id', { count: 'exact' })
+          .eq('shoutout_id', postId);
+          
+        if (error) {
+          console.error("Error fetching like counts:", error);
+          return 0;
+        }
         
-      if (error) {
-        console.error("Error fetching like counts:", error);
+        return (data?.length || 0);
+      } catch (err) {
+        console.error("Error in likes count:", err);
         return 0;
       }
-      
-      return parseInt(data?.[0]?.count || '0', 10);
     },
     retry: 1,
     enabled: !!postId
@@ -95,19 +101,24 @@ const PostPage = () => {
   const { data: replyCounts } = useQuery({
     queryKey: ['replyCounts', postId],
     queryFn: async () => {
-      if (!postId) return null;
+      if (!postId) return 0;
       
-      const { data, error } = await supabase
-        .from('comments')
-        .select('count(*)')
-        .eq('shoutout_id', postId);
+      try {
+        const { data, error } = await supabase
+          .from('comments')
+          .select('id', { count: 'exact' })
+          .eq('shoutout_id', postId);
+          
+        if (error) {
+          console.error("Error fetching reply counts:", error);
+          return 0;
+        }
         
-      if (error) {
-        console.error("Error fetching reply counts:", error);
+        return (data?.length || 0);
+      } catch (err) {
+        console.error("Error in comments count:", err);
         return 0;
       }
-      
-      return parseInt(data?.[0]?.count || '0', 10);
     },
     retry: 1,
     enabled: !!postId
@@ -119,18 +130,23 @@ const PostPage = () => {
     queryFn: async () => {
       if (!postId || !user?.id) return false;
       
-      const { data, error } = await supabase
-        .from('shoutout_likes')
-        .select('count(*)')
-        .eq('shoutout_id', postId)
-        .eq('user_id', user.id);
+      try {
+        const { data, error } = await supabase
+          .from('likes')
+          .select('id', { count: 'exact' })
+          .eq('shoutout_id', postId)
+          .eq('user_id', user.id);
+          
+        if (error) {
+          console.error("Error fetching liked by user:", error);
+          return false;
+        }
         
-      if (error) {
-        console.error("Error fetching liked by user:", error);
+        return (data?.length || 0) > 0;
+      } catch (err) {
+        console.error("Error checking if post is liked:", err);
         return false;
       }
-      
-      return parseInt(data?.[0]?.count || '0', 10) > 0;
     },
     retry: 1,
     enabled: !!postId && !!user?.id
@@ -142,18 +158,23 @@ const PostPage = () => {
     queryFn: async () => {
       if (!postId || !user?.id) return false;
       
-      const { data, error } = await supabase
-        .from('bookmarks')
-        .select('count(*)')
-        .eq('shoutout_id', postId)
-        .eq('user_id', user.id);
+      try {
+        const { data, error } = await supabase
+          .from('bookmarks')
+          .select('id', { count: 'exact' })
+          .eq('post_id', postId)
+          .eq('user_id', user.id);
+          
+        if (error) {
+          console.error("Error fetching bookmarked by user:", error);
+          return false;
+        }
         
-      if (error) {
-        console.error("Error fetching bookmarked by user:", error);
+        return (data?.length || 0) > 0;
+      } catch (err) {
+        console.error("Error checking if post is bookmarked:", err);
         return false;
       }
-      
-      return parseInt(data?.[0]?.count || '0', 10) > 0;
     },
     retry: 1,
     enabled: !!postId && !!user?.id
@@ -177,25 +198,24 @@ const PostPage = () => {
     if (post && !viewRecorded) {
       const recordView = async () => {
         try {
-          const { error } = await supabase.rpc('increment_view_count', {
-            row_id: postId,
-            table_name: 'shoutouts',
-            column_name: 'views'
-          });
-          
-          if (error) {
-            console.error("Error incrementing view count:", error);
-          } else {
+          // Use a custom RPC function or direct table update
+          try {
+            await supabase.from('post_views').insert({
+              shoutout_id: postId,
+              user_id: user?.id
+            });
             setViewRecorded(true);
+          } catch (err) {
+            console.error("Error recording view:", err);
           }
         } catch (err) {
-          console.error("Error in increment_view_count:", err);
+          console.error("Error in view recording:", err);
         }
       };
       
       recordView();
     }
-  }, [post, postId, viewRecorded]);
+  }, [post, postId, viewRecorded, user?.id]);
 
   // Component rendering
   if (isLoading) {
@@ -234,7 +254,7 @@ const PostPage = () => {
         <ArrowLeft className="mr-2 h-4 w-4" /> Back
       </Button>
       
-      <PostCard post={post} expanded={true} />
+      <PostCard post={post} />
       
       <div className="mt-8">
         <h2 className="text-xl font-semibold mb-4">Comments</h2>

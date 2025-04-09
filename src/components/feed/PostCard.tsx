@@ -13,6 +13,7 @@ import CodeBlock from '@/components/code/CodeBlock';
 
 interface PostCardProps {
   post: Post;
+  expanded?: boolean;
 }
 
 interface EmojiReaction {
@@ -21,7 +22,7 @@ interface EmojiReaction {
   reacted: boolean;
 }
 
-const PostCard: React.FC<PostCardProps> = ({ post }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, expanded = false }) => {
   const navigate = useNavigate();
   const { theme } = useTheme();
   const { displayName, user } = useAuth();

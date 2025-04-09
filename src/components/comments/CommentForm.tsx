@@ -1,7 +1,8 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Avatar } from '@/components/ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -21,6 +22,13 @@ interface CommentFormProps {
   placeholder?: string;
   autoFocus?: boolean;
   postAuthorId?: string; // Add the post author ID
+  isReply?: boolean;
+  placeholderText?: string;
+  replyToMetadata?: {
+    reply_to: { comment_id: string; username: string };
+    parent_id: string;
+  };
+  onCommentAdded?: () => void;
 }
 
 const CommentForm = ({ 
@@ -31,7 +39,11 @@ const CommentForm = ({
   onCancel, 
   placeholder = "Write a comment...", 
   autoFocus = false,
-  postAuthorId // Accept the post author ID
+  postAuthorId, // Accept the post author ID
+  isReply = false,
+  placeholderText,
+  replyToMetadata,
+  onCommentAdded
 }: CommentFormProps) => {
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -76,6 +88,9 @@ const CommentForm = ({
       
       if (replyTo) {
         metadata.reply_to = replyTo;
+      } else if (replyToMetadata) {
+        metadata.reply_to = replyToMetadata.reply_to;
+        metadata.parent_id = replyToMetadata.parent_id;
       }
       
       if (parentId) {
@@ -103,11 +118,11 @@ const CommentForm = ({
           // Get comment author's username
           const { data: commenterProfile } = await supabase
             .from('profiles')
-            .select('full_name, username')
+            .select('full_name')
             .eq('user_id', user.id)
             .single();
           
-          const commenterName = commenterProfile?.full_name || commenterProfile?.username || 'Someone';
+          const commenterName = commenterProfile?.full_name || 'Someone';
           
           // Send email notification
           await supabase.functions.invoke('send-email-notification', {
@@ -132,6 +147,10 @@ const CommentForm = ({
       
       if (onSuccess) {
         onSuccess();
+      }
+      
+      if (onCommentAdded) {
+        onCommentAdded();
       }
       
       // Invalidate queries to refresh data
@@ -178,11 +197,13 @@ const CommentForm = ({
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Avatar 
-              src={user?.user_metadata?.avatar_url} 
-              alt={user?.user_metadata?.full_name || user?.user_metadata?.username || 'User'} 
-              className="h-8 w-8"
-            />
+            <Avatar className="h-8 w-8">
+              <AvatarImage 
+                src={user?.user_metadata?.avatar_url} 
+                alt={user?.user_metadata?.full_name || user?.user_metadata?.username || 'User'} 
+              />
+              <AvatarFallback>{user?.user_metadata?.full_name?.[0] || 'U'}</AvatarFallback>
+            </Avatar>
           </TooltipTrigger>
           <TooltipContent>
             {user?.user_metadata?.full_name || user?.user_metadata?.username || 'User'}
@@ -195,7 +216,7 @@ const CommentForm = ({
           ref={textareaRef}
           value={comment}
           onChange={handleTextChange}
-          placeholder={placeholder}
+          placeholder={placeholderText || placeholder}
           rows={1}
           className="resize-none border rounded-md focus:ring-0 focus:border-primary"
         />

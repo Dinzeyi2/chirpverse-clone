@@ -8,6 +8,7 @@ export interface User {
   profession?: string;
   following?: number;
   followers?: number;
+  user_id?: string; // Add this property to match Supabase response
 }
 
 // Simple types that don't cause circular references
