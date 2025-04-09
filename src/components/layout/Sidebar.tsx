@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -23,7 +22,8 @@ export const Sidebar = () => {
   const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
-  const profilePath = '/profile';
+  
+  const profilePath = user ? `/profile/${user.id}` : '/profile';
 
   useEffect(() => {
     if (isMobile) {
