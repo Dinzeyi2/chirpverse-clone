@@ -1,15 +1,19 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import Comment from './Comment';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface CommentListProps {
   postId: string;
-  comments?: any[]; // Make comments optional
+  comments?: any[]; // Comments are optional
 }
 
 const CommentList: React.FC<CommentListProps> = ({ postId, comments: initialComments }) => {
+  const { user } = useAuth();
+  
   const { data: comments, isLoading, error } = useQuery({
     queryKey: ['comments', postId],
     queryFn: async () => {
@@ -24,7 +28,24 @@ const CommentList: React.FC<CommentListProps> = ({ postId, comments: initialComm
         throw error;
       }
 
-      return data || [];
+      // Process comments to add required properties
+      const processedComments = data?.map(comment => {
+        return {
+          ...comment,
+          // Add missing properties required by the Comment component
+          likes: 0, // Default value
+          liked_by_user: false, // Default value
+          user: {
+            id: comment.user.id || comment.user.user_id,
+            username: comment.user.user_id || '',
+            avatar: comment.user.avatar_url || '',
+            full_name: comment.user.full_name || '',
+            verified: false
+          }
+        };
+      }) || [];
+
+      return processedComments;
     },
     retry: 1,
   });
@@ -48,7 +69,12 @@ const CommentList: React.FC<CommentListProps> = ({ postId, comments: initialComm
   return (
     <div>
       {comments?.map((comment) => (
-        <Comment key={comment.id} comment={comment} />
+        <Comment 
+          key={comment.id} 
+          comment={comment}
+          postId={postId}
+          currentUser={user}
+        />
       ))}
     </div>
   );

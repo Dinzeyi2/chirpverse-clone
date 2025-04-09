@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,7 +20,7 @@ interface CommentFormProps {
   onCancel?: () => void;
   placeholder?: string;
   autoFocus?: boolean;
-  postAuthorId?: string; // Add the post author ID
+  postAuthorId?: string;
   isReply?: boolean;
   placeholderText?: string;
   replyToMetadata?: {
@@ -29,6 +28,7 @@ interface CommentFormProps {
     parent_id: string;
   };
   onCommentAdded?: () => void;
+  currentUser?: any;
 }
 
 const CommentForm = ({ 
@@ -39,11 +39,12 @@ const CommentForm = ({
   onCancel, 
   placeholder = "Write a comment...", 
   autoFocus = false,
-  postAuthorId, // Accept the post author ID
+  postAuthorId,
   isReply = false,
   placeholderText,
   replyToMetadata,
-  onCommentAdded
+  onCommentAdded,
+  currentUser
 }: CommentFormProps) => {
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -83,7 +84,6 @@ const CommentForm = ({
     setIsSubmitting(true);
     
     try {
-      // Build metadata for the comment
       const metadata: CommentMetadata = {};
       
       if (replyTo) {
@@ -97,7 +97,6 @@ const CommentForm = ({
         metadata.parent_id = parentId;
       }
       
-      // Insert the comment
       const { data: newComment, error } = await supabase
         .from('comments')
         .insert({
@@ -112,10 +111,8 @@ const CommentForm = ({
         throw error;
       }
 
-      // Send email notification to post author if it's a different user
       if (postAuthorId && postAuthorId !== user.id) {
         try {
-          // Get comment author's username
           const { data: commenterProfile } = await supabase
             .from('profiles')
             .select('full_name')
@@ -124,7 +121,6 @@ const CommentForm = ({
           
           const commenterName = commenterProfile?.full_name || 'Someone';
           
-          // Send email notification
           await supabase.functions.invoke('send-email-notification', {
             body: {
               userId: postAuthorId,
@@ -142,7 +138,6 @@ const CommentForm = ({
         }
       }
       
-      // Clear the form and update the UI
       setComment('');
       
       if (onSuccess) {
@@ -153,7 +148,6 @@ const CommentForm = ({
         onCommentAdded();
       }
       
-      // Invalidate queries to refresh data
       queryClient.invalidateQueries({
         queryKey: ['comments', postId],
       });

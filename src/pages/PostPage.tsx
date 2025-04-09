@@ -12,6 +12,7 @@ import CommentList from '@/components/comments/CommentList';
 import CommentForm from '@/components/comments/CommentForm';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { v4 as uuidv4 } from 'uuid';
 
 const PostPage = () => {
   const { postId } = useParams<{ postId: string }>();
@@ -20,6 +21,7 @@ const PostPage = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [viewRecorded, setViewRecorded] = useState(false);
+  const [sessionId] = useState(() => uuidv4());
 
   // Fetch the post with user data
   const { data: post, isLoading, error } = useQuery({
@@ -57,8 +59,8 @@ const PostPage = () => {
           verified: false,
           profession: data.user.profession
         },
-        images: data.media?.images || [],
-        metadata: data.metadata || {},
+        images: data.media && typeof data.media === 'object' ? data.media.images || [] : [],
+        metadata: data.metadata && typeof data.metadata === 'object' ? data.metadata : {},
         liked: false,
         bookmarked: false,
         isOwner: user?.id === data.user_id
@@ -198,15 +200,17 @@ const PostPage = () => {
     if (post && !viewRecorded) {
       const recordView = async () => {
         try {
-          // Use a custom RPC function or direct table update
-          try {
-            await supabase.from('post_views').insert({
-              shoutout_id: postId,
-              user_id: user?.id
-            });
+          // Record the post view with a session ID
+          const { error } = await supabase.from('post_views').insert({
+            shoutout_id: postId,
+            user_id: user?.id,
+            session_id: sessionId
+          });
+          
+          if (error) {
+            console.error("Error recording view:", error);
+          } else {
             setViewRecorded(true);
-          } catch (err) {
-            console.error("Error recording view:", err);
           }
         } catch (err) {
           console.error("Error in view recording:", err);
@@ -215,7 +219,7 @@ const PostPage = () => {
       
       recordView();
     }
-  }, [post, postId, viewRecorded, user?.id]);
+  }, [post, postId, viewRecorded, user?.id, sessionId]);
 
   // Component rendering
   if (isLoading) {
