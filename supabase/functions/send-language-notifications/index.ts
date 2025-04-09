@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.36.0'
 
@@ -236,15 +235,14 @@ serve(async (req) => {
           
           const truncatedContent = content.length > 200 ? content.substring(0, 200) + '...' : content;
           
-          // Updated email body with a direct link to the For You page
           const emailBody = `${authorName} just posted about ${languageList} on iBlue:
           
 "${truncatedContent}"
 
 Check out the full post and join the conversation!`;
 
-          // Direct link to the For You page - this ensures users will see the relevant posts
-          const forYouUrl = `${appUrl}/for-you`;
+          // Use the correct post URL format: domain.com/post/{postId}#comments
+          const postUrl = `${appUrl}/post/${postId}#comments`;
           
           try {
             const response = await fetch(
@@ -261,8 +259,6 @@ Check out the full post and join the conversation!`;
                   body: emailBody,
                   postId: postId,
                   priority: 'high',
-                  actionUrl: forYouUrl,
-                  actionText: "View Posts",
                   debug: debug
                 }),
               }
