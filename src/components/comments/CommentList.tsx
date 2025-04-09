@@ -31,16 +31,14 @@ const CommentList: React.FC<CommentListProps> = ({ postId, comments: initialComm
         id: comment.id,
         content: comment.content,
         createdAt: comment.created_at,
-        created_at: comment.created_at, // Include both formats for compatibility
         userId: comment.user_id,
         user: {
           id: comment.user.user_id || comment.user.id,
           username: comment.user.username || '',
           name: comment.user.full_name,
-          full_name: comment.user.full_name, // Include for compatibility
           avatar: comment.user.avatar_url || '',
           email: comment.user.email || '',
-          verified: Boolean(comment.user.verified) || false,
+          verified: comment.user.verified || false,
         },
         // Properly format media if it exists
         media: comment.media ? 
