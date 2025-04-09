@@ -22,7 +22,7 @@ export const Sidebar = () => {
   const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
-  const profilePath = user ? `/profile/${user.id}` : '/profile';
+  const profilePath = '/profile';
 
   useEffect(() => {
     if (isMobile) {
@@ -300,7 +300,7 @@ export const Sidebar = () => {
               return (
                 <a
                   key={item.name}
-                  href={item.href}
+                  href="#"
                   onClick={handleProfileClick}
                   className={cn(
                     "flex items-center p-3 text-lg font-medium rounded-full transition-colors cursor-pointer relative",
