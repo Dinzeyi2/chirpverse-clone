@@ -23,20 +23,33 @@ const NotFound = () => {
     return null;
   };
 
+  // Extract postId from query params
+  const getPostIdFromQueryParams = () => {
+    const searchParams = new URLSearchParams(location.search);
+    return searchParams.get('postId');
+  };
+
   useEffect(() => {
-    console.log("NotFound component rendered for path:", location.pathname, "hash:", location.hash);
+    console.log("NotFound component rendered for path:", location.pathname, "hash:", location.hash, "search:", location.search);
     
     // Handle notifications with higher priority than other paths
     if (location.pathname === "/notifications" || location.pathname.startsWith("/notifications/")) {
       console.log("Redirecting to notifications page from NotFound component");
       
       // Persist this path for reload handling
-      localStorage.setItem('lastPath', location.pathname);
-      localStorage.setItem('lastUrl', window.location.origin + location.pathname);
+      localStorage.setItem('lastPath', location.pathname + location.search);
+      localStorage.setItem('lastUrl', window.location.href);
       localStorage.setItem('lastPathTimestamp', Date.now().toString());
+      localStorage.setItem('wasOnNotifications', 'true');
+      
+      // Check if we have a postId in the query params
+      const postId = getPostIdFromQueryParams();
+      if (postId) {
+        localStorage.setItem('notificationPostId', postId);
+      }
       
       // Navigate immediately to the notifications page
-      navigate("/notifications", { replace: true });
+      navigate("/notifications" + location.search, { replace: true });
       return;
     }
     
@@ -79,6 +92,7 @@ const NotFound = () => {
 
   const postId = extractPostId();
   const commentId = extractCommentId();
+  const queryPostId = getPostIdFromQueryParams();
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -90,14 +104,23 @@ const NotFound = () => {
         </p>
         
         {/* Redirects for special paths */}
-        {location.pathname === "/notifications" && (
+        {(location.pathname === "/notifications" || location.pathname.startsWith("/notifications/") || queryPostId) && (
           <div className="mb-4 p-4 bg-blue-100 dark:bg-blue-900/30 rounded-md">
             <p className="text-sm text-blue-800 dark:text-blue-200">
               It looks like you're trying to access notifications. Click below:
             </p>
             <Link 
-              to="/notifications" 
+              to={queryPostId ? `/notifications?postId=${queryPostId}` : "/notifications"} 
               className="mt-2 text-xBlue hover:underline font-medium block"
+              onClick={() => {
+                localStorage.setItem('lastPath', '/notifications' + (queryPostId ? `?postId=${queryPostId}` : ''));
+                localStorage.setItem('lastUrl', window.location.origin + '/notifications' + (queryPostId ? `?postId=${queryPostId}` : ''));
+                localStorage.setItem('lastPathTimestamp', Date.now().toString());
+                localStorage.setItem('wasOnNotifications', 'true');
+                if (queryPostId) {
+                  localStorage.setItem('notificationPostId', queryPostId);
+                }
+              }}
             >
               Go to notifications
             </Link>

@@ -285,6 +285,7 @@ Check out the full post and join the conversation!`;
                   body: emailBody,
                   postId: postId,
                   priority: 'high',
+                  viewUrl: `${appUrl}/notifications?source=email&postId=${postId}`,
                   debug: debug
                 }),
               }

@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface NotificationType {
   id: string;
@@ -31,6 +31,45 @@ const Notifications = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Function to get postId from query params
+  const getPostIdFromQueryParams = () => {
+    const searchParams = new URLSearchParams(location.search);
+    return searchParams.get('postId');
+  };
+  
+  // Handle navigation to post from query params
+  useEffect(() => {
+    const postId = getPostIdFromQueryParams();
+    
+    if (postId) {
+      console.log(`Found postId in query params: ${postId}, will navigate to post`);
+      
+      // Short delay to ensure the page is loaded
+      const timer = setTimeout(() => {
+        navigate(`/post/${postId}`);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+    
+    // Check localStorage for a remembered postId (for reload cases)
+    const rememberedPostId = localStorage.getItem('notificationPostId');
+    if (rememberedPostId) {
+      console.log(`Found remembered postId: ${rememberedPostId}, will navigate to post`);
+      
+      // Clear the remembered postId
+      localStorage.removeItem('notificationPostId');
+      
+      // Short delay to ensure the page is loaded
+      const timer = setTimeout(() => {
+        navigate(`/post/${rememberedPostId}`);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [location.search, navigate]);
   
   useEffect(() => {
     if (!user) return;
@@ -182,7 +221,7 @@ const Notifications = () => {
     return () => {
       supabase.removeChannel(notificationsChannel);
     };
-  }, [user, navigate]);
+  }, [user, navigate, location.search]);
 
   const getNotificationTitle = (type: string): string => {
     switch (type) {

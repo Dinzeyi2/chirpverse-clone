@@ -64,6 +64,11 @@ export const UrlHandler = () => {
       localStorage.setItem('lastUrl', fullUrl);
       localStorage.setItem('lastPath', pathname + hash + search);
       localStorage.setItem('lastPathTimestamp', Date.now().toString());
+      
+      // Specifically mark if this was a notifications path
+      if (pathname === '/notifications' || pathname.startsWith('/notifications/')) {
+        localStorage.setItem('wasOnNotifications', 'true');
+      }
     }
   };
 
@@ -74,6 +79,17 @@ export const UrlHandler = () => {
       localStorage.setItem('lastUrl', window.location.origin + pathname);
       localStorage.setItem('lastPath', pathname);
       localStorage.setItem('lastPathTimestamp', Date.now().toString());
+      localStorage.setItem('wasOnNotifications', 'true');
+      
+      // Trigger a custom event that the service worker can listen for
+      try {
+        const persistEvent = new CustomEvent('persist-notifications-path', {
+          detail: { path: pathname }
+        });
+        window.dispatchEvent(persistEvent);
+      } catch (e) {
+        console.error('Error dispatching persist event:', e);
+      }
     }
   };
 
@@ -125,13 +141,22 @@ export const UrlHandler = () => {
       const lastPath = localStorage.getItem('lastPath');
       const lastUrl = localStorage.getItem('lastUrl');
       const lastTimestamp = localStorage.getItem('lastPathTimestamp');
+      const wasOnNotifications = localStorage.getItem('wasOnNotifications');
       
       // Only restore if path was saved recently (within last 5 minutes)
       const isRecent = lastTimestamp && (Date.now() - parseInt(lastTimestamp)) < 5 * 60 * 1000;
       
-      if (isRecent && lastPath) {
-        console.log('Restoring from recent navigation:', lastPath);
-        navigate(lastPath, { replace: true });
+      if (isRecent) {
+        if (wasOnNotifications === 'true') {
+          console.log('Restoring notifications page from recent navigation');
+          navigate('/notifications', { replace: true });
+          return;
+        }
+        
+        if (lastPath) {
+          console.log('Restoring from recent navigation:', lastPath);
+          navigate(lastPath, { replace: true });
+        }
       }
     }
     

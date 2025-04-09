@@ -1,7 +1,7 @@
 
 // Service Worker for iblue Web Push Notifications and URL handling
 
-const CACHE_NAME = 'iblue-v7'; // Increment version for cache busting
+const CACHE_NAME = 'iblue-v8'; // Increment version for cache busting
 const OFFLINE_URL = '/offline.html';
 
 // Installation event
@@ -94,6 +94,10 @@ self.addEventListener('notificationclick', (event) => {
   const notificationData = event.notification.data;
   const urlToOpen = notificationData && notificationData.url ? notificationData.url : '/';
   
+  // Prioritize notifications view if coming from email
+  const forcedNotificationsView = urlToOpen.includes('/post/') && 
+    (urlToOpen.includes('from=email') || urlToOpen.includes('source=email'));
+  
   // Open or focus the relevant page
   event.waitUntil(
     self.clients.matchAll({ 
@@ -101,16 +105,32 @@ self.addEventListener('notificationclick', (event) => {
       includeUncontrolled: true 
     })
     .then((clientList) => {
+      // If we should force notifications view, change the URL
+      const targetUrl = forcedNotificationsView ? '/notifications' : urlToOpen;
+      
+      // Store this in localStorage for persistence if needed
+      if (forcedNotificationsView) {
+        try {
+          localStorage.setItem('lastPath', '/notifications');
+          localStorage.setItem('lastUrl', self.location.origin + '/notifications');
+          localStorage.setItem('lastPathTimestamp', Date.now().toString());
+          localStorage.setItem('wasOnNotifications', 'true');
+          localStorage.setItem('notificationPostId', urlToOpen.split('/post/')[1]);
+        } catch (e) {
+          console.error('Error setting localStorage:', e);
+        }
+      }
+      
       // Check if a window is already open
       for (const client of clientList) {
-        if (client.url.includes(urlToOpen) && 'focus' in client) {
+        if (client.url.includes(targetUrl) && 'focus' in client) {
           return client.focus();
         }
       }
       
       // If no matching client is found, open a new window
       if (self.clients.openWindow) {
-        return self.clients.openWindow(urlToOpen);
+        return self.clients.openWindow(targetUrl);
       }
     })
   );
@@ -130,6 +150,14 @@ const APP_ROUTES = [
   '/for-you'
 ];
 
+// Listen for the custom event from the UrlHandler component
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'PERSIST_NOTIFICATIONS_PATH') {
+    console.log('Service worker received notification persistence message:', event.data);
+    // Could store this in IndexedDB if needed for better persistence
+  }
+});
+
 // Simplified fetch event handling focusing on core app functionality
 self.addEventListener('fetch', (event) => {
   // Only handle navigation requests
@@ -138,6 +166,20 @@ self.addEventListener('fetch', (event) => {
     
     // Log navigation
     console.log('Service worker handling navigation to:', url.toString());
+    
+    // Special handling for notifications
+    if (url.pathname === '/notifications' || url.pathname.startsWith('/notifications/')) {
+      console.log('Serving index.html for notifications route');
+      event.respondWith(
+        caches.match('/index.html')
+          .then(response => {
+            return response || fetch('/index.html').catch(() => {
+              return caches.match(OFFLINE_URL);
+            });
+          })
+      );
+      return;
+    }
     
     // CRITICAL: Always serve index.html for SPA routes
     // This ensures React Router can handle the route
