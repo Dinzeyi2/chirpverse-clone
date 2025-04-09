@@ -13,6 +13,7 @@ import PostSkeleton from '@/components/feed/PostSkeleton';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
+import { usePosts } from '@/hooks/use-posts';
 
 const ForYou = () => {
   const [feedView, setFeedView] = useState<'swipeable' | 'list'>('swipeable');
@@ -24,6 +25,9 @@ const ForYou = () => {
   const [forYouPosts, setForYouPosts] = useState<any[]>([]);
   const [userLanguages, setUserLanguages] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  
+  // Import the usePosts hook directly
+  const { engagementData } = usePosts();
   
   // Fetch user's programming languages
   useEffect(() => {
@@ -197,6 +201,7 @@ const ForYou = () => {
                 
               // Extract languages from metadata
               let languages: string[] = [];
+              let codeBlocks: {code: string, language: string}[] = [];
               
               try {
                 if (post.metadata) {
@@ -207,6 +212,11 @@ const ForYou = () => {
                     
                   if (metadata && metadata.languages && Array.isArray(metadata.languages)) {
                     languages = metadata.languages;
+                  }
+                  
+                  // Safely extract code_blocks
+                  if (metadata && metadata.code_blocks && Array.isArray(metadata.code_blocks)) {
+                    codeBlocks = metadata.code_blocks;
                   }
                 }
               } catch (e) {
@@ -220,7 +230,7 @@ const ForYou = () => {
                 userId: post.user_id,
                 images: post.media,
                 languages: languages,
-                codeBlocks: post.metadata?.code_blocks || [],
+                codeBlocks: codeBlocks,
                 likes: likesCount || 0,
                 comments: commentsCount || 0,
                 reposts: repostsCount || 0,
@@ -331,6 +341,7 @@ const ForYou = () => {
                 
               // Extract languages from metadata
               let languages: string[] = [];
+              let codeBlocks: {code: string, language: string}[] = [];
               
               try {
                 if (post.metadata) {
@@ -341,6 +352,11 @@ const ForYou = () => {
                     
                   if (metadata && metadata.languages && Array.isArray(metadata.languages)) {
                     languages = metadata.languages;
+                  }
+                  
+                  // Safely extract code_blocks
+                  if (metadata && metadata.code_blocks && Array.isArray(metadata.code_blocks)) {
+                    codeBlocks = metadata.code_blocks;
                   }
                 }
               } catch (e) {
@@ -354,7 +370,7 @@ const ForYou = () => {
                 userId: post.user_id,
                 images: post.media,
                 languages: languages,
-                codeBlocks: post.metadata?.code_blocks || [],
+                codeBlocks: codeBlocks,
                 likes: likesCount || 0,
                 comments: commentsCount || 0,
                 reposts: repostsCount || 0,
@@ -397,10 +413,6 @@ const ForYou = () => {
   const headerBg = theme === 'dark' ? 'bg-black backdrop-blur-md' : 'bg-lightBeige backdrop-blur-md';
   const buttonBgActive = theme === 'dark' ? 'bg-neutral-800 text-white' : 'bg-gray-200 text-gray-900';
   const buttonTextInactive = theme === 'dark' ? 'text-neutral-400' : 'text-gray-500';
-
-  // Handle POST engagement data
-  const { usePosts } = require('@/hooks/use-posts');
-  const { engagementData } = usePosts();
 
   return (
     <AppLayout>
