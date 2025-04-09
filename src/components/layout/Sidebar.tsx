@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -125,8 +124,8 @@ export const Sidebar = () => {
   };
 
   const handleProfileClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
     if (!user) {
-      e.preventDefault();
       navigate('/auth');
     } else {
       navigate(`/profile/${user.id}`);
@@ -301,6 +300,7 @@ export const Sidebar = () => {
               return (
                 <a
                   key={item.name}
+                  href="#"
                   onClick={handleProfileClick}
                   className={cn(
                     "flex items-center p-3 text-lg font-medium rounded-full transition-colors cursor-pointer relative",
