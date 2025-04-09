@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Bell, ChevronDown } from 'lucide-react';
@@ -8,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { Card, CardContent } from "@/components/ui/card";
 
 interface NotificationType {
   id: string;
@@ -33,20 +33,17 @@ const Notifications = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Function to get postId from query params
   const getPostIdFromQueryParams = () => {
     const searchParams = new URLSearchParams(location.search);
     return searchParams.get('postId');
   };
   
-  // Handle navigation to post from query params
   useEffect(() => {
     const postId = getPostIdFromQueryParams();
     
     if (postId) {
       console.log(`Found postId in query params: ${postId}, will navigate to post`);
       
-      // Short delay to ensure the page is loaded
       const timer = setTimeout(() => {
         navigate(`/post/${postId}`);
       }, 1000);
@@ -54,15 +51,12 @@ const Notifications = () => {
       return () => clearTimeout(timer);
     }
     
-    // Check localStorage for a remembered postId (for reload cases)
     const rememberedPostId = localStorage.getItem('notificationPostId');
     if (rememberedPostId) {
       console.log(`Found remembered postId: ${rememberedPostId}, will navigate to post`);
       
-      // Clear the remembered postId
       localStorage.removeItem('notificationPostId');
       
-      // Short delay to ensure the page is loaded
       const timer = setTimeout(() => {
         navigate(`/post/${rememberedPostId}`);
       }, 1000);
@@ -366,54 +360,40 @@ const NotificationsList: React.FC<NotificationsListProps> = ({
         <div 
           key={notification.id} 
           className={cn(
-            "flex p-4 hover:bg-xExtraLightGray/30 transition-colors cursor-pointer",
+            "p-4 hover:bg-xExtraLightGray/30 transition-colors cursor-pointer",
             !notification.isRead && "bg-xBlue/5"
           )}
           onClick={() => onNotificationClick(notification)}
           role="button"
           aria-label={`View notification about ${notification.content}`}
         >
-          <div className="flex-1">
-            <div className="flex mb-1">
-              <img 
-                src={notification.user.avatar} 
-                alt={notification.user.name} 
-                className="w-10 h-10 rounded-full object-cover mr-3"
-              />
-              <div className="flex-1">
-                <div className="flex items-center">
-                  <span className="font-bold">{notification.user.name}</span>
-                  {notification.user.verified && (
-                    <span className="ml-1 text-xBlue">
-                      <svg viewBox="0 0 24 24" aria-label="Verified account" role="img" width="16" height="16" fill="currentColor">
-                        <g>
-                          <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z"></path>
-                        </g>
-                      </svg>
-                    </span>
-                  )}
-                  <span className="text-xGray ml-1">@{notification.user.username}</span>
-                  <span className="text-xGray mx-1">·</span>
-                  <span className="text-xGray">{notification.time}</span>
+          <Card className="border-0 shadow-none">
+            <CardContent className="p-3">
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-xGray">{notification.time}</span>
+                  <span className={cn(
+                    "text-xs font-medium px-2 py-1 rounded-full",
+                    notification.type === 'like' && "bg-red-100 text-red-800",
+                    notification.type === 'reply' && "bg-blue-100 text-blue-800",
+                    notification.type === 'mention' && "bg-green-100 text-green-800",
+                    notification.type === 'retweet' && "bg-purple-100 text-purple-800",
+                    notification.type === 'bookmark' && "bg-yellow-100 text-yellow-800",
+                    notification.type === 'reaction' && "bg-pink-100 text-pink-800",
+                    notification.type === 'language_mention' && "bg-indigo-100 text-indigo-800"
+                  )}>
+                    {notification.type.replace('_', ' ')}
+                  </span>
                 </div>
-                <p className="text-sm">
-                  {notification.content}
-                </p>
+                <p className="text-sm font-medium">{notification.content}</p>
                 {notification.post && (
-                  <p className="mt-1 text-sm text-xGray">
+                  <p className="text-xs text-xGray bg-gray-50 p-2 rounded-md">
                     {notification.post}
                   </p>
                 )}
               </div>
-              <button 
-                className="text-xGray hover:text-xDark transition-colors"
-                onClick={(e) => e.stopPropagation()}
-                aria-label="More options"
-              >
-                <ChevronDown size={16} />
-              </button>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       ))}
     </div>
