@@ -1,127 +1,171 @@
 
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useMemo } from 'react';
+import { Comment as CommentType } from '@/lib/data';
 import Comment from './Comment';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/contexts/AuthContext';
-import { MediaItem } from '@/lib/data';
 
-export interface CommentListProps {
-  postId: string;
-  comments?: any[]; // Comments are optional
+interface CommentListProps {
+  comments: CommentType[];
+  isLoading?: boolean;
+  onReplyClick?: (commentId: string, username: string) => void;
+  postId?: string;
+  currentUser?: any;
 }
 
-const CommentList: React.FC<CommentListProps> = ({ postId, comments: initialComments }) => {
-  const { user } = useAuth();
-  
-  const { data: comments, isLoading, error } = useQuery({
-    queryKey: ['comments', postId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('comments')
-        .select('*, user:profiles!inner(*)')
-        .eq('shoutout_id', postId)
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error("Error fetching comments:", error);
-        throw error;
+const CommentList: React.FC<CommentListProps> = ({ 
+  comments, 
+  isLoading = false, 
+  onReplyClick,
+  postId,
+  currentUser
+}) => {
+  // Group comments by parent-child relationships
+  const commentThreads = useMemo(() => {
+    if (!comments || !Array.isArray(comments)) {
+      return { topLevel: [], repliesByParentId: new Map() };
+    }
+    
+    // First deduplicate comments
+    const uniqueMap = new Map<string, CommentType>();
+    
+    // Sort by creation date (newest first) before deduplication
+    const sortedComments = [...comments].sort((a, b) => 
+      new Date(b.createdAt || b.created_at || '').getTime() - 
+      new Date(a.createdAt || a.created_at || '').getTime()
+    );
+    
+    // Add to map (which automatically handles deduplication by ID)
+    sortedComments.forEach(comment => {
+      if (!uniqueMap.has(comment.id)) {
+        uniqueMap.set(comment.id, comment);
       }
-
-      // Process comments to add required properties
-      const processedComments = data?.map(comment => {
-        // Parse media if it exists
-        let processedMedia: MediaItem[] | undefined;
-        if (comment.media) {
-          try {
-            // If media is a string, try to parse it as JSON
-            if (typeof comment.media === 'string') {
-              processedMedia = JSON.parse(comment.media) as MediaItem[];
-            } 
-            // If it's already an object or array
-            else if (Array.isArray(comment.media)) {
-              processedMedia = comment.media as MediaItem[];
-            }
-            // If it's an object with images property
-            else if (typeof comment.media === 'object' && comment.media !== null) {
-              const mediaImages = comment.media.images;
-              if (Array.isArray(mediaImages)) {
-                processedMedia = mediaImages as MediaItem[];
-              } else {
-                processedMedia = [];
-              }
-            }
-          } catch (e) {
-            console.error("Error parsing media:", e);
-            processedMedia = [];
-          }
+    });
+    
+    const uniqueComments = Array.from(uniqueMap.values());
+    
+    // Now organize into threads
+    const topLevelComments: CommentType[] = [];
+    const repliesByParentId = new Map<string, CommentType[]>();
+    
+    uniqueComments.forEach(comment => {
+      // Check if this is a reply
+      const metadata = comment.metadata && typeof comment.metadata === 'object' ? comment.metadata : {};
+      const parentId = metadata.parent_id || 
+                      (metadata.reply_to && metadata.reply_to.comment_id) || 
+                      null;
+      
+      if (parentId) {
+        // This is a reply
+        if (!repliesByParentId.has(parentId)) {
+          repliesByParentId.set(parentId, []);
         }
+        repliesByParentId.get(parentId)!.push(comment);
+      } else {
+        // This is a top-level comment
+        topLevelComments.push(comment);
+      }
+    });
+    
+    // Sort replies by date (newest replies first)
+    repliesByParentId.forEach((replies, parentId) => {
+      repliesByParentId.set(
+        parentId,
+        replies.sort((a, b) => 
+          new Date(b.createdAt || b.created_at || '').getTime() - 
+          new Date(a.createdAt || a.created_at || '').getTime()
+        )
+      );
+    });
+    
+    return {
+      topLevel: topLevelComments.sort((a, b) => 
+        new Date(b.createdAt || b.created_at || '').getTime() - 
+        new Date(a.createdAt || a.created_at || '').getTime()
+      ),
+      repliesByParentId
+    };
+  }, [comments]);
 
-        // Process metadata
-        let processedMetadata: Record<string, any> | undefined;
-        if (comment.metadata) {
-          try {
-            if (typeof comment.metadata === 'string') {
-              processedMetadata = JSON.parse(comment.metadata);
-            } else if (typeof comment.metadata === 'object' && comment.metadata !== null) {
-              processedMetadata = comment.metadata as Record<string, any>;
-            }
-          } catch (e) {
-            console.error("Error parsing metadata:", e);
-            processedMetadata = {};
-          }
-        }
-
-        return {
-          ...comment,
-          // Add missing properties required by the Comment component
-          likes: 0, // Default value
-          liked_by_user: false, // Default value
-          user: {
-            id: comment.user.id || comment.user.user_id,
-            username: comment.user.user_id || '',
-            avatar: comment.user.avatar_url || '',
-            full_name: comment.user.full_name || '',
-            verified: false
-          },
-          media: processedMedia || [],
-          metadata: processedMetadata || {}
-        };
-      }) || [];
-
-      return processedComments;
-    },
-    retry: 1,
-  });
-  
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
+      <div className="py-6 text-center">
+        <p className="text-xGray font-medium">Loading comments...</p>
       </div>
     );
   }
 
-  if (error) {
+  // We need to make sure this check uses the right property from commentThreads
+  if (!commentThreads.topLevel || commentThreads.topLevel.length === 0) {
+    console.log("No comments found to display");
     return (
-      <div className="text-red-500">Error loading comments.</div>
+      <div className="py-6 text-center">
+        <p className="text-xGray font-medium">No comments yet</p>
+        <p className="text-xGray text-sm mt-1">Be the first to comment on this post!</p>
+      </div>
     );
   }
   
+  console.log(`Displaying ${commentThreads.topLevel.length} comments`);
+
+  // Format comments to match what the Comment component expects
+  const formatComment = (comment: CommentType) => {
+    // Safely handle media
+    let formattedMedia = [];
+    if (comment.media && Array.isArray(comment.media)) {
+      formattedMedia = comment.media.map(media => {
+        if (typeof media === 'string') {
+          return { type: 'image', url: media };
+        } else if (media && typeof media === 'object') {
+          return {
+            type: media.type || 'unknown',
+            url: media.url || ''
+          };
+        }
+        return { type: 'unknown', url: '' };
+      });
+    }
+    
+    // Ensure metadata is an object
+    const metadata = typeof comment.metadata === 'object' ? comment.metadata : {};
+    
+    return {
+      id: comment.id,
+      content: comment.content,
+      created_at: comment.createdAt || comment.created_at || new Date().toISOString(),
+      user: {
+        id: comment.userId || comment.user_id || '',
+        username: comment.user?.username || 'user',
+        avatar: comment.user?.avatar || '',
+        full_name: comment.user?.name || 'User',
+        verified: comment.user?.verified || false
+      },
+      media: formattedMedia,
+      likes: comment.likes || 0,
+      liked_by_user: comment.liked_by_user || false,
+      metadata: metadata
+    };
+  };
+
+  // Determine if user can reply based on auth status
+  const canReply = !!currentUser;
+
   return (
-    <div>
-      {comments?.map((comment) => (
-        <Comment 
-          key={comment.id} 
-          comment={comment}
-          postId={postId}
-          currentUser={user}
-          postAuthorId={comment.user_id}
-        />
-      ))}
+    <div className="divide-y divide-xExtraLightGray">
+      {commentThreads.topLevel.map(comment => {
+        const formattedComment = formatComment(comment);
+        const replies = commentThreads.repliesByParentId.get(comment.id) || [];
+        const formattedReplies = replies.map(reply => formatComment(reply));
+        
+        return (
+          <Comment 
+            key={comment.id} 
+            comment={formattedComment}
+            onReplyClick={canReply ? onReplyClick : undefined}
+            postId={postId}
+            currentUser={currentUser}
+            replies={formattedReplies}
+          />
+        );
+      })}
     </div>
   );
 };

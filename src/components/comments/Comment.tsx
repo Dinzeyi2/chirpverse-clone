@@ -37,7 +37,6 @@ interface CommentProps {
   postId?: string;
   currentUser?: any;
   replies?: any[]; // Preloaded replies
-  postAuthorId?: string; // Add this property
 }
 
 interface CommentReaction {
@@ -53,8 +52,7 @@ const Comment: React.FC<CommentProps> = ({
   isNestedReply = false,
   postId,
   currentUser,
-  replies = [],
-  postAuthorId // Add this parameter
+  replies = []
 }) => {
   const [isLiked, setIsLiked] = useState(comment.liked_by_user);
   const [likeCount, setLikeCount] = useState(comment.likes);
@@ -674,9 +672,8 @@ const Comment: React.FC<CommentProps> = ({
                 Replying to @{comment.user.username}
               </div>
               <CommentForm 
-                postId={postId}
                 currentUser={currentUser}
-                postAuthorId={postAuthorId}
+                postAuthorId={postId}
                 onCommentAdded={handleCommentAdded}
                 replyToMetadata={{
                   reply_to: {
