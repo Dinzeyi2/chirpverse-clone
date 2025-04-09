@@ -8,6 +8,7 @@ import PostCard from '@/components/feed/PostCard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { MediaItem } from '@/lib/data';
 
 interface SupabaseComment {
   id: string;
@@ -96,6 +97,54 @@ const PostPage: React.FC = () => {
     };
   };
   
+  const formatPost = (postData) => {
+    const metadata = postData.metadata || {};
+    const displayUsername = typeof metadata === 'object' && metadata !== null && 'display_username' in metadata
+      ? (metadata as { display_username?: string }).display_username
+      : (postData.profiles?.user_id?.substring(0, 8) || 'user');
+    
+    // Process images from media data
+    let processedImages: (string | MediaItem)[] = [];
+    if (postData.media) {
+      if (Array.isArray(postData.media)) {
+        processedImages = postData.media.map(item => {
+          if (typeof item === 'string') return item;
+          if (typeof item === 'object' && item && 'url' in item) {
+            return {
+              type: (item as any).type || 'image',
+              url: (item as any).url
+            } as MediaItem;
+          }
+          return '';
+        }).filter(Boolean);
+      }
+    }
+    
+    const formattedPost = {
+      id: postData.id,
+      content: postData.content,
+      createdAt: postData.created_at,
+      likes: 0,
+      reposts: 0,
+      replies: 0,
+      views: 0,
+      userId: postData.user_id,
+      images: processedImages,
+      metadata: typeof postData.metadata === 'object' ? postData.metadata : {},
+      user: {
+        id: postData.profiles?.id || postData.user_id,
+        name: displayUsername,
+        username: displayUsername,
+        avatar: blueProfileImage,
+        verified: false,
+        followers: 0,
+        following: 0,
+      }
+    };
+    
+    return formattedPost;
+  };
+  
   useEffect(() => {
     processedCommentIdsRef.current.clear();
     
@@ -129,33 +178,7 @@ const PostPage: React.FC = () => {
         }
         
         if (postData) {
-          const metadata = postData.metadata || {};
-          const displayUsername = typeof metadata === 'object' && metadata !== null && 'display_username' in metadata
-            ? (metadata as { display_username?: string }).display_username
-            : (postData.profiles?.user_id?.substring(0, 8) || 'user');
-          
-          const formattedPost = {
-            id: postData.id,
-            content: postData.content,
-            createdAt: postData.created_at,
-            likes: 0,
-            reposts: 0,
-            replies: 0,
-            views: 0,
-            userId: postData.user_id,
-            images: postData.media,
-            metadata: postData.metadata,
-            user: {
-              id: postData.profiles?.id || postData.user_id,
-              name: displayUsername,
-              username: displayUsername,
-              avatar: blueProfileImage,
-              verified: false,
-              followers: 0,
-              following: 0,
-            }
-          };
-          
+          const formattedPost = formatPost(postData);
           setPost(formattedPost);
           
           console.log('Fetching comments for post:', postId);
@@ -212,6 +235,25 @@ const PostPage: React.FC = () => {
           }).finally(() => {
             setLoading(false);
           });
+          
+          // Record view if user is authenticated
+          if (user) {
+            // Generate a session ID if not authenticated
+            const sessionId = user?.id || `anonymous-${Math.random().toString(36).substring(2, 15)}`;
+            
+            // Record view
+            const { error: viewError } = await supabase
+              .from('post_views')
+              .insert({
+                shoutout_id: postId,
+                user_id: user?.id || null,
+                session_id: sessionId
+              });
+              
+            if (viewError) {
+              console.error('Error recording view:', viewError);
+            }
+          }
         }
       } catch (error) {
         console.error('Error in fetchPostAndComments:', error);
@@ -273,7 +315,7 @@ const PostPage: React.FC = () => {
         supabase.removeChannel(commentsChannelRef.current);
       }
     };
-  }, [postId, location]);
+  }, [postId, location, user]);
   
   useEffect(() => {
     if (!loading && commentsRef.current) {
@@ -452,6 +494,7 @@ const PostPage: React.FC = () => {
             <CommentForm 
               currentUser={currentUserForComments}
               postAuthorId={post?.id}
+              postId={post?.id}
               onCommentAdded={handleCommentAdded}
               replyToMetadata={replyingTo ? {
                 reply_to: {
