@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.36.0'
 
@@ -41,7 +42,7 @@ serve(async (req) => {
       );
     }
     
-    const { userId, subject, body, postId, priority = 'normal', debug = true, skipEmailIfActive = true } = requestBody;
+    const { userId, subject, body, postId, priority = 'normal', debug = true, skipEmailIfActive = false } = requestBody;
 
     if (!userId) {
       console.error('Missing userId in request');
@@ -104,50 +105,32 @@ serve(async (req) => {
       )
     }
 
-    // IMPROVED: Check if user is currently active in the app with more reliable detection
+    // NEW: Check if we should skip email for active users
     if (skipEmailIfActive) {
       console.log('Checking if user is currently active in the app...');
       
-      // Check if the user has been active within the last 3 minutes (reduced from 5)
-      const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+      // Check if the user has been active within the last 5 minutes
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
       
       const { data: activeUsers, error: activeError } = await supabaseClient
         .from('user_sessions')
-        .select('last_active, is_online')
+        .select('last_active')
         .eq('user_id', userId)
-        .gte('last_active', threeMinutesAgo)
+        .gte('last_active', fiveMinutesAgo)
         .limit(1);
       
-      // Also check if user is explicitly marked as online
-      const { data: onlineUsers, error: onlineError } = await supabaseClient
-        .from('user_sessions')
-        .select('is_online')
-        .eq('user_id', userId)
-        .eq('is_online', true)
-        .limit(1);
-      
-      const isRecentlyActive = !activeError && activeUsers && activeUsers.length > 0;
-      const isMarkedOnline = !onlineError && onlineUsers && onlineUsers.length > 0;
-      
-      if (isRecentlyActive || isMarkedOnline) {
+      if (!activeError && activeUsers && activeUsers.length > 0) {
         console.log(`User ${userId} is currently active in the app. Skipping email notification.`);
-        console.log(`Recent activity: ${isRecentlyActive}, Marked online: ${isMarkedOnline}`);
-        
         return new Response(
           JSON.stringify({ 
             success: true, 
             message: 'Email notification skipped for active user',
-            active: true,
-            activeDetails: {
-              recentlyActive: isRecentlyActive,
-              markedOnline: isMarkedOnline
-            }
+            active: true 
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         );
       } else {
         console.log(`User ${userId} is not currently active. Will proceed with email notification.`);
-        console.log(`Recent activity check: ${isRecentlyActive}, Online status check: ${isMarkedOnline}`);
       }
     }
 
