@@ -121,7 +121,13 @@ const CommentList: React.FC<CommentListProps> = ({
           };
         }
         return { type: 'unknown', url: '' };
-      }) as MediaItem[];
+      });
+    } else if (comment.media && typeof comment.media === 'object' && !Array.isArray(comment.media)) {
+      // Handle case where media is an object but not an array
+      const mediaObj = comment.media as unknown as Record<string, any>;
+      if (mediaObj.type && mediaObj.url) {
+        formattedMedia = [{ type: mediaObj.type, url: mediaObj.url }];
+      }
     }
     
     // Ensure metadata is an object
@@ -141,7 +147,7 @@ const CommentList: React.FC<CommentListProps> = ({
       media: formattedMedia,
       likes: comment.likes || 0,
       liked_by_user: comment.liked_by_user || false,
-      metadata: metadata as Record<string, any>
+      metadata: metadata
     };
   };
 

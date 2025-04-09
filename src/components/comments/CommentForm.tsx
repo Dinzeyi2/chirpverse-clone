@@ -209,7 +209,7 @@ const CommentForm: React.FC<CommentFormProps> = ({
           shoutout_id: postAuthorId,
           media: media.length > 0 ? media : null,
           metadata
-        });
+        }).select();
         
       if (error) throw error;
       

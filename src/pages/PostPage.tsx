@@ -142,7 +142,9 @@ const PostPage: React.FC = () => {
             if (Array.isArray(postData.media)) {
               processedImages = postData.media.map(item => {
                 if (typeof item === 'string') return item;
-                if (typeof item === 'object' && item.url) return item as MediaItem;
+                if (typeof item === 'object' && item && 'url' in item) {
+                  return item as MediaItem;
+                }
                 return '';
               }).filter(Boolean);
             }
