@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.36.0'
 
@@ -241,8 +242,8 @@ serve(async (req) => {
 
 Check out the full post and join the conversation!`;
 
-          // Use the correct post URL format: domain.com/post/{postId}#comments
-          const postUrl = `${appUrl}/post/${postId}#comments`;
+          // Direct to the notifications page instead of the post
+          const notificationsUrl = `${appUrl}/notifications`;
           
           try {
             const response = await fetch(
