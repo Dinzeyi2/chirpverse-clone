@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Comment as CommentType, MediaItem } from '@/lib/data';
 import Comment from './Comment';
@@ -116,9 +115,9 @@ const CommentList: React.FC<CommentListProps> = ({
           return { type: 'image', url: media };
         } else if (media && typeof media === 'object') {
           return {
-            type: media.type || 'unknown',
-            url: media.url || ''
-          };
+            type: (media as any).type || 'unknown',
+            url: (media as any).url || ''
+          } as MediaItem;
         }
         return { type: 'unknown', url: '' };
       });

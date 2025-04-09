@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -98,6 +97,54 @@ const PostPage: React.FC = () => {
     };
   };
   
+  const formatPost = (postData) => {
+    const metadata = postData.metadata || {};
+    const displayUsername = typeof metadata === 'object' && metadata !== null && 'display_username' in metadata
+      ? (metadata as { display_username?: string }).display_username
+      : (postData.profiles?.user_id?.substring(0, 8) || 'user');
+    
+    // Process images from media data
+    let processedImages: (string | MediaItem)[] = [];
+    if (postData.media) {
+      if (Array.isArray(postData.media)) {
+        processedImages = postData.media.map(item => {
+          if (typeof item === 'string') return item;
+          if (typeof item === 'object' && item && 'url' in item) {
+            return {
+              type: (item as any).type || 'image',
+              url: (item as any).url
+            } as MediaItem;
+          }
+          return '';
+        }).filter(Boolean);
+      }
+    }
+    
+    const formattedPost = {
+      id: postData.id,
+      content: postData.content,
+      createdAt: postData.created_at,
+      likes: 0,
+      reposts: 0,
+      replies: 0,
+      views: 0,
+      userId: postData.user_id,
+      images: processedImages,
+      metadata: typeof postData.metadata === 'object' ? postData.metadata : {},
+      user: {
+        id: postData.profiles?.id || postData.user_id,
+        name: displayUsername,
+        username: displayUsername,
+        avatar: blueProfileImage,
+        verified: false,
+        followers: 0,
+        following: 0,
+      }
+    };
+    
+    return formattedPost;
+  };
+  
   useEffect(() => {
     processedCommentIdsRef.current.clear();
     
@@ -131,47 +178,7 @@ const PostPage: React.FC = () => {
         }
         
         if (postData) {
-          const metadata = postData.metadata || {};
-          const displayUsername = typeof metadata === 'object' && metadata !== null && 'display_username' in metadata
-            ? (metadata as { display_username?: string }).display_username
-            : (postData.profiles?.user_id?.substring(0, 8) || 'user');
-          
-          // Process images from media data
-          let processedImages: (string | MediaItem)[] = [];
-          if (postData.media) {
-            if (Array.isArray(postData.media)) {
-              processedImages = postData.media.map(item => {
-                if (typeof item === 'string') return item;
-                if (typeof item === 'object' && item && 'url' in item) {
-                  return item as MediaItem;
-                }
-                return '';
-              }).filter(Boolean);
-            }
-          }
-          
-          const formattedPost = {
-            id: postData.id,
-            content: postData.content,
-            createdAt: postData.created_at,
-            likes: 0,
-            reposts: 0,
-            replies: 0,
-            views: 0,
-            userId: postData.user_id,
-            images: processedImages,
-            metadata: typeof postData.metadata === 'object' ? postData.metadata : {},
-            user: {
-              id: postData.profiles?.id || postData.user_id,
-              name: displayUsername,
-              username: displayUsername,
-              avatar: blueProfileImage,
-              verified: false,
-              followers: 0,
-              following: 0,
-            }
-          };
-          
+          const formattedPost = formatPost(postData);
           setPost(formattedPost);
           
           console.log('Fetching comments for post:', postId);
