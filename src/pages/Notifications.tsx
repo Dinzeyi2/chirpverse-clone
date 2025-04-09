@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Bell, ChevronDown } from 'lucide-react';
@@ -66,6 +65,8 @@ const Notifications = () => {
     const fetchNotifications = async () => {
       setLoading(true);
       try {
+        console.log('Fetching notifications for user:', user.id);
+        
         const { data, error } = await supabase
           .from('notifications')
           .select(`
@@ -87,15 +88,21 @@ const Notifications = () => {
         localStorage.setItem(`notifications_last_visited_${user.id}`, now.toISOString());
 
         const unreadNotifications = data.filter(notification => !notification.is_read);
+        console.log(`Found ${unreadNotifications.length} unread notifications to mark as read`);
+        
         if (unreadNotifications.length > 0) {
           const unreadIds = unreadNotifications.map(notification => notification.id);
           
-          await supabase
+          const { error: updateError } = await supabase
             .from('notifications')
             .update({ is_read: true })
             .in('id', unreadIds);
             
-          console.log(`Marked ${unreadIds.length} notifications as read`);
+          if (updateError) {
+            console.error('Error marking notifications as read:', updateError);
+          } else {
+            console.log(`Successfully marked ${unreadIds.length} notifications as read`);
+          }
         }
 
         const formattedNotifications = data.map(notification => {

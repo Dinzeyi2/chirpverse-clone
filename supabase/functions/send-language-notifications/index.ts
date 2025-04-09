@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.36.0'
 
@@ -95,7 +94,6 @@ serve(async (req) => {
     const postAuthorId = post.user_id;
     console.log(`Post author ID: ${postAuthorId}`);
 
-    // We still fetch the author information for logging purposes
     const { data: authorProfile, error: authorError } = await supabaseClient
       .from('profiles')
       .select('full_name')
@@ -151,7 +149,6 @@ serve(async (req) => {
       )
     }
     
-    // Get list of users who have already been notified about this post to prevent duplicates
     const { data: alreadyNotified, error: notificationCheckError } = await supabaseClient
       .from('notification_logs')
       .select('recipient_id')
@@ -163,23 +160,27 @@ serve(async (req) => {
       console.error('Error checking for existing notifications:', notificationCheckError);
     }
     
-    // Create a set of user IDs who have already been notified for fast lookups
     const alreadyNotifiedUserIds = new Set(
       alreadyNotified?.map(notification => notification.recipient_id) || []
     );
     console.log(`Found ${alreadyNotifiedUserIds.size} users already notified about this post`);
     
-    // NEW: Check for currently active users
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-    const { data: activeUsers, error: activeError } = await supabaseClient
+    const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+    
+    const { data: recentlyActiveUsers, error: recentlyActiveError } = await supabaseClient
       .from('user_sessions')
       .select('user_id, last_active')
-      .gte('last_active', fiveMinutesAgo);
+      .gte('last_active', threeMinutesAgo);
       
-    // Create a set of active user IDs for fast lookups
-    const activeUserIds = new Set(
-      activeUsers?.map(session => session.user_id) || []
-    );
+    const { data: onlineUsers, error: onlineError } = await supabaseClient
+      .from('user_sessions')
+      .select('user_id')
+      .eq('is_online', true);
+      
+    const activeUserIds = new Set([
+      ...(recentlyActiveUsers?.map(session => session.user_id) || []),
+      ...(onlineUsers?.map(session => session.user_id) || [])
+    ]);
     console.log(`Found ${activeUserIds.size} currently active users who will receive in-app notifications only`);
     
     let notificationsSent = 0;
@@ -190,7 +191,6 @@ serve(async (req) => {
 
     for (const profile of profilesWithNotifications) {
       try {
-        // Skip users who have already been notified about this post
         if (alreadyNotifiedUserIds.has(profile.user_id)) {
           console.log(`User ${profile.user_id} already notified about this post, skipping`);
           notificationsSkipped++;
@@ -248,121 +248,104 @@ serve(async (req) => {
           
           const languageList = matchingLanguages.join(', ');
           
-          // Modified: Remove author name from email subject
           const emailSubject = `New post about ${languageList}`;
           
           const truncatedContent = content.length > 200 ? content.substring(0, 200) + '...' : content;
           
-          // Modified: Remove author name from email body
           const emailBody = `New post about ${languageList} on iBlue:
           
 "${truncatedContent}"
 
 Check out the full post and join the conversation!`;
 
-          // Direct to the notifications page instead of the post
-          const notificationsUrl = `${appUrl}/notifications`;
-          
-          try {
-            // ALWAYS create an in-app notification regardless of email status
-            const { error: notifError } = await supabaseClient
-              .from('notifications')
-              .insert({
-                recipient_id: profile.user_id,
-                sender_id: postAuthorId,
-                type: 'language_mention',
-                // Modified: Remove author name from notification content
-                content: `New post about ${languageList}`,
-                metadata: {
-                  languages: matchingLanguages,
-                  post_id: postId,
-                  post_excerpt: content.substring(0, 100) + (content.length > 100 ? '...' : ''),
-                  author_name: authorName // We still store this internally, but don't show it
-                }
-              });
-              
-            if (notifError) {
-              console.error(`Error creating in-app notification for user ${profile.user_id}:`, notifError);
-            } else {
-              console.log(`Created in-app notification for user ${profile.user_id}`);
-              inAppNotificationsCreated++;
-            }
-
-            // Check if user is currently active - if so, skip the email
-            const isUserActive = activeUserIds.has(profile.user_id);
-            
-            if (isUserActive) {
-              console.log(`User ${profile.user_id} is currently active in the app. Skipping email notification.`);
-              notificationResults.push({
-                userId: profile.user_id,
-                name: profile.full_name,
-                email: userEmail,
+          const { error: notifError } = await supabaseClient
+            .from('notifications')
+            .insert({
+              recipient_id: profile.user_id,
+              sender_id: postAuthorId,
+              type: 'language_mention',
+              content: `New post about ${languageList}`,
+              metadata: {
                 languages: matchingLanguages,
-                success: true,
-                active: true,
-                emailSent: false,
-                message: "User is active, skipped email notification"
-              });
-              continue; // Skip email sending for active users
-            }
-
-            // Send email notification only to non-active users
-            const response = await fetch(
-              `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email-notification`,
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-                },
-                body: JSON.stringify({
-                  userId: profile.user_id,
-                  subject: emailSubject,
-                  body: emailBody,
-                  postId: postId,
-                  priority: 'high',
-                  skipEmailIfActive: true, // Tell the email function to check for active users
-                  viewUrl: `${appUrl}/notifications?source=email&postId=${postId}`,
-                  debug: debug
-                }),
+                post_id: postId,
+                post_excerpt: content.substring(0, 100) + (content.length > 100 ? '...' : ''),
+                author_name: authorName
               }
-            );
+            });
+              
+          if (notifError) {
+            console.error(`Error creating in-app notification for user ${profile.user_id}:`, notifError);
+          } else {
+            console.log(`Created in-app notification for user ${profile.user_id}`);
+            inAppNotificationsCreated++;
+          }
 
-            const responseText = await response.text();
-            console.log(`Email notification raw response: ${responseText}`);
+          const isUserActive = activeUserIds.has(profile.user_id);
             
-            let responseJson;
-            try {
-              responseJson = JSON.parse(responseText);
-            } catch (e) {
-              responseJson = { text: responseText };
-            }
-            
+          if (isUserActive) {
+            console.log(`User ${profile.user_id} is currently active in the app. Skipping email notification.`);
             notificationResults.push({
               userId: profile.user_id,
               name: profile.full_name,
               email: userEmail,
               languages: matchingLanguages,
-              success: response.ok,
-              emailSent: response.ok && !responseJson?.active,
-              response: responseJson
+              success: true,
+              active: true,
+              emailSent: false,
+              message: "User is active, skipped email notification"
             });
+            continue;
+          }
 
-            if (response.ok) {
-              console.log(`Successfully sent email to user ${profile.full_name} (${profile.user_id}) at ${userEmail}`);
-              notificationsSent++;
-            } else {
-              console.error(`Error sending email to user ${profile.user_id}:`, responseText);
-              notificationErrors.push({
+          const response = await fetch(
+            `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email-notification`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+              },
+              body: JSON.stringify({
                 userId: profile.user_id,
-                error: responseText
-              });
+                subject: emailSubject,
+                body: emailBody,
+                postId: postId,
+                priority: 'high',
+                skipEmailIfActive: true,
+                viewUrl: `${appUrl}/notifications?source=email&postId=${postId}`,
+                debug: debug
+              }),
             }
-          } catch (emailError) {
-            console.error(`Exception sending email to user ${profile.user_id}:`, emailError);
+          );
+
+          const responseText = await response.text();
+          console.log(`Email notification raw response: ${responseText}`);
+          
+          let responseJson;
+          try {
+            responseJson = JSON.parse(responseText);
+          } catch (e) {
+            responseJson = { text: responseText };
+          }
+          
+          notificationResults.push({
+            userId: profile.user_id,
+            name: profile.full_name,
+            email: userEmail,
+            languages: matchingLanguages,
+            success: response.ok,
+            emailSent: response.ok && !responseJson?.active,
+            response: responseJson
+          });
+
+          if (response.ok) {
+            console.log(`Successfully sent email to user ${profile.user_id} (${profile.user_id}) at ${userEmail}`);
+            notificationsSent++;
+          } else {
+            console.error(`Error sending email to user ${profile.user_id}:`, responseText);
             notificationErrors.push({
               userId: profile.user_id,
-              error: emailError.message
+              error: responseText
             });
           }
         } else {

@@ -38,6 +38,8 @@ export const Sidebar = () => {
     
     const updateUserActiveStatus = async () => {
       try {
+        console.log('Updating user active status...');
+        
         const response = await fetch(`${SUPABASE_URL}/rest/v1/user_sessions`, {
           method: 'POST',
           headers: {
@@ -55,6 +57,8 @@ export const Sidebar = () => {
           
         if (!response.ok) {
           console.error('Error updating user active status:', await response.text());
+        } else {
+          console.log('Successfully updated user active status');
         }
       } catch (err) {
         console.error('Exception updating user active status:', err);
@@ -63,7 +67,7 @@ export const Sidebar = () => {
     
     updateUserActiveStatus();
     
-    const intervalId = setInterval(updateUserActiveStatus, 60 * 1000);
+    const intervalId = setInterval(updateUserActiveStatus, 30 * 1000);
     
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -72,6 +76,13 @@ export const Sidebar = () => {
     };
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    const handleUserActivity = () => {
+      updateUserActiveStatus();
+    };
+    
+    document.addEventListener('mousemove', handleUserActivity, { passive: true });
+    document.addEventListener('click', handleUserActivity, { passive: true });
     
     const setUserOffline = async () => {
       try {
@@ -98,6 +109,8 @@ export const Sidebar = () => {
     return () => {
       clearInterval(intervalId);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener('mousemove', handleUserActivity);
+      document.removeEventListener('click', handleUserActivity);
       setUserOffline();
     };
   }, [user]);
@@ -106,15 +119,23 @@ export const Sidebar = () => {
     if (!user) return;
     
     const checkUnreadNotifications = async () => {
+      console.log('Checking for unread notifications...');
+      
       const { data, error } = await supabase
         .from('notifications')
-        .select('count')
+        .select('id')
         .eq('recipient_id', user.id)
-        .eq('is_read', false);
+        .eq('is_read', false)
+        .limit(1);
         
-      if (!error && data) {
-        setHasUnreadNotifications(data.length > 0);
+      if (error) {
+        console.error('Error checking for unread notifications:', error);
+        return;
       }
+      
+      const hasUnread = data && data.length > 0;
+      console.log('Has unread notifications:', hasUnread);
+      setHasUnreadNotifications(hasUnread);
     };
     
     checkUnreadNotifications();
@@ -127,19 +148,27 @@ export const Sidebar = () => {
         table: 'notifications',
         filter: `recipient_id=eq.${user.id}`,
       }, () => {
+        console.log('New notification received, updating unread status');
         setHasUnreadNotifications(true);
       })
       .subscribe();
       
     if (location.pathname === '/notifications') {
+      console.log('On notifications page, marking notifications as read');
       setHasUnreadNotifications(false);
       
       const updateNotificationsToRead = async () => {
-        await supabase
+        const { error } = await supabase
           .from('notifications')
           .update({ is_read: true })
           .eq('recipient_id', user.id)
           .eq('is_read', false);
+          
+        if (error) {
+          console.error('Error marking notifications as read:', error);
+        } else {
+          console.log('Successfully marked notifications as read');
+        }
       };
       
       updateNotificationsToRead();
