@@ -106,14 +106,19 @@ export const Sidebar = () => {
     if (!user) return;
     
     const checkUnreadNotifications = async () => {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('count')
-        .eq('recipient_id', user.id)
-        .eq('is_read', false);
-        
-      if (!error && data) {
-        setHasUnreadNotifications(data.length > 0);
+      try {
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('id')
+          .eq('recipient_id', user.id)
+          .eq('is_read', false);
+          
+        if (!error && data) {
+          setHasUnreadNotifications(data.length > 0);
+          console.log(`Found ${data.length} unread notifications`);
+        }
+      } catch (err) {
+        console.error('Error checking for unread notifications:', err);
       }
     };
     
@@ -126,20 +131,32 @@ export const Sidebar = () => {
         schema: 'public',
         table: 'notifications',
         filter: `recipient_id=eq.${user.id}`,
-      }, () => {
+      }, (payload) => {
+        console.log('New notification received:', payload);
         setHasUnreadNotifications(true);
       })
       .subscribe();
       
+    // When user visits the notifications page, mark notifications as read
     if (location.pathname === '/notifications') {
       setHasUnreadNotifications(false);
       
       const updateNotificationsToRead = async () => {
-        await supabase
-          .from('notifications')
-          .update({ is_read: true })
-          .eq('recipient_id', user.id)
-          .eq('is_read', false);
+        try {
+          const { error } = await supabase
+            .from('notifications')
+            .update({ is_read: true })
+            .eq('recipient_id', user.id)
+            .eq('is_read', false);
+            
+          if (error) {
+            console.error('Error marking notifications as read:', error);
+          } else {
+            console.log('Successfully marked notifications as read');
+          }
+        } catch (err) {
+          console.error('Exception marking notifications as read:', err);
+        }
       };
       
       updateNotificationsToRead();
