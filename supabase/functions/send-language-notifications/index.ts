@@ -170,6 +170,7 @@ serve(async (req) => {
     
     let notificationsSent = 0;
     let notificationsSkipped = 0;
+    let inAppNotificationsCreated = 0;
     const notificationResults = [];
     const notificationErrors = [];
 
@@ -246,6 +247,30 @@ Check out the full post and join the conversation!`;
           const notificationsUrl = `${appUrl}/notifications`;
           
           try {
+            // ALWAYS create an in-app notification regardless of email status
+            const { error: notifError } = await supabaseClient
+              .from('notifications')
+              .insert({
+                recipient_id: profile.user_id,
+                sender_id: postAuthorId,
+                type: 'language_mention',
+                content: `New post about ${languageList} from ${authorName}`,
+                metadata: {
+                  languages: matchingLanguages,
+                  post_id: postId,
+                  post_excerpt: content.substring(0, 100) + (content.length > 100 ? '...' : ''),
+                  author_name: authorName
+                }
+              });
+              
+            if (notifError) {
+              console.error(`Error creating in-app notification for user ${profile.user_id}:`, notifError);
+            } else {
+              console.log(`Created in-app notification for user ${profile.user_id}`);
+              inAppNotificationsCreated++;
+            }
+
+            // Send email notification
             const response = await fetch(
               `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email-notification`,
               {
@@ -287,27 +312,6 @@ Check out the full post and join the conversation!`;
             if (response.ok) {
               console.log(`Successfully sent email to user ${profile.full_name} (${profile.user_id}) at ${userEmail}`);
               notificationsSent++;
-              
-              const { error: notifError } = await supabaseClient
-                .from('notifications')
-                .insert({
-                  recipient_id: profile.user_id,
-                  sender_id: postAuthorId,
-                  type: 'language_mention',
-                  content: `New post about ${languageList} from ${authorName}`,
-                  metadata: {
-                    languages: matchingLanguages,
-                    post_id: postId,
-                    post_excerpt: content.substring(0, 100) + (content.length > 100 ? '...' : ''),
-                    author_name: authorName
-                  }
-                });
-                
-              if (notifError) {
-                console.error(`Error creating in-app notification for user ${profile.user_id}:`, notifError);
-              } else {
-                console.log(`Created in-app notification for user ${profile.user_id}`);
-              }
             } else {
               console.error(`Error sending email to user ${profile.user_id}:`, responseText);
               notificationErrors.push({
@@ -339,7 +343,7 @@ Check out the full post and join the conversation!`;
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Notifications processed. Sent ${notificationsSent}, skipped ${notificationsSkipped}`,
+        message: `Notifications processed. Sent ${notificationsSent} emails, created ${inAppNotificationsCreated} in-app notifications, skipped ${notificationsSkipped}`,
         post: {
           id: postId,
           languages: languages,
@@ -349,6 +353,7 @@ Check out the full post and join the conversation!`;
         stats: {
           total_users: profilesWithNotifications?.length || 0,
           notifications_sent: notificationsSent,
+          in_app_notifications_created: inAppNotificationsCreated,
           notifications_skipped: notificationsSkipped,
           errors: notificationErrors.length
         },
