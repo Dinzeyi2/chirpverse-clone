@@ -1,5 +1,6 @@
+
 import React, { useMemo } from 'react';
-import { Comment as CommentType, MediaItem } from '@/lib/data';
+import { Comment as CommentType } from '@/lib/data';
 import Comment from './Comment';
 
 interface CommentListProps {
@@ -108,25 +109,19 @@ const CommentList: React.FC<CommentListProps> = ({
   // Format comments to match what the Comment component expects
   const formatComment = (comment: CommentType) => {
     // Safely handle media
-    let formattedMedia: MediaItem[] = [];
+    let formattedMedia = [];
     if (comment.media && Array.isArray(comment.media)) {
       formattedMedia = comment.media.map(media => {
         if (typeof media === 'string') {
           return { type: 'image', url: media };
         } else if (media && typeof media === 'object') {
           return {
-            type: (media as any).type || 'unknown',
-            url: (media as any).url || ''
-          } as MediaItem;
+            type: media.type || 'unknown',
+            url: media.url || ''
+          };
         }
         return { type: 'unknown', url: '' };
       });
-    } else if (comment.media && typeof comment.media === 'object' && !Array.isArray(comment.media)) {
-      // Handle case where media is an object but not an array
-      const mediaObj = comment.media as unknown as Record<string, any>;
-      if (mediaObj.type && mediaObj.url) {
-        formattedMedia = [{ type: mediaObj.type, url: mediaObj.url }];
-      }
     }
     
     // Ensure metadata is an object
