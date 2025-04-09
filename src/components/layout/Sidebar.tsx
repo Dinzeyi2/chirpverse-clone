@@ -23,8 +23,7 @@ export const Sidebar = () => {
   const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
-  // Set profilePath to user-specific path if user exists, or generic path if not
-  const profilePath = user ? `/profile/${user.id}` : '/profile';
+  const profilePath = '/profile';
 
   useEffect(() => {
     if (isMobile) {
@@ -126,8 +125,8 @@ export const Sidebar = () => {
   };
 
   const handleProfileClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
     if (!user) {
+      e.preventDefault();
       navigate('/auth');
     } else {
       navigate(`/profile/${user.id}`);
@@ -302,7 +301,6 @@ export const Sidebar = () => {
               return (
                 <a
                   key={item.name}
-                  href="#"
                   onClick={handleProfileClick}
                   className={cn(
                     "flex items-center p-3 text-lg font-medium rounded-full transition-colors cursor-pointer relative",
@@ -372,24 +370,7 @@ export const Sidebar = () => {
         </nav>
         
         <div className="mt-auto">
-          <Dialog open={isPostDialogOpen} onOpenChange={setIsPostDialogOpen}>
-            <DialogTrigger asChild>
-              <Button 
-                variant="outline"
-                size="lg"
-                className={cn(
-                  "w-full font-bold bg-primary text-white hover:bg-primary/90 hover:text-white border-0 px-6 py-3 rounded-full",
-                  isCollapsed && "p-3"
-                )}
-              >
-                <PlusCircle size={24} />
-                {!isCollapsed && <span className="ml-2">Create Post</span>}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px] p-0 rounded-2xl bg-background border-border">
-              <CreatePost onPostCreated={handlePostCreated} inDialog={true} />
-            </DialogContent>
-          </Dialog>
+          
         </div>
       </div>
     </div>
