@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.36.0'
 
@@ -166,6 +165,13 @@ serve(async (req) => {
     console.log('Generated notifications URL:', notificationsUrl);
     console.log(`Will send email to: ${userEmail}`);
 
+    // Process the email subject to remove user names if needed
+    let processedSubject = subject;
+    if (subject && subject.includes('from ')) {
+      // Remove "from [name]" from the subject line
+      processedSubject = subject.replace(/from .+$/, '').trim();
+    }
+
     // Update button label and generate simple HTML email with a button that links directly to the notifications page
     const htmlEmail = `
       <!DOCTYPE html>
@@ -219,13 +225,13 @@ serve(async (req) => {
       )
     }
 
-    console.log(`Sending email to ${userEmail} with subject: ${subject}`);
+    console.log(`Sending email to ${userEmail} with subject: ${processedSubject}`);
     
-    // Send email using Resend
+    // Send email using Resend with the processed subject
     const emailData = {
       from: 'notifications@i-blue.dev',
       to: userEmail,
-      subject: subject || 'New iBlue Notification',
+      subject: processedSubject || 'New iBlue Notification',
       html: htmlEmail,
       // Add tracking for email opens and clicks
       track_opens: true,

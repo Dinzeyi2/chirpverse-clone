@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Bell, ChevronDown } from 'lucide-react';
@@ -12,12 +13,6 @@ import { Card, CardContent } from "@/components/ui/card";
 interface NotificationType {
   id: string;
   type: 'like' | 'reply' | 'mention' | 'retweet' | 'bookmark' | 'reaction' | 'language_mention';
-  user: {
-    name: string;
-    username: string;
-    avatar: string;
-    verified?: boolean;
-  };
   content: string;
   post?: string;
   time: string;
@@ -117,16 +112,18 @@ const Notifications = () => {
             }
           }
 
+          // Modified content to remove user names
+          let contentWithoutNames = notification.content;
+          
+          // For language mention notifications, remove the author name
+          if (notification.type === 'language_mention') {
+            contentWithoutNames = contentWithoutNames.replace(/from .+$/, '');
+          }
+
           return {
             id: notification.id,
             type: notification.type as 'like' | 'reply' | 'mention' | 'retweet' | 'bookmark' | 'reaction' | 'language_mention',
-            user: {
-              name: notification.sender?.full_name || 'Anonymous User',
-              username: notification.sender?.user_id?.substring(0, 8) || 'user',
-              avatar: notification.sender?.avatar_url || 'https://i.pravatar.cc/150?img=3',
-              verified: Math.random() > 0.7,
-            },
-            content: notification.content,
+            content: contentWithoutNames,
             post: postExcerpt,
             postId: postId,
             time: formatTimeAgo(new Date(notification.created_at)),
@@ -178,16 +175,18 @@ const Notifications = () => {
               }
             }
 
+            // Modified content to remove user names
+            let contentWithoutNames = newNotification.content;
+            
+            // For language mention notifications, remove the author name
+            if (newNotification.type === 'language_mention') {
+              contentWithoutNames = contentWithoutNames.replace(/from .+$/, '');
+            }
+
             const formattedNotification = {
               id: newNotification.id,
               type: newNotification.type as 'like' | 'reply' | 'mention' | 'retweet' | 'bookmark' | 'reaction' | 'language_mention',
-              user: {
-                name: profile?.full_name || 'Anonymous User',
-                username: profile?.user_id?.substring(0, 8) || 'user',
-                avatar: profile?.avatar_url || 'https://i.pravatar.cc/150?img=3',
-                verified: Math.random() > 0.7,
-              },
-              content: newNotification.content,
+              content: contentWithoutNames,
               post: postExcerpt,
               postId: postId,
               time: formatTimeAgo(new Date(newNotification.created_at)),
@@ -196,9 +195,12 @@ const Notifications = () => {
             
             setNotifications(prev => [formattedNotification, ...prev]);
             
+            // Modified toast notification content to remove names
+            let toastDescription = contentWithoutNames;
+            
             toast({
               title: getNotificationTitle(newNotification.type),
-              description: `${profile?.full_name || 'Someone'} ${newNotification.content}`,
+              description: toastDescription,
               action: (
                 <a 
                   onClick={() => navigate(postId ? `/post/${postId}` : '/notifications')}
@@ -232,7 +234,7 @@ const Notifications = () => {
       case 'reaction':
         return 'New Reaction';
       case 'language_mention':
-        return 'Language Mention';
+        return 'New Language Mention';
       default:
         return 'New Notification';
     }

@@ -95,6 +95,7 @@ serve(async (req) => {
     const postAuthorId = post.user_id;
     console.log(`Post author ID: ${postAuthorId}`);
 
+    // We still fetch the author information for logging purposes
     const { data: authorProfile, error: authorError } = await supabaseClient
       .from('profiles')
       .select('full_name')
@@ -233,11 +234,14 @@ serve(async (req) => {
           console.log(`Sending notification to user ${profile.user_id} about languages: ${matchingLanguages.join(', ')}`);
           
           const languageList = matchingLanguages.join(', ');
-          const emailSubject = `New post about ${languageList} from ${authorName}`;
+          
+          // Modified: Remove author name from email subject
+          const emailSubject = `New post about ${languageList}`;
           
           const truncatedContent = content.length > 200 ? content.substring(0, 200) + '...' : content;
           
-          const emailBody = `${authorName} just posted about ${languageList} on iBlue:
+          // Modified: Remove author name from email body
+          const emailBody = `New post about ${languageList} on iBlue:
           
 "${truncatedContent}"
 
@@ -254,12 +258,13 @@ Check out the full post and join the conversation!`;
                 recipient_id: profile.user_id,
                 sender_id: postAuthorId,
                 type: 'language_mention',
-                content: `New post about ${languageList} from ${authorName}`,
+                // Modified: Remove author name from notification content
+                content: `New post about ${languageList}`,
                 metadata: {
                   languages: matchingLanguages,
                   post_id: postId,
                   post_excerpt: content.substring(0, 100) + (content.length > 100 ? '...' : ''),
-                  author_name: authorName
+                  author_name: authorName // We still store this internally, but don't show it
                 }
               });
               
