@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -37,8 +36,9 @@ export const Sidebar = () => {
     // Function to update user's active status
     const updateUserActiveStatus = async () => {
       try {
-        const { error } = await supabase
-          .from('user_sessions')
+        const query = supabase.from('user_sessions');
+        // @ts-ignore - The table exists but TypeScript doesn't know about it
+        const { error } = await query
           .upsert({ 
             user_id: user.id,
             last_active: new Date().toISOString(),
@@ -73,8 +73,9 @@ export const Sidebar = () => {
     // Set user as offline when leaving
     const setUserOffline = async () => {
       try {
-        await supabase
-          .from('user_sessions')
+        const query = supabase.from('user_sessions');
+        // @ts-ignore - The table exists but TypeScript doesn't know about it
+        await query
           .update({ is_online: false })
           .eq('user_id', user.id);
       } catch (err) {
@@ -147,7 +148,6 @@ export const Sidebar = () => {
     { name: 'Settings', icon: Settings, href: '/settings' },
   ];
 
-  // Use only the dot indicator for notifications, no count
   const notificationsItem = {
     name: "Notifications",
     href: "/notifications",

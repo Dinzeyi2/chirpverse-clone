@@ -37,25 +37,25 @@ supabase.from('profiles').select('id').limit(1).then(({ data, error }) => {
 supabase.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_IN' && session?.user) {
     // Update user session when signed in
-    supabase
-      .from('user_sessions')
-      .upsert({ 
-        user_id: session.user.id,
-        last_active: new Date().toISOString(),
-        is_online: true
-      }, { 
-        onConflict: 'user_id'
-      })
-      .then(({ error }) => {
-        if (error) console.error('Error updating user session on login:', error);
-      });
+    const query = supabase.from('user_sessions');
+    // @ts-ignore - The table exists but TypeScript doesn't know about it
+    query.upsert({ 
+      user_id: session.user.id,
+      last_active: new Date().toISOString(),
+      is_online: true
+    }, { 
+      onConflict: 'user_id'
+    })
+    .then(({ error }) => {
+      if (error) console.error('Error updating user session on login:', error);
+    });
   } else if (event === 'SIGNED_OUT') {
     // Handle sign out by marking user as offline
     const previousUser = session?.user;
     if (previousUser?.id) {
-      supabase
-        .from('user_sessions')
-        .update({ is_online: false })
+      const query = supabase.from('user_sessions');
+      // @ts-ignore - The table exists but TypeScript doesn't know about it
+      query.update({ is_online: false })
         .eq('user_id', previousUser.id)
         .then(({ error }) => {
           if (error) console.error('Error updating user session on logout:', error);
@@ -261,3 +261,4 @@ export const notifyUsersWithSameLanguages = async (
     console.error('Error in notifyUsersWithSameLanguages:', error);
   }
 };
+

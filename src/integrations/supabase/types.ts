@@ -1241,6 +1241,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          is_online: boolean
+          last_active: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_online?: boolean
+          last_active?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_online?: boolean
+          last_active?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_usage_limits: {
         Row: {
           id: string
