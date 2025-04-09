@@ -125,8 +125,9 @@ export const Sidebar = () => {
   };
 
   const handleProfileClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    
     if (!user) {
-      e.preventDefault();
       navigate('/auth');
     } else {
       navigate(`/profile/${user.id}`);
