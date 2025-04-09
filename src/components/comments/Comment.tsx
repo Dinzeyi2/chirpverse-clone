@@ -672,8 +672,9 @@ const Comment: React.FC<CommentProps> = ({
                 Replying to @{comment.user.username}
               </div>
               <CommentForm 
+                postId={postId}
                 currentUser={currentUser}
-                postAuthorId={postId}
+                postAuthorId={postAuthorId}
                 onCommentAdded={handleCommentAdded}
                 replyToMetadata={{
                   reply_to: {

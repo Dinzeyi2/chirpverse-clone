@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import Comment from './Comment';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
+import { MediaItem } from '@/lib/data';
 
 export interface CommentListProps {
   postId: string;
@@ -30,6 +31,28 @@ const CommentList: React.FC<CommentListProps> = ({ postId, comments: initialComm
 
       // Process comments to add required properties
       const processedComments = data?.map(comment => {
+        // Parse media if it exists
+        let processedMedia: MediaItem[] | undefined;
+        if (comment.media) {
+          try {
+            // If media is a string, try to parse it as JSON
+            if (typeof comment.media === 'string') {
+              processedMedia = JSON.parse(comment.media);
+            } 
+            // If it's already an object or array
+            else if (Array.isArray(comment.media)) {
+              processedMedia = comment.media;
+            }
+            // If it's an object with images property
+            else if (typeof comment.media === 'object' && comment.media !== null) {
+              processedMedia = comment.media.images || [];
+            }
+          } catch (e) {
+            console.error("Error parsing media:", e);
+            processedMedia = [];
+          }
+        }
+
         return {
           ...comment,
           // Add missing properties required by the Comment component
@@ -41,7 +64,8 @@ const CommentList: React.FC<CommentListProps> = ({ postId, comments: initialComm
             avatar: comment.user.avatar_url || '',
             full_name: comment.user.full_name || '',
             verified: false
-          }
+          },
+          media: processedMedia || []
         };
       }) || [];
 

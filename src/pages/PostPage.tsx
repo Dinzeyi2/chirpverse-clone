@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -59,8 +58,14 @@ const PostPage = () => {
           verified: false,
           profession: data.user.profession
         },
-        images: data.media && typeof data.media === 'object' ? data.media.images || [] : [],
-        metadata: data.metadata && typeof data.metadata === 'object' ? data.metadata : {},
+        images: data.media ? 
+          (typeof data.media === 'object' && data.media !== null && 'images' in data.media) ? 
+            data.media.images || [] : 
+            (Array.isArray(data.media) ? data.media : []) : 
+          [],
+        metadata: data.metadata && typeof data.metadata === 'object' ? 
+          data.metadata : 
+          {},
         liked: false,
         bookmarked: false,
         isOwner: user?.id === data.user_id
