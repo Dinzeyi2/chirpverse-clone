@@ -37,6 +37,7 @@ interface CommentProps {
   postId?: string;
   currentUser?: any;
   replies?: any[]; // Preloaded replies
+  postAuthorId?: string; // Add this property
 }
 
 interface CommentReaction {
@@ -52,7 +53,8 @@ const Comment: React.FC<CommentProps> = ({
   isNestedReply = false,
   postId,
   currentUser,
-  replies = []
+  replies = [],
+  postAuthorId // Add this parameter
 }) => {
   const [isLiked, setIsLiked] = useState(comment.liked_by_user);
   const [likeCount, setLikeCount] = useState(comment.likes);

@@ -37,19 +37,39 @@ const CommentList: React.FC<CommentListProps> = ({ postId, comments: initialComm
           try {
             // If media is a string, try to parse it as JSON
             if (typeof comment.media === 'string') {
-              processedMedia = JSON.parse(comment.media);
+              processedMedia = JSON.parse(comment.media) as MediaItem[];
             } 
             // If it's already an object or array
             else if (Array.isArray(comment.media)) {
-              processedMedia = comment.media;
+              processedMedia = comment.media as MediaItem[];
             }
             // If it's an object with images property
             else if (typeof comment.media === 'object' && comment.media !== null) {
-              processedMedia = comment.media.images || [];
+              const mediaImages = comment.media.images;
+              if (Array.isArray(mediaImages)) {
+                processedMedia = mediaImages as MediaItem[];
+              } else {
+                processedMedia = [];
+              }
             }
           } catch (e) {
             console.error("Error parsing media:", e);
             processedMedia = [];
+          }
+        }
+
+        // Process metadata
+        let processedMetadata: Record<string, any> | undefined;
+        if (comment.metadata) {
+          try {
+            if (typeof comment.metadata === 'string') {
+              processedMetadata = JSON.parse(comment.metadata);
+            } else if (typeof comment.metadata === 'object' && comment.metadata !== null) {
+              processedMetadata = comment.metadata as Record<string, any>;
+            }
+          } catch (e) {
+            console.error("Error parsing metadata:", e);
+            processedMetadata = {};
           }
         }
 
@@ -65,7 +85,8 @@ const CommentList: React.FC<CommentListProps> = ({ postId, comments: initialComm
             full_name: comment.user.full_name || '',
             verified: false
           },
-          media: processedMedia || []
+          media: processedMedia || [],
+          metadata: processedMetadata || {}
         };
       }) || [];
 
@@ -98,6 +119,7 @@ const CommentList: React.FC<CommentListProps> = ({ postId, comments: initialComm
           comment={comment}
           postId={postId}
           currentUser={user}
+          postAuthorId={comment.user_id}
         />
       ))}
     </div>

@@ -53,6 +53,8 @@ const CommentForm = ({
   const { toast } = useToast();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const queryClient = useQueryClient();
+  
+  const activeUser = currentUser || user;
 
   useEffect(() => {
     if (autoFocus && textareaRef.current) {
@@ -193,14 +195,14 @@ const CommentForm = ({
           <TooltipTrigger asChild>
             <Avatar className="h-8 w-8">
               <AvatarImage 
-                src={user?.user_metadata?.avatar_url} 
-                alt={user?.user_metadata?.full_name || user?.user_metadata?.username || 'User'} 
+                src={activeUser?.user_metadata?.avatar_url} 
+                alt={activeUser?.user_metadata?.full_name || activeUser?.user_metadata?.username || 'User'} 
               />
-              <AvatarFallback>{user?.user_metadata?.full_name?.[0] || 'U'}</AvatarFallback>
+              <AvatarFallback>{activeUser?.user_metadata?.full_name?.[0] || 'U'}</AvatarFallback>
             </Avatar>
           </TooltipTrigger>
           <TooltipContent>
-            {user?.user_metadata?.full_name || user?.user_metadata?.username || 'User'}
+            {activeUser?.user_metadata?.full_name || activeUser?.user_metadata?.username || 'User'}
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

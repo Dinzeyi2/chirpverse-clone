@@ -41,6 +41,51 @@ const PostPage = () => {
         throw error;
       }
       
+      // Process media data to ensure it matches the expected format
+      let processedImages: (string | MediaItem)[] = [];
+      
+      if (data.media) {
+        try {
+          if (typeof data.media === 'string') {
+            // If it's a JSON string, parse it
+            const parsedMedia = JSON.parse(data.media);
+            if (Array.isArray(parsedMedia)) {
+              processedImages = parsedMedia;
+            } else if (typeof parsedMedia === 'object' && parsedMedia !== null && 'images' in parsedMedia) {
+              processedImages = parsedMedia.images || [];
+            }
+          } else if (Array.isArray(data.media)) {
+            // If it's already an array
+            processedImages = data.media;
+          } else if (typeof data.media === 'object' && data.media !== null) {
+            // If it's an object, check for images property
+            if ('images' in data.media) {
+              const mediaImages = data.media.images;
+              if (Array.isArray(mediaImages)) {
+                processedImages = mediaImages;
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Error parsing media:", e);
+        }
+      }
+      
+      // Process metadata to ensure it's an object
+      let processedMetadata: Record<string, any> = {};
+      
+      if (data.metadata) {
+        try {
+          if (typeof data.metadata === 'string') {
+            processedMetadata = JSON.parse(data.metadata);
+          } else if (typeof data.metadata === 'object' && data.metadata !== null) {
+            processedMetadata = data.metadata as Record<string, any>;
+          }
+        } catch (e) {
+          console.error("Error parsing metadata:", e);
+        }
+      }
+      
       // Format the data to match our Post interface
       const formattedPost: Post = {
         id: data.id,
@@ -58,14 +103,8 @@ const PostPage = () => {
           verified: false,
           profession: data.user.profession
         },
-        images: data.media ? 
-          (typeof data.media === 'object' && data.media !== null && 'images' in data.media) ? 
-            data.media.images || [] : 
-            (Array.isArray(data.media) ? data.media : []) : 
-          [],
-        metadata: data.metadata && typeof data.metadata === 'object' ? 
-          data.metadata : 
-          {},
+        images: processedImages,
+        metadata: processedMetadata,
         liked: false,
         bookmarked: false,
         isOwner: user?.id === data.user_id
@@ -202,7 +241,7 @@ const PostPage = () => {
 
   // Record view count
   useEffect(() => {
-    if (post && !viewRecorded) {
+    if (post && !viewRecorded && postId) {
       const recordView = async () => {
         try {
           // Record the post view with a session ID
@@ -263,15 +302,15 @@ const PostPage = () => {
         <ArrowLeft className="mr-2 h-4 w-4" /> Back
       </Button>
       
-      <PostCard post={post} />
+      {post && <PostCard post={post} />}
       
       <div className="mt-8">
         <h2 className="text-xl font-semibold mb-4">Comments</h2>
         
         {user ? (
           <CommentForm 
-            postId={post.id} 
-            postAuthorId={post.userId} // Pass the post author ID to CommentForm
+            postId={postId || ''} 
+            postAuthorId={post?.userId || ''}
           />
         ) : (
           <p className="text-sm text-gray-500 p-4 bg-gray-50 rounded-md">
@@ -280,7 +319,7 @@ const PostPage = () => {
         )}
         
         <div className="mt-6">
-          <CommentList postId={post.id} />
+          {postId && <CommentList postId={postId} />}
         </div>
       </div>
     </div>
