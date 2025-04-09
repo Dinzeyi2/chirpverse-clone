@@ -1,12 +1,14 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import Comment from './Comment';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Comment as CommentType } from '@/lib/data';
 
 export interface CommentListProps {
   postId: string;
-  comments?: any[]; // Make comments optional
+  comments?: CommentType[]; // Make comments optional
 }
 
 const CommentList: React.FC<CommentListProps> = ({ postId, comments: initialComments }) => {
@@ -24,7 +26,33 @@ const CommentList: React.FC<CommentListProps> = ({ postId, comments: initialComm
         throw error;
       }
 
-      return data || [];
+      // Map the database response to our Comment type
+      return data?.map(comment => ({
+        id: comment.id,
+        content: comment.content,
+        createdAt: comment.created_at,
+        userId: comment.user_id,
+        user: {
+          id: comment.user.user_id || comment.user.id,
+          username: comment.user.username || '',
+          name: comment.user.full_name,
+          avatar: comment.user.avatar_url || '',
+          email: comment.user.email || '',
+          verified: comment.user.verified || false,
+        },
+        // Properly format media if it exists
+        media: comment.media ? 
+          (Array.isArray(comment.media) ? 
+            comment.media.map((item: any) => ({
+              type: item.type || 'unknown',
+              url: item.url || ''
+            })) : 
+            null) : 
+          null,
+        metadata: comment.metadata || null,
+        likes: comment.likes || 0,
+        liked_by_user: comment.liked_by_user || false
+      })) || [];
     },
     retry: 1,
   });
@@ -45,9 +73,17 @@ const CommentList: React.FC<CommentListProps> = ({ postId, comments: initialComm
     );
   }
   
+  if (!comments || comments.length === 0) {
+    return (
+      <div className="text-gray-500 text-center p-4">
+        No comments yet. Be the first to comment!
+      </div>
+    );
+  }
+  
   return (
     <div>
-      {comments?.map((comment) => (
+      {comments.map((comment) => (
         <Comment key={comment.id} comment={comment} />
       ))}
     </div>

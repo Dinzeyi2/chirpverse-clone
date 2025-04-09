@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Post } from '@/lib/data';
+import { Post, MediaItem } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
@@ -57,7 +57,22 @@ const PostPage = () => {
           verified: false,
           profession: data.user.profession
         },
-        images: data.media?.images || [],
+        // Properly format images as MediaItem[] or null
+        images: data.media?.images ? 
+          (Array.isArray(data.media.images) ? 
+            data.media.images.map((img: any) => {
+              if (typeof img === 'string') {
+                return { type: 'image', url: img } as MediaItem;
+              } else if (typeof img === 'object' && img !== null) {
+                return { 
+                  type: img.type || 'image', 
+                  url: img.url 
+                } as MediaItem;
+              }
+              return null;
+            }).filter(Boolean) : 
+            []) : 
+          [],
         metadata: data.metadata || {},
         liked: false,
         bookmarked: false,
@@ -262,7 +277,7 @@ const PostPage = () => {
         {user ? (
           <CommentForm 
             postId={post.id} 
-            postAuthorId={post.userId} // Pass the post author ID to CommentForm
+            postAuthorId={post.userId} 
           />
         ) : (
           <p className="text-sm text-gray-500 p-4 bg-gray-50 rounded-md">

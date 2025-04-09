@@ -21,7 +21,7 @@ interface CommentFormProps {
   onCancel?: () => void;
   placeholder?: string;
   autoFocus?: boolean;
-  postAuthorId?: string; // Add the post author ID
+  postAuthorId?: string;
   isReply?: boolean;
   placeholderText?: string;
   replyToMetadata?: {
@@ -39,7 +39,7 @@ const CommentForm = ({
   onCancel, 
   placeholder = "Write a comment...", 
   autoFocus = false,
-  postAuthorId, // Accept the post author ID
+  postAuthorId,
   isReply = false,
   placeholderText,
   replyToMetadata,
