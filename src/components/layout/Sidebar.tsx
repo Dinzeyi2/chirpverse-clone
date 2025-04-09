@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Home, Search, User, Bookmark, Settings, PlusCircle, LogOut, LogIn, Menu, Bell, Sparkles, BellDot } from 'lucide-react';
+import { Home, Search, User, Bookmark, Settings, PlusCircle, LogOut, LogIn, Menu, Sparkles } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
@@ -23,7 +24,6 @@ export const Sidebar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
   const profilePath = '/profile';
-  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
 
   useEffect(() => {
     if (isMobile) {
@@ -101,54 +101,6 @@ export const Sidebar = () => {
       setUserOffline();
     };
   }, [user]);
-  
-  useEffect(() => {
-    if (!user) return;
-    
-    const checkUnreadNotifications = async () => {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('count')
-        .eq('recipient_id', user.id)
-        .eq('is_read', false);
-        
-      if (!error && data) {
-        setHasUnreadNotifications(data.length > 0);
-      }
-    };
-    
-    checkUnreadNotifications();
-    
-    const notificationsChannel = supabase
-      .channel('notification-changes')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'notifications',
-        filter: `recipient_id=eq.${user.id}`,
-      }, () => {
-        setHasUnreadNotifications(true);
-      })
-      .subscribe();
-      
-    if (location.pathname === '/notifications') {
-      setHasUnreadNotifications(false);
-      
-      const updateNotificationsToRead = async () => {
-        await supabase
-          .from('notifications')
-          .update({ is_read: true })
-          .eq('recipient_id', user.id)
-          .eq('is_read', false);
-      };
-      
-      updateNotificationsToRead();
-    }
-      
-    return () => {
-      supabase.removeChannel(notificationsChannel);
-    };
-  }, [user, location.pathname]);
 
   const navigation = [
     { name: 'Home', icon: Home, href: '/' },
@@ -158,13 +110,6 @@ export const Sidebar = () => {
     { name: 'Profile', icon: User, href: profilePath },
     { name: 'Settings', icon: Settings, href: '/settings' },
   ];
-
-  const notificationsItem = {
-    name: "Notifications",
-    href: "/notifications",
-    icon: hasUnreadNotifications ? BellDot : Bell,
-    hasUnread: hasUnreadNotifications
-  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -289,21 +234,6 @@ export const Sidebar = () => {
                 </Link>
               );
             })}
-
-            <Link
-              to={notificationsItem.href}
-              className={cn(
-                "flex items-center p-3 text-xl font-medium rounded-full transition-colors relative",
-                location.pathname.startsWith(notificationsItem.href) ? "font-bold" : "text-foreground hover:bg-secondary/70"
-              )}
-            >
-              {notificationsItem.hasUnread ? (
-                <BellDot size={24} className={location.pathname.startsWith(notificationsItem.href) ? "text-primary" : "text-primary"} />
-              ) : (
-                <Bell size={24} className={location.pathname.startsWith(notificationsItem.href) ? "text-primary" : "text-muted-foreground"} />
-              )}
-              <span className="ml-4 font-heading tracking-wide text-lg uppercase">{notificationsItem.name}</span>
-            </Link>
           </nav>
           
           <Dialog open={isPostDialogOpen} onOpenChange={setIsPostDialogOpen}>
@@ -409,27 +339,6 @@ export const Sidebar = () => {
               </Link>
             );
           })}
-
-          <Link
-            to={notificationsItem.href}
-            className={cn(
-              "flex items-center p-3 text-lg font-medium rounded-full transition-colors relative",
-              location.pathname.startsWith(notificationsItem.href) 
-                ? "font-bold" 
-                : "text-foreground hover:bg-secondary/70",
-              isCollapsed && "justify-center"
-            )}
-          >
-            {notificationsItem.hasUnread ? (
-              <BellDot size={24} className={location.pathname.startsWith(notificationsItem.href) ? "text-foreground" : "text-primary"} />
-            ) : (
-              <Bell size={24} className={location.pathname.startsWith(notificationsItem.href) ? "text-foreground" : "text-muted-foreground"} />
-            )}
-            
-            {!isCollapsed && (
-              <span className="ml-4 font-heading tracking-wide text-lg uppercase">{notificationsItem.name}</span>
-            )}
-          </Link>
 
           {user ? (
             <button
