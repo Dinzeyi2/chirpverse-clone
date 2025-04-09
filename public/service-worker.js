@@ -1,7 +1,7 @@
 
 // Service Worker for iblue Web Push Notifications and URL handling
 
-const CACHE_NAME = 'iblue-v6'; // Updated version
+const CACHE_NAME = 'iblue-v7'; // Increment version for cache busting
 const OFFLINE_URL = '/offline.html';
 
 // Installation event
@@ -17,7 +17,8 @@ self.addEventListener('install', (event) => {
       .then((cache) => {
         return cache.addAll([
           OFFLINE_URL,
-          '/'
+          '/',
+          '/index.html'
         ]);
       })
   );
@@ -138,8 +139,20 @@ self.addEventListener('fetch', (event) => {
     // Log navigation
     console.log('Service worker handling navigation to:', url.toString());
     
-    // Check if this is a direct app route
-    const isAppRoute = APP_ROUTES.some(route => url.pathname === route || url.pathname.startsWith(`${route}/`));
+    // CRITICAL: Always serve index.html for SPA routes
+    // This ensures React Router can handle the route
+    if (APP_ROUTES.some(route => url.pathname === route || url.pathname.startsWith(`${route}/`))) {
+      console.log('Serving index.html for app route:', url.pathname);
+      event.respondWith(
+        caches.match('/index.html')
+          .then(response => {
+            return response || fetch('/index.html').catch(() => {
+              return caches.match(OFFLINE_URL);
+            });
+          })
+      );
+      return;
+    }
     
     // Check if this is likely a post URL
     const pathContainsUuid = UUID_PATTERN.test(url.pathname);
@@ -163,21 +176,25 @@ self.addEventListener('fetch', (event) => {
       }
     }
     
-    // For standard app routes, let the app handle it
-    if (isAppRoute || url.pathname === '/' || url.pathname.startsWith('/post/')) {
-      // For SPA navigation, respond with the index.html
+    // For all other app routes or the root path, serve index.html
+    // This is critical for SPA routing
+    if (url.pathname === '/' || url.pathname.startsWith('/post/')) {
       event.respondWith(
-        fetch(event.request).catch(() => {
-          console.log('Fetch failed, falling back to index.html');
-          return caches.match('/') || caches.match(OFFLINE_URL);
-        })
+        caches.match('/index.html')
+          .then(response => {
+            return response || fetch('/index.html').catch(() => {
+              return caches.match(OFFLINE_URL);
+            });
+          })
       );
     } else {
-      // For other routes, try the network first
+      // For non-app routes (e.g., static assets), try network first
       event.respondWith(
         fetch(event.request).catch(() => {
           console.log('Fetch failed, falling back to cached content');
-          return caches.match('/') || caches.match(OFFLINE_URL);
+          return caches.match(event.request) || 
+                 caches.match('/index.html') || 
+                 caches.match(OFFLINE_URL);
         })
       );
     }

@@ -26,15 +26,28 @@ const NotFound = () => {
   useEffect(() => {
     console.log("NotFound component rendered for path:", location.pathname, "hash:", location.hash);
     
-    // Check if this is a direct access to the notifications page
+    // Handle notifications with higher priority than other paths
     if (location.pathname === "/notifications" || location.pathname.startsWith("/notifications/")) {
-      console.log("Redirecting to notifications page");
-      localStorage.setItem('lastPath', "/notifications");
-      localStorage.setItem('lastUrl', window.location.origin + "/notifications");
+      console.log("Redirecting to notifications page from NotFound component");
+      
+      // Persist this path for reload handling
+      localStorage.setItem('lastPath', location.pathname);
+      localStorage.setItem('lastUrl', window.location.origin + location.pathname);
       localStorage.setItem('lastPathTimestamp', Date.now().toString());
       
-      // Navigate to the notifications page
+      // Navigate immediately to the notifications page
       navigate("/notifications", { replace: true });
+      return;
+    }
+    
+    // Check for for-you path
+    if (location.pathname === "/for-you" || location.pathname.startsWith("/for-you/")) {
+      console.log("Redirecting to for-you page");
+      localStorage.setItem('lastPath', location.pathname);
+      localStorage.setItem('lastUrl', window.location.origin + location.pathname);
+      localStorage.setItem('lastPathTimestamp', Date.now().toString());
+      
+      navigate("/for-you", { replace: true });
       return;
     }
     
@@ -75,6 +88,21 @@ const NotFound = () => {
         <p className="text-muted-foreground mb-6">
           The route <span className="font-mono bg-background px-2 py-1 rounded">{location.pathname}{location.hash}</span> does not exist or you may not have permission to access it.
         </p>
+        
+        {/* Redirects for special paths */}
+        {location.pathname === "/notifications" && (
+          <div className="mb-4 p-4 bg-blue-100 dark:bg-blue-900/30 rounded-md">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              It looks like you're trying to access notifications. Click below:
+            </p>
+            <Link 
+              to="/notifications" 
+              className="mt-2 text-xBlue hover:underline font-medium block"
+            >
+              Go to notifications
+            </Link>
+          </div>
+        )}
         
         {postId && (
           <div className="mb-4 p-4 bg-blue-100 dark:bg-blue-900/30 rounded-md">

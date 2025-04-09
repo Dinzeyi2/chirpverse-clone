@@ -8,6 +8,9 @@ const UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{
 // List of routes that should be persisted for reload
 const PERSIST_ROUTES = ['/post/', '/notifications', '/for-you'];
 
+// List of valid app routes to check against
+const APP_ROUTES = ['/auth', '/explore', '/bookmarks', '/profile', '/settings', '/notifications', '/for-you'];
+
 /**
  * Handle all URL normalization and persistence in one place
  * to avoid conflicts between different mechanisms
@@ -64,10 +67,23 @@ export const UrlHandler = () => {
     }
   };
 
+  // Special function to handle notifications path persistence
+  const ensureNotificationsPathIsPersisted = () => {
+    if (pathname === '/notifications' || pathname.startsWith('/notifications/')) {
+      console.log('Ensuring notifications path is persisted');
+      localStorage.setItem('lastUrl', window.location.origin + pathname);
+      localStorage.setItem('lastPath', pathname);
+      localStorage.setItem('lastPathTimestamp', Date.now().toString());
+    }
+  };
+
   // Normalize URL on initial load and route changes
   useEffect(() => {
+    // Ensure notifications path is always persisted
+    ensureNotificationsPathIsPersisted();
+    
     // Skip processing for standard routes that don't need special handling
-    if (['/auth', '/explore', '/bookmarks', '/profile', '/settings', '/'].includes(pathname)) {
+    if (APP_ROUTES.includes(pathname)) {
       return;
     }
     
@@ -97,6 +113,13 @@ export const UrlHandler = () => {
     // Only run once on initial load
     initialLoadDoneRef.current = true;
     
+    // Special handling for notifications direct access
+    if (pathname === '/notifications' || pathname.startsWith('/notifications/')) {
+      console.log('Direct access to notifications detected');
+      ensureNotificationsPathIsPersisted();
+      return; // No need to redirect, this is already a valid route
+    }
+    
     // Check if we're at root or 404 after a reload
     if (pathname === '/' || pathname === '/404') {
       const lastPath = localStorage.getItem('lastPath');
@@ -125,6 +148,7 @@ export const UrlHandler = () => {
   useEffect(() => {
     const handleBeforeUnload = () => {
       persistCurrentUrl();
+      ensureNotificationsPathIsPersisted();
     };
     
     window.addEventListener('beforeunload', handleBeforeUnload);
