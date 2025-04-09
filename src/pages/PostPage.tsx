@@ -58,7 +58,7 @@ const PostPage = () => {
           profession: data.user.profession
         },
         // Properly format images as MediaItem[] or null
-        images: data.media?.images ? 
+        images: data.media && typeof data.media === 'object' && data.media.images ? 
           (Array.isArray(data.media.images) ? 
             data.media.images.map((img: any) => {
               if (typeof img === 'string') {
@@ -73,7 +73,7 @@ const PostPage = () => {
             }).filter(Boolean) : 
             []) : 
           [],
-        metadata: data.metadata || {},
+        metadata: typeof data.metadata === 'object' ? data.metadata as Record<string, any> : {},
         liked: false,
         bookmarked: false,
         isOwner: user?.id === data.user_id
@@ -215,9 +215,13 @@ const PostPage = () => {
         try {
           // Use a custom RPC function or direct table update
           try {
+            // Generate a random session ID if needed
+            const sessionId = crypto.randomUUID();
+            
             await supabase.from('post_views').insert({
               shoutout_id: postId,
-              user_id: user?.id
+              user_id: user?.id,
+              session_id: sessionId
             });
             setViewRecorded(true);
           } catch (err) {
