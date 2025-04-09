@@ -169,6 +169,19 @@ serve(async (req) => {
     );
     console.log(`Found ${alreadyNotifiedUserIds.size} users already notified about this post`);
     
+    // NEW: Check for currently active users
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const { data: activeUsers, error: activeError } = await supabaseClient
+      .from('user_sessions')
+      .select('user_id, last_active')
+      .gte('last_active', fiveMinutesAgo);
+      
+    // Create a set of active user IDs for fast lookups
+    const activeUserIds = new Set(
+      activeUsers?.map(session => session.user_id) || []
+    );
+    console.log(`Found ${activeUserIds.size} currently active users who will receive in-app notifications only`);
+    
     let notificationsSent = 0;
     let notificationsSkipped = 0;
     let inAppNotificationsCreated = 0;
@@ -275,7 +288,25 @@ Check out the full post and join the conversation!`;
               inAppNotificationsCreated++;
             }
 
-            // Send email notification
+            // Check if user is currently active - if so, skip the email
+            const isUserActive = activeUserIds.has(profile.user_id);
+            
+            if (isUserActive) {
+              console.log(`User ${profile.user_id} is currently active in the app. Skipping email notification.`);
+              notificationResults.push({
+                userId: profile.user_id,
+                name: profile.full_name,
+                email: userEmail,
+                languages: matchingLanguages,
+                success: true,
+                active: true,
+                emailSent: false,
+                message: "User is active, skipped email notification"
+              });
+              continue; // Skip email sending for active users
+            }
+
+            // Send email notification only to non-active users
             const response = await fetch(
               `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email-notification`,
               {
@@ -290,6 +321,7 @@ Check out the full post and join the conversation!`;
                   body: emailBody,
                   postId: postId,
                   priority: 'high',
+                  skipEmailIfActive: true, // Tell the email function to check for active users
                   viewUrl: `${appUrl}/notifications?source=email&postId=${postId}`,
                   debug: debug
                 }),
@@ -312,6 +344,7 @@ Check out the full post and join the conversation!`;
               email: userEmail,
               languages: matchingLanguages,
               success: response.ok,
+              emailSent: response.ok && !responseJson?.active,
               response: responseJson
             });
 
@@ -361,6 +394,7 @@ Check out the full post and join the conversation!`;
           notifications_sent: notificationsSent,
           in_app_notifications_created: inAppNotificationsCreated,
           notifications_skipped: notificationsSkipped,
+          active_users: activeUserIds.size,
           errors: notificationErrors.length
         },
         details: debug ? {

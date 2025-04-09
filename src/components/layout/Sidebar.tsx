@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -28,6 +29,66 @@ export const Sidebar = () => {
       setIsCollapsed(false);
     }
   }, [isMobile]);
+  
+  // Track user activity and session for notification purposes
+  useEffect(() => {
+    if (!user) return;
+    
+    // Function to update user's active status
+    const updateUserActiveStatus = async () => {
+      try {
+        const { error } = await supabase
+          .from('user_sessions')
+          .upsert({ 
+            user_id: user.id,
+            last_active: new Date().toISOString(),
+            is_online: true
+          }, { 
+            onConflict: 'user_id'
+          });
+          
+        if (error) {
+          console.error('Error updating user active status:', error);
+        }
+      } catch (err) {
+        console.error('Exception updating user active status:', err);
+      }
+    };
+    
+    // Update on initial load
+    updateUserActiveStatus();
+    
+    // Set up interval to update status every minute while user is active
+    const intervalId = setInterval(updateUserActiveStatus, 60 * 1000);
+    
+    // Update on page visibility changes
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        updateUserActiveStatus();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Set user as offline when leaving
+    const setUserOffline = async () => {
+      try {
+        await supabase
+          .from('user_sessions')
+          .update({ is_online: false })
+          .eq('user_id', user.id);
+      } catch (err) {
+        console.error('Error setting user offline:', err);
+      }
+    };
+    
+    // Clean up
+    return () => {
+      clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      setUserOffline();
+    };
+  }, [user]);
   
   useEffect(() => {
     if (!user) return;
@@ -86,6 +147,7 @@ export const Sidebar = () => {
     { name: 'Settings', icon: Settings, href: '/settings' },
   ];
 
+  // Use only the dot indicator for notifications, no count
   const notificationsItem = {
     name: "Notifications",
     href: "/notifications",
