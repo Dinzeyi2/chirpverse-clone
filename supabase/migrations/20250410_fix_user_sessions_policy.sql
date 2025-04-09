@@ -7,6 +7,7 @@ DROP POLICY IF EXISTS "Users can only manage their own sessions" ON "public"."us
 DROP POLICY IF EXISTS "Users can view all sessions" ON "public"."user_sessions";
 DROP POLICY IF EXISTS "Users can update their own sessions" ON "public"."user_sessions";
 DROP POLICY IF EXISTS "Users can insert their own sessions" ON "public"."user_sessions";
+DROP POLICY IF EXISTS "Users can delete their own sessions" ON "public"."user_sessions";
 DROP POLICY IF EXISTS "Service role has full access to sessions" ON "public"."user_sessions";
 
 -- Allow users to see all sessions (needed for activity checks)
@@ -43,3 +44,7 @@ ON "public"."user_sessions"
 FOR ALL
 TO service_role
 USING (true);
+
+-- Make sure the table has the necessary indexes
+CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON "public"."user_sessions" (user_id);
+CREATE INDEX IF NOT EXISTS idx_user_sessions_last_active ON "public"."user_sessions" (last_active);

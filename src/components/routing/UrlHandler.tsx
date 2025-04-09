@@ -1,5 +1,5 @@
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -10,7 +10,13 @@ const UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{
 const PERSIST_ROUTES = ['/post/', '/notifications', '/for-you'];
 
 // List of valid app routes to check against
-const APP_ROUTES = ['/auth', '/explore', '/bookmarks', '/profile', '/settings', '/notifications', '/for-you'];
+const APP_ROUTES = [
+  '/auth', '/explore', '/bookmarks', '/profile', 
+  '/settings', '/notifications', '/for-you'
+];
+
+// Fallback route in case of error
+const FALLBACK_ROUTE = '/';
 
 /**
  * Handle all URL normalization and persistence in one place
@@ -20,7 +26,13 @@ export const UrlHandler = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const initialLoadDoneRef = useRef(false);
+  const initialNavigationAttemptedRef = useRef(false);
   const { pathname, hash, search } = location;
+  const [navigationError, setNavigationError] = useState<Error | null>(null);
+  
+  // Safety mechanism to prevent infinite redirect loops
+  const redirectAttemptsRef = useRef(0);
+  const MAX_REDIRECT_ATTEMPTS = 3;
   
   // Extract a UUID from various URL patterns
   const extractUuid = (path: string): string | null => {
@@ -110,6 +122,37 @@ export const UrlHandler = () => {
     }
   };
 
+  // Safe navigation function to prevent loops and errors
+  const safeNavigate = (targetPath: string, options: { replace?: boolean } = {}) => {
+    try {
+      if (redirectAttemptsRef.current >= MAX_REDIRECT_ATTEMPTS) {
+        console.warn('Max redirect attempts reached, aborting navigation');
+        toast.error('Navigation error detected. Going to home page.');
+        navigate(FALLBACK_ROUTE, { replace: true });
+        redirectAttemptsRef.current = 0;
+        return;
+      }
+      
+      redirectAttemptsRef.current++;
+      navigate(targetPath, options);
+      
+      // Reset counter after successful navigation
+      setTimeout(() => {
+        redirectAttemptsRef.current = 0;
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Navigation error:', error);
+      setNavigationError(error instanceof Error ? error : new Error('Unknown navigation error'));
+      
+      // If navigation fails, try going to home
+      if (targetPath !== FALLBACK_ROUTE) {
+        toast.error('Navigation failed. Going to home page.');
+        navigate(FALLBACK_ROUTE, { replace: true });
+      }
+    }
+  };
+
   // Normalize URL on initial load and route changes
   useEffect(() => {
     try {
@@ -129,7 +172,7 @@ export const UrlHandler = () => {
       if (uuid && !pathname.startsWith('/post/')) {
         console.log(`Redirecting to normalized post URL for UUID: ${uuid}`);
         const normalizedPath = `/post/${uuid}${hash}${search}`;
-        navigate(normalizedPath, { replace: true });
+        safeNavigate(normalizedPath, { replace: true });
         return;
       }
       
@@ -148,10 +191,11 @@ export const UrlHandler = () => {
   // Handle initial page load and restore from localStorage if needed
   useEffect(() => {
     try {
-      if (initialLoadDoneRef.current) return;
+      if (initialLoadDoneRef.current || initialNavigationAttemptedRef.current) return;
       
       // Only run once on initial load
       initialLoadDoneRef.current = true;
+      initialNavigationAttemptedRef.current = true;
       
       // Special handling for notifications direct access
       if (pathname === '/notifications' || pathname.startsWith('/notifications/')) {
@@ -173,13 +217,13 @@ export const UrlHandler = () => {
         if (isRecent) {
           if (wasOnNotifications === 'true') {
             console.log('Restoring notifications page from recent navigation');
-            navigate('/notifications', { replace: true });
+            safeNavigate('/notifications', { replace: true });
             return;
           }
           
           if (lastPath) {
             console.log('Restoring from recent navigation:', lastPath);
-            navigate(lastPath, { replace: true });
+            safeNavigate(lastPath, { replace: true });
           }
         }
       }
@@ -189,13 +233,13 @@ export const UrlHandler = () => {
       if (uuid && !pathname.startsWith('/post/')) {
         console.log(`Direct access with UUID: ${uuid}`);
         const normalizedPath = `/post/${uuid}${hash}${search}`;
-        navigate(normalizedPath, { replace: true });
+        safeNavigate(normalizedPath, { replace: true });
       }
     } catch (error) {
       console.error("Error in initial load URL processing:", error);
       // If there's an error restoring from localStorage, ensure we redirect to home
       if (pathname === '/404') {
-        navigate('/', { replace: true });
+        safeNavigate('/', { replace: true });
       }
     }
   }, [pathname, navigate]);
@@ -216,6 +260,13 @@ export const UrlHandler = () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [pathname, hash, search]);
+
+  // Display error if navigation failed
+  useEffect(() => {
+    if (navigationError) {
+      toast.error(`Navigation error: ${navigationError.message}`);
+    }
+  }, [navigationError]);
 
   // Component doesn't render anything visible
   return null;
