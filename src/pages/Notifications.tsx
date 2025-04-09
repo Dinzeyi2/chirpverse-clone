@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Bell, ChevronDown } from 'lucide-react';
@@ -89,20 +90,12 @@ const Notifications = () => {
         if (unreadNotifications.length > 0) {
           const unreadIds = unreadNotifications.map(notification => notification.id);
           
-          try {
-            const { error: updateError } = await supabase
-              .from('notifications')
-              .update({ is_read: true })
-              .in('id', unreadIds);
-              
-            if (updateError) {
-              console.error('Error marking notifications as read:', updateError);
-            } else {
-              console.log(`Marked ${unreadIds.length} notifications as read`);
-            }
-          } catch (markError) {
-            console.error('Exception marking notifications as read:', markError);
-          }
+          await supabase
+            .from('notifications')
+            .update({ is_read: true })
+            .in('id', unreadIds);
+            
+          console.log(`Marked ${unreadIds.length} notifications as read`);
         }
 
         const formattedNotifications = data.map(notification => {
@@ -119,8 +112,10 @@ const Notifications = () => {
             }
           }
 
+          // Modified content to remove user names
           let contentWithoutNames = notification.content;
           
+          // For language mention notifications, remove the author name
           if (notification.type === 'language_mention') {
             contentWithoutNames = contentWithoutNames.replace(/from .+$/, '');
           }
@@ -180,8 +175,10 @@ const Notifications = () => {
               }
             }
 
+            // Modified content to remove user names
             let contentWithoutNames = newNotification.content;
             
+            // For language mention notifications, remove the author name
             if (newNotification.type === 'language_mention') {
               contentWithoutNames = contentWithoutNames.replace(/from .+$/, '');
             }
@@ -198,6 +195,7 @@ const Notifications = () => {
             
             setNotifications(prev => [formattedNotification, ...prev]);
             
+            // Modified toast notification content to remove names
             let toastDescription = contentWithoutNames;
             
             toast({
