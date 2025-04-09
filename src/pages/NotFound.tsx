@@ -26,6 +26,18 @@ const NotFound = () => {
   useEffect(() => {
     console.log("NotFound component rendered for path:", location.pathname, "hash:", location.hash);
     
+    // Check if this is a direct access to the notifications page
+    if (location.pathname === "/notifications" || location.pathname.startsWith("/notifications/")) {
+      console.log("Redirecting to notifications page");
+      localStorage.setItem('lastPath', "/notifications");
+      localStorage.setItem('lastUrl', window.location.origin + "/notifications");
+      localStorage.setItem('lastPathTimestamp', Date.now().toString());
+      
+      // Navigate to the notifications page
+      navigate("/notifications", { replace: true });
+      return;
+    }
+    
     // Persist the current path attempt
     if (location.pathname.includes('/post/') || extractPostId()) {
       const fullUrl = window.location.href;

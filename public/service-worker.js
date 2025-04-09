@@ -1,7 +1,7 @@
 
 // Service Worker for iblue Web Push Notifications and URL handling
 
-const CACHE_NAME = 'iblue-v5'; // Updated version
+const CACHE_NAME = 'iblue-v6'; // Updated version
 const OFFLINE_URL = '/offline.html';
 
 // Installation event
@@ -118,6 +118,17 @@ self.addEventListener('notificationclick', (event) => {
 // UUID pattern for URL validation
 const UUID_PATTERN = /[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i;
 
+// List of app routes that should be navigated to directly
+const APP_ROUTES = [
+  '/auth',
+  '/explore',
+  '/bookmarks',
+  '/profile',
+  '/settings',
+  '/notifications',
+  '/for-you'
+];
+
 // Simplified fetch event handling focusing on core app functionality
 self.addEventListener('fetch', (event) => {
   // Only handle navigation requests
@@ -126,6 +137,9 @@ self.addEventListener('fetch', (event) => {
     
     // Log navigation
     console.log('Service worker handling navigation to:', url.toString());
+    
+    // Check if this is a direct app route
+    const isAppRoute = APP_ROUTES.some(route => url.pathname === route || url.pathname.startsWith(`${route}/`));
     
     // Check if this is likely a post URL
     const pathContainsUuid = UUID_PATTERN.test(url.pathname);
@@ -150,11 +164,22 @@ self.addEventListener('fetch', (event) => {
     }
     
     // For standard app routes, let the app handle it
-    event.respondWith(
-      fetch(event.request).catch(() => {
-        console.log('Fetch failed, falling back to cached content');
-        return caches.match('/') || caches.match(OFFLINE_URL);
-      })
-    );
+    if (isAppRoute || url.pathname === '/' || url.pathname.startsWith('/post/')) {
+      // For SPA navigation, respond with the index.html
+      event.respondWith(
+        fetch(event.request).catch(() => {
+          console.log('Fetch failed, falling back to index.html');
+          return caches.match('/') || caches.match(OFFLINE_URL);
+        })
+      );
+    } else {
+      // For other routes, try the network first
+      event.respondWith(
+        fetch(event.request).catch(() => {
+          console.log('Fetch failed, falling back to cached content');
+          return caches.match('/') || caches.match(OFFLINE_URL);
+        })
+      );
+    }
   }
 });

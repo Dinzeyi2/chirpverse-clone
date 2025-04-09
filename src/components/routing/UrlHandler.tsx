@@ -5,6 +5,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 // UUID pattern for validating direct UUID routes
 const UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 
+// List of routes that should be persisted for reload
+const PERSIST_ROUTES = ['/post/', '/notifications', '/for-you'];
+
 /**
  * Handle all URL normalization and persistence in one place
  * to avoid conflicts between different mechanisms
@@ -49,7 +52,10 @@ export const UrlHandler = () => {
 
   // Store current URL in localStorage for persistence across reloads
   const persistCurrentUrl = () => {
-    if (pathname.includes('/post/') || pathname.match(/\/[a-f0-9-]{36}/i)) {
+    // Check if the current route should be persisted
+    const shouldPersist = PERSIST_ROUTES.some(route => pathname.includes(route));
+    
+    if (shouldPersist) {
       const fullUrl = window.location.href;
       console.log('Persisting URL:', fullUrl);
       localStorage.setItem('lastUrl', fullUrl);
@@ -60,8 +66,8 @@ export const UrlHandler = () => {
 
   // Normalize URL on initial load and route changes
   useEffect(() => {
-    // Skip processing for standard routes
-    if (['/auth', '/explore', '/bookmarks', '/profile', '/settings', '/notifications', '/'].includes(pathname)) {
+    // Skip processing for standard routes that don't need special handling
+    if (['/auth', '/explore', '/bookmarks', '/profile', '/settings', '/'].includes(pathname)) {
       return;
     }
     
@@ -100,7 +106,7 @@ export const UrlHandler = () => {
       // Only restore if path was saved recently (within last 5 minutes)
       const isRecent = lastTimestamp && (Date.now() - parseInt(lastTimestamp)) < 5 * 60 * 1000;
       
-      if (isRecent && lastPath && lastPath.includes('/post/')) {
+      if (isRecent && lastPath) {
         console.log('Restoring from recent navigation:', lastPath);
         navigate(lastPath, { replace: true });
       }
