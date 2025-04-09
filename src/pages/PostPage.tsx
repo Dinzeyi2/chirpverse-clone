@@ -1,260 +1,535 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Post } from '@/lib/data';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import PostCard from '@/components/feed/PostCard';
+import AppLayout from '@/components/layout/AppLayout';
 import CommentList from '@/components/comments/CommentList';
 import CommentForm from '@/components/comments/CommentForm';
-import { useToast } from '@/hooks/use-toast';
+import PostCard from '@/components/feed/PostCard';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { MediaItem } from '@/lib/data';
 
-const PostPage = () => {
+interface SupabaseComment {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+  shoutout_id: string;
+  media?: any;
+  profiles: any;
+  metadata?: {
+    display_username?: string;
+    is_ai_generated?: boolean;
+    reply_to?: {
+      comment_id: string;
+      username: string;
+    };
+    [key: string]: any;
+  };
+}
+
+const PostPage: React.FC = () => {
   const { postId } = useParams<{ postId: string }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const location = useLocation();
   const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const [viewRecorded, setViewRecorded] = useState(false);
-
-  // Fetch the post with user data
-  const { data: post, isLoading, error } = useQuery({
-    queryKey: ['post', postId],
-    queryFn: async () => {
-      if (!postId) return null;
-      
-      const { data, error } = await supabase
-        .from('shoutouts')
-        .select(`
-          *,
-          user:profiles!inner(*)
-        `)
-        .eq('id', postId)
-        .single();
-        
-      if (error) {
-        throw error;
-      }
-      
-      // Format the data to match our Post interface
-      const formattedPost: Post = {
-        id: data.id,
-        content: data.content,
-        createdAt: data.created_at,
-        userId: data.user_id,
-        likes: 0, // Will fetch counts separately
-        replies: 0,
-        user: {
-          id: data.user.user_id,
-          username: data.user.username || '',
-          name: data.user.full_name,
-          avatar: data.user.avatar_url || '',
-          email: data.user.email || '',
-          verified: !!data.user.verified,
-          profession: data.user.profession
-        },
-        images: data.media?.images || [],
-        metadata: data.metadata || {},
-        liked: false,
-        bookmarked: false,
-        isOwner: user?.id === data.user_id
-      };
-      
-      return formattedPost;
-    },
-    retry: 1,
-    enabled: !!postId
-  });
-
-  // Fetch like counts
-  const { data: likeCounts } = useQuery({
-    queryKey: ['likeCounts', postId],
-    queryFn: async () => {
-      if (!postId) return null;
-      
-      const { data, error } = await supabase
-        .from('shoutout_likes')
-        .select('count(*)')
-        .eq('shoutout_id', postId);
-        
-      if (error) {
-        console.error("Error fetching like counts:", error);
-        return 0;
-      }
-      
-      return parseInt(data?.[0]?.count || '0', 10);
-    },
-    retry: 1,
-    enabled: !!postId
-  });
-
-  // Fetch reply counts
-  const { data: replyCounts } = useQuery({
-    queryKey: ['replyCounts', postId],
-    queryFn: async () => {
-      if (!postId) return null;
-      
-      const { data, error } = await supabase
-        .from('comments')
-        .select('count(*)')
-        .eq('shoutout_id', postId);
-        
-      if (error) {
-        console.error("Error fetching reply counts:", error);
-        return 0;
-      }
-      
-      return parseInt(data?.[0]?.count || '0', 10);
-    },
-    retry: 1,
-    enabled: !!postId
-  });
-
-  // Fetch if the post is liked by the current user
-  const { data: likedByUser } = useQuery({
-    queryKey: ['likedByUser', postId, user?.id],
-    queryFn: async () => {
-      if (!postId || !user?.id) return false;
-      
-      const { data, error } = await supabase
-        .from('shoutout_likes')
-        .select('count(*)')
-        .eq('shoutout_id', postId)
-        .eq('user_id', user.id);
-        
-      if (error) {
-        console.error("Error fetching liked by user:", error);
+  
+  const [post, setPost] = useState<any>(null);
+  const [comments, setComments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [replyingTo, setReplyingTo] = useState<{commentId: string, username: string} | null>(null);
+  
+  const processedCommentIdsRef = useRef<Set<string>>(new Set());
+  const commentsChannelRef = useRef<any>(null);
+  const commentsRef = useRef<HTMLDivElement>(null);
+  const blueProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
+  
+  const addUniqueComments = (newComments: any[], existingComments: any[]) => {
+    const existingCommentMap = new Map(existingComments.map(c => [c.id, c]));
+    
+    const uniqueNewComments = newComments.filter(comment => {
+      if (processedCommentIdsRef.current.has(comment.id)) {
+        console.log('Duplicate comment filtered:', comment.id);
         return false;
       }
       
-      return parseInt(data?.[0]?.count || '0', 10) > 0;
-    },
-    retry: 1,
-    enabled: !!postId && !!user?.id
-  });
-
-  // Fetch if the post is bookmarked by the current user
-  const { data: bookmarkedByUser } = useQuery({
-    queryKey: ['bookmarkedByUser', postId, user?.id],
-    queryFn: async () => {
-      if (!postId || !user?.id) return false;
+      processedCommentIdsRef.current.add(comment.id);
       
-      const { data, error } = await supabase
-        .from('bookmarks')
-        .select('count(*)')
-        .eq('shoutout_id', postId)
-        .eq('user_id', user.id);
-        
-      if (error) {
-        console.error("Error fetching bookmarked by user:", error);
-        return false;
-      }
-      
-      return parseInt(data?.[0]?.count || '0', 10) > 0;
-    },
-    retry: 1,
-    enabled: !!postId && !!user?.id
-  });
-
-  useEffect(() => {
-    if (post && likeCounts !== undefined) {
-      // Update the post object with the fetched data
-      queryClient.setQueryData(['post', postId], {
-        ...post,
-        likes: likeCounts,
-        replies: replyCounts,
-        liked: likedByUser,
-        bookmarked: bookmarkedByUser
-      });
+      return !existingCommentMap.has(comment.id);
+    });
+    
+    if (uniqueNewComments.length === 0) {
+      return existingComments;
     }
-  }, [post, likeCounts, replyCounts, likedByUser, bookmarkedByUser, queryClient, postId]);
-
-  // Record view count
+    
+    return [...uniqueNewComments, ...existingComments]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  };
+  
+  const formatComment = (commentData: SupabaseComment) => {
+    const commentMetadata = commentData.metadata || {};
+    
+    const commentUsername = typeof commentMetadata === 'object' && 
+      commentMetadata !== null && 
+      'display_username' in commentMetadata
+        ? commentMetadata.display_username
+        : commentData.profiles?.user_id?.substring(0, 8) || 'user';
+    
+    return {
+      id: commentData.id,
+      content: commentData.content,
+      createdAt: commentData.created_at,
+      userId: commentData.user_id,
+      postId: commentData.shoutout_id,
+      likes: 0,
+      media: commentData.media || [],
+      metadata: commentData.metadata || {},
+      user: {
+        id: commentData.profiles?.id || commentData.user_id,
+        name: commentUsername,
+        username: commentUsername,
+        avatar: blueProfileImage,
+        verified: false,
+        followers: 0,
+        following: 0,
+      }
+    };
+  };
+  
+  const formatPost = (postData) => {
+    const metadata = postData.metadata || {};
+    const displayUsername = typeof metadata === 'object' && metadata !== null && 'display_username' in metadata
+      ? (metadata as { display_username?: string }).display_username
+      : (postData.profiles?.user_id?.substring(0, 8) || 'user');
+    
+    // Process images from media data
+    let processedImages: (string | MediaItem)[] = [];
+    if (postData.media) {
+      if (Array.isArray(postData.media)) {
+        processedImages = postData.media.map(item => {
+          if (typeof item === 'string') return item;
+          if (typeof item === 'object' && item && 'url' in item) {
+            return {
+              type: (item as any).type || 'image',
+              url: (item as any).url
+            } as MediaItem;
+          }
+          return '';
+        }).filter(Boolean);
+      }
+    }
+    
+    const formattedPost = {
+      id: postData.id,
+      content: postData.content,
+      createdAt: postData.created_at,
+      likes: 0,
+      reposts: 0,
+      replies: 0,
+      views: 0,
+      userId: postData.user_id,
+      images: processedImages,
+      metadata: typeof postData.metadata === 'object' ? postData.metadata : {},
+      user: {
+        id: postData.profiles?.id || postData.user_id,
+        name: displayUsername,
+        username: displayUsername,
+        avatar: blueProfileImage,
+        verified: false,
+        followers: 0,
+        following: 0,
+      }
+    };
+    
+    return formattedPost;
+  };
+  
   useEffect(() => {
-    if (post && !viewRecorded) {
-      const recordView = async () => {
-        try {
-          const { error } = await supabase.rpc('increment_view_count', {
-            row_id: postId,
-            table_name: 'shoutouts',
-            column_name: 'views'
+    processedCommentIdsRef.current.clear();
+    
+    if (postId) {
+      const currentPath = location.pathname + location.hash + location.search;
+      localStorage.setItem('lastPath', currentPath);
+      localStorage.setItem('lastUrl', window.location.href);
+      localStorage.setItem('lastPathTimestamp', Date.now().toString());
+    }
+    
+    const fetchPostAndComments = async () => {
+      if (!postId) return;
+      
+      try {
+        setLoading(true);
+        console.log('Fetching post data for ID:', postId);
+        
+        const { data: postData, error: postError } = await supabase
+          .from('shoutouts')
+          .select(`
+            *,
+            profiles:user_id (*)
+          `)
+          .eq('id', postId)
+          .single();
+          
+        if (postError) {
+          console.error('Error fetching post:', postError);
+          setLoading(false);
+          return;
+        }
+        
+        if (postData) {
+          const formattedPost = formatPost(postData);
+          setPost(formattedPost);
+          
+          console.log('Fetching comments for post:', postId);
+          
+          const { data: commentsData, error: commentsError } = await supabase
+            .from('comments')
+            .select(`
+              *,
+              profiles:user_id (*)
+            `)
+            .eq('shoutout_id', postId)
+            .order('created_at', { ascending: false });
+            
+          if (commentsError) {
+            console.error('Error fetching comments:', commentsError);
+          } else {
+            console.log('Found comments:', commentsData?.length || 0);
+          }
+          
+          Promise.all([
+            supabase.from('likes').select('*', { count: 'exact' }).eq('shoutout_id', postId),
+            supabase.from('comments').select('*', { count: 'exact' }).eq('shoutout_id', postId)
+          ]).then(([likesResponse, commentsCountResponse]) => {
+            const likesCount = likesResponse.count || 0;
+            const commentsCount = commentsCountResponse.count || 0;
+            
+            console.log(`Post has ${likesCount} likes and ${commentsCount} comments`);
+            
+            setPost(prev => ({
+              ...prev,
+              likes: likesCount,
+              replies: commentsCount
+            }));
+            
+            if (commentsData && commentsData.length > 0) {
+              const formattedComments = commentsData.map((comment: any) => {
+                const typedComment = comment;
+                const formattedComment = formatComment(typedComment);
+                processedCommentIdsRef.current.add(formattedComment.id);
+                return formattedComment;
+              });
+              
+              const sortedComments = formattedComments.sort(
+                (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+              );
+              
+              setComments(sortedComments);
+            } else {
+              console.log('No comments found for this post');
+              setComments([]);
+            }
+          }).catch((error) => {
+            console.error('Error fetching additional data:', error);
+          }).finally(() => {
+            setLoading(false);
           });
           
-          if (error) {
-            console.error("Error incrementing view count:", error);
-          } else {
-            setViewRecorded(true);
+          // Record view if user is authenticated
+          if (user) {
+            // Generate a session ID if not authenticated
+            const sessionId = user?.id || `anonymous-${Math.random().toString(36).substring(2, 15)}`;
+            
+            // Record view
+            const { error: viewError } = await supabase
+              .from('post_views')
+              .insert({
+                shoutout_id: postId,
+                user_id: user?.id || null,
+                session_id: sessionId
+              });
+              
+            if (viewError) {
+              console.error('Error recording view:', viewError);
+            }
           }
-        } catch (err) {
-          console.error("Error in increment_view_count:", err);
         }
-      };
-      
-      recordView();
+      } catch (error) {
+        console.error('Error in fetchPostAndComments:', error);
+        toast.error('Failed to load post');
+        setLoading(false);
+      }
+    };
+    
+    fetchPostAndComments();
+    
+    if (commentsChannelRef.current) {
+      supabase.removeChannel(commentsChannelRef.current);
     }
-  }, [post, postId, viewRecorded]);
-
-  // Component rendering
-  if (isLoading) {
-    return (
-      <div className="container max-w-2xl py-4">
-        <Button variant="ghost" className="mb-4" onClick={() => navigate(-1)}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back
-        </Button>
-        <Skeleton className="h-[300px] w-full rounded-lg" />
-        <div className="space-y-4 mt-8">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !post) {
-    return (
-      <div className="container max-w-2xl py-4">
-        <Button variant="ghost" className="mb-4" onClick={() => navigate(-1)}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back
-        </Button>
-        <div className="p-4 border border-red-300 rounded-md bg-red-50">
-          <h2 className="text-lg font-semibold text-red-800">Error Loading Post</h2>
-          <p className="text-red-600">{error?.message || 'Post not found'}</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="container max-w-2xl py-4">
-      <Button variant="ghost" className="mb-4" onClick={() => navigate(-1)}>
-        <ArrowLeft className="mr-2 h-4 w-4" /> Back
-      </Button>
-      
-      <PostCard post={post} expanded={true} />
-      
-      <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-4">Comments</h2>
+    
+    commentsChannelRef.current = supabase
+      .channel(`comments-channel-${postId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'comments',
+        filter: `shoutout_id=eq.${postId}`
+      }, async (payload) => {
+        if (processedCommentIdsRef.current.has(payload.new.id)) {
+          console.log('Ignoring duplicate comment received via realtime:', payload.new.id);
+          return;
+        }
         
-        {user ? (
-          <CommentForm 
-            postId={post.id} 
-            postAuthorId={post.userId} // Pass the post author ID to CommentForm
-          />
-        ) : (
-          <p className="text-sm text-gray-500 p-4 bg-gray-50 rounded-md">
-            Sign in to leave a comment
-          </p>
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', payload.new.user_id)
+          .single();
+        
+        const newCommentData = {
+          ...payload.new,
+          profiles: profileData || { user_id: payload.new.user_id }
+        } as SupabaseComment;
+        
+        const formattedComment = formatComment(newCommentData);
+        
+        processedCommentIdsRef.current.add(formattedComment.id);
+        
+        setComments(prevComments => {
+          if (prevComments.some(c => c.id === formattedComment.id)) {
+            return prevComments;
+          }
+          return [formattedComment, ...prevComments];
+        });
+        
+        setPost(prev => ({
+          ...prev,
+          replies: (prev?.replies || 0) + 1
+        }));
+      })
+      .subscribe();
+      
+    return () => {
+      if (commentsChannelRef.current) {
+        supabase.removeChannel(commentsChannelRef.current);
+      }
+    };
+  }, [postId, location, user]);
+  
+  useEffect(() => {
+    if (!loading && commentsRef.current) {
+      if (location.hash === '#comments') {
+        console.log('Scrolling to comments section based on URL hash');
+        setTimeout(() => {
+          commentsRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 500);
+      }
+    }
+  }, [loading, location.hash]);
+  
+  const handleCommentAdded = async (content: string, media?: {type: string, url: string}[]) => {
+    if (!user || !postId) return;
+    
+    // We don't need to manually insert the comment here because the realtime
+    // subscription will handle it. This function is mainly for optimistic updates
+    // or additional actions.
+    
+    // Clear reply state after comment is added
+    setReplyingTo(null);
+  };
+
+  const handleReplyToComment = (commentId: string, username: string) => {
+    if (!user) {
+      toast.error('You need to sign in to reply to comments');
+      return;
+    }
+    
+    setReplyingTo({ commentId, username });
+    // Scroll to comment form
+    const commentFormElement = document.querySelector('.comment-form');
+    if (commentFormElement) {
+      commentFormElement.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const clearReplyingTo = () => {
+    setReplyingTo(null);
+  };
+  
+  const formatTextWithLinks = (text: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    
+    if (!text) return '';
+
+    const parts = text.split(urlRegex);
+    const matches = text.match(urlRegex) || [];
+    
+    return parts.map((part, index) => {
+      const isUrl = matches.some(match => match === part);
+      
+      if (isUrl) {
+        return (
+          <a 
+            key={index}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xBlue hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
+  
+  const currentUserForComments = user ? {
+    id: user.id,
+    name: user.user_metadata?.full_name || 'User',
+    username: user.user_metadata?.username || user.id.substring(0, 8),
+    avatar: blueProfileImage,
+    followers: 0,
+    following: 0,
+    verified: false,
+  } : null;
+  
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="p-4">
+          <div className="flex items-center">
+            <button 
+              onClick={() => navigate(-1)}
+              className="p-2 rounded-full hover:bg-xExtraLightGray/50 transition-colors mr-4"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <h1 className="text-xl font-bold">Post</h1>
+          </div>
+          <div className="py-10 flex justify-center">
+            <div className="animate-pulse w-full max-w-2xl">
+              <div className="flex space-x-4">
+                <div className="rounded-full bg-gray-200 h-12 w-12"></div>
+                <div className="flex-1 space-y-4 py-1">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="space-y-2">
+                    <div className="h-4 bg-gray-200 rounded"></div>
+                    <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                  </div>
+                  <div className="h-40 bg-gray-200 rounded"></div>
+                  <div className="flex justify-between">
+                    <div className="h-4 bg-gray-200 rounded w-1/5"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/5"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/5"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+  
+  if (!post) {
+    return (
+      <AppLayout>
+        <div className="p-4">
+          <div className="flex items-center">
+            <button 
+              onClick={() => navigate(-1)}
+              className="p-2 rounded-full hover:bg-xExtraLightGray/50 transition-colors mr-4"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <h1 className="text-xl font-bold">Post</h1>
+          </div>
+          <div className="py-10 text-center">
+            <p className="text-lg font-bold">This post doesn't exist</p>
+            <p className="text-xGray mt-1">The post may have been deleted or the URL might be incorrect.</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+  
+  return (
+    <AppLayout>
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md">
+        <div className="flex items-center p-4">
+          <button 
+            onClick={() => navigate(-1)}
+            className="p-2 rounded-full hover:bg-xExtraLightGray/50 transition-colors mr-4"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <h1 className="text-xl font-bold">Post</h1>
+        </div>
+      </div>
+      
+      <div className="border-b border-xExtraLightGray">
+        {post && <PostCard post={post} />}
+      </div>
+      
+      <div id="comments" ref={commentsRef} className="comment-container">
+        {user && (
+          <div className="comment-form">
+            {replyingTo && (
+              <div className="flex items-center justify-between px-4 py-2 bg-gray-100/10 dark:bg-gray-800/20 border-b border-xExtraLightGray">
+                <div className="flex items-center gap-1">
+                  <span className="text-sm">Replying to</span>
+                  <span className="text-sm font-semibold text-xBlue">@{replyingTo.username}</span>
+                </div>
+                <button 
+                  onClick={() => setReplyingTo(null)}
+                  className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+            <CommentForm 
+              currentUser={currentUserForComments}
+              postAuthorId={post?.id}
+              postId={post?.id}
+              onCommentAdded={handleCommentAdded}
+              replyToMetadata={replyingTo ? {
+                reply_to: {
+                  comment_id: replyingTo.commentId,
+                  username: replyingTo.username
+                }
+              } : undefined}
+              placeholderText={replyingTo ? `Reply to @${replyingTo.username}...` : undefined}
+            />
+          </div>
         )}
         
-        <div className="mt-6">
-          <CommentList postId={post.id} />
-        </div>
+        {!user && (
+          <div className="px-4 py-3 bg-gray-100/50 dark:bg-gray-800/20 text-center border-b border-xExtraLightGray">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Sign in to join the conversation
+            </p>
+            <button 
+              onClick={() => navigate('/auth')}
+              className="mt-2 inline-flex items-center px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 transition-colors"
+            >
+              <span className="mr-1">→</span> Sign in to comment
+            </button>
+          </div>
+        )}
+        
+        <CommentList 
+          comments={comments} 
+          isLoading={loading} 
+          onReplyClick={handleReplyToComment}
+          postId={post?.id}
+          currentUser={currentUserForComments}
+        />
       </div>
-    </div>
+    </AppLayout>
   );
 };
 

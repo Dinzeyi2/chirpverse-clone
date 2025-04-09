@@ -1,7 +1,7 @@
 
 // Service Worker for iblue Web Push Notifications and URL handling
 
-const CACHE_NAME = 'iblue-v10'; // Increment version for cache busting
+const CACHE_NAME = 'iblue-v9'; // Increment version for cache busting
 const OFFLINE_URL = '/offline.html';
 
 // Installation event
@@ -83,7 +83,7 @@ self.addEventListener('push', (event) => {
   event.waitUntil(showNotification);
 });
 
-// Notification click event - handles both push notifications and email links
+// Notification click event
 self.addEventListener('notificationclick', (event) => {
   console.log('Notification clicked:', event);
   
@@ -93,15 +93,6 @@ self.addEventListener('notificationclick', (event) => {
   // Get the notification data
   const notificationData = event.notification.data;
   const urlToOpen = notificationData && notificationData.url ? notificationData.url : '/';
-  
-  // Enhanced handling for comment notifications
-  let targetUrl = urlToOpen;
-  if (notificationData && notificationData.type === 'comment') {
-    // Make sure we go directly to the post with the comment
-    if (notificationData.postId) {
-      targetUrl = `/post/${notificationData.postId}`;
-    }
-  }
   
   // Open or focus the relevant page
   event.waitUntil(
@@ -113,8 +104,8 @@ self.addEventListener('notificationclick', (event) => {
       // Store this in localStorage for persistence if needed
       try {
         // If it's a post URL, store the post ID
-        if (targetUrl.includes('/post/')) {
-          const postId = targetUrl.split('/post/')[1].split('?')[0];
+        if (urlToOpen.includes('/post/')) {
+          const postId = urlToOpen.split('/post/')[1].split('?')[0];
           localStorage.setItem('notificationPostId', postId);
           localStorage.setItem('lastPathTimestamp', Date.now().toString());
         }
@@ -124,14 +115,14 @@ self.addEventListener('notificationclick', (event) => {
       
       // Check if a window is already open
       for (const client of clientList) {
-        if (client.url.includes(targetUrl) && 'focus' in client) {
+        if (client.url.includes(urlToOpen) && 'focus' in client) {
           return client.focus();
         }
       }
       
       // If no matching client is found, open a new window
       if (self.clients.openWindow) {
-        return self.clients.openWindow(targetUrl);
+        return self.clients.openWindow(urlToOpen);
       }
     })
   );
@@ -147,6 +138,7 @@ const APP_ROUTES = [
   '/bookmarks',
   '/profile',
   '/settings',
+  '/notifications',
   '/for-you'
 ];
 
