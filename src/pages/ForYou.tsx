@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useTheme } from '@/components/theme/theme-provider';
 import PostSkeleton from '@/components/feed/PostSkeleton';
-import { usePosts } from '@/hooks/use-posts';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,8 +24,6 @@ const ForYou = () => {
   const [forYouPosts, setForYouPosts] = useState<any[]>([]);
   const [userLanguages, setUserLanguages] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-  
-  const { engagementData } = usePosts();
   
   // Fetch user's programming languages
   useEffect(() => {
@@ -46,8 +43,13 @@ const ForYou = () => {
         }
         
         if (data?.programming_languages) {
-          setUserLanguages(data.programming_languages);
-          console.log('User languages:', data.programming_languages);
+          // Ensure we have an array of lowercase languages for case-insensitive matching
+          const languages = Array.isArray(data.programming_languages) 
+            ? data.programming_languages.map(lang => lang.toLowerCase())
+            : [];
+          
+          setUserLanguages(languages);
+          console.log('User languages (normalized):', languages);
         }
       } catch (err) {
         console.error('Error in fetchUserLanguages:', err);
@@ -57,57 +59,57 @@ const ForYou = () => {
     fetchUserLanguages();
   }, [user]);
   
-  // Improved function to check if post has matching languages with the user
+  // Function to check if a post matches user's languages
   const postMatchesUserLanguages = (post: any, userLangs: string[]) => {
-    if (!post || userLangs.length === 0) return false;
+    if (!post || !userLangs.length) return false;
     
-    // First check post's metadata for languages
+    // Normalize user languages to lowercase for case-insensitive matching
+    const normalizedUserLangs = userLangs.map(lang => lang.toLowerCase().trim());
+    
+    // Approach 1: Check post metadata for languages array
     if (post.metadata) {
-      // Parse metadata if it's a string
-      const metadata = typeof post.metadata === 'string' 
-        ? JSON.parse(post.metadata) 
-        : post.metadata;
-        
-      // Check if metadata has languages array
-      if (metadata.languages && Array.isArray(metadata.languages)) {
-        for (const postLang of metadata.languages) {
-          const postLangLower = postLang.toLowerCase().trim();
-          for (const userLang of userLangs) {
-            const userLangLower = userLang.toLowerCase().trim();
-            
-            if (postLangLower === userLangLower) {
-              console.log(`Match found in metadata: Post has ${postLang}, user has ${userLang}`);
+      let metadata;
+      try {
+        // Handle metadata whether it's a string or already an object
+        metadata = typeof post.metadata === 'string' 
+          ? JSON.parse(post.metadata) 
+          : post.metadata;
+          
+        if (metadata.languages && Array.isArray(metadata.languages)) {
+          // Check for language match in metadata.languages
+          for (const postLang of metadata.languages) {
+            const postLangLower = postLang.toLowerCase().trim();
+            if (normalizedUserLangs.includes(postLangLower)) {
+              console.log(`Match found in metadata: Post has ${postLang}, user has ${normalizedUserLangs.join(', ')}`);
               return true;
             }
           }
         }
+      } catch (e) {
+        console.error('Error parsing post metadata:', e);
       }
     }
     
-    // Check content for language mentions
+    // Approach 2: Check post content for language mentions
     if (post.content) {
-      for (const userLang of userLangs) {
-        const userLangLower = userLang.toLowerCase().trim();
+      const postContentLower = post.content.toLowerCase();
+      for (const userLang of normalizedUserLangs) {
         // Simple check for language mentions with word boundaries
-        const pattern = new RegExp(`\\b${userLangLower}\\b`, 'i');
-        if (pattern.test(post.content.toLowerCase())) {
+        const pattern = new RegExp(`\\b${userLang}\\b`, 'i');
+        if (pattern.test(postContentLower)) {
           console.log(`Match found in content: Post content mentions ${userLang}`);
           return true;
         }
       }
     }
     
-    // Check languages array directly on post object if it exists
+    // Approach 3: Check languages array directly on post object
     if (post.languages && Array.isArray(post.languages)) {
       for (const postLang of post.languages) {
         const postLangLower = postLang.toLowerCase().trim();
-        for (const userLang of userLangs) {
-          const userLangLower = userLang.toLowerCase().trim();
-          
-          if (postLangLower === userLangLower) {
-            console.log(`Match found in post.languages: Post has ${postLang}, user has ${userLang}`);
-            return true;
-          }
+        if (normalizedUserLangs.includes(postLangLower)) {
+          console.log(`Match found in post.languages: Post has ${postLang}, user has ${normalizedUserLangs.join(', ')}`);
+          return true;
         }
       }
     }
@@ -115,10 +117,16 @@ const ForYou = () => {
     return false;
   };
   
-  // Fetch all posts and filter by user's programming languages
+  // Fetch posts and filter by user's programming languages
   useEffect(() => {
     const fetchForYouPosts = async () => {
       if (!user) {
+        setIsLoading(false);
+        return;
+      }
+      
+      if (userLanguages.length === 0) {
+        console.log('No user languages found, skipping post fetch');
         setIsLoading(false);
         return;
       }
@@ -127,9 +135,9 @@ const ForYou = () => {
       setError(null);
       
       try {
-        console.log('Fetching posts, user languages:', userLanguages);
+        console.log('Fetching posts for languages:', userLanguages);
         
-        // Get ALL posts from the shoutouts table
+        // Get ALL posts from the shoutouts table to filter locally
         const { data: posts, error: postsError } = await supabase
           .from('shoutouts')
           .select(`
@@ -150,89 +158,92 @@ const ForYou = () => {
           return;
         }
         
-        console.log('Total posts found:', posts?.length);
+        console.log(`Total posts fetched: ${posts?.length || 0}`);
         
-        // Filter posts that have languages matching user's languages
+        // Filter posts that match user's languages
         const matchingPosts = posts.filter(post => {
-          const matches = postMatchesUserLanguages(post, userLanguages);
-          if (matches) {
-            console.log('Found matching post:', post.id);
-          }
-          return matches;
+          return postMatchesUserLanguages(post, userLanguages);
         });
         
-        console.log('Matching posts count:', matchingPosts.length);
+        console.log(`Posts matching user languages: ${matchingPosts.length}`);
         
-        // Fetch engagement data for each post
-        const postsWithEngagement = await Promise.all(
-          matchingPosts.map(async (post: any) => {
-            // Get likes count
-            const { count: likesCount } = await supabase
-              .from('likes')
-              .select('id', { count: 'exact', head: true })
-              .eq('shoutout_id', post.id);
-            
-            // Get comments count
-            const { count: commentsCount } = await supabase
-              .from('comments')
-              .select('id', { count: 'exact', head: true })
-              .eq('shoutout_id', post.id);
-            
-            // Get reposts count
-            const { count: repostsCount } = await supabase
-              .from('reposts')
-              .select('id', { count: 'exact', head: true })
-              .eq('shoutout_id', post.id);
-            
-            // Get bookmarks count
-            const { count: savesCount } = await supabase
-              .from('bookmarks')
-              .select('id', { count: 'exact', head: true })
-              .eq('post_id', post.id.toString());
-             
-            // Properly extract and parse languages from metadata 
-            let languages: string[] = [];
-            
-            if (post.metadata) {
-              // Parse metadata if it's a string
-              const metadata = typeof post.metadata === 'string' 
-                ? JSON.parse(post.metadata) 
-                : post.metadata;
+        // Fetch engagement data for matching posts
+        if (matchingPosts.length > 0) {
+          const postsWithEngagement = await Promise.all(
+            matchingPosts.map(async (post) => {
+              // Get likes count
+              const { count: likesCount } = await supabase
+                .from('likes')
+                .select('id', { count: 'exact', head: true })
+                .eq('shoutout_id', post.id);
+              
+              // Get comments count
+              const { count: commentsCount } = await supabase
+                .from('comments')
+                .select('id', { count: 'exact', head: true })
+                .eq('shoutout_id', post.id);
+              
+              // Get reposts count
+              const { count: repostsCount } = await supabase
+                .from('reposts')
+                .select('id', { count: 'exact', head: true })
+                .eq('shoutout_id', post.id);
+              
+              // Get bookmarks count
+              const { count: savesCount } = await supabase
+                .from('bookmarks')
+                .select('id', { count: 'exact', head: true })
+                .eq('post_id', post.id.toString());
                 
-              if (metadata && metadata.languages && Array.isArray(metadata.languages)) {
-                languages = metadata.languages;
+              // Extract languages from metadata
+              let languages: string[] = [];
+              
+              try {
+                if (post.metadata) {
+                  // Parse metadata if it's a string
+                  const metadata = typeof post.metadata === 'string' 
+                    ? JSON.parse(post.metadata) 
+                    : post.metadata;
+                    
+                  if (metadata && metadata.languages && Array.isArray(metadata.languages)) {
+                    languages = metadata.languages;
+                  }
+                }
+              } catch (e) {
+                console.error('Error parsing languages from metadata:', e);
               }
-            }
-            
-            // Format the post for our components
-            return {
-              id: post.id,
-              content: post.content,
-              createdAt: post.created_at,
-              userId: post.user_id,
-              images: post.media,
-              languages: languages,
-              codeBlocks: post.metadata?.code_blocks || [],
-              likes: likesCount || 0,
-              comments: commentsCount || 0,
-              reposts: repostsCount || 0,
-              saves: savesCount || 0,
-              replies: 0,
-              views: 0,
-              user: {
-                id: post.user?.id,
-                name: post.user?.full_name || 'User',
-                username: post.user_id?.substring(0, 8) || 'user',
-                avatar: post.user?.avatar_url || "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
-                verified: false,
-                followers: 0,
-                following: 0,
-              }
-            };
-          })
-        );
-        
-        setForYouPosts(postsWithEngagement);
+              
+              return {
+                id: post.id,
+                content: post.content,
+                createdAt: post.created_at,
+                userId: post.user_id,
+                images: post.media,
+                languages: languages,
+                codeBlocks: post.metadata?.code_blocks || [],
+                likes: likesCount || 0,
+                comments: commentsCount || 0,
+                reposts: repostsCount || 0,
+                saves: savesCount || 0,
+                replies: 0,
+                views: 0,
+                user: {
+                  id: post.user?.id,
+                  name: post.user?.full_name || 'User',
+                  username: post.user_id?.substring(0, 8) || 'user',
+                  avatar: post.user?.avatar_url || "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
+                  verified: false,
+                  followers: 0,
+                  following: 0,
+                }
+              };
+            })
+          );
+          
+          setForYouPosts(postsWithEngagement);
+        } else {
+          setForYouPosts([]);
+        }
       } catch (err) {
         console.error('Error in fetchForYouPosts:', err);
         setError('An error occurred while loading posts');
@@ -249,21 +260,20 @@ const ForYou = () => {
     }
   }, [user, userLanguages]);
   
+  // Handle refresh action
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
     setFeedKey(`feed-${Date.now()}`);
     
-    // Re-fetch posts with the same logic as above
+    // Refetch posts
     const fetchForYouPosts = async () => {
-      if (!user) {
+      if (!user || userLanguages.length === 0) {
         setIsRefreshing(false);
         return;
       }
       
       try {
-        console.log('Refreshing posts for languages:', userLanguages);
-        
-        // Get posts from the shoutouts table
+        // Get ALL posts from the shoutouts table to filter locally
         const { data: posts, error: postsError } = await supabase
           .from('shoutouts')
           .select(`
@@ -284,85 +294,90 @@ const ForYou = () => {
           return;
         }
         
-        console.log('Total posts found on refresh:', posts?.length);
+        // Filter posts that match user's languages
+        const matchingPosts = posts.filter(post => {
+          return postMatchesUserLanguages(post, userLanguages);
+        });
         
-        // Filter posts that have languages matching user's languages
-        const matchingPosts = posts.filter(post => 
-          postMatchesUserLanguages(post, userLanguages)
-        );
+        console.log(`Posts matching user languages on refresh: ${matchingPosts.length}`);
         
-        console.log('Matching posts count on refresh:', matchingPosts.length);
-        
-        // Fetch engagement data for each post
-        const postsWithEngagement = await Promise.all(
-          matchingPosts.map(async (post: any) => {
-            // Get likes count
-            const { count: likesCount } = await supabase
-              .from('likes')
-              .select('id', { count: 'exact', head: true })
-              .eq('shoutout_id', post.id);
-            
-            // Get comments count
-            const { count: commentsCount } = await supabase
-              .from('comments')
-              .select('id', { count: 'exact', head: true })
-              .eq('shoutout_id', post.id);
-            
-            // Get reposts count
-            const { count: repostsCount } = await supabase
-              .from('reposts')
-              .select('id', { count: 'exact', head: true })
-              .eq('shoutout_id', post.id);
-            
-            // Get bookmarks count
-            const { count: savesCount } = await supabase
-              .from('bookmarks')
-              .select('id', { count: 'exact', head: true })
-              .eq('post_id', post.id.toString());
+        // Fetch engagement data
+        if (matchingPosts.length > 0) {
+          const postsWithEngagement = await Promise.all(
+            matchingPosts.map(async (post) => {
+              // Get likes count
+              const { count: likesCount } = await supabase
+                .from('likes')
+                .select('id', { count: 'exact', head: true })
+                .eq('shoutout_id', post.id);
               
-            // Properly extract and parse languages from metadata
-            let languages: string[] = [];
-            
-            if (post.metadata) {
-              // Parse metadata if it's a string
-              const metadata = typeof post.metadata === 'string' 
-                ? JSON.parse(post.metadata) 
-                : post.metadata;
+              // Get comments count
+              const { count: commentsCount } = await supabase
+                .from('comments')
+                .select('id', { count: 'exact', head: true })
+                .eq('shoutout_id', post.id);
+              
+              // Get reposts count
+              const { count: repostsCount } = await supabase
+                .from('reposts')
+                .select('id', { count: 'exact', head: true })
+                .eq('shoutout_id', post.id);
+              
+              // Get bookmarks count
+              const { count: savesCount } = await supabase
+                .from('bookmarks')
+                .select('id', { count: 'exact', head: true })
+                .eq('post_id', post.id.toString());
                 
-              if (metadata && metadata.languages && Array.isArray(metadata.languages)) {
-                languages = metadata.languages;
+              // Extract languages from metadata
+              let languages: string[] = [];
+              
+              try {
+                if (post.metadata) {
+                  // Parse metadata if it's a string
+                  const metadata = typeof post.metadata === 'string' 
+                    ? JSON.parse(post.metadata) 
+                    : post.metadata;
+                    
+                  if (metadata && metadata.languages && Array.isArray(metadata.languages)) {
+                    languages = metadata.languages;
+                  }
+                }
+              } catch (e) {
+                console.error('Error parsing languages from metadata:', e);
               }
-            }
-            
-            // Format the post for our components
-            return {
-              id: post.id,
-              content: post.content,
-              createdAt: post.created_at,
-              userId: post.user_id,
-              images: post.media,
-              languages: languages,
-              codeBlocks: post.metadata?.code_blocks || [],
-              likes: likesCount || 0,
-              comments: commentsCount || 0,
-              reposts: repostsCount || 0,
-              saves: savesCount || 0,
-              replies: 0,
-              views: 0,
-              user: {
-                id: post.user?.id,
-                name: post.user?.full_name || 'User',
-                username: post.user_id?.substring(0, 8) || 'user',
-                avatar: post.user?.avatar_url || "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
-                verified: false,
-                followers: 0,
-                following: 0,
-              }
-            };
-          })
-        );
-        
-        setForYouPosts(postsWithEngagement);
+              
+              return {
+                id: post.id,
+                content: post.content,
+                createdAt: post.created_at,
+                userId: post.user_id,
+                images: post.media,
+                languages: languages,
+                codeBlocks: post.metadata?.code_blocks || [],
+                likes: likesCount || 0,
+                comments: commentsCount || 0,
+                reposts: repostsCount || 0,
+                saves: savesCount || 0,
+                replies: 0,
+                views: 0,
+                user: {
+                  id: post.user?.id,
+                  name: post.user?.full_name || 'User',
+                  username: post.user_id?.substring(0, 8) || 'user',
+                  avatar: post.user?.avatar_url || "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png",
+                  verified: false,
+                  followers: 0,
+                  following: 0,
+                }
+              };
+            })
+          );
+          
+          setForYouPosts(postsWithEngagement);
+        } else {
+          setForYouPosts([]);
+        }
       } catch (err) {
         console.error('Error in fetchForYouPosts:', err);
         setError('An error occurred while loading posts');
@@ -375,15 +390,17 @@ const ForYou = () => {
     toast.info('Refreshing feed...');
   }, [user, userLanguages]);
 
+  // UI theme vars
   const bgColor = theme === 'dark' ? 'bg-black' : 'bg-lightBeige';
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const borderColor = theme === 'dark' ? 'border-neutral-800' : 'border-gray-200';
   const headerBg = theme === 'dark' ? 'bg-black backdrop-blur-md' : 'bg-lightBeige backdrop-blur-md';
   const buttonBgActive = theme === 'dark' ? 'bg-neutral-800 text-white' : 'bg-gray-200 text-gray-900';
   const buttonTextInactive = theme === 'dark' ? 'text-neutral-400' : 'text-gray-500';
-  const errorBg = theme === 'dark' ? 'bg-red-900/10' : 'bg-red-50';
-  const errorBorder = theme === 'dark' ? 'border-red-900/20' : 'border-red-100';
-  const errorText = theme === 'dark' ? 'text-red-400' : 'text-red-500';
+
+  // Handle POST engagement data
+  const { usePosts } = require('@/hooks/use-posts');
+  const { engagementData } = usePosts();
 
   return (
     <AppLayout>
