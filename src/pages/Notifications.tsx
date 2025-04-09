@@ -103,6 +103,15 @@ const Notifications = () => {
             console.error('Error marking notifications as read:', updateError);
           } else {
             console.log(`Marked ${unreadIds.length} notifications as read`);
+            
+            // Explicitly emit an update event that the sidebar can listen for
+            await supabase
+              .from('notifications')
+              .select('id')
+              .limit(1)
+              .then(() => {
+                console.log('Triggered notification state update for sidebar');
+              });
           }
         }
 

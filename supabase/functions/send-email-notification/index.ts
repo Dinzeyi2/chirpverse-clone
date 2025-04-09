@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.36.0'
 
@@ -42,7 +41,7 @@ serve(async (req) => {
       );
     }
     
-    const { userId, subject, body, postId, priority = 'normal', debug = true, skipEmailIfActive = false } = requestBody;
+    const { userId, subject, body, postId, priority = 'normal', debug = true, skipEmailIfActive = true } = requestBody;
 
     if (!userId) {
       console.error('Missing userId in request');
@@ -105,33 +104,65 @@ serve(async (req) => {
       )
     }
 
-    // NEW: Check if we should skip email for active users
-    if (skipEmailIfActive) {
-      console.log('Checking if user is currently active in the app...');
+    // IMPROVED: Check if user is currently active in the app 
+    console.log('Checking if user is currently active in the app...');
+    
+    // Check for active status using both is_online flag AND recent activity (3 min buffer for better reliability)
+    const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+    
+    const { data: activeUsers, error: activeError } = await supabaseClient
+      .from('user_sessions')
+      .select('is_online, last_active')
+      .eq('user_id', userId)
+      .or(`is_online.eq.true,last_active.gte.${threeMinutesAgo}`)
+      .limit(1);
+    
+    if (activeError) {
+      console.error('Error checking user active status:', activeError);
+    }
+    
+    // If the user is active and we should skip sending emails to active users
+    if (!activeError && activeUsers && activeUsers.length > 0 && skipEmailIfActive) {
+      const isOnline = activeUsers[0].is_online;
+      const lastActive = activeUsers[0].last_active;
+      console.log(`User ${userId} is active. Online status: ${isOnline}, Last active: ${lastActive}`);
+      console.log(`Skipping email notification for active user as requested (skipEmailIfActive=${skipEmailIfActive})`);
       
-      // Check if the user has been active within the last 5 minutes
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      
-      const { data: activeUsers, error: activeError } = await supabaseClient
-        .from('user_sessions')
-        .select('last_active')
-        .eq('user_id', userId)
-        .gte('last_active', fiveMinutesAgo)
-        .limit(1);
-      
-      if (!activeError && activeUsers && activeUsers.length > 0) {
-        console.log(`User ${userId} is currently active in the app. Skipping email notification.`);
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            message: 'Email notification skipped for active user',
-            active: true 
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-        );
-      } else {
-        console.log(`User ${userId} is not currently active. Will proceed with email notification.`);
+      // Still log that we skipped the email
+      try {
+        await supabaseClient
+          .from('notification_logs')
+          .insert({
+            type: 'email',
+            recipient_id: userId,
+            email: userEmail,
+            subject: subject,
+            status: 'skipped_active_user',
+            metadata: {
+              postId: postId,
+              is_online: isOnline,
+              last_active: lastActive
+            }
+          });
+        console.log('Logged skipped email notification for active user');
+      } catch (logError) {
+        console.error('Error logging skipped notification:', logError);
       }
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'Email notification skipped for active user',
+          active: true,
+          activeDetails: {
+            is_online: isOnline,
+            last_active: lastActive
+          }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    } else {
+      console.log(`User ${userId} is not currently active or skipEmailIfActive=${skipEmailIfActive}. Will proceed with email notification.`);
     }
 
     // DUPLICATE CHECK: Check if we've recently sent a similar email to prevent duplicates

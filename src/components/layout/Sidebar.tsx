@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -36,32 +37,35 @@ export const Sidebar = () => {
     
     const updateUserActiveStatus = async () => {
       try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/user_sessions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': SUPABASE_PUBLISHABLE_KEY,
-            'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
-            'Prefer': 'resolution=merge-duplicates'
-          },
-          body: JSON.stringify({
+        console.log('Updating user active status for user:', user.id);
+        
+        // Use directly the supabase client which has RLS instead of fetch
+        const { error } = await supabase
+          .from('user_sessions')
+          .upsert({
             user_id: user.id,
             last_active: new Date().toISOString(),
             is_online: true
-          })
-        });
+          }, {
+            onConflict: 'user_id',
+            ignoreDuplicates: false
+          });
           
-        if (!response.ok) {
-          console.error('Error updating user active status:', await response.text());
+        if (error) {
+          console.error('Error updating user active status:', error);
+        } else {
+          console.log('Successfully updated user active status');
         }
       } catch (err) {
         console.error('Exception updating user active status:', err);
       }
     };
     
+    // Update immediately on mount
     updateUserActiveStatus();
     
-    const intervalId = setInterval(updateUserActiveStatus, 60 * 1000);
+    // Then update every 30 seconds (more frequent to ensure accuracy)
+    const intervalId = setInterval(updateUserActiveStatus, 30 * 1000);
     
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -73,20 +77,18 @@ export const Sidebar = () => {
     
     const setUserOffline = async () => {
       try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/user_sessions?user_id=eq.${user.id}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': SUPABASE_PUBLISHABLE_KEY,
-            'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
-          },
-          body: JSON.stringify({
-            is_online: false
-          })
-        });
+        console.log('Setting user offline before unmount:', user.id);
         
-        if (!response.ok) {
-          console.error('Error setting user offline:', await response.text());
+        // Use supabase client directly instead of fetch
+        const { error } = await supabase
+          .from('user_sessions')
+          .update({ is_online: false })
+          .eq('user_id', user.id);
+        
+        if (error) {
+          console.error('Error setting user offline:', error);
+        } else {
+          console.log('Successfully set user offline');
         }
       } catch (err) {
         console.error('Error setting user offline:', err);
