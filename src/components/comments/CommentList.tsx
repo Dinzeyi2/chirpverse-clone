@@ -1,6 +1,6 @@
 
 import React, { useMemo } from 'react';
-import { Comment as CommentType } from '@/lib/data';
+import { Comment as CommentType, MediaItem } from '@/lib/data';
 import Comment from './Comment';
 
 interface CommentListProps {
@@ -109,7 +109,7 @@ const CommentList: React.FC<CommentListProps> = ({
   // Format comments to match what the Comment component expects
   const formatComment = (comment: CommentType) => {
     // Safely handle media
-    let formattedMedia = [];
+    let formattedMedia: MediaItem[] = [];
     if (comment.media && Array.isArray(comment.media)) {
       formattedMedia = comment.media.map(media => {
         if (typeof media === 'string') {
@@ -121,7 +121,7 @@ const CommentList: React.FC<CommentListProps> = ({
           };
         }
         return { type: 'unknown', url: '' };
-      });
+      }) as MediaItem[];
     }
     
     // Ensure metadata is an object
@@ -141,7 +141,7 @@ const CommentList: React.FC<CommentListProps> = ({
       media: formattedMedia,
       likes: comment.likes || 0,
       liked_by_user: comment.liked_by_user || false,
-      metadata: metadata
+      metadata: metadata as Record<string, any>
     };
   };
 

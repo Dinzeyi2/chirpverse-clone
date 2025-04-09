@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ interface User {
 interface CommentFormProps {
   currentUser: User;
   postAuthorId: string;
+  postId: string;
   onCommentAdded: (content: string, media?: {type: string, url: string}[]) => void;
   replyToMetadata?: {
     reply_to: {
@@ -38,6 +40,7 @@ interface CommentFormProps {
 const CommentForm: React.FC<CommentFormProps> = ({ 
   currentUser, 
   postAuthorId, 
+  postId,
   onCommentAdded, 
   replyToMetadata,
   placeholderText = 'Add a comment...',
@@ -119,6 +122,37 @@ const CommentForm: React.FC<CommentFormProps> = ({
     }
   };
 
+  const sendCommentNotification = async (newCommentId: string) => {
+    try {
+      // Only send notifications for comments on other users' posts
+      if (currentUser.id === postAuthorId) {
+        console.log('Skipping notification for own post');
+        return;
+      }
+
+      console.log('Sending comment notification...');
+      
+      const response = await supabase.functions.invoke('send-comment-notification', {
+        body: {
+          postId: postId,
+          postAuthorId: postAuthorId,
+          commenterId: currentUser.id,
+          commenterName: currentUser.username || currentUser.name,
+          commentContent: comment,
+          skipEmailIfActive: true
+        }
+      });
+
+      if (response.error) {
+        console.error('Error sending comment notification:', response.error);
+      } else {
+        console.log('Comment notification sent successfully:', response.data);
+      }
+    } catch (error) {
+      console.error('Exception sending comment notification:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -178,6 +212,11 @@ const CommentForm: React.FC<CommentFormProps> = ({
         });
         
       if (error) throw error;
+      
+      // Send notification about the new comment
+      if (data && data.length > 0) {
+        sendCommentNotification(data[0].id);
+      }
       
       setComment('');
       setMedia([]);
