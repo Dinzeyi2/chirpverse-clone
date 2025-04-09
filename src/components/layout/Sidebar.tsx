@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -36,19 +37,24 @@ export const Sidebar = () => {
     // Function to update user's active status
     const updateUserActiveStatus = async () => {
       try {
-        const query = supabase.from('user_sessions');
-        // @ts-ignore - The table exists but TypeScript doesn't know about it
-        const { error } = await query
-          .upsert({ 
+        // Use the REST API directly
+        const response = await fetch(`${supabase.supabaseUrl}/rest/v1/user_sessions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': supabase.supabaseKey,
+            'Authorization': `Bearer ${supabase.supabaseKey}`,
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify({
             user_id: user.id,
             last_active: new Date().toISOString(),
             is_online: true
-          }, { 
-            onConflict: 'user_id'
-          });
+          })
+        });
           
-        if (error) {
-          console.error('Error updating user active status:', error);
+        if (!response.ok) {
+          console.error('Error updating user active status:', await response.text());
         }
       } catch (err) {
         console.error('Exception updating user active status:', err);
@@ -73,11 +79,22 @@ export const Sidebar = () => {
     // Set user as offline when leaving
     const setUserOffline = async () => {
       try {
-        const query = supabase.from('user_sessions');
-        // @ts-ignore - The table exists but TypeScript doesn't know about it
-        await query
-          .update({ is_online: false })
-          .eq('user_id', user.id);
+        // Use the REST API directly
+        const response = await fetch(`${supabase.supabaseUrl}/rest/v1/user_sessions?user_id=eq.${user.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': supabase.supabaseKey,
+            'Authorization': `Bearer ${supabase.supabaseKey}`
+          },
+          body: JSON.stringify({
+            is_online: false
+          })
+        });
+        
+        if (!response.ok) {
+          console.error('Error setting user offline:', await response.text());
+        }
       } catch (err) {
         console.error('Error setting user offline:', err);
       }

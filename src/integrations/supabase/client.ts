@@ -37,29 +37,41 @@ supabase.from('profiles').select('id').limit(1).then(({ data, error }) => {
 supabase.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_IN' && session?.user) {
     // Update user session when signed in
-    const query = supabase.from('user_sessions');
-    // @ts-ignore - The table exists but TypeScript doesn't know about it
-    query.upsert({ 
-      user_id: session.user.id,
-      last_active: new Date().toISOString(),
-      is_online: true
-    }, { 
-      onConflict: 'user_id'
-    })
-    .then(({ error }) => {
-      if (error) console.error('Error updating user session on login:', error);
+    // Use the REST API directly instead of the type-checked client
+    fetch(`${SUPABASE_URL}/rest/v1/user_sessions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_PUBLISHABLE_KEY,
+        'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({
+        user_id: session.user.id,
+        last_active: new Date().toISOString(),
+        is_online: true
+      })
+    }).catch(error => {
+      console.error('Error updating user session on login:', error);
     });
   } else if (event === 'SIGNED_OUT') {
     // Handle sign out by marking user as offline
     const previousUser = session?.user;
     if (previousUser?.id) {
-      const query = supabase.from('user_sessions');
-      // @ts-ignore - The table exists but TypeScript doesn't know about it
-      query.update({ is_online: false })
-        .eq('user_id', previousUser.id)
-        .then(({ error }) => {
-          if (error) console.error('Error updating user session on logout:', error);
-        });
+      // Use the REST API directly
+      fetch(`${SUPABASE_URL}/rest/v1/user_sessions?user_id=eq.${previousUser.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_PUBLISHABLE_KEY,
+          'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+        },
+        body: JSON.stringify({
+          is_online: false
+        })
+      }).catch(error => {
+        console.error('Error updating user session on logout:', error);
+      });
     }
   }
 });
