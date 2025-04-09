@@ -3,8 +3,8 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://vcywiyvbfrylffwfzsny.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjeXdpeXZiZnJ5bGZmd2Z6c255Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc0ODA3MDIsImV4cCI6MjA1MzA1NjcwMn0.rZUZjLf4j6h0lhl53PhKJ0eARsBXdmlPOtIAHTJQxNE";
+export const SUPABASE_URL = "https://vcywiyvbfrylffwfzsny.supabase.co";
+export const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjeXdpeXZiZnJ5bGZmd2Z6c255Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc0ODA3MDIsImV4cCI6MjA1MzA1NjcwMn0.rZUZjLf4j6h0lhl53PhKJ0eARsBXdmlPOtIAHTJQxNE";
 
 // Simple client configuration with longer timeouts and better retry logic
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -273,4 +273,3 @@ export const notifyUsersWithSameLanguages = async (
     console.error('Error in notifyUsersWithSameLanguages:', error);
   }
 };
-

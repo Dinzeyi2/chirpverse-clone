@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -10,6 +9,10 @@ import CreatePost from '@/components/feed/CreatePost';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage } from '@/components/ui/avatar';
+import { UserSession } from '@/types/userSessions';
+
+const SUPABASE_URL = "https://vcywiyvbfrylffwfzsny.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjeXdpeXZiZnJ5bGZmd2Z6c255Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc0ODA3MDIsImV4cCI6MjA1MzA1NjcwMn0.rZUZjLf4j6h0lhl53PhKJ0eARsBXdmlPOtIAHTJQxNE";
 
 export const Sidebar = () => {
   const location = useLocation();
@@ -30,20 +33,17 @@ export const Sidebar = () => {
     }
   }, [isMobile]);
   
-  // Track user activity and session for notification purposes
   useEffect(() => {
     if (!user) return;
     
-    // Function to update user's active status
     const updateUserActiveStatus = async () => {
       try {
-        // Use the REST API directly
-        const response = await fetch(`${supabase.supabaseUrl}/rest/v1/user_sessions`, {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/user_sessions`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'apikey': supabase.supabaseKey,
-            'Authorization': `Bearer ${supabase.supabaseKey}`,
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
             'Prefer': 'resolution=merge-duplicates'
           },
           body: JSON.stringify({
@@ -61,13 +61,10 @@ export const Sidebar = () => {
       }
     };
     
-    // Update on initial load
     updateUserActiveStatus();
     
-    // Set up interval to update status every minute while user is active
     const intervalId = setInterval(updateUserActiveStatus, 60 * 1000);
     
-    // Update on page visibility changes
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         updateUserActiveStatus();
@@ -76,16 +73,14 @@ export const Sidebar = () => {
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
-    // Set user as offline when leaving
     const setUserOffline = async () => {
       try {
-        // Use the REST API directly
-        const response = await fetch(`${supabase.supabaseUrl}/rest/v1/user_sessions?user_id=eq.${user.id}`, {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/user_sessions?user_id=eq.${user.id}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
-            'apikey': supabase.supabaseKey,
-            'Authorization': `Bearer ${supabase.supabaseKey}`
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
           },
           body: JSON.stringify({
             is_online: false
@@ -100,7 +95,6 @@ export const Sidebar = () => {
       }
     };
     
-    // Clean up
     return () => {
       clearInterval(intervalId);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
