@@ -1,14 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Home, Search, User, Bookmark, Settings, PlusCircle, LogOut, LogIn, Menu, Bell, Sparkles } from 'lucide-react';
+import { Home, Search, User, Bookmark, Settings, PlusCircle, LogOut, LogIn, Menu, Bell, Sparkles, BellDot } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import CreatePost from '@/components/feed/CreatePost';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Badge } from '@/components/ui/badge';
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage } from '@/components/ui/avatar';
 
@@ -21,7 +19,7 @@ export const Sidebar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
   const profilePath = '/profile';
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
 
   useEffect(() => {
     if (isMobile) {
@@ -42,7 +40,7 @@ export const Sidebar = () => {
         .eq('is_read', false);
         
       if (!error && data) {
-        setUnreadNotifications(data.length);
+        setHasUnreadNotifications(data.length > 0);
       }
     };
     
@@ -56,14 +54,28 @@ export const Sidebar = () => {
         table: 'notifications',
         filter: `recipient_id=eq.${user.id}`,
       }, () => {
-        setUnreadNotifications(prev => prev + 1);
+        setHasUnreadNotifications(true);
       })
       .subscribe();
+      
+    if (location.pathname === '/notifications') {
+      setHasUnreadNotifications(false);
+      
+      const updateNotificationsToRead = async () => {
+        await supabase
+          .from('notifications')
+          .update({ is_read: true })
+          .eq('recipient_id', user.id)
+          .eq('is_read', false);
+      };
+      
+      updateNotificationsToRead();
+    }
       
     return () => {
       supabase.removeChannel(notificationsChannel);
     };
-  }, [user]);
+  }, [user, location.pathname]);
 
   const navigation = [
     { name: 'Home', icon: Home, href: '/' },
@@ -74,12 +86,11 @@ export const Sidebar = () => {
     { name: 'Settings', icon: Settings, href: '/settings' },
   ];
 
-  // Add notifications separately since it has a different structure
   const notificationsItem = {
     name: "Notifications",
     href: "/notifications",
-    icon: Bell,
-    count: unreadNotifications > 0 ? unreadNotifications : undefined
+    icon: hasUnreadNotifications ? BellDot : Bell,
+    hasUnread: hasUnreadNotifications
   };
 
   const handleSignOut = async () => {
@@ -206,7 +217,6 @@ export const Sidebar = () => {
               );
             })}
 
-            {/* Add Notifications Link */}
             <Link
               to={notificationsItem.href}
               className={cn(
@@ -214,11 +224,12 @@ export const Sidebar = () => {
                 location.pathname.startsWith(notificationsItem.href) ? "font-bold" : "text-foreground hover:bg-secondary/70"
               )}
             >
-              <Bell size={24} className={location.pathname.startsWith(notificationsItem.href) ? "text-primary" : "text-muted-foreground"} />
-              <span className="ml-4 font-heading tracking-wide text-lg uppercase">{notificationsItem.name}</span>
-              {notificationsItem.count && (
-                <Badge className="ml-auto bg-primary text-primary-foreground">{notificationsItem.count}</Badge>
+              {notificationsItem.hasUnread ? (
+                <BellDot size={24} className={location.pathname.startsWith(notificationsItem.href) ? "text-primary" : "text-primary"} />
+              ) : (
+                <Bell size={24} className={location.pathname.startsWith(notificationsItem.href) ? "text-primary" : "text-muted-foreground"} />
               )}
+              <span className="ml-4 font-heading tracking-wide text-lg uppercase">{notificationsItem.name}</span>
             </Link>
           </nav>
           
@@ -326,7 +337,6 @@ export const Sidebar = () => {
             );
           })}
 
-          {/* Add Notifications Link */}
           <Link
             to={notificationsItem.href}
             className={cn(
@@ -337,21 +347,14 @@ export const Sidebar = () => {
               isCollapsed && "justify-center"
             )}
           >
-            <Bell size={24} className={location.pathname.startsWith(notificationsItem.href) ? "text-foreground" : "text-muted-foreground"} />
+            {notificationsItem.hasUnread ? (
+              <BellDot size={24} className={location.pathname.startsWith(notificationsItem.href) ? "text-foreground" : "text-primary"} />
+            ) : (
+              <Bell size={24} className={location.pathname.startsWith(notificationsItem.href) ? "text-foreground" : "text-muted-foreground"} />
+            )}
             
             {!isCollapsed && (
               <span className="ml-4 font-heading tracking-wide text-lg uppercase">{notificationsItem.name}</span>
-            )}
-            
-            {notificationsItem.count && (
-              <Badge 
-                className={cn(
-                  "bg-primary text-primary-foreground",
-                  isCollapsed ? "absolute -top-1 -right-1" : "ml-auto"
-                )}
-              >
-                {notificationsItem.count}
-              </Badge>
             )}
           </Link>
 
