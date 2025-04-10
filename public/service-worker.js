@@ -1,7 +1,7 @@
 
 // Service Worker for iblue Web Push Notifications and URL handling
 
-const CACHE_NAME = 'iblue-v9'; // Increment version for cache busting
+const CACHE_NAME = 'iblue-v10'; // Increment version for cache busting
 const OFFLINE_URL = '/offline.html';
 
 // Installation event
@@ -18,7 +18,8 @@ self.addEventListener('install', (event) => {
         return cache.addAll([
           OFFLINE_URL,
           '/',
-          '/index.html'
+          '/index.html',
+          '/manifest.json'
         ]);
       })
   );
@@ -34,15 +35,17 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
+            console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
+    }).then(() => {
+      console.log('Service Worker: All old caches cleared');
+      // Claim clients to take control immediately
+      return self.clients.claim();
     })
   );
-  
-  // Claim clients to take control immediately
-  return self.clients.claim();
 });
 
 // Push notification event
@@ -150,87 +153,94 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// Simplified fetch event handling focusing on core app functionality
+// Improved fetch event handling focusing on SPA routing regardless of domain
 self.addEventListener('fetch', (event) => {
-  // Only handle navigation requests
+  const url = new URL(event.request.url);
+  
+  // Log important request information for debugging
   if (event.request.mode === 'navigate') {
-    const url = new URL(event.request.url);
-    
-    // Log navigation
-    console.log('Service worker handling navigation to:', url.toString());
-    
-    // Special handling for notifications
-    if (url.pathname === '/notifications' || url.pathname.startsWith('/notifications/')) {
-      console.log('Serving index.html for notifications route');
-      event.respondWith(
-        caches.match('/index.html')
-          .then(response => {
-            return response || fetch('/index.html').catch(() => {
-              return caches.match(OFFLINE_URL);
-            });
-          })
-      );
-      return;
-    }
-    
-    // CRITICAL: Always serve index.html for SPA routes
-    // This ensures React Router can handle the route
-    if (APP_ROUTES.some(route => url.pathname === route || url.pathname.startsWith(`${route}/`))) {
-      console.log('Serving index.html for app route:', url.pathname);
-      event.respondWith(
-        caches.match('/index.html')
-          .then(response => {
-            return response || fetch('/index.html').catch(() => {
-              return caches.match(OFFLINE_URL);
-            });
-          })
-      );
-      return;
-    }
-    
-    // Check if this is likely a post URL
-    const pathContainsUuid = UUID_PATTERN.test(url.pathname);
-    
-    if (pathContainsUuid) {
-      // Extract the UUID
-      const uuidMatch = url.pathname.match(UUID_PATTERN);
-      if (uuidMatch) {
-        const uuid = uuidMatch[0];
-        
-        // Check if already in canonical format
-        if (!url.pathname.startsWith('/post/')) {
-          // Normalize to canonical format
-          const normalizedPath = `/post/${uuid}${url.hash}${url.search}`;
-          console.log('Service worker normalizing to:', normalizedPath);
+    console.log('Navigating to:', url.pathname, 'on domain:', url.hostname);
+  }
+  
+  // Only handle same-origin requests to avoid CORS issues
+  if (url.origin === self.location.origin) {
+    // Handle navigation requests (i.e., route changes)
+    if (event.request.mode === 'navigate') {
+      // Special handling for notifications
+      if (url.pathname === '/notifications' || url.pathname.startsWith('/notifications/')) {
+        console.log('Serving index.html for notifications route');
+        event.respondWith(
+          caches.match('/index.html')
+            .then(response => {
+              return response || fetch('/index.html').catch(() => {
+                return caches.match(OFFLINE_URL);
+              });
+            })
+        );
+        return;
+      }
+      
+      // For SPA routes, serve index.html to let the client-side router handle it
+      if (APP_ROUTES.some(route => url.pathname === route || url.pathname.startsWith(`${route}/`)) || 
+          url.pathname === '/' || 
+          url.pathname.startsWith('/post/') ||
+          UUID_PATTERN.test(url.pathname)) {
+        console.log('Serving index.html for SPA route:', url.pathname);
+        event.respondWith(
+          caches.match('/index.html')
+            .then(response => {
+              return response || fetch('/index.html').catch(() => {
+                return caches.match(OFFLINE_URL);
+              });
+            })
+        );
+        return;
+      }
+      
+      // Check if this is likely a post URL with UUID
+      const pathContainsUuid = UUID_PATTERN.test(url.pathname);
+      
+      if (pathContainsUuid) {
+        // Extract the UUID
+        const uuidMatch = url.pathname.match(UUID_PATTERN);
+        if (uuidMatch) {
+          const uuid = uuidMatch[0];
           
-          // Use a simple redirect
-          event.respondWith(Response.redirect(normalizedPath, 302));
-          return;
+          // Check if already in canonical format
+          if (!url.pathname.startsWith('/post/')) {
+            // Normalize to canonical format
+            const normalizedPath = `/post/${uuid}${url.hash}${url.search}`;
+            console.log('Service worker normalizing to:', normalizedPath);
+            
+            // Use a simple redirect
+            event.respondWith(Response.redirect(normalizedPath, 302));
+            return;
+          }
         }
       }
     }
-    
-    // For all other app routes or the root path, serve index.html
-    // This is critical for SPA routing
-    if (url.pathname === '/' || url.pathname.startsWith('/post/')) {
-      event.respondWith(
-        caches.match('/index.html')
-          .then(response => {
-            return response || fetch('/index.html').catch(() => {
-              return caches.match(OFFLINE_URL);
-            });
-          })
-      );
-    } else {
-      // For non-app routes (e.g., static assets), try network first
-      event.respondWith(
-        fetch(event.request).catch(() => {
-          console.log('Fetch failed, falling back to cached content');
-          return caches.match(event.request) || 
-                 caches.match('/index.html') || 
-                 caches.match(OFFLINE_URL);
-        })
-      );
-    }
   }
+  
+  // For all other requests, try the network first, then fall back to cache
+  event.respondWith(
+    fetch(event.request)
+      .catch(() => {
+        console.log('Fetch failed, falling back to cached content for:', event.request.url);
+        return caches.match(event.request)
+          .then(cachedResponse => {
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            
+            // If it's a navigation request and we don't have a cached response,
+            // serve the index.html
+            if (event.request.mode === 'navigate') {
+              return caches.match('/index.html');
+            }
+            
+            // For other resources, serve the offline page
+            return caches.match(OFFLINE_URL);
+          });
+      })
+  );
 });
