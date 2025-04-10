@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Image, X, Video, Code, Smile } from 'lucide-react';
-import Button from '@/components/common/Button';
+import { Image, X, Video, Code, Smile, RotateCw } from 'lucide-react';
+import { Button } from "@/components/ui/button";
 import { toast } from 'sonner';
 import { DialogClose } from '@/components/ui/dialog';
 import { supabase, extractLanguageMentions, notifyUsersWithSameLanguages } from "@/integrations/supabase/client";
@@ -10,6 +10,7 @@ import CodeEditorDialog from '@/components/code/CodeEditorDialog';
 import CodeBlock from '@/components/code/CodeBlock';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
+import { useTheme } from '@/components/theme/theme-provider';
 
 interface CreatePostProps {
   onPostCreated?: (content: string, media?: {type: string, url: string}[]) => void;
@@ -30,6 +31,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
   const dialogCloseRef = useRef<HTMLButtonElement>(null);
   const { user } = useAuth();
   const isMobile = useIsMobile();
+  const { theme } = useTheme();
   
   const maxChars = 280;
   const blueProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
@@ -274,12 +276,19 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
     }
   };
   
+  const isDark = theme === 'dark';
+  const bgColor = isDark ? 'bg-black' : 'bg-white';
+  const borderColor = isDark ? 'border-zinc-800' : 'border-zinc-200';
+  const inputBgColor = isDark ? 'bg-zinc-900' : 'bg-zinc-100';
+  const textColor = isDark ? 'text-white' : 'text-black';
+  const mutedTextColor = isDark ? 'text-zinc-400' : 'text-zinc-500';
+  
   return (
     <div className={inDialog 
       ? isMobile 
         ? 'bg-background fixed inset-0 z-50 flex flex-col h-full w-full overflow-auto' 
         : 'bg-background'
-      : 'px-4 pt-4 pb-2 border-b border-xExtraLightGray'
+      : `px-4 pt-4 pb-2 border-b ${borderColor}`
     }>
       {inDialog && (
         <div className="flex items-center justify-between p-4 border-b border-xExtraLightGray sticky top-0 bg-background z-10">
@@ -305,7 +314,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
             <div className={`mb-4 relative ${inDialog && isMobile ? 'flex-1 overflow-auto' : ''}`}>
               <textarea
                 ref={textareaRef}
-                className="w-full border-none text-xl focus:ring-0 resize-none placeholder:text-xGray/70 min-h-[120px] bg-transparent outline-none"
+                className={`w-full border-none text-xl focus:ring-0 resize-none placeholder:${mutedTextColor} min-h-[120px] bg-transparent outline-none ${textColor}`}
                 placeholder="Need a fix with something?"
                 value={postContent}
                 onChange={handleTextChange}
@@ -367,25 +376,10 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
             </div>
             
             <div className={`flex items-center justify-between ${inDialog && isMobile ? 'sticky bottom-0 bg-background pt-2 border-t border-border' : ''}`}>
-              <div className="flex -ml-2 p-2 border border-gray-200 rounded-full bg-background">
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  className="hidden" 
-                  onChange={handleFileChange} 
-                  accept="image/*"
-                />
-                <input 
-                  type="file" 
-                  ref={videoInputRef} 
-                  className="hidden" 
-                  onChange={handleFileChange} 
-                  accept="video/*"
-                />
-                
+              <div className="flex space-x-1">
                 <button 
                   type="button"
-                  className="p-2 text-xBlue rounded-full hover:bg-xBlue/10 transition-colors"
+                  className={`p-2 rounded-md hover:bg-zinc-800/30 text-zinc-400 transition-colors`}
                   onClick={handleImageClick}
                   disabled={isLoading}
                 >
@@ -393,7 +387,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                 </button>
                 <button 
                   type="button"
-                  className="p-2 text-xBlue rounded-full hover:bg-xBlue/10 transition-colors"
+                  className={`p-2 rounded-md hover:bg-zinc-800/30 text-zinc-400 transition-colors`}
                   onClick={handleVideoClick}
                   disabled={isLoading}
                 >
@@ -403,7 +397,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                   <PopoverTrigger asChild>
                     <button 
                       type="button"
-                      className="p-2 text-xBlue rounded-full hover:bg-xBlue/10 transition-colors"
+                      className={`p-2 rounded-md hover:bg-zinc-800/30 text-zinc-400 transition-colors`}
                       disabled={isLoading}
                     >
                       <Smile size={20} />
@@ -415,7 +409,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                 </Popover>
                 <button 
                   type="button"
-                  className="p-2 text-xBlue rounded-full hover:bg-xBlue/10 transition-colors"
+                  className={`p-2 rounded-md hover:bg-zinc-800/30 text-zinc-400 transition-colors`}
                   onClick={() => setCodeDialogOpen(true)}
                   disabled={isLoading}
                 >
@@ -423,21 +417,27 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                 </button>
               </div>
               
-              <div className="flex items-center">
+              <div className="flex items-center gap-3">
                 {postContent && (
-                  <div className="mr-3 flex items-center">
-                    <div className={`text-sm ${maxChars - charCount <= 20 ? 'text-red-500' : maxChars - charCount <= 40 ? 'text-yellow-500' : 'text-xGray'}`}>
-                      {maxChars - charCount}
-                    </div>
+                  <div className={`text-sm ${maxChars - charCount <= 20 ? 'text-red-500' : maxChars - charCount <= 40 ? 'text-yellow-500' : mutedTextColor}`}>
+                    {maxChars - charCount}
                   </div>
                 )}
+                
                 <Button
                   type="submit"
-                  disabled={((!postContent.trim() && mediaFiles.length === 0) && codeBlocks.length === 0) || isLoading}
-                  isLoading={isLoading}
-                  className="rounded-full px-4"
+                  disabled={(!postContent.trim() && mediaFiles.length === 0 && codeBlocks.length === 0) || isLoading}
+                  className={`rounded-full px-6 py-2 font-medium bg-indigo-500 hover:bg-indigo-600 text-white ${isLoading ? 'opacity-70' : ''}`}
+                  variant="default"
                 >
-                  Post
+                  {isLoading ? (
+                    <>
+                      <RotateCw className="w-4 h-4 mr-2 animate-spin" />
+                      Posting...
+                    </>
+                  ) : (
+                    'Post'
+                  )}
                 </Button>
               </div>
             </div>
