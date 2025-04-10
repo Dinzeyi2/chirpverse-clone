@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +11,6 @@ import { usePushNotifications } from '@/hooks/use-push-notifications';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { X, Plus } from 'lucide-react';
 import { Input } from "@/components/ui/input";
-import TestEmailNotification from '@/components/TestEmailNotification';
 
 const Settings = () => {
   const [profile, setProfile] = useState<{
@@ -70,19 +68,15 @@ const Settings = () => {
   const handleAddLanguage = () => {
     if (!newLanguage.trim()) return;
     
-    // Add language to the list
     const updatedLanguages = [...(profile?.programming_languages || [])];
     if (!updatedLanguages.includes(newLanguage.trim())) {
       updatedLanguages.push(newLanguage.trim());
       
-      // Update profile state
       setProfile(prev => prev ? { ...prev, programming_languages: updatedLanguages } : null);
       
-      // Save to database
       saveLanguages(updatedLanguages);
     }
     
-    // Reset input
     setNewLanguage('');
     setLanguageDialogOpen(false);
   };
@@ -90,10 +84,8 @@ const Settings = () => {
   const handleRemoveLanguage = (language: string) => {
     const updatedLanguages = (profile?.programming_languages || []).filter(lang => lang !== language);
     
-    // Update profile state
     setProfile(prev => prev ? { ...prev, programming_languages: updatedLanguages } : null);
     
-    // Save to database
     saveLanguages(updatedLanguages);
   };
   
@@ -267,9 +259,6 @@ const Settings = () => {
               </div>
             </div>
           </div>
-          
-          {/* Add the test component */}
-          <TestEmailNotification />
         </div>
       </div>
       
