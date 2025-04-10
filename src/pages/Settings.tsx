@@ -8,8 +8,10 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { X, Plus } from 'lucide-react';
+import { X, Plus, Moon, Sun } from 'lucide-react';
 import { Input } from "@/components/ui/input";
+import { useTheme } from '@/components/theme/theme-provider';
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 const Settings = () => {
   const [profile, setProfile] = useState<{
@@ -24,6 +26,7 @@ const Settings = () => {
   const [savingLanguages, setSavingLanguages] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     if (!user) {
@@ -161,6 +164,34 @@ const Settings = () => {
         <h1 className="text-2xl font-bold mb-4">Settings</h1>
 
         <div className="space-y-4">
+          <h2 className="text-lg font-medium">Appearance Settings</h2>
+          
+          <div className="bg-card rounded-lg border p-4">
+            <div>
+              <h3 className="font-medium">Theme</h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                Choose your preferred theme
+              </p>
+              <ToggleGroup 
+                type="single" 
+                value={theme} 
+                onValueChange={(value) => {
+                  if (value) setTheme(value as "light" | "dark");
+                }}
+                className="justify-start"
+              >
+                <ToggleGroupItem value="light" aria-label="Light mode">
+                  <Sun size={18} className="mr-2" />
+                  Light
+                </ToggleGroupItem>
+                <ToggleGroupItem value="dark" aria-label="Dark mode">
+                  <Moon size={18} className="mr-2" />
+                  Dark
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+          </div>
+          
           <h2 className="text-lg font-medium">Notification Settings</h2>
           
           <div className="bg-card rounded-lg border p-4">
