@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Home, Search, User, Bookmark, Settings, PlusCircle, LogOut, LogIn, Menu, Sparkles } from 'lucide-react';
+import { Home, Search, User, Bookmark, Settings, PlusCircle, LogOut, LogIn, Menu } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
@@ -10,6 +10,25 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import { UserSession } from '@/types/userSessions';
+
+const ForYouIcon = ({ className, size = 24 }: { className?: string; size?: number }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M4 5v14" />
+    <path d="M10 5v14" />
+    <path d="M16 5l4 14" />
+  </svg>
+);
 
 export const Sidebar = () => {
   const location = useLocation();
@@ -89,7 +108,7 @@ export const Sidebar = () => {
 
   const navigation = [
     { name: 'Home', icon: Home, href: '/' },
-    { name: 'For You', icon: Sparkles, href: '/for-you' },
+    { name: 'For You', icon: ForYouIcon, href: '/for-you', customIcon: true },
     { name: 'Explore', icon: Search, href: '/explore' },
     { name: 'Bookmarks', icon: Bookmark, href: '/bookmarks' },
     { name: 'Profile', icon: User, href: profilePath },
@@ -152,7 +171,11 @@ export const Sidebar = () => {
                   isActive ? "text-primary" : "text-foreground hover:text-primary"
                 )}
               >
-                <IconComponent size={24} className={isActive ? "text-primary" : "text-muted-foreground"} />
+                {item.customIcon ? (
+                  <IconComponent size={24} className={isActive ? "text-primary" : "text-muted-foreground"} />
+                ) : (
+                  <IconComponent size={24} className={isActive ? "text-primary" : "text-muted-foreground"} />
+                )}
               </Link>
             );
           })}
@@ -215,7 +238,11 @@ export const Sidebar = () => {
                     isActive ? "font-bold" : "text-foreground hover:bg-secondary/70"
                   )}
                 >
-                  <IconComponent size={24} className={isActive ? "text-primary" : "text-muted-foreground"} />
+                  {item.customIcon ? (
+                    <IconComponent size={24} className={isActive ? "text-primary" : "text-muted-foreground"} />
+                  ) : (
+                    <IconComponent size={24} className={isActive ? "text-primary" : "text-muted-foreground"} />
+                  )}
                   <span className="ml-4 font-heading tracking-wide text-lg uppercase">{item.name}</span>
                 </Link>
               );
@@ -317,7 +344,11 @@ export const Sidebar = () => {
                   isCollapsed && "justify-center"
                 )}
               >
-                <IconComponent size={24} className={isActive ? "text-foreground" : "text-muted-foreground"} />
+                {item.customIcon ? (
+                  <IconComponent size={24} className={isActive ? "text-foreground" : "text-muted-foreground"} />
+                ) : (
+                  <IconComponent size={24} className={isActive ? "text-foreground" : "text-muted-foreground"} />
+                )}
                 
                 {!isCollapsed && (
                   <span className="ml-4 font-heading tracking-wide text-lg uppercase">{item.name}</span>
