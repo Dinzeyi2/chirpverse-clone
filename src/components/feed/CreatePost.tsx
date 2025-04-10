@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Image, X, Video, Code, Smile } from 'lucide-react';
 import Button from '@/components/common/Button';
@@ -306,7 +307,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
               <textarea
                 ref={textareaRef}
                 className="w-full border-none text-xl focus:ring-0 resize-none placeholder:text-xGray/70 min-h-[120px] bg-transparent outline-none"
-                placeholder="Need a fix with something?"
+                placeholder="Need a fix with something? @language"
                 value={postContent}
                 onChange={handleTextChange}
                 rows={isMobile && inDialog ? 10 : 3}
