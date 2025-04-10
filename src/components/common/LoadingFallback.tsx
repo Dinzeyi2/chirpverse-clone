@@ -2,14 +2,24 @@
 import React from 'react';
 import { useTheme } from '@/components/theme/theme-provider';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
-const LoadingFallback: React.FC = () => {
+interface LoadingFallbackProps {
+  message?: string;
+  fullScreen?: boolean;
+}
+
+const LoadingFallback: React.FC<LoadingFallbackProps> = ({ 
+  message = 'Loading...', 
+  fullScreen = true
+}) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   
   return (
     <div className={cn(
-      "fixed inset-0 flex flex-col items-center justify-center min-h-screen z-50",
+      "flex flex-col items-center justify-center z-50",
+      fullScreen ? "fixed inset-0 min-h-screen" : "w-full py-12",
       isDark ? "bg-black" : "bg-lightBeige"
     )}>
       <div className="w-16 h-16 relative">
@@ -24,12 +34,25 @@ const LoadingFallback: React.FC = () => {
           <div className="w-16 h-16 border-4 border-t-xBlue border-b-transparent border-l-transparent border-r-transparent rounded-full animate-spin"></div>
         </div>
       </div>
+      
       <p className={cn(
         "mt-4 text-sm font-medium animate-pulse",
         isDark ? "text-gray-400" : "text-gray-600"
       )}>
-        Loading...
+        {message}
       </p>
+      
+      {/* Loading skeleton UI */}
+      {fullScreen && (
+        <div className="mt-12 w-full max-w-md mx-auto">
+          <div className="space-y-4">
+            <Skeleton className="h-12 w-3/4 mx-auto rounded-md" />
+            <Skeleton className="h-32 w-full rounded-md" />
+            <Skeleton className="h-32 w-full rounded-md" />
+            <Skeleton className="h-32 w-full rounded-md" />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
