@@ -1,6 +1,7 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Image, X, Video, Code, Smile } from 'lucide-react';
-import Button from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { DialogClose } from '@/components/ui/dialog';
 import { supabase, extractLanguageMentions, notifyUsersWithSameLanguages } from "@/integrations/supabase/client";
