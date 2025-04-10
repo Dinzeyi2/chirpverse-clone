@@ -1,7 +1,6 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Image, X, Video, Code, Smile } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import Button from '@/components/common/Button';
 import { toast } from 'sonner';
 import { DialogClose } from '@/components/ui/dialog';
 import { supabase, extractLanguageMentions, notifyUsersWithSameLanguages } from "@/integrations/supabase/client";
@@ -434,11 +433,9 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, inDialog = false
                 )}
                 <Button
                   type="submit"
-                  variant="default"
-                  size="default"
                   disabled={((!postContent.trim() && mediaFiles.length === 0) && codeBlocks.length === 0) || isLoading}
-                  className="rounded-md font-medium"
                   isLoading={isLoading}
+                  className="rounded-full px-4"
                 >
                   Post
                 </Button>
