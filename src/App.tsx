@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import Index from "./pages/Index";
 import Profile from "./pages/Profile";
@@ -13,33 +13,23 @@ import NotFound from "./pages/NotFound";
 import PostPage from "./pages/PostPage";
 import Auth from "./pages/Auth";
 import Settings from "./pages/Settings";
-import ForYou from "./pages/ForYou";
+import ForYou from "./pages/ForYou"; // Import the new ForYou page
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
-import { useEffect, Suspense, lazy } from "react";
+import { useEffect } from "react";
 import { enableRealtimeForTables, supabase } from "./integrations/supabase/client";
 import { UrlHandler } from "./components/routing/UrlHandler";
-import ErrorBoundary from "./components/error/ErrorBoundary";
 
-// Create a new query client with better performance settings
+// Create a new query client with better cache settings
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60 * 1000, // 1 minute (increased from 30 seconds)
+      staleTime: 30 * 1000, // 30 seconds
       retry: 1,
-      refetchOnWindowFocus: false,
-      refetchOnMount: false, // Avoid refetching when component mounts
-      cacheTime: 5 * 60 * 1000, // 5 minutes
-    },
-  },
+      refetchOnWindowFocus: false
+    }
+  }
 });
-
-// Loading component for suspense fallbacks
-const LoadingFallback = () => (
-  <div className="flex items-center justify-center min-h-screen bg-black">
-    <div className="h-8 w-8 bg-xBlue rounded-full animate-pulse"></div>
-  </div>
-);
 
 const AppContent = () => {
   useEffect(() => {
@@ -65,7 +55,7 @@ const AppContent = () => {
   }, []);
 
   return (
-    <ErrorBoundary>
+    <>
       {/* UrlHandler component to manage URL normalization and persistence */}
       <UrlHandler />
       
@@ -150,28 +140,24 @@ const AppContent = () => {
         {/* Catch-all 404 route */}
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </ErrorBoundary>
+    </>
   );
 };
 
 const App = () => (
-  <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <ThemeProvider defaultTheme="dark">
-          <TooltipProvider>
-            <Toaster />
-            <Sonner position="top-center" theme="dark" />
-            <Suspense fallback={<LoadingFallback />}>
-              <BrowserRouter>
-                <AppContent />
-              </BrowserRouter>
-            </Suspense>
-          </TooltipProvider>
-        </ThemeProvider>
-      </AuthProvider>
-    </QueryClientProvider>
-  </ErrorBoundary>
+  <QueryClientProvider client={queryClient}>
+    <AuthProvider>
+      <ThemeProvider defaultTheme="dark">
+        <TooltipProvider>
+          <Toaster />
+          <Sonner position="top-center" theme="dark" />
+          <BrowserRouter>
+            <AppContent />
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
+    </AuthProvider>
+  </QueryClientProvider>
 );
 
 export default App;

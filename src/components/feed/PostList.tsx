@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, memo } from 'react';
-import { Post, Comment } from '@/lib/utils';
+import React, { useState, useEffect } from 'react';
+import { Post, Comment } from '@/lib/data';
 import { Inbox } from 'lucide-react';
 import PostCard from './PostCard';
 import PostSkeleton from './PostSkeleton';
@@ -26,15 +26,6 @@ interface PostListProps {
 // Standard profile image for all users - updated to the new blue smiley face
 const standardProfileImage = "/lovable-uploads/325d2d74-ad68-4607-8fab-66f36f0e087e.png";
 
-// Memoized post item to prevent unnecessary re-renders
-const MemoizedPostCard = memo(({ post }: { post: PostWithActions }) => (
-  <div className="max-w-xl mx-auto">
-    <PostCard post={post} />
-  </div>
-));
-
-MemoizedPostCard.displayName = 'MemoizedPostCard';
-
 const PostList: React.FC<PostListProps> = ({ posts, loading = false, engagementData }) => {
   const [displayPosts, setDisplayPosts] = useState<PostWithActions[]>([]);
 
@@ -57,7 +48,6 @@ const PostList: React.FC<PostListProps> = ({ posts, loading = false, engagementD
     };
   }, [posts]);
 
-  // Loading state using optimized skeleton
   if (loading) {
     return (
       <div className="p-4 space-y-6">
@@ -66,7 +56,6 @@ const PostList: React.FC<PostListProps> = ({ posts, loading = false, engagementD
     );
   }
 
-  // Empty state
   if (displayPosts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
@@ -79,7 +68,7 @@ const PostList: React.FC<PostListProps> = ({ posts, loading = false, engagementD
     );
   }
 
-  // Ensure all posts use the standard profile image and efficiently render with virtualization consideration
+  // Ensure all posts use the standard profile image
   const postsWithStandardAvatar = displayPosts.map(post => ({
     ...post,
     user: {
@@ -91,11 +80,12 @@ const PostList: React.FC<PostListProps> = ({ posts, loading = false, engagementD
   return (
     <div className="space-y-4 p-4">
       {postsWithStandardAvatar.map(post => (
-        <MemoizedPostCard key={post.id} post={post} />
+        <div key={post.id} className="max-w-xl mx-auto">
+          <PostCard post={post} />
+        </div>
       ))}
     </div>
   );
 };
 
-// Export memoized component for better performance
-export default memo(PostList);
+export default PostList;
