@@ -3,10 +3,30 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
+// List of supported domains
+const SUPPORTED_DOMAINS = [
+  'lovable.app',
+  'lovableproject.com',
+  'i-blue.dev',
+  'iblue.dev'
+];
+
 // Improved service worker registration with error handling
 const registerServiceWorker = () => {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
+      // Log current domain
+      const currentDomain = window.location.hostname;
+      console.log('Registering service worker on domain:', currentDomain);
+      
+      // Check if this is a known domain
+      const isKnownDomain = SUPPORTED_DOMAINS.some(domain => currentDomain.includes(domain));
+      if (isKnownDomain) {
+        console.log('Known domain detected, proceeding with normal registration');
+      } else {
+        console.log('Unknown domain detected:', currentDomain, 'but will attempt registration anyway');
+      }
+      
       // Add a small delay to ensure the DOM is fully loaded
       setTimeout(() => {
         const swUrl = '/service-worker.js'; 

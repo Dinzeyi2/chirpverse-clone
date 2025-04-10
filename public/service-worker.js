@@ -1,7 +1,7 @@
 
 // Service Worker for iblue Web Push Notifications and URL handling
 
-const CACHE_NAME = 'iblue-v10'; // Increment version for cache busting
+const CACHE_NAME = 'iblue-v11'; // Increment version for cache busting
 const OFFLINE_URL = '/offline.html';
 
 // Installation event
@@ -145,11 +145,18 @@ const APP_ROUTES = [
   '/for-you'
 ];
 
+// List of supported domains - ADD YOUR CUSTOM DOMAIN HERE
+const SUPPORTED_DOMAINS = [
+  'lovable.app',
+  'lovableproject.com',
+  'i-blue.dev',
+  'iblue.dev'
+];
+
 // Listen for the custom event from the UrlHandler component
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'PERSIST_NOTIFICATIONS_PATH') {
     console.log('Service worker received notification persistence message:', event.data);
-    // Could store this in IndexedDB if needed for better persistence
   }
 });
 
@@ -157,65 +164,65 @@ self.addEventListener('message', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   
-  // Log important request information for debugging
+  // Debug hostname for custom domain issues
+  console.log('Fetch request for:', url.hostname, url.pathname);
+  
+  // Check if this is our supported custom domain
+  const isCustomDomain = SUPPORTED_DOMAINS.some(domain => url.hostname.includes(domain));
+  
+  // Handle navigation requests (i.e., route changes) for ALL domains including custom domains
   if (event.request.mode === 'navigate') {
     console.log('Navigating to:', url.pathname, 'on domain:', url.hostname);
-  }
-  
-  // Only handle same-origin requests to avoid CORS issues
-  if (url.origin === self.location.origin) {
-    // Handle navigation requests (i.e., route changes)
-    if (event.request.mode === 'navigate') {
-      // Special handling for notifications
-      if (url.pathname === '/notifications' || url.pathname.startsWith('/notifications/')) {
-        console.log('Serving index.html for notifications route');
-        event.respondWith(
-          caches.match('/index.html')
-            .then(response => {
-              return response || fetch('/index.html').catch(() => {
-                return caches.match(OFFLINE_URL);
-              });
-            })
-        );
-        return;
-      }
-      
-      // For SPA routes, serve index.html to let the client-side router handle it
-      if (APP_ROUTES.some(route => url.pathname === route || url.pathname.startsWith(`${route}/`)) || 
-          url.pathname === '/' || 
-          url.pathname.startsWith('/post/') ||
-          UUID_PATTERN.test(url.pathname)) {
-        console.log('Serving index.html for SPA route:', url.pathname);
-        event.respondWith(
-          caches.match('/index.html')
-            .then(response => {
-              return response || fetch('/index.html').catch(() => {
-                return caches.match(OFFLINE_URL);
-              });
-            })
-        );
-        return;
-      }
-      
-      // Check if this is likely a post URL with UUID
-      const pathContainsUuid = UUID_PATTERN.test(url.pathname);
-      
-      if (pathContainsUuid) {
-        // Extract the UUID
-        const uuidMatch = url.pathname.match(UUID_PATTERN);
-        if (uuidMatch) {
-          const uuid = uuidMatch[0];
+    
+    // Special handling for notifications
+    if (url.pathname === '/notifications' || url.pathname.startsWith('/notifications/')) {
+      console.log('Serving index.html for notifications route');
+      event.respondWith(
+        caches.match('/index.html')
+          .then(response => {
+            return response || fetch('/index.html').catch(() => {
+              return caches.match(OFFLINE_URL);
+            });
+          })
+      );
+      return;
+    }
+    
+    // For SPA routes, serve index.html to let the client-side router handle it
+    if (APP_ROUTES.some(route => url.pathname === route || url.pathname.startsWith(`${route}/`)) || 
+        url.pathname === '/' || 
+        url.pathname.startsWith('/post/') ||
+        UUID_PATTERN.test(url.pathname)) {
+      console.log('Serving index.html for SPA route:', url.pathname);
+      event.respondWith(
+        caches.match('/index.html')
+          .then(response => {
+            return response || fetch('/index.html').catch(() => {
+              return caches.match(OFFLINE_URL);
+            });
+          })
+      );
+      return;
+    }
+    
+    // Check if this is likely a post URL with UUID
+    const pathContainsUuid = UUID_PATTERN.test(url.pathname);
+    
+    if (pathContainsUuid) {
+      // Extract the UUID
+      const uuidMatch = url.pathname.match(UUID_PATTERN);
+      if (uuidMatch) {
+        const uuid = uuidMatch[0];
+        
+        // Check if already in canonical format
+        if (!url.pathname.startsWith('/post/')) {
+          // Normalize to canonical format
+          const normalizedPath = `/post/${uuid}${url.hash}${url.search}`;
+          console.log('Service worker normalizing to:', normalizedPath);
           
-          // Check if already in canonical format
-          if (!url.pathname.startsWith('/post/')) {
-            // Normalize to canonical format
-            const normalizedPath = `/post/${uuid}${url.hash}${url.search}`;
-            console.log('Service worker normalizing to:', normalizedPath);
-            
-            // Use a simple redirect
-            event.respondWith(Response.redirect(normalizedPath, 302));
-            return;
-          }
+          // Use a simple redirect
+          event.respondWith(Response.redirect(normalizedPath, 302));
+          return;
         }
       }
     }

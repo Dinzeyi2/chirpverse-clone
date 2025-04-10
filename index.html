@@ -16,8 +16,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="iblue">
     <link rel="apple-touch-icon" href="/lovable-uploads/3466f833-541a-44f1-86a1-5e3f5ed4d8ed.png">
-    <!-- Base URL for SPA routing -->
+    <!-- Base URL for SPA routing - prevent path issues with custom domains -->
     <base href="/">
+    <!-- Allow custom domain hosting -->
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'self' data: 'unsafe-inline' 'unsafe-eval';">
   </head>
 
   <body>
@@ -57,6 +59,9 @@
             }
           }, 1000);
         }
+        
+        // Log domain information for debugging
+        console.log('Current domain:', window.location.hostname);
       });
       
       // Store current URL before unload

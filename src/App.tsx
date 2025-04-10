@@ -77,11 +77,26 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 }
 
+// List of supported domains
+const SUPPORTED_DOMAINS = [
+  'lovable.app',
+  'lovableproject.com',
+  'i-blue.dev',
+  'iblue.dev'
+];
+
 // Domain detection for proper routing
 const checkDomain = () => {
   const hostname = window.location.hostname;
   // Log the hostname for debugging
   console.log("Current hostname:", hostname);
+  
+  // Check if this is a known domain
+  const isKnownDomain = SUPPORTED_DOMAINS.some(domain => hostname.includes(domain));
+  
+  if (!isKnownDomain) {
+    console.log("Unknown domain detected:", hostname, "but will attempt to handle anyway");
+  }
   
   // Clear service worker cache if on custom domain
   if (hostname !== "preview--chirpverse-clone.lovable.app" && 
