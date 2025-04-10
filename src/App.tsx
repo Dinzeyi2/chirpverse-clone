@@ -29,8 +29,8 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 30 * 1000, // 30 seconds
       retry: 1,
-      refetchOnWindowFocus: false,
-      suspense: true // Enable suspense mode for automatic loading states
+      refetchOnWindowFocus: false
+      // Removed the 'suspense: true' property that was causing the error
     }
   }
 });
