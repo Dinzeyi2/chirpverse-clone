@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -50,12 +49,30 @@ const Settings = () => {
           });
         }
 
-        setProfile(data || { 
+        // Ensure email notifications are always enabled
+        let profileData = data || { 
           full_name: null, 
           avatar_url: null, 
-          email_notifications_enabled: false, 
+          email_notifications_enabled: true, 
           programming_languages: [] 
-        });
+        };
+
+        // Force email_notifications_enabled to true
+        profileData.email_notifications_enabled = true;
+        
+        setProfile(profileData);
+
+        // If user's setting was false, update it to true in the database
+        if (data && data.email_notifications_enabled === false) {
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ email_notifications_enabled: true })
+            .eq('user_id', user.id);
+            
+          if (updateError) {
+            console.error('Error updating email notification settings:', updateError);
+          }
+        }
       } finally {
         setLoading(false);
       }
@@ -147,53 +164,25 @@ const Settings = () => {
           <h2 className="text-lg font-medium">Notification Settings</h2>
           
           <div className="bg-card rounded-lg border p-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="font-medium">Email Notifications</h3>
-                <p className="text-sm text-muted-foreground">
-                  Receive email notifications when users post about programming languages you know
+            <div>
+              <h3 className="font-medium">Email Notifications</h3>
+              <p className="text-sm text-muted-foreground">
+                You will receive email notifications when users post about programming languages you know
+              </p>
+              {user?.email ? (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Notifications will be sent to: {user.email}
                 </p>
-                {user?.email ? (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Notifications will be sent to: {user.email}
-                  </p>
-                ) : (
-                  <p className="text-xs text-red-500 mt-1">
-                    No email address found. Please add an email to receive notifications.
-                  </p>
-                )}
+              ) : (
+                <p className="text-xs text-red-500 mt-1">
+                  No email address found. Please add an email to receive notifications.
+                </p>
+              )}
+              <div className="mt-2">
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  Always enabled
+                </Badge>
               </div>
-              <Switch 
-                checked={profile?.email_notifications_enabled || false}
-                onCheckedChange={async (checked) => {
-                  try {
-                    const { error } = await supabase
-                      .from('profiles')
-                      .update({ email_notifications_enabled: checked })
-                      .eq('user_id', user.id);
-                      
-                    if (error) throw error;
-                    
-                    setProfile(prev => prev ? { ...prev, email_notifications_enabled: checked } : null);
-                    
-                    toast({
-                      title: checked ? "Email Notifications Enabled" : "Email Notifications Disabled",
-                      description: checked 
-                        ? "You'll receive email notifications for relevant activity" 
-                        : "You won't receive email notifications anymore",
-                    });
-                  } catch (error) {
-                    console.error('Error updating email notification settings:', error);
-                    toast({
-                      title: "Error",
-                      description: "Failed to update notification settings",
-                      variant: "destructive"
-                    });
-                  }
-                }}
-                aria-label="Toggle email notifications"
-                disabled={!user?.email}
-              />
             </div>
           </div>
           
