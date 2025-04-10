@@ -38,23 +38,18 @@ export const Sidebar = () => {
     
     const updateUserActiveStatus = async () => {
       try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/user_sessions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-            'Prefer': 'resolution=merge-duplicates'
-          },
-          body: JSON.stringify({
+        const { error } = await supabase
+          .from('user_sessions')
+          .upsert({
             user_id: user.id,
             last_active: new Date().toISOString(),
             is_online: true
-          })
-        });
+          }, {
+            onConflict: 'user_id'
+          });
           
-        if (!response.ok) {
-          console.error('Error updating user active status:', await response.text());
+        if (error) {
+          console.error('Error updating user active status:', error);
         }
       } catch (err) {
         console.error('Exception updating user active status:', err);
@@ -75,20 +70,13 @@ export const Sidebar = () => {
     
     const setUserOffline = async () => {
       try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/user_sessions?user_id=eq.${user.id}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`
-          },
-          body: JSON.stringify({
-            is_online: false
-          })
-        });
+        const { error } = await supabase
+          .from('user_sessions')
+          .update({ is_online: false })
+          .eq('user_id', user.id);
         
-        if (!response.ok) {
-          console.error('Error setting user offline:', await response.text());
+        if (error) {
+          console.error('Error setting user offline:', error);
         }
       } catch (err) {
         console.error('Error setting user offline:', err);
