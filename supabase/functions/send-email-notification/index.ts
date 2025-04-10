@@ -189,10 +189,17 @@ serve(async (req) => {
     // Get the app base URL from environment variables
     const appUrl = Deno.env.get('APP_URL') || 'https://i-blue.dev';
     
-    // UPDATED: Create the URL to the notifications page instead of the post page
-    const notificationsUrl = `${appUrl}/notifications`;
+    // UPDATED: Create direct URL to the post page instead of the notifications page
+    let directUrl;
+    if (postId) {
+      directUrl = `${appUrl}/post/${postId}`;
+      console.log('Generated direct post URL:', directUrl);
+    } else {
+      // Fallback to notifications page if no postId is provided
+      directUrl = `${appUrl}/notifications`;
+      console.log('No postId provided, using notifications URL:', directUrl);
+    }
     
-    console.log('Generated notifications URL:', notificationsUrl);
     console.log(`Will send email to: ${userEmail}`);
 
     // Process the email subject to remove user names if needed
@@ -202,7 +209,7 @@ serve(async (req) => {
       processedSubject = subject.replace(/from .+$/, '').trim();
     }
 
-    // Update button label and generate simple HTML email with a button that links directly to the notifications page
+    // Update button label and generate simple HTML email with a button that links directly to the post
     const htmlEmail = `
       <!DOCTYPE html>
       <html>
@@ -227,10 +234,10 @@ serve(async (req) => {
               <p>Hello ${userData?.full_name || 'there'},</p>
               <p>${body}</p>
               <p style="text-align: center; margin-top: 30px;">
-                <a href="${notificationsUrl}" class="button">View Notifications</a>
+                <a href="${directUrl}" class="button">View Post</a>
               </p>
               <p class="post-url">
-                If the button doesn't work, copy and paste this URL into your browser: ${notificationsUrl}
+                If the button doesn't work, copy and paste this URL into your browser: ${directUrl}
               </p>
             </div>
             <div class="footer">

@@ -13,7 +13,6 @@ import NotFound from "./pages/NotFound";
 import PostPage from "./pages/PostPage";
 import Auth from "./pages/Auth";
 import Settings from "./pages/Settings";
-import Notifications from "./pages/Notifications"; 
 import ForYou from "./pages/ForYou"; // Import the new ForYou page
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -129,14 +128,6 @@ const AppContent = () => {
           element={
             <ProtectedRoute requireAuth={true}>
               <Settings />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/notifications" 
-          element={
-            <ProtectedRoute requireAuth={true}>
-              <Notifications />
             </ProtectedRoute>
           } 
         />

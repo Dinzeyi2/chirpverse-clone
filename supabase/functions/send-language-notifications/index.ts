@@ -260,8 +260,8 @@ serve(async (req) => {
 
 Check out the full post and join the conversation!`;
 
-          // Direct to the notifications page instead of the post
-          const notificationsUrl = `${appUrl}/notifications`;
+          // Direct URL to the post instead of notifications page
+          const directPostUrl = `${appUrl}/post/${postId}`;
           
           try {
             // ALWAYS create an in-app notification regardless of email status
@@ -322,7 +322,7 @@ Check out the full post and join the conversation!`;
                   postId: postId,
                   priority: 'high',
                   skipEmailIfActive: true, // Tell the email function to check for active users
-                  viewUrl: `${appUrl}/notifications?source=email&postId=${postId}`,
+                  viewUrl: directPostUrl, // UPDATED: Use direct post URL
                   debug: debug
                 }),
               }
