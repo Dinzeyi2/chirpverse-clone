@@ -23,7 +23,9 @@ export const Sidebar = () => {
   const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
-  const profilePath = '/profile';
+  
+  // Using a more direct path to user profile
+  const profilePath = user ? `/profile/${user.id}` : '/profile';
 
   useEffect(() => {
     if (isMobile) {
@@ -125,10 +127,11 @@ export const Sidebar = () => {
   };
 
   const handleProfileClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
     if (!user) {
-      e.preventDefault();
       navigate('/auth');
     } else {
+      // Direct navigation to user profile with ID
       navigate(`/profile/${user.id}`);
     }
   };
