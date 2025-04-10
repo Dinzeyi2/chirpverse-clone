@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -50,7 +49,7 @@ const LANGUAGE_TYPES: Record<string, string[]> = {
   typescript: ['string', 'number', 'boolean', 'any', 'void', 'null', 'undefined', 'never', 'unknown', 'Array', 'Record', 'Promise', 'Map', 'Set', 'Date'],
 };
 
-const MAX_LINES = 30;
+const MAX_LINES = 15;
 const LINE_HEIGHT = 24;
 
 const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
@@ -473,7 +472,7 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl p-0 overflow-hidden bg-[#1e1e1e] text-white border-0 shadow-xl rounded-lg">
+      <DialogContent className="max-w-3xl p-0 overflow-hidden bg-[#1e1e1e] text-white border-0 shadow-xl rounded-lg">
         <div className="flex items-center justify-between px-4 py-3 bg-[#252526] border-b border-[#1e1e1e]">
           <div className="flex items-center space-x-2">
             <FileCode className="h-5 w-5 text-slate-400" />
