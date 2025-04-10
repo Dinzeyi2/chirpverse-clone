@@ -23,7 +23,7 @@ export const Sidebar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
   
-  const profilePath = '/profile';
+  const profilePath = user ? `/profile/${user.id}` : '/profile';
 
   useEffect(() => {
     if (isMobile) {
@@ -129,7 +129,7 @@ export const Sidebar = () => {
     if (!user) {
       navigate('/auth');
     } else {
-      navigate('/profile');
+      navigate(`/profile/${user.id}`);
     }
   };
 
