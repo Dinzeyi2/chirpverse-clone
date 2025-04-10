@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -24,8 +23,7 @@ export const Sidebar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
   
-  // Using a more direct path to user profile
-  const profilePath = user ? `/profile/${user.id}` : '/profile';
+  const profilePath = '/profile';
 
   useEffect(() => {
     if (isMobile) {
@@ -131,8 +129,7 @@ export const Sidebar = () => {
     if (!user) {
       navigate('/auth');
     } else {
-      // Direct navigation to user profile with ID
-      navigate(`/profile/${user.id}`);
+      navigate('/profile');
     }
   };
 
