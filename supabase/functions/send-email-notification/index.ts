@@ -105,6 +105,42 @@ serve(async (req) => {
       )
     }
 
+    // NEW: Check daily email count
+    const today = new Date().toISOString().split('T')[0]; // Get current date in YYYY-MM-DD format
+    const todayStart = new Date(today + 'T00:00:00Z').toISOString();
+    const todayEnd = new Date(today + 'T23:59:59Z').toISOString();
+    
+    const { data: todayEmails, error: countError } = await supabaseClient
+      .from('notification_logs')
+      .select('created_at')
+      .eq('type', 'email')
+      .eq('status', 'sent')
+      .eq('recipient_id', userId)
+      .gte('created_at', todayStart)
+      .lte('created_at', todayEnd);
+      
+    if (countError) {
+      console.error('Error checking daily email count:', countError);
+    } else {
+      const emailCount = todayEmails?.length || 0;
+      console.log(`User ${userId} has received ${emailCount} emails today`);
+      
+      // Check if priority is not high (meaning this is not a critical notification)
+      // and the user has already received 2 emails today
+      if (priority !== 'high' && emailCount >= 2) {
+        console.log(`User ${userId} has already received maximum emails for today (${emailCount}). Skipping.`);
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: 'Email notification skipped due to daily limit',
+            dailyLimit: true,
+            emailCount
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
+      }
+    }
+
     // NEW: Check if we should skip email for active users
     if (skipEmailIfActive) {
       console.log('Checking if user is currently active in the app...');
@@ -143,8 +179,7 @@ serve(async (req) => {
       .eq('recipient_id', userId)
       .eq('type', 'email')
       .eq('status', 'sent')
-      .gte('created_at', fiveMinutesAgo)
-      .order('created_at', { ascending: false });
+      .gte('created_at', fiveMinutesAgo);
       
     if (recentEmailsError) {
       console.error('Error checking for recent emails:', recentEmailsError);
@@ -242,7 +277,7 @@ serve(async (req) => {
             </div>
             <div class="footer">
               <p>This is an automated message from iBlue. Please do not reply to this email.</p>
-              <p>If you don't want to receive these notifications, you can update your preferences in your account settings.</p>
+              <p>You will receive up to 2 email notifications per day about topics related to your programming interests.</p>
             </div>
           </div>
         </body>
@@ -328,7 +363,9 @@ serve(async (req) => {
           status: 'sent',
           metadata: {
             postId: postId,
-            response: emailResult
+            response: emailResult,
+            priority: priority,
+            timeOfDay: new Date().getHours() < 12 ? 'morning' : 'afternoon'
           }
         });
         

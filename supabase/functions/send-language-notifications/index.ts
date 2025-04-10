@@ -39,7 +39,7 @@ serve(async (req) => {
       );
     }
     
-    const { postId, languages = [], content = '', immediate = true, debug = true } = requestBody;
+    const { postId, languages = [], content = '', immediate = false, debug = true } = requestBody;
     
     if (!postId) {
       console.error('Missing postId in request');
@@ -95,7 +95,6 @@ serve(async (req) => {
     const postAuthorId = post.user_id;
     console.log(`Post author ID: ${postAuthorId}`);
 
-    // We still fetch the author information for logging purposes
     const { data: authorProfile, error: authorError } = await supabaseClient
       .from('profiles')
       .select('full_name')
@@ -182,11 +181,53 @@ serve(async (req) => {
     );
     console.log(`Found ${activeUserIds.size} currently active users who will receive in-app notifications only`);
     
+    // NEW: Check if users have already received their daily quota of emails
+    const today = new Date().toISOString().split('T')[0]; // Get current date in YYYY-MM-DD format
+    const todayStart = new Date(today + 'T00:00:00Z').toISOString();
+    const todayEnd = new Date(today + 'T23:59:59Z').toISOString();
+
+    // Get count of notifications sent today per user
+    const { data: todayNotifications, error: todayNotificationsError } = await supabaseClient
+      .from('notification_logs')
+      .select('recipient_id, created_at')
+      .eq('type', 'email')
+      .eq('status', 'sent')
+      .gte('created_at', todayStart)
+      .lte('created_at', todayEnd);
+      
+    if (todayNotificationsError) {
+      console.error('Error checking notification count:', todayNotificationsError);
+    }
+    
+    // Count notifications per user today
+    const userNotificationCount = new Map();
+    todayNotifications?.forEach(notification => {
+      const userId = notification.recipient_id;
+      userNotificationCount.set(userId, (userNotificationCount.get(userId) || 0) + 1);
+    });
+    
+    console.log(`Notification counts for today:`, Object.fromEntries(userNotificationCount));
+    
+    // Determine if we should send morning or afternoon notifications
+    const currentHour = new Date().getUTCHours();
+    const isMorningWindow = currentHour >= 6 && currentHour < 12; // 6 AM - 12 PM UTC
+    const isAfternoonWindow = currentHour >= 14 && currentHour < 20; // 2 PM - 8 PM UTC
+    
+    // For immediate notifications (when requested explicitly), ignore time windows
+    const shouldSendEmail = immediate ? true : (isMorningWindow || isAfternoonWindow);
+
+    if (!shouldSendEmail && !immediate) {
+      console.log(`Current hour (${currentHour} UTC) is outside email delivery windows. Skipping email delivery.`);
+    }
+    
     let notificationsSent = 0;
     let notificationsSkipped = 0;
     let inAppNotificationsCreated = 0;
     const notificationResults = [];
     const notificationErrors = [];
+    
+    // Maximum emails per user per day
+    const MAX_DAILY_EMAILS = 2;
 
     for (const profile of profilesWithNotifications) {
       try {
@@ -212,7 +253,7 @@ serve(async (req) => {
         const userEmail = userData.user.email;
         console.log(`Processing user ${profile.user_id} (${profile.full_name || 'unnamed'}) with email: ${userEmail}`);
         
-        let userLanguages: string[] = [];
+        let userLanguages = [];
         console.log(`User programming_languages:`, profile.programming_languages);
         
         if (profile.programming_languages) {
@@ -244,7 +285,7 @@ serve(async (req) => {
         console.log(`Matching languages for user ${profile.user_id}: ${matchingLanguages.join(', ')}`);
         
         if (matchingLanguages.length > 0) {
-          console.log(`Sending notification to user ${profile.user_id} about languages: ${matchingLanguages.join(', ')}`);
+          console.log(`Creating in-app notification for user ${profile.user_id} about languages: ${matchingLanguages.join(', ')}`);
           
           const languageList = matchingLanguages.join(', ');
           
@@ -288,7 +329,7 @@ Check out the full post and join the conversation!`;
               inAppNotificationsCreated++;
             }
 
-            // Check if user is currently active - if so, skip the email
+            // Check if user is currently active - if so, skip email notification
             const isUserActive = activeUserIds.has(profile.user_id);
             
             if (isUserActive) {
@@ -305,8 +346,41 @@ Check out the full post and join the conversation!`;
               });
               continue; // Skip email sending for active users
             }
+            
+            // NEW: Check if user has already reached their daily email quota
+            const userDailyCount = userNotificationCount.get(profile.user_id) || 0;
+            if (userDailyCount >= MAX_DAILY_EMAILS && !immediate) {
+              console.log(`User ${profile.user_id} already received ${userDailyCount} notifications today (max: ${MAX_DAILY_EMAILS}). Skipping email.`);
+              notificationResults.push({
+                userId: profile.user_id,
+                name: profile.full_name,
+                email: userEmail,
+                languages: matchingLanguages,
+                success: true,
+                emailSent: false,
+                dailyLimit: true,
+                message: `Daily limit (${MAX_DAILY_EMAILS}) reached`
+              });
+              continue; // Skip email for users who reached their daily limit
+            }
+            
+            // Skip email if not in the right time window (unless immediate=true)
+            if (!shouldSendEmail) {
+              console.log(`Not in email delivery window. Skipping email for user ${profile.user_id}.`);
+              notificationResults.push({
+                userId: profile.user_id,
+                name: profile.full_name,
+                email: userEmail,
+                languages: matchingLanguages,
+                success: true,
+                emailSent: false,
+                outsideWindow: true,
+                message: "Outside email delivery window"
+              });
+              continue;
+            }
 
-            // Send email notification only to non-active users
+            // Send email notification if user passed all checks
             const response = await fetch(
               `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email-notification`,
               {
@@ -345,12 +419,16 @@ Check out the full post and join the conversation!`;
               languages: matchingLanguages,
               success: response.ok,
               emailSent: response.ok && !responseJson?.active,
-              response: responseJson
+              response: responseJson,
+              timeWindow: isMorningWindow ? "morning" : (isAfternoonWindow ? "afternoon" : "outside")
             });
 
             if (response.ok) {
               console.log(`Successfully sent email to user ${profile.full_name} (${profile.user_id}) at ${userEmail}`);
               notificationsSent++;
+              
+              // Update the user's daily notification count
+              userNotificationCount.set(profile.user_id, (userNotificationCount.get(profile.user_id) || 0) + 1);
             } else {
               console.error(`Error sending email to user ${profile.user_id}:`, responseText);
               notificationErrors.push({
@@ -388,6 +466,13 @@ Check out the full post and join the conversation!`;
           languages: languages,
           authorId: postAuthorId,
           authorName: authorName
+        },
+        emailDeliveryWindow: {
+          isMorningWindow,
+          isAfternoonWindow,
+          shouldSendEmail,
+          currentHourUTC: currentHour,
+          immediate
         },
         stats: {
           total_users: profilesWithNotifications?.length || 0,
