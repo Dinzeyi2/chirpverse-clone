@@ -1,6 +1,7 @@
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 // UUID pattern for validating direct UUID routes
 const UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
@@ -11,6 +12,9 @@ const PERSIST_ROUTES = ['/post/', '/notifications', '/for-you'];
 // List of valid app routes to check against
 const APP_ROUTES = ['/auth', '/explore', '/bookmarks', '/profile', '/settings', '/notifications', '/for-you'];
 
+// Cache for page transitions to avoid excessive localStorage operations
+const pageTransitionCache = new Map();
+
 /**
  * Handle all URL normalization and persistence in one place
  * to avoid conflicts between different mechanisms
@@ -20,8 +24,9 @@ export const UrlHandler = () => {
   const navigate = useNavigate();
   const initialLoadDoneRef = useRef(false);
   const { pathname, hash, search } = location;
+  const [isTransitioning, setIsTransitioning] = useState(false);
   
-  // Extract a UUID from various URL patterns
+  // Extract a UUID from various URL patterns - optimized
   const extractUuid = (path: string): string | null => {
     // Direct UUID path
     if (path.length > 30 && path.charAt(0) === '/' && UUID_PATTERN.test(path.substring(1))) {
@@ -58,17 +63,30 @@ export const UrlHandler = () => {
     return null;
   };
 
-  // Store current URL in localStorage for persistence across reloads
+  // Store current URL in localStorage for persistence across reloads - optimized
   const persistCurrentUrl = () => {
     // Check if the current route should be persisted
     const shouldPersist = PERSIST_ROUTES.some(route => pathname.includes(route));
     
     if (shouldPersist) {
+      const fullUrlKey = `${pathname}${hash}${search}`;
+      
+      // Check if we already persisted this exact URL recently
+      if (pageTransitionCache.has(fullUrlKey)) {
+        const cachedTime = pageTransitionCache.get(fullUrlKey);
+        if (Date.now() - cachedTime < 5000) {
+          return; // Skip if we persisted this URL less than 5 seconds ago
+        }
+      }
+      
       const fullUrl = window.location.href;
       console.log('Persisting URL:', fullUrl);
       localStorage.setItem('lastUrl', fullUrl);
       localStorage.setItem('lastPath', pathname + hash + search);
       localStorage.setItem('lastPathTimestamp', Date.now().toString());
+      
+      // Cache this persistence operation
+      pageTransitionCache.set(fullUrlKey, Date.now());
       
       // Specifically mark if this was a notifications path
       if (pathname === '/notifications' || pathname.startsWith('/notifications/')) {
@@ -97,6 +115,30 @@ export const UrlHandler = () => {
       }
     }
   };
+
+  // Optimize navigation performance
+  useEffect(() => {
+    const startTransition = performance.now();
+    
+    // Set transition state for potential loading indicators
+    setIsTransitioning(true);
+    
+    // Wait until navigation is complete
+    const completeTransition = () => {
+      const duration = performance.now() - startTransition;
+      console.log(`Navigation to ${pathname} completed in ${duration.toFixed(2)}ms`);
+      setIsTransitioning(false);
+      
+      // Show toast for slow transitions (debugging purposes)
+      if (duration > 1000) {
+        console.warn(`Slow navigation detected: ${duration.toFixed(2)}ms to ${pathname}`);
+      }
+    };
+    
+    // Schedule transition completion
+    const timerId = setTimeout(completeTransition, 10);
+    return () => clearTimeout(timerId);
+  }, [pathname]);
 
   // Normalize URL on initial load and route changes
   useEffect(() => {
@@ -186,6 +228,39 @@ export const UrlHandler = () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [pathname, hash, search]);
+
+  // Prefetch adjacent routes for faster navigation
+  useEffect(() => {
+    // Prefetch logic based on current route
+    const prefetchAdjacentRoutes = () => {
+      const routesToPrefetch = [];
+      
+      // For home page, prefetch explore and for-you
+      if (pathname === '/') {
+        routesToPrefetch.push('/explore', '/for-you');
+      }
+      
+      // For other main routes, always prefetch home
+      else if (['/explore', '/bookmarks', '/profile', '/for-you'].includes(pathname)) {
+        routesToPrefetch.push('/');
+      }
+      
+      // Prefetch all routes
+      routesToPrefetch.forEach(route => {
+        const link = document.createElement('link');
+        link.rel = 'prefetch';
+        link.href = route;
+        link.as = 'document';
+        document.head.appendChild(link);
+        console.log(`Prefetching route: ${route}`);
+      });
+    };
+    
+    // Run prefetch after navigation completes
+    if (!isTransitioning) {
+      prefetchAdjacentRoutes();
+    }
+  }, [pathname, isTransitioning]);
 
   // Component doesn't render anything visible
   return null;

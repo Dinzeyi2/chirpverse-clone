@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { cn } from '@/lib/utils';
@@ -7,6 +7,7 @@ import { useTheme } from '@/components/theme/theme-provider';
 import { useIsMobile, useScreenSize } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import LoadingFallback from '../common/LoadingFallback';
 
 interface AppLayoutProps {
   children?: React.ReactNode;
@@ -48,7 +49,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       {/* Main Content Area */}
       <main 
         className={cn(
-          "flex-grow min-h-screen w-full",
+          "flex-grow min-h-screen w-full transition-all duration-300 ease-in-out",
           theme === "dark" ? "bg-black" : "bg-lightBeige",
           isMobile 
             ? "pb-20 px-1" // Reduced padding for better mobile view
@@ -59,7 +60,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         }}
       >
         <div className="w-full max-w-2xl mx-auto">
-          {children || <Outlet />}
+          <Suspense fallback={<LoadingFallback />}>
+            {children || <Outlet />}
+          </Suspense>
         </div>
       </main>
     </div>
