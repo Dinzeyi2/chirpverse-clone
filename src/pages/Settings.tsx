@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { supabase } from "@/integrations/supabase/client";
@@ -7,7 +8,6 @@ import { useNavigate } from 'react-router-dom';
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { usePushNotifications } from '@/hooks/use-push-notifications';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { X, Plus } from 'lucide-react';
 import { Input } from "@/components/ui/input";
@@ -25,7 +25,6 @@ const Settings = () => {
   const [savingLanguages, setSavingLanguages] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
-  const pushNotifications = usePushNotifications();
 
   useEffect(() => {
     if (!user) {
@@ -195,29 +194,6 @@ const Settings = () => {
                 aria-label="Toggle email notifications"
                 disabled={!user?.email}
               />
-            </div>
-          </div>
-          
-          <div className="bg-card rounded-lg border p-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="font-medium">Push Notifications</h3>
-                <p className="text-sm text-muted-foreground">
-                  Receive browser push notifications for new activity
-                </p>
-              </div>
-              <Button 
-                variant="outline"
-                onClick={async () => {
-                  if (pushNotifications.subscribed) {
-                    await pushNotifications.unsubscribeFromPushNotifications();
-                  } else {
-                    await pushNotifications.requestPermission();
-                  }
-                }}
-              >
-                {pushNotifications.subscribed ? "Disable" : "Enable"}
-              </Button>
             </div>
           </div>
           
