@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Copy, FileCode } from 'lucide-react';
+import { X, Copy, CheckCircle2, ArrowLeft, ArrowRight, RefreshCw, Layers, FileCode } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from "sonner";
 
@@ -12,50 +13,45 @@ interface CodeEditorDialogProps {
   onSave: (code: string, language: string) => void;
 }
 
-interface SyntaxToken {
-  text: string;
-  type: 'keyword' | 'string' | 'number' | 'boolean' | 'comment' | 'punctuation' | 'operator' | 'variable' | 'function' | 'type' | 'regex' | 'plain';
-  color: string;
-}
-
-const MAX_LINES = 30;
-const LINE_HEIGHT = 24;
-
 const LANGUAGE_OPTIONS = [
   { value: 'javascript', label: 'JavaScript' },
   { value: 'typescript', label: 'TypeScript' },
-  { value: 'python', label: 'Python' },
-  { value: 'java', label: 'Java' },
-  { value: 'c', label: 'C' },
-  { value: 'cpp', label: 'C++' },
-  { value: 'csharp', label: 'C#' },
-  { value: 'go', label: 'Go' },
-  { value: 'ruby', label: 'Ruby' },
-  { value: 'php', label: 'PHP' },
-  { value: 'swift', label: 'Swift' },
-  { value: 'kotlin', label: 'Kotlin' },
-  { value: 'rust', label: 'Rust' },
-  { value: 'sql', label: 'SQL' },
+  { value: 'jsx', label: 'JSX' },
+  { value: 'tsx', label: 'TSX' },
   { value: 'html', label: 'HTML' },
   { value: 'css', label: 'CSS' },
-  { value: 'bash', label: 'Bash' },
+  { value: 'python', label: 'Python' },
+  { value: 'java', label: 'Java' },
+  { value: 'csharp', label: 'C#' },
+  { value: 'go', label: 'Go' },
+  { value: 'rust', label: 'Rust' },
+  { value: 'sql', label: 'SQL' },
   { value: 'json', label: 'JSON' },
   { value: 'yaml', label: 'YAML' },
   { value: 'markdown', label: 'Markdown' },
   { value: 'plaintext', label: 'Plain Text' },
 ];
 
+interface SyntaxToken {
+  text: string;
+  type: 'keyword' | 'string' | 'number' | 'boolean' | 'comment' | 'punctuation' | 'operator' | 'variable' | 'function' | 'type' | 'regex' | 'plain';
+  color: string;
+}
+
 const LANGUAGE_KEYWORDS: Record<string, string[]> = {
-  javascript: ['const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'class', 'import', 'export', 'from', 'async', 'await', 'try', 'catch', 'throw', 'new', 'this', 'super'],
-  typescript: ['const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'class', 'import', 'export', 'from', 'async', 'await', 'try', 'catch', 'throw', 'new', 'this', 'super', 'interface', 'type', 'enum', 'namespace', 'implements', 'extends'],
-  python: ['def', 'class', 'import', 'from', 'if', 'elif', 'else', 'try', 'except', 'finally', 'for', 'while', 'return', 'and', 'or', 'not', 'in', 'is', 'lambda', 'with', 'as', 'assert', 'break', 'continue', 'global', 'pass'],
-  java: ['public', 'private', 'protected', 'class', 'interface', 'enum', 'extends', 'implements', 'import', 'package', 'static', 'final', 'void', 'return', 'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'break', 'continue', 'try', 'catch', 'throw', 'throws', 'new', 'this', 'super'],
+  javascript: ['const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'class', 'import', 'export', 'from', 'async', 'await', 'try', 'catch'],
+  typescript: ['const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'class', 'import', 'export', 'from', 'async', 'await', 'try', 'catch', 'interface', 'type', 'enum'],
+  python: ['def', 'class', 'import', 'from', 'if', 'elif', 'else', 'try', 'except', 'finally', 'for', 'while', 'return'],
+  java: ['public', 'private', 'protected', 'class', 'interface', 'enum', 'extends', 'implements', 'import', 'package', 'static', 'final', 'void', 'return', 'if', 'else', 'for', 'while'],
 };
 
 const LANGUAGE_TYPES: Record<string, string[]> = {
   javascript: ['Array', 'Object', 'String', 'Number', 'Boolean', 'Function', 'Promise', 'Map', 'Set', 'Date', 'RegExp', 'Error'],
-  typescript: ['string', 'number', 'boolean', 'any', 'void', 'null', 'undefined', 'never', 'unknown', 'Array', 'Record', 'Promise', 'Map', 'Set', 'Date', 'Partial', 'Required', 'Pick', 'Omit', 'Exclude', 'Extract', 'NonNullable', 'ReturnType'],
+  typescript: ['string', 'number', 'boolean', 'any', 'void', 'null', 'undefined', 'never', 'unknown', 'Array', 'Record', 'Promise', 'Map', 'Set', 'Date'],
 };
+
+const MAX_LINES = 30;
+const LINE_HEIGHT = 24;
 
 const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
   open,
@@ -81,6 +77,15 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
   const handleSave = () => {
     onSave(code, language);
     onClose();
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(code).then(() => {
+      toast.success("Code copied to clipboard");
+    }).catch((err) => {
+      toast.error("Failed to copy code");
+      console.error('Failed to copy: ', err);
+    });
   };
 
   const getFileExtension = (lang: string): string => {
@@ -468,30 +473,28 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[800px] flex flex-col p-0 gap-0 overflow-hidden bg-[#1e1e1e] text-white border-gray-800">
-        <DialogTitle className="sr-only">Code Editor</DialogTitle>
-        <DialogDescription className="sr-only">Edit your code snippet</DialogDescription>
-        
-        <div className="flex items-center justify-between px-4 py-2 bg-[#252526] border-b border-gray-800">
-          <div className="flex items-center text-sm text-gray-300">
-            <FileCode size={16} className="mr-2 text-gray-400" />
+      <DialogContent className="max-w-4xl p-0 overflow-hidden bg-[#1e1e1e] text-white border-0 shadow-xl rounded-lg">
+        <div className="flex items-center justify-between px-4 py-3 bg-[#252526] border-b border-[#1e1e1e]">
+          <div className="flex items-center space-x-2">
+            <FileCode className="h-5 w-5 text-slate-400" />
             <input
               type="text"
               value={fileName}
               onChange={(e) => setFileName(e.target.value)}
-              className="font-medium bg-transparent border-none outline-none"
+              className="font-medium text-sm bg-transparent border-none outline-none text-slate-200 w-40"
               placeholder="Untitled.ts"
             />
           </div>
+          
           <div className="flex items-center space-x-2">
             <Select
               value={language}
               onValueChange={handleLanguageChange}
             >
-              <SelectTrigger id="language" className="w-[140px] h-8 text-xs bg-[#3c3c3c] border-gray-700">
+              <SelectTrigger className="w-[180px] h-8 text-xs bg-[#333333] border-[#444444] rounded text-slate-200">
                 <SelectValue placeholder="Select language" />
               </SelectTrigger>
-              <SelectContent className="bg-[#252526] border-gray-700 text-gray-300">
+              <SelectContent className="bg-[#252526] border-[#444444] text-slate-200">
                 {LANGUAGE_OPTIONS.map(option => (
                   <SelectItem key={option.value} value={option.value} className="text-xs hover:bg-[#2a2d2e]">
                     {option.label}
@@ -499,23 +502,39 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
                 ))}
               </SelectContent>
             </Select>
+            
+            <button
+              onClick={copyToClipboard}
+              className="flex items-center justify-center h-8 w-8 rounded text-slate-400 hover:text-slate-200 hover:bg-[#2a2d2e] transition-colors"
+              title="Copy code"
+            >
+              <Copy className="h-4 w-4" />
+            </button>
+            
+            <button
+              onClick={onClose}
+              className="flex items-center justify-center h-8 w-8 rounded text-slate-400 hover:text-slate-200 hover:bg-[#2a2d2e] transition-colors"
+              title="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
         </div>
         
         <div 
           ref={editorContainerRef}
-          className="flex-1 overflow-hidden flex relative"
+          className="flex overflow-hidden"
           style={{ height: `${editorHeight}px`, maxHeight: `${editorHeight}px` }}
         >
           <div 
             ref={lineNumbersRef}
-            className="w-[50px] bg-[#1e1e1e] text-right text-xs text-gray-500 select-none border-r border-gray-800 overflow-y-auto"
+            className="w-[50px] bg-[#1e1e1e] text-right text-xs text-gray-500 select-none border-r border-[#333333] overflow-y-auto"
             style={{ height: '100%' }}
             onScroll={(e) => handleScroll(e.currentTarget.scrollTop)}
           >
-            <div className="pl-2 pr-3">
+            <div className="px-2">
               {lineNumbers.map(num => (
-                <div key={num} className="h-[24px] leading-[24px] relative">
+                <div key={num} className="h-[24px] leading-[24px]">
                   {num}
                 </div>
               ))}
@@ -523,13 +542,7 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
           </div>
           
           <div className="flex-1 relative overflow-hidden">
-            <div className="relative h-full">
-              <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-                {lineNumbers.map((_, i) => (
-                  <div key={i} className="h-[24px] leading-[24px] border-b border-gray-800/20"></div>
-                ))}
-              </div>
-              
+            <div className="absolute top-0 left-0 w-full h-full">
               <textarea
                 ref={textareaRef}
                 value={code}
@@ -545,6 +558,7 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
                 style={{ 
                   caretColor: 'white', 
                   lineHeight: `${LINE_HEIGHT}px`,
+                  fontFamily: 'SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
                 }}
               />
               
@@ -553,6 +567,7 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
                 className="font-mono text-sm p-2 text-gray-300 whitespace-pre-wrap break-all h-full overflow-auto"
                 style={{ 
                   lineHeight: `${LINE_HEIGHT}px`,
+                  fontFamily: 'SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
                 }}
                 onScroll={(e) => handleScroll(e.currentTarget.scrollTop)}
               >
@@ -562,11 +577,18 @@ const CodeEditorDialog: React.FC<CodeEditorDialogProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center justify-end px-4 py-2 bg-[#252526] border-t border-gray-800 gap-2">
-          <Button variant="outline" onClick={onClose} className="h-8 text-xs bg-[#3c3c3c] border-gray-700 text-gray-300 hover:bg-[#4c4c4c]">
+        <div className="flex items-center justify-end px-4 py-3 bg-[#252526] border-t border-[#333333] gap-2">
+          <Button 
+            onClick={onClose} 
+            variant="outline" 
+            className="h-8 text-xs bg-[#333333] hover:bg-[#444444] text-slate-200 border-[#444444]"
+          >
             Cancel
           </Button>
-          <Button onClick={handleSave} className="h-8 text-xs bg-[#007acc] hover:bg-[#0069ac] text-white border-none">
+          <Button 
+            onClick={handleSave} 
+            className="h-8 text-xs bg-[#4CAF50] hover:bg-[#45a049] text-white border-none"
+          >
             Insert Code
           </Button>
         </div>
