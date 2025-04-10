@@ -1,7 +1,7 @@
 
 // Service Worker for iblue Web Push Notifications and URL handling
 
-const CACHE_NAME = 'iblue-v9'; // Increment version for cache busting
+const CACHE_NAME = 'iblue-v8'; // Increment version for cache busting
 const OFFLINE_URL = '/offline.html';
 
 // Installation event
@@ -94,6 +94,10 @@ self.addEventListener('notificationclick', (event) => {
   const notificationData = event.notification.data;
   const urlToOpen = notificationData && notificationData.url ? notificationData.url : '/';
   
+  // Prioritize notifications view if coming from email
+  const forcedNotificationsView = urlToOpen.includes('/post/') && 
+    (urlToOpen.includes('from=email') || urlToOpen.includes('source=email'));
+  
   // Open or focus the relevant page
   event.waitUntil(
     self.clients.matchAll({ 
@@ -101,28 +105,32 @@ self.addEventListener('notificationclick', (event) => {
       includeUncontrolled: true 
     })
     .then((clientList) => {
+      // If we should force notifications view, change the URL
+      const targetUrl = forcedNotificationsView ? '/notifications' : urlToOpen;
+      
       // Store this in localStorage for persistence if needed
-      try {
-        // If it's a post URL, store the post ID
-        if (urlToOpen.includes('/post/')) {
-          const postId = urlToOpen.split('/post/')[1].split('?')[0];
-          localStorage.setItem('notificationPostId', postId);
+      if (forcedNotificationsView) {
+        try {
+          localStorage.setItem('lastPath', '/notifications');
+          localStorage.setItem('lastUrl', self.location.origin + '/notifications');
           localStorage.setItem('lastPathTimestamp', Date.now().toString());
+          localStorage.setItem('wasOnNotifications', 'true');
+          localStorage.setItem('notificationPostId', urlToOpen.split('/post/')[1]);
+        } catch (e) {
+          console.error('Error setting localStorage:', e);
         }
-      } catch (e) {
-        console.error('Error setting localStorage:', e);
       }
       
       // Check if a window is already open
       for (const client of clientList) {
-        if (client.url.includes(urlToOpen) && 'focus' in client) {
+        if (client.url.includes(targetUrl) && 'focus' in client) {
           return client.focus();
         }
       }
       
       // If no matching client is found, open a new window
       if (self.clients.openWindow) {
-        return self.clients.openWindow(urlToOpen);
+        return self.clients.openWindow(targetUrl);
       }
     })
   );

@@ -1,19 +1,16 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Home, Search, User, Bookmark, Settings, PlusCircle, LogOut, LogIn, Menu, Sparkles } from 'lucide-react';
+import { Home, Search, User, Bookmark, Settings, PlusCircle, LogOut, LogIn, Menu, Bell, Sparkles, BellDot } from 'lucide-react';
 import Button from '@/components/common/Button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import CreatePost from '@/components/feed/CreatePost';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import { UserSession } from '@/types/userSessions';
-
-const SUPABASE_URL = "https://vcywiyvbfrylffwfzsny.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjeXdpeXZiZnJ5bGZmd2Z6c255Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc0ODA3MDIsImV4cCI6MjA1MzA1NjcwMn0.rZUZjLf4j6h0lhl53PhKJ0eARsBXdmlPOtIAHTJQxNE";
+import { toast } from '@/hooks/use-toast';
 
 export const Sidebar = () => {
   const location = useLocation();
@@ -23,7 +20,8 @@ export const Sidebar = () => {
   const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
-  const profilePath = user ? `/profile/${user.id}` : '/profile';
+  const profilePath = '/profile';
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
 
   useEffect(() => {
     if (isMobile) {
@@ -42,8 +40,8 @@ export const Sidebar = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'apikey': SUPABASE_PUBLISHABLE_KEY,
+            'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
             'Prefer': 'resolution=merge-duplicates'
           },
           body: JSON.stringify({
@@ -79,8 +77,8 @@ export const Sidebar = () => {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`
+            'apikey': SUPABASE_PUBLISHABLE_KEY,
+            'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
           },
           body: JSON.stringify({
             is_online: false
@@ -101,6 +99,102 @@ export const Sidebar = () => {
       setUserOffline();
     };
   }, [user]);
+  
+  useEffect(() => {
+    if (!user) return;
+    
+    const checkUnreadNotifications = async () => {
+      try {
+        console.log('Checking for unread notifications for user:', user.id);
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('id')
+          .eq('recipient_id', user.id)
+          .eq('is_read', false);
+          
+        if (error) {
+          console.error('Error checking notifications:', error);
+          return;
+        }
+        
+        const hasUnread = data && data.length > 0;
+        console.log(`Found ${data?.length || 0} unread notifications, setting indicator to: ${hasUnread}`);
+        setHasUnreadNotifications(hasUnread);
+      } catch (error) {
+        console.error('Exception checking notifications:', error);
+      }
+    };
+    
+    checkUnreadNotifications();
+    
+    const notificationsChannel = supabase
+      .channel('sidebar-notification-changes')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: `recipient_id=eq.${user.id}`,
+      }, (payload) => {
+        console.log('New notification received:', payload);
+        setHasUnreadNotifications(true);
+        
+        toast({
+          title: "New Notification",
+          description: payload.new.content,
+          action: (
+            <Button 
+              onClick={() => navigate('/notifications')}
+              variant="outline"
+              size="sm"
+            >
+              View
+            </Button>
+          )
+        });
+      })
+      .subscribe();
+      
+    const notificationUpdatesChannel = supabase
+      .channel('sidebar-notification-updates')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'notifications',
+        filter: `recipient_id=eq.${user.id}`,
+      }, () => {
+        checkUnreadNotifications();
+      })
+      .subscribe();
+      
+    if (location.pathname === '/notifications') {
+      const markNotificationsAsRead = async () => {
+        console.log('On notifications page, marking notifications as read');
+        try {
+          const { error } = await supabase
+            .from('notifications')
+            .update({ is_read: true })
+            .eq('recipient_id', user.id)
+            .eq('is_read', false);
+            
+          if (error) {
+            console.error('Error marking notifications as read:', error);
+            return;
+          }
+          
+          setHasUnreadNotifications(false);
+        } catch (error) {
+          console.error('Exception marking notifications as read:', error);
+        }
+      };
+      
+      markNotificationsAsRead();
+    }
+      
+    return () => {
+      supabase.removeChannel(notificationsChannel);
+      supabase.removeChannel(notificationUpdatesChannel);
+    };
+  }, [user, location.pathname, navigate]);
 
   const navigation = [
     { name: 'Home', icon: Home, href: '/' },
@@ -110,6 +204,13 @@ export const Sidebar = () => {
     { name: 'Profile', icon: User, href: profilePath },
     { name: 'Settings', icon: Settings, href: '/settings' },
   ];
+
+  const notificationsItem = {
+    name: "Notifications",
+    href: "/notifications",
+    icon: hasUnreadNotifications ? BellDot : Bell,
+    hasUnread: hasUnreadNotifications
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -125,8 +226,8 @@ export const Sidebar = () => {
   };
 
   const handleProfileClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
     if (!user) {
+      e.preventDefault();
       navigate('/auth');
     } else {
       navigate(`/profile/${user.id}`);
@@ -208,7 +309,6 @@ export const Sidebar = () => {
                 return (
                   <a
                     key={item.name}
-                    href="#"
                     onClick={handleProfileClick}
                     className={cn(
                       "flex items-center p-3 text-xl font-medium rounded-full transition-colors relative",
@@ -235,6 +335,21 @@ export const Sidebar = () => {
                 </Link>
               );
             })}
+
+            <Link
+              to={notificationsItem.href}
+              className={cn(
+                "flex items-center p-3 text-xl font-medium rounded-full transition-colors relative",
+                location.pathname.startsWith(notificationsItem.href) ? "font-bold" : "text-foreground hover:bg-secondary/70"
+              )}
+            >
+              {notificationsItem.hasUnread ? (
+                <BellDot size={24} className={location.pathname.startsWith(notificationsItem.href) ? "text-primary" : "text-primary"} />
+              ) : (
+                <Bell size={24} className={location.pathname.startsWith(notificationsItem.href) ? "text-primary" : "text-muted-foreground"} />
+              )}
+              <span className="ml-4 font-heading tracking-wide text-lg uppercase">{notificationsItem.name}</span>
+            </Link>
           </nav>
           
           <Dialog open={isPostDialogOpen} onOpenChange={setIsPostDialogOpen}>
@@ -302,7 +417,6 @@ export const Sidebar = () => {
               return (
                 <a
                   key={item.name}
-                  href="#"
                   onClick={handleProfileClick}
                   className={cn(
                     "flex items-center p-3 text-lg font-medium rounded-full transition-colors cursor-pointer relative",
@@ -341,6 +455,27 @@ export const Sidebar = () => {
               </Link>
             );
           })}
+
+          <Link
+            to={notificationsItem.href}
+            className={cn(
+              "flex items-center p-3 text-lg font-medium rounded-full transition-colors relative",
+              location.pathname.startsWith(notificationsItem.href) 
+                ? "font-bold" 
+                : "text-foreground hover:bg-secondary/70",
+              isCollapsed && "justify-center"
+            )}
+          >
+            {notificationsItem.hasUnread ? (
+              <BellDot size={24} className={location.pathname.startsWith(notificationsItem.href) ? "text-foreground" : "text-primary"} />
+            ) : (
+              <Bell size={24} className={location.pathname.startsWith(notificationsItem.href) ? "text-foreground" : "text-muted-foreground"} />
+            )}
+            
+            {!isCollapsed && (
+              <span className="ml-4 font-heading tracking-wide text-lg uppercase">{notificationsItem.name}</span>
+            )}
+          </Link>
 
           {user ? (
             <button
