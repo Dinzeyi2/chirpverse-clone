@@ -45,6 +45,11 @@ export const UrlHandler = () => {
     return null;
   };
   
+  // Check if the path is a profile path with UUID
+  const isProfilePath = (path: string): boolean => {
+    return path.startsWith('/profile/');
+  };
+  
   // Extract comment ID from hash
   const extractCommentId = (hashStr: string): string | null => {
     if (hashStr && hashStr.startsWith('#comment-')) {
@@ -99,16 +104,16 @@ export const UrlHandler = () => {
     ensureNotificationsPathIsPersisted();
     
     // Skip processing for standard routes that don't need special handling
-    if (APP_ROUTES.includes(pathname)) {
+    if (APP_ROUTES.includes(pathname) || isProfilePath(pathname)) {
       return;
     }
     
     // Store the current page info for reload handling
     persistCurrentUrl();
     
-    // Extract UUID and normalize if needed
+    // Extract UUID and normalize if needed - but don't redirect profile paths
     const uuid = extractUuid(pathname);
-    if (uuid && !pathname.startsWith('/post/')) {
+    if (uuid && !pathname.startsWith('/post/') && !pathname.startsWith('/profile/')) {
       console.log(`Redirecting to normalized post URL for UUID: ${uuid}`);
       const normalizedPath = `/post/${uuid}${hash}${search}`;
       navigate(normalizedPath, { replace: true });
@@ -160,9 +165,9 @@ export const UrlHandler = () => {
       }
     }
     
-    // Handle direct post/comment URL access
+    // Handle direct post/comment URL access - but don't redirect profile paths
     const uuid = extractUuid(pathname);
-    if (uuid && !pathname.startsWith('/post/')) {
+    if (uuid && !pathname.startsWith('/post/') && !pathname.startsWith('/profile/')) {
       console.log(`Direct access with UUID: ${uuid}`);
       const normalizedPath = `/post/${uuid}${hash}${search}`;
       navigate(normalizedPath, { replace: true });

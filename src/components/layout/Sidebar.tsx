@@ -11,9 +11,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import { UserSession } from '@/types/userSessions';
 
-const SUPABASE_URL = "https://vcywiyvbfrylffwfzsny.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjeXdpeXZiZnJ5bGZmd2Z6c255Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc0ODA3MDIsImV4cCI6MjA1MzA1NjcwMn0.rZUZjLf4j6h0lhl53PhKJ0eARsBXdmlPOtIAHTJQxNE";
-
 export const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -117,6 +114,7 @@ export const Sidebar = () => {
     if (!user) {
       navigate('/auth');
     } else {
+      console.log("Navigating to profile with user ID:", user.id);
       navigate(`/profile/${user.id}`);
     }
   };
@@ -198,7 +196,7 @@ export const Sidebar = () => {
                     key={item.name}
                     onClick={handleProfileClick}
                     className={cn(
-                      "flex items-center p-3 text-xl font-medium rounded-full transition-colors relative",
+                      "flex items-center p-3 text-xl font-medium rounded-full transition-colors relative cursor-pointer",
                       isActive ? "font-bold" : "text-foreground hover:bg-secondary/70"
                     )}
                   >
