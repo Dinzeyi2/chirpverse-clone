@@ -32,7 +32,7 @@ const queryClient = new QueryClient({
       staleTime: 30 * 1000, // 30 seconds
       retry: 1,
       refetchOnWindowFocus: false
-      // Removed the 'suspense: true' property that was causing the error
+      // Removed the problematic 'suspense: true' property
     }
   }
 });
@@ -96,7 +96,7 @@ const AppContent = () => {
 
   // Show a dedicated loading state during initialization
   if (!isInitialized) {
-    return <LoadingFallback />;
+    return <LoadingFallback message="Loading application..." />;
   }
 
   // Show a specific error message if we have connection issues

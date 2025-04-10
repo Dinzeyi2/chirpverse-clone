@@ -32,8 +32,8 @@ if ('caches' in window) {
       '/lovable-uploads/3466f833-541a-44f1-86a1-5e3f5ed4d8ed.png',
       '/index.html',
       '/manifest.json'
-    ]);
-  });
+    ]).catch(err => console.error("Caching error:", err));
+  }).catch(err => console.error("Cache opening error:", err));
 }
 
 // Set up global error handling
@@ -72,9 +72,33 @@ if (!rootElement) {
 } else {
   const root = createRoot(rootElement);
   
-  // Render with error handling
+  // Render with error handling and recovery mechanism
   try {
     registerServiceWorker();
+    
+    // Create a minimal recovery UI in case of React rendering failures
+    let hasError = false;
+    const ErrorRecoveryUI = () => (
+      <div style={{ padding: '20px', textAlign: 'center' }}>
+        <h1>Something went wrong</h1>
+        <p>Please refresh the page to try again.</p>
+        <button 
+          onClick={() => window.location.reload()}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#0070f3',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          Refresh Page
+        </button>
+      </div>
+    );
+
+    // Try to render the app, with a fallback if it fails
     root.render(<App />);
     
     // Performance measurement

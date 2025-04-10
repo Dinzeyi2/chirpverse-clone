@@ -13,6 +13,7 @@ interface ErrorBoundaryProps {
 interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
+  errorInfo: ErrorInfo | null;
 }
 
 class ErrorBoundaryClass extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
@@ -20,11 +21,13 @@ class ErrorBoundaryClass extends Component<ErrorBoundaryProps, ErrorBoundaryStat
     super(props);
     this.state = {
       hasError: false,
-      error: null
+      error: null,
+      errorInfo: null
     };
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
+    // Update state so the next render will show the fallback UI
     return {
       hasError: true,
       error
@@ -32,9 +35,23 @@ class ErrorBoundaryClass extends Component<ErrorBoundaryProps, ErrorBoundaryStat
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    // Log the error to console for debugging
     console.error('Error caught by ErrorBoundary:', error);
     console.error('Component stack:', errorInfo.componentStack);
+    
+    // Save the error info to state
+    this.setState({
+      errorInfo
+    });
   }
+
+  resetError = () => {
+    this.setState({
+      hasError: false,
+      error: null,
+      errorInfo: null
+    });
+  };
 
   render(): ReactNode {
     if (this.state.hasError) {
@@ -45,7 +62,8 @@ class ErrorBoundaryClass extends Component<ErrorBoundaryProps, ErrorBoundaryStat
       return (
         <DefaultErrorFallback 
           error={this.state.error}
-          resetError={() => this.setState({ hasError: false, error: null })}
+          errorInfo={this.state.errorInfo}
+          resetError={this.resetError}
         />
       );
     }
@@ -56,10 +74,11 @@ class ErrorBoundaryClass extends Component<ErrorBoundaryProps, ErrorBoundaryStat
 
 interface DefaultErrorFallbackProps {
   error: Error | null;
+  errorInfo: ErrorInfo | null;
   resetError: () => void;
 }
 
-function DefaultErrorFallback({ error, resetError }: DefaultErrorFallbackProps) {
+function DefaultErrorFallback({ error, errorInfo, resetError }: DefaultErrorFallbackProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   
@@ -87,16 +106,37 @@ function DefaultErrorFallback({ error, resetError }: DefaultErrorFallbackProps) 
           "text-xs p-4 rounded mb-4 overflow-auto max-w-md w-full text-left",
           isDark ? "bg-gray-800" : "bg-gray-100"
         )}>
-          {error.message}
+          <strong>Error:</strong> {error.message}
+          {errorInfo && (
+            <>
+              <br />
+              <br />
+              <details>
+                <summary>Component Stack</summary>
+                <div className="mt-2 text-xs">
+                  {errorInfo.componentStack}
+                </div>
+              </details>
+            </>
+          )}
         </pre>
       )}
-      <Button 
-        onClick={handleRefresh}
-        className="flex items-center gap-2 bg-xBlue hover:bg-blue-600"
-      >
-        <RefreshCw className="w-4 h-4" />
-        Refresh Application
-      </Button>
+      <div className="flex gap-4">
+        <Button 
+          onClick={resetError}
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          Try Again
+        </Button>
+        <Button 
+          onClick={handleRefresh}
+          className="flex items-center gap-2 bg-xBlue hover:bg-blue-600"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Refresh Application
+        </Button>
+      </div>
     </div>
   );
 }
