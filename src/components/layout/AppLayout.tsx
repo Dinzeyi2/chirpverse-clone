@@ -7,6 +7,8 @@ import { useTheme } from '@/components/theme/theme-provider';
 import { useIsMobile, useScreenSize } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 
 interface AppLayoutProps {
   children?: React.ReactNode;
@@ -58,6 +60,21 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           maxWidth: isMobile ? '100%' : 'calc(100% - 275px)',
         }}
       >
+        {/* Message for non-logged-in users */}
+        {!user && (
+          <Alert className={cn(
+            "mb-4 mt-4 mx-auto max-w-2xl",
+            theme === "dark" 
+              ? "bg-blue-900/20 border-blue-800/30 text-blue-200"
+              : "bg-blue-50 border-blue-200 text-blue-800"
+          )}>
+            <Info className="h-4 w-4 mr-2" />
+            <AlertDescription>
+              We are facing a high volume of signups and posts. We are working on it to make the platform more faster. Log in to your account to see comments and post your issues to the community.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <div className="w-full max-w-2xl mx-auto">
           {children || <Outlet />}
         </div>
