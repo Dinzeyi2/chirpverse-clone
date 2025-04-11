@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { cn } from '@/lib/utils';
@@ -8,7 +8,7 @@ import { useIsMobile, useScreenSize } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
+import { Info, X } from 'lucide-react';
 
 interface AppLayoutProps {
   children?: React.ReactNode;
@@ -19,6 +19,14 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const isMobile = useIsMobile();
   const { width } = useScreenSize();
   const { user } = useAuth();
+  const [showEngagementMessage, setShowEngagementMessage] = useState(true);
+  
+  // Reset the message visibility when user logs in or out
+  useEffect(() => {
+    if (user) {
+      setShowEngagementMessage(true);
+    }
+  }, [user]);
   
   return (
     <div className={cn(
@@ -72,6 +80,31 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             <AlertDescription>
               We are facing a high volume of signups and posts. We are working on it to make the platform more faster. Log in to your account to see comments and post your issues to the community.
             </AlertDescription>
+          </Alert>
+        )}
+        
+        {/* Message for logged-in users */}
+        {user && showEngagementMessage && (
+          <Alert className={cn(
+            "mb-4 mt-4 mx-auto max-w-2xl relative",
+            theme === "dark" 
+              ? "bg-green-900/20 border-green-800/30 text-green-200"
+              : "bg-green-50 border-green-200 text-green-800"
+          )}>
+            <Info className="h-4 w-4 mr-2" />
+            <AlertDescription>
+              The more you engage with others' posts, the more visible your own posts become to everyone
+            </AlertDescription>
+            <button 
+              onClick={() => setShowEngagementMessage(false)}
+              className={cn(
+                "absolute top-3 right-3 rounded-full p-1 hover:bg-opacity-10",
+                theme === "dark" ? "hover:bg-white" : "hover:bg-black"
+              )}
+              aria-label="Dismiss message"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </Alert>
         )}
         
