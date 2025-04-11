@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, Suspense, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PostList from '@/components/feed/PostList';
@@ -34,6 +35,7 @@ const Index = () => {
   } = usePosts();
   
   useEffect(() => {
+    // Set up the cron job for automatic post generation when the app loads
     const setupAutomatedPosting = async () => {
       try {
         await supabase.functions.invoke('setup-cron');
@@ -137,7 +139,8 @@ const Index = () => {
     <AppLayout>
       <div className={`sticky top-0 z-20 ${headerBg} border-b ${borderColor}`}>
         <div className="flex justify-between items-center px-4 py-4">
-          <div></div>
+          {/* GenerateAIPost button has been removed */}
+          <div></div> {/* Empty div to maintain layout */}
           <div className="flex items-center gap-4">
             <button
               className="p-2 rounded-md transition-colors hover:bg-gray-200/10"
@@ -207,6 +210,8 @@ const Index = () => {
             </AlertDescription>
           </Alert>
         )}
+        
+        {/* Removed the personalized feed message as requested */}
         
         {posts.length > 0 && (
           <div className={`pt-0 ${bgColor}`}>
