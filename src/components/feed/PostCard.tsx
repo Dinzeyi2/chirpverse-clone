@@ -323,6 +323,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const handleCommentClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
     navigate(`/post/${post.id}`);
   };
 
